@@ -1,0 +1,38 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Node（出圖工具）
+node_modules/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+*.iml
+.idea/
+
+# iOS / Android 建置產物
+Pods/
+*.ipa
+*.apk
+*.aab
+*.xcarchive
+
+# 金鑰與憑證：一律不進 git
+.env
+*.env
+*.p12
+*.p8
+*.mobileprovision
+*.jks
+*.keystore
+key.properties
+
+# 系統
+.DS_Store
