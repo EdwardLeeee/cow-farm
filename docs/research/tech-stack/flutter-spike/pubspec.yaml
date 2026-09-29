@@ -1,0 +1,27 @@
+name: cowfarm_spike
+description: "cow-farm 效能測試 app（用完即丟）：Flame 畫 N 頭牛＋Flutter 折線圖，量每張畫面時間。"
+publish_to: 'none'
+
+# 顯示版本 0.0.1、建置號 1。CI 用 --build-number 換成 GitHub run number。
+version: 0.0.1+1
+
+environment:
+  sdk: ^3.13.4
+  # CI 的 subosito/flutter-action 用 flutter-version-file 讀這一行，本機與 CI 同一版。
+  flutter: 3.47.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # 牧場畫面的遊戲引擎（MIT，純 Dart）。版本鎖死，升級時重跑一次效能測試。
+  flame: 1.38.2
+  # 不用 device_info_plus：13.2.0 在 iOS 讀磁碟空間（NSFileSystemFreeSize），
+  # 隱私清單卻沒宣告，上傳 App Store Connect 可能被拒。機型改用 dart:ffi 讀。
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true

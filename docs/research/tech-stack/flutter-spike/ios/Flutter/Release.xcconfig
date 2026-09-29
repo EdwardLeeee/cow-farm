@@ -1,0 +1,5 @@
+#include "Generated.xcconfig"
+// CI (.github/workflows/spike-ios.yml) writes Signing.xcconfig before building: manual signing,
+// Apple Distribution, profile name and team ID. Without that file this optional include is skipped.
+// Settings here apply to the Runner target only, not to Swift packages (command-line settings would).
+#include? "Signing.xcconfig"

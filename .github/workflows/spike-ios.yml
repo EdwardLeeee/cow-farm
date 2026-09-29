@@ -1,0 +1,316 @@
+name: Spike iOS
+
+# 效能測試 app（docs/research/tech-stack/flutter-spike，用完即丟）的 iPhone 版。
+#
+# 只能手動執行：Actions → Spike iOS → Run workflow（或 gh workflow run spike-ios.yml -f mode=testflight）。
+# push 與 pull request（包括外部 fork 送來的 PR）都不會觸發，簽章 secrets 只在這個手動觸發的 job 裡使用。
+#
+# mode
+# - testflight：用 Apple Distribution 憑證與 App Store 描述檔簽章，上傳到 App Store Connect，處理完成後
+#   出現在 TestFlight。缺任何一個 secret 就失敗並列出缺哪些；綠燈代表真的簽過、傳過。
+# - compile-only：不簽章也不上傳，只確認 iOS 版編譯得過；不需要任何 secret，Apple 帳號設定完成前就能跑。
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: testflight = sign and upload; compile-only = build without signing (no secrets needed)
+        type: choice
+        options:
+          - testflight
+          - compile-only
+        default: testflight
+
+permissions:
+  contents: read
+
+concurrency:
+  group: spike-ios
+  cancel-in-progress: false
+
+env:
+  APP_DIR: docs/research/tech-stack/flutter-spike
+  BUNDLE_ID: com.oraclelee.cowfarm
+  APP_VERSION: 0.0.1
+  # 要和 Apple Developer 網站上建立的描述檔名稱一字不差。
+  PROFILE_NAME: Cowfarm App Store
+  MODE: ${{ inputs.mode }}
+
+jobs:
+  ios:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check the signing secrets
+        if: inputs.mode == 'testflight'
+        env:
+          IOS_DIST_CERT_P12_BASE64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
+          IOS_DIST_CERT_P12_PASSWORD: ${{ secrets.IOS_DIST_CERT_P12_PASSWORD }}
+          IOS_PROFILE_BASE64: ${{ secrets.IOS_PROFILE_BASE64 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+          ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+        run: |
+          set -euo pipefail
+          missing=""
+          for name in IOS_DIST_CERT_P12_BASE64 IOS_DIST_CERT_P12_PASSWORD IOS_PROFILE_BASE64 \
+            APPLE_TEAM_ID ASC_API_KEY_ID ASC_API_ISSUER_ID ASC_API_KEY_P8_BASE64; do
+            [ -n "${!name:-}" ] || missing="${missing} ${name}"
+          done
+          if [ -n "${missing}" ]; then
+            echo "::error title=iOS not signed::missing secrets:${missing}"
+            echo "- iOS: **not signed, not uploaded**; missing secrets:${missing}. Run with mode=compile-only to check the build without signing." >> "${GITHUB_STEP_SUMMARY}"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # Flutter 版本讀 pubspec.yaml 的 environment.flutter（3.47.5），本機與 CI 同一版。
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version-file: docs/research/tech-stack/flutter-spike/pubspec.yaml
+          cache: true
+
+      - name: Show tool versions
+        run: |
+          flutter --version
+          xcodebuild -version
+          sw_vers
+
+      - name: Get packages
+        working-directory: ${{ env.APP_DIR }}
+        run: flutter pub get
+
+      - name: Build without signing (compile-only)
+        if: inputs.mode == 'compile-only'
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          set -euo pipefail
+          flutter build ios --release --no-codesign \
+            --build-number="${GITHUB_RUN_NUMBER}" --dart-define=BUILD_NUMBER="${GITHUB_RUN_NUMBER}"
+
+      - name: Install the certificate, the profile and the API key
+        if: inputs.mode == 'testflight'
+        env:
+          IOS_DIST_CERT_P12_BASE64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
+          IOS_DIST_CERT_P12_PASSWORD: ${{ secrets.IOS_DIST_CERT_P12_PASSWORD }}
+          IOS_PROFILE_BASE64: ${{ secrets.IOS_PROFILE_BASE64 }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_KEY_P8_BASE64: ${{ secrets.ASC_API_KEY_P8_BASE64 }}
+        run: |
+          set -euo pipefail
+          # Temporary keychain with the Apple Distribution certificate (same steps as connect4).
+          keychain="${RUNNER_TEMP}/signing.keychain-db"
+          keychain_password="$(openssl rand -base64 24)"
+          printf '%s' "${IOS_DIST_CERT_P12_BASE64}" | base64 --decode > "${RUNNER_TEMP}/distribution.p12"
+          security create-keychain -p "${keychain_password}" "${keychain}"
+          security set-keychain-settings -lut 21600 "${keychain}"
+          security unlock-keychain -p "${keychain_password}" "${keychain}"
+          security import "${RUNNER_TEMP}/distribution.p12" -P "${IOS_DIST_CERT_P12_PASSWORD}" \
+            -A -t cert -f pkcs12 -k "${keychain}"
+          security set-key-partition-list -S apple-tool:,apple: -k "${keychain_password}" "${keychain}" >/dev/null
+          # macOS runners ship bash 3.2 (no mapfile), so collect the search list line by line.
+          keychains=("${keychain}")
+          while IFS= read -r line; do
+            line="${line#"${line%%[![:space:]]*}"}"
+            keychains+=("${line//\"/}")
+          done < <(security list-keychains -d user)
+          security list-keychains -d user -s "${keychains[@]}"
+          rm -f "${RUNNER_TEMP}/distribution.p12"
+          echo "KEYCHAIN_PATH=${keychain}" >> "${GITHUB_ENV}"
+
+          # The identity name contains the account holder's legal name and this repo's logs are
+          # public: never print it, and mask it in case a later tool does.
+          identities="$(security find-identity -v -p codesigning "${keychain}")"
+          identity="$(printf '%s\n' "${identities}" | sed -n 's/.*"\(Apple Distribution: .*\)"$/\1/p')"
+          identity="${identity%%$'\n'*}"
+          if [ -z "${identity}" ]; then
+            echo "::error::IOS_DIST_CERT_P12_BASE64 has no Apple Distribution certificate with its private key"
+            exit 1
+          fi
+          echo "::add-mask::${identity}"
+          holder="${identity#Apple Distribution: }"
+          holder="${holder% (*}"
+          [ -z "${holder}" ] || echo "::add-mask::${holder}"
+          echo "Apple Distribution identity installed"
+
+          # App Store provisioning profile for this bundle ID (connect4's profile cannot be reused).
+          profile="${RUNNER_TEMP}/profile.mobileprovision"
+          printf '%s' "${IOS_PROFILE_BASE64}" | base64 --decode > "${profile}"
+          security cms -D -i "${profile}" > "${RUNNER_TEMP}/profile.plist"
+          plist="${RUNNER_TEMP}/profile.plist"
+          name="$(plutil -extract Name raw -o - "${plist}")"
+          uuid="$(plutil -extract UUID raw -o - "${plist}")"
+          app_id="$(plutil -extract Entitlements.application-identifier raw -o - "${plist}")"
+          team="$(plutil -extract TeamIdentifier.0 raw -o - "${plist}")"
+          expires="$(plutil -extract ExpirationDate raw -o - "${plist}" 2>/dev/null || echo unknown)"
+          if [ "${name}" != "${PROFILE_NAME}" ]; then
+            echo "::error::the provisioning profile is named '${name}', expected '${PROFILE_NAME}'"
+            exit 1
+          fi
+          if [ "${team}" != "${APPLE_TEAM_ID}" ] || [ "${app_id}" != "${APPLE_TEAM_ID}.${BUNDLE_ID}" ]; then
+            echo "::error::the provisioning profile is for '${app_id#*.}', expected '${BUNDLE_ID}' in team APPLE_TEAM_ID"
+            exit 1
+          fi
+          if plutil -extract ProvisionedDevices json -o - "${plist}" >/dev/null 2>&1; then
+            echo "::error::'${name}' is a development or ad hoc profile; create an App Store Connect distribution profile"
+            exit 1
+          fi
+          for dir in "${HOME}/Library/MobileDevice/Provisioning Profiles" \
+            "${HOME}/Library/Developer/Xcode/UserData/Provisioning Profiles"; do
+            mkdir -p "${dir}"
+            cp "${profile}" "${dir}/${uuid}.mobileprovision"
+          done
+          echo "PROFILE_UUID=${uuid}" >> "${GITHUB_ENV}"
+          echo "- Provisioning profile: ${name}, expires ${expires}" >> "${GITHUB_STEP_SUMMARY}"
+
+          # App Store Connect API key for the upload.
+          install -d -m 700 "${RUNNER_TEMP}/private_keys"
+          printf '%s' "${ASC_API_KEY_P8_BASE64}" | base64 --decode \
+            > "${RUNNER_TEMP}/private_keys/AuthKey_${ASC_API_KEY_ID}.p8"
+          chmod 600 "${RUNNER_TEMP}/private_keys/AuthKey_${ASC_API_KEY_ID}.p8"
+
+      - name: Write the signing settings and the export options
+        if: inputs.mode == 'testflight'
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -euo pipefail
+          # Included by ios/Flutter/Release.xcconfig (#include?), so it applies to the Runner target
+          # only. Passing these on the xcodebuild command line would also hit the Swift packages.
+          cat > "${GITHUB_WORKSPACE}/${APP_DIR}/ios/Flutter/Signing.xcconfig" <<EOF
+          CODE_SIGN_STYLE = Manual
+          DEVELOPMENT_TEAM = ${APPLE_TEAM_ID}
+          CODE_SIGN_IDENTITY = Apple Distribution
+          CODE_SIGN_IDENTITY[sdk=iphoneos*] = Apple Distribution
+          PROVISIONING_PROFILE_SPECIFIER = ${PROFILE_NAME}
+          EOF
+          options="${RUNNER_TEMP}/ExportOptions.plist"
+          cat > "${options}" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>export</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>signingCertificate</key><string>Apple Distribution</string>
+            <key>teamID</key><string>${APPLE_TEAM_ID}</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>${BUNDLE_ID}</key><string>${PROFILE_NAME}</string>
+            </dict>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+            <key>uploadSymbols</key><true/>
+          </dict>
+          </plist>
+          EOF
+          plutil -lint "${options}"
+          # The same options with destination=upload, used by xcodebuild -exportArchive below.
+          cp "${options}" "${RUNNER_TEMP}/ExportOptions-upload.plist"
+          plutil -replace destination -string upload "${RUNNER_TEMP}/ExportOptions-upload.plist"
+
+      - name: Build the IPA
+        if: inputs.mode == 'testflight'
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          set -euo pipefail
+          flutter build ipa --release \
+            --build-number="${GITHUB_RUN_NUMBER}" --dart-define=BUILD_NUMBER="${GITHUB_RUN_NUMBER}" \
+            --export-options-plist="${RUNNER_TEMP}/ExportOptions.plist"
+          # flutter build ipa exits 0 even when the export step fails (it only prints the error),
+          # so require both the archive and the IPA.
+          test -d build/ios/archive/Runner.xcarchive
+          shopt -s nullglob
+          ipas=(build/ios/ipa/*.ipa)
+          if [ "${#ipas[@]}" -ne 1 ]; then
+            echo "::error::expected one IPA in build/ios/ipa, found ${#ipas[@]}"
+            exit 1
+          fi
+          echo "IPA_PATH=${PWD}/${ipas[0]}" >> "${GITHUB_ENV}"
+
+      - name: Check the app bundle
+        run: |
+          set -euo pipefail
+          if [ "${MODE}" = testflight ]; then
+            rm -rf "${RUNNER_TEMP}/ipa"
+            unzip -q "${IPA_PATH}" -d "${RUNNER_TEMP}/ipa"
+            app="${RUNNER_TEMP}/ipa/Payload/Runner.app"
+          else
+            app="${GITHUB_WORKSPACE}/${APP_DIR}/build/ios/iphoneos/Runner.app"
+          fi
+          info="${app}/Info.plist"
+          failed=0
+          expect() {
+            local actual
+            actual="$(plutil -extract "$1" "$2" -o - "${info}" 2>/dev/null | tr -d ' \n' || true)"
+            if [ "${actual}" = "$3" ]; then
+              echo "ok   $1 = ${actual}"
+            else
+              echo "::error::Info.plist $1 is '${actual}', expected '$3'"
+              failed=1
+            fi
+          }
+          expect CFBundleIdentifier raw "${BUNDLE_ID}"
+          expect CFBundleShortVersionString raw "${APP_VERSION}"
+          expect CFBundleVersion raw "${GITHUB_RUN_NUMBER}"
+          expect CFBundleDisplayName raw "牧場測試"
+          expect ITSAppUsesNonExemptEncryption raw false
+          expect CADisableMinimumFrameDurationOnPhone raw true
+          expect UIDeviceFamily json "[1]"
+          expect UISupportedInterfaceOrientations json '["UIInterfaceOrientationPortrait"]'
+          if [ "${MODE}" = testflight ]; then
+            codesign --verify --strict "${app}"
+            # Check the signer without printing it (the certificate name is a person's name).
+            signature="$(codesign -dvv "${app}" 2>&1)"
+            case "${signature}" in
+              *"Authority=Apple Distribution: "*) echo "ok   signed with an Apple Distribution certificate" ;;
+              *) echo "::error::the app is not signed with an Apple Distribution certificate"; failed=1 ;;
+            esac
+            security cms -D -i "${app}/embedded.mobileprovision" > "${RUNNER_TEMP}/embedded.plist"
+            embedded="$(plutil -extract Name raw -o - "${RUNNER_TEMP}/embedded.plist")"
+            if [ "${embedded}" = "${PROFILE_NAME}" ]; then
+              echo "ok   embedded profile = ${embedded}"
+            else
+              echo "::error::embedded profile is '${embedded}', expected '${PROFILE_NAME}'"
+              failed=1
+            fi
+            echo "- IPA: ${BUNDLE_ID} ${APP_VERSION} (${GITHUB_RUN_NUMBER}), $(du -h "${IPA_PATH}" | cut -f1), Apple Distribution + ${PROFILE_NAME}" >> "${GITHUB_STEP_SUMMARY}"
+          else
+            echo "- iOS: compiled without signing (compile-only), ${BUNDLE_ID} ${APP_VERSION} (${GITHUB_RUN_NUMBER}); nothing was uploaded" >> "${GITHUB_STEP_SUMMARY}"
+          fi
+          exit "${failed}"
+
+      - name: Upload to App Store Connect (TestFlight)
+        if: inputs.mode == 'testflight'
+        env:
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          # Same method as connect4: re-export the archive with destination=upload and authenticate
+          # with the App Store Connect API key (no Apple ID password, no altool key directories).
+          xcodebuild -exportArchive \
+            -archivePath "${GITHUB_WORKSPACE}/${APP_DIR}/build/ios/archive/Runner.xcarchive" \
+            -exportOptionsPlist "${RUNNER_TEMP}/ExportOptions-upload.plist" \
+            -exportPath "${RUNNER_TEMP}/upload" \
+            -authenticationKeyPath "${RUNNER_TEMP}/private_keys/AuthKey_${ASC_API_KEY_ID}.p8" \
+            -authenticationKeyID "${ASC_API_KEY_ID}" \
+            -authenticationKeyIssuerID "${ASC_API_ISSUER_ID}"
+          echo "- Uploaded ${APP_VERSION} (${GITHUB_RUN_NUMBER}) to App Store Connect; it appears in TestFlight after processing" >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Remove the signing material
+        if: always()
+        run: |
+          [ -z "${KEYCHAIN_PATH:-}" ] || security delete-keychain "${KEYCHAIN_PATH}" || true
+          if [ -n "${PROFILE_UUID:-}" ]; then
+            rm -f "${HOME}/Library/MobileDevice/Provisioning Profiles/${PROFILE_UUID}.mobileprovision" \
+              "${HOME}/Library/Developer/Xcode/UserData/Provisioning Profiles/${PROFILE_UUID}.mobileprovision"
+          fi
+          rm -rf "${RUNNER_TEMP}/private_keys" "${RUNNER_TEMP}/ipa" "${RUNNER_TEMP}/upload"
+          rm -f "${RUNNER_TEMP}/distribution.p12" "${RUNNER_TEMP}/profile.mobileprovision" \
+            "${RUNNER_TEMP}/profile.plist" "${RUNNER_TEMP}/embedded.plist" \
+            "${GITHUB_WORKSPACE}/${APP_DIR}/ios/Flutter/Signing.xcconfig"

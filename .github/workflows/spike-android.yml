@@ -1,0 +1,100 @@
+name: Spike Android
+
+# 效能測試 app（docs/research/tech-stack/flutter-spike，用完即丟）的 Android 版 APK，給手機側載用。
+#
+# 只能手動執行：Actions → Spike Android → Run workflow（或 gh workflow run spike-android.yml）。
+# 不用任何 secret：release 版用 runner 上臨時產生的 debug key 簽章，只能側載，不能上 Google Play。
+# 每次建置的 debug key 都不同，裝新版前要先解除安裝舊版。
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: spike-android
+  cancel-in-progress: false
+
+env:
+  APP_DIR: docs/research/tech-stack/flutter-spike
+  APPLICATION_ID: com.oraclelee.cowfarm
+  APP_VERSION: 0.0.1
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # Flutter 版本讀 pubspec.yaml 的 environment.flutter（3.47.5），本機與 CI 同一版。
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version-file: docs/research/tech-stack/flutter-spike/pubspec.yaml
+          cache: true
+
+      - name: Show tool versions
+        run: |
+          flutter --version
+          java -version
+
+      - name: Analyze and test
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          set -euo pipefail
+          flutter pub get
+          flutter analyze
+          flutter test
+
+      - name: Build the release APK (debug-key signed, for sideloading only)
+        working-directory: ${{ env.APP_DIR }}
+        run: |
+          set -euo pipefail
+          flutter build apk --release \
+            --build-number="${GITHUB_RUN_NUMBER}" --dart-define=BUILD_NUMBER="${GITHUB_RUN_NUMBER}"
+
+      - name: Check the APK
+        run: |
+          set -euo pipefail
+          apk="${GITHUB_WORKSPACE}/${APP_DIR}/build/app/outputs/flutter-apk/app-release.apk"
+          test -f "${apk}"
+          build_tools="$(printf '%s\n' "${ANDROID_HOME}"/build-tools/* | sort -V | tail -n 1)"
+          badging="$("${build_tools}/aapt2" dump badging "${apk}")"
+          package_line="$(printf '%s\n' "${badging}" | sed -n '/^package:/p')"
+          echo "${package_line}"
+          printf '%s\n' "${badging}" | sed -n '/^application-label:/p;/^sdkVersion:/p;/^targetSdkVersion:/p;/^native-code:/p'
+          failed=0
+          case "${package_line}" in
+            *"name='${APPLICATION_ID}'"*) ;;
+            *) echo "::error::applicationId is not ${APPLICATION_ID}"; failed=1 ;;
+          esac
+          case "${package_line}" in
+            *"versionCode='${GITHUB_RUN_NUMBER}'"*"versionName='${APP_VERSION}'"*) ;;
+            *) echo "::error::expected versionCode ${GITHUB_RUN_NUMBER} and versionName ${APP_VERSION}"; failed=1 ;;
+          esac
+          case "${badging}" in
+            *"application-label:'牧場測試'"*) ;;
+            *) echo "::error::the app label is not 牧場測試"; failed=1 ;;
+          esac
+          certs="$("${build_tools}/apksigner" verify --print-certs "${apk}")"
+          printf '%s\n' "${certs}" | sed -n '/Signer #1 certificate DN/p;/Signer #1 certificate SHA-256/p'
+          release="${GITHUB_WORKSPACE}/release"
+          mkdir -p "${release}"
+          name="cowfarm-spike-${APP_VERSION}-${GITHUB_RUN_NUMBER}.apk"
+          cp "${apk}" "${release}/${name}"
+          echo "- Android: ${name} ($(du -h "${release}/${name}" | cut -f1)), signed with this run's debug key; uninstall the previous spike APK before installing" >> "${GITHUB_STEP_SUMMARY}"
+          exit "${failed}"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cowfarm-spike-apk
+          path: release/
+          retention-days: 14
+          if-no-files-found: error
