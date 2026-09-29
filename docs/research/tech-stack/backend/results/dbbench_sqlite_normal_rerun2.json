@@ -1,0 +1,371 @@
+{
+ "cmd": "dbbench",
+ "args": {
+  "db": "sqlite",
+  "path": "/tmp/claude-1000/-home-oraclelee-Desktop-cow-farm/66870844-3aca-43f4-909f-b2b955193ab6/scratchpad/data/bench_N3.db",
+  "sync": "NORMAL",
+  "pool": 20,
+  "pg_pid": null,
+  "concurrency": "1,8,32,128",
+  "hotrow": "1,0",
+  "duration": 10,
+  "mem_floor": 450.0,
+  "out": "results/dbbench_sqlite_normal_rerun2.json"
+ },
+ "env_before": {
+  "time": "2026-09-30T02:44:35+0800",
+  "loadavg": [
+   4.572265625,
+   7.31201171875,
+   15.24365234375
+  ],
+  "mem_available_mb": 1449.7,
+  "swap_free_mb": 0.1,
+  "cpu_mhz": {
+   "2": 3399.98,
+   "3": 3400.021,
+   "6": 3400.006,
+   "7": 3399.117
+  },
+  "python": "3.10.12"
+ },
+ "aborted": null,
+ "modes": [
+  {
+   "hotrow": true,
+   "levels": [
+    {
+     "concurrency": 1,
+     "tx_per_s": 3897.8,
+     "counts": {
+      "ok": 38982,
+      "insufficient": 0,
+      "error": 0
+     },
+     "p50_ms": 0.112,
+     "p90_ms": 0.173,
+     "p99_ms": 0.237,
+     "max_ms": 59.699,
+     "system": {
+      "window_s": 10.001,
+      "server_cpu_pct": 54.5,
+      "server_cpu_s": 5.45,
+      "server_sys_cpu_s": 1.39,
+      "server_rss_mb_peak": 37.1,
+      "server_rss_mb_end": 37.1,
+      "server_rss_mb_start": 34.5,
+      "server_fds_peak": 17,
+      "loadgen_cpu_pct": 54.5,
+      "lo_bytes_per_s": 0.0,
+      "mem_available_mb_min": 1437.0,
+      "cpu_busy_pct": {
+       "2": 55.2,
+       "3": 2.6,
+       "6": 32.3,
+       "7": 3.5
+      },
+      "cpu2_other_pct": 0.7,
+      "cpu2_mhz_mean": 3313,
+      "vmstat_delta": {
+       "allocstall_normal": 0,
+       "allocstall_movable": 0,
+       "pgmajfault": 18,
+       "pgscan_direct": 0
+      }
+     }
+    },
+    {
+     "concurrency": 8,
+     "tx_per_s": 3271.1,
+     "counts": {
+      "ok": 32868,
+      "insufficient": 0,
+      "error": 0
+     },
+     "p50_ms": 0.939,
+     "p90_ms": 1.291,
+     "p99_ms": 62.749,
+     "max_ms": 74.943,
+     "system": {
+      "window_s": 10.048,
+      "server_cpu_pct": 40.7,
+      "server_cpu_s": 4.09,
+      "server_sys_cpu_s": 1.08,
+      "server_rss_mb_peak": 38.1,
+      "server_rss_mb_end": 38.1,
+      "server_rss_mb_start": 37.4,
+      "server_fds_peak": 17,
+      "loadgen_cpu_pct": 40.7,
+      "lo_bytes_per_s": 79.2,
+      "mem_available_mb_min": 1396.4,
+      "cpu_busy_pct": {
+       "2": 42.8,
+       "3": 5.6,
+       "6": 5.2,
+       "7": 9.2
+      },
+      "cpu2_other_pct": 2.1,
+      "cpu2_mhz_mean": 3304,
+      "vmstat_delta": {
+       "allocstall_normal": 0,
+       "allocstall_movable": 0,
+       "pgmajfault": 265,
+       "pgscan_direct": 0
+      }
+     }
+    },
+    {
+     "concurrency": 32,
+     "tx_per_s": 3544.0,
+     "counts": {
+      "ok": 35454,
+      "insufficient": 0,
+      "error": 0
+     },
+     "p50_ms": 3.696,
+     "p90_ms": 7.513,
+     "p99_ms": 90.845,
+     "max_ms": 111.541,
+     "system": {
+      "window_s": 10.004,
+      "server_cpu_pct": 41.3,
+      "server_cpu_s": 4.13,
+      "server_sys_cpu_s": 1.06,
+      "server_rss_mb_peak": 38.4,
+      "server_rss_mb_end": 38.4,
+      "server_rss_mb_start": 38.1,
+      "server_fds_peak": 17,
+      "loadgen_cpu_pct": 41.3,
+      "lo_bytes_per_s": 91.2,
+      "mem_available_mb_min": 1363.3,
+      "cpu_busy_pct": {
+       "2": 42.6,
+       "3": 6.2,
+       "6": 6.4,
+       "7": 6.1
+      },
+      "cpu2_other_pct": 1.3,
+      "cpu2_mhz_mean": 3337,
+      "vmstat_delta": {
+       "allocstall_normal": 0,
+       "allocstall_movable": 0,
+       "pgmajfault": 129,
+       "pgscan_direct": 0
+      }
+     }
+    },
+    {
+     "concurrency": 128,
+     "tx_per_s": 5541.9,
+     "counts": {
+      "ok": 55713,
+      "insufficient": 0,
+      "error": 0
+     },
+     "p50_ms": 15.348,
+     "p90_ms": 45.975,
+     "p99_ms": 56.044,
+     "max_ms": 85.414,
+     "system": {
+      "window_s": 10.053,
+      "server_cpu_pct": 62.9,
+      "server_cpu_s": 6.32,
+      "server_sys_cpu_s": 1.63,
+      "server_rss_mb_peak": 39.9,
+      "server_rss_mb_end": 39.9,
+      "server_rss_mb_start": 38.6,
+      "server_fds_peak": 17,
+      "loadgen_cpu_pct": 62.9,
+      "lo_bytes_per_s": 40.6,
+      "mem_available_mb_min": 1379.2,
+      "cpu_busy_pct": {
+       "2": 63.5,
+       "3": 3.9,
+       "6": 4.1,
+       "7": 3.3
+      },
+      "cpu2_other_pct": 0.6,
+      "cpu2_mhz_mean": 3378,
+      "vmstat_delta": {
+       "allocstall_normal": 0,
+       "allocstall_movable": 0,
+       "pgmajfault": 62,
+       "pgscan_direct": 0
+      }
+     }
+    }
+   ]
+  },
+  {
+   "hotrow": false,
+   "levels": [
+    {
+     "concurrency": 1,
+     "tx_per_s": 5064.0,
+     "counts": {
+      "ok": 50645,
+      "insufficient": 0,
+      "error": 0
+     },
+     "p50_ms": 0.104,
+     "p90_ms": 0.153,
+     "p99_ms": 0.333,
+     "max_ms": 63.647,
+     "system": {
+      "window_s": 10.001,
+      "server_cpu_pct": 61.9,
+      "server_cpu_s": 6.19,
+      "server_sys_cpu_s": 1.45,
+      "server_rss_mb_peak": 39.7,
+      "server_rss_mb_end": 39.7,
+      "server_rss_mb_start": 39.5,
+      "server_fds_peak": 17,
+      "loadgen_cpu_pct": 61.9,
+      "lo_bytes_per_s": 525.4,
+      "mem_available_mb_min": 1118.4,
+      "cpu_busy_pct": {
+       "2": 64.6,
+       "3": 14.7,
+       "6": 10.3,
+       "7": 13.5
+      },
+      "cpu2_other_pct": 2.7,
+      "cpu2_mhz_mean": 3117,
+      "vmstat_delta": {
+       "allocstall_normal": 41,
+       "allocstall_movable": 6,
+       "pgmajfault": 595,
+       "pgscan_direct": 3099
+      }
+     }
+    },
+    {
+     "concurrency": 8,
+     "tx_per_s": 6855.4,
+     "counts": {
+      "ok": 68568,
+      "insufficient": 0,
+      "error": 0
+     },
+     "p50_ms": 0.836,
+     "p90_ms": 1.177,
+     "p99_ms": 13.799,
+     "max_ms": 51.96,
+     "system": {
+      "window_s": 10.002,
+      "server_cpu_pct": 70.5,
+      "server_cpu_s": 7.05,
+      "server_sys_cpu_s": 1.68,
+      "server_rss_mb_peak": 40.2,
+      "server_rss_mb_end": 40.2,
+      "server_rss_mb_start": 39.9,
+      "server_fds_peak": 17,
+      "loadgen_cpu_pct": 70.5,
+      "lo_bytes_per_s": 81.6,
+      "mem_available_mb_min": 1125.0,
+      "cpu_busy_pct": {
+       "2": 71.9,
+       "3": 5.6,
+       "6": 7.2,
+       "7": 8.9
+      },
+      "cpu2_other_pct": 1.4,
+      "cpu2_mhz_mean": 3243,
+      "vmstat_delta": {
+       "allocstall_normal": 0,
+       "allocstall_movable": 0,
+       "pgmajfault": 31,
+       "pgscan_direct": 0
+      }
+     }
+    },
+    {
+     "concurrency": 32,
+     "tx_per_s": 5606.2,
+     "counts": {
+      "ok": 56079,
+      "insufficient": 0,
+      "error": 0
+     },
+     "p50_ms": 2.979,
+     "p90_ms": 4.938,
+     "p99_ms": 71.785,
+     "max_ms": 87.975,
+     "system": {
+      "window_s": 10.003,
+      "server_cpu_pct": 52.3,
+      "server_cpu_s": 5.23,
+      "server_sys_cpu_s": 1.21,
+      "server_rss_mb_peak": 40.4,
+      "server_rss_mb_end": 40.4,
+      "server_rss_mb_start": 40.4,
+      "server_fds_peak": 17,
+      "loadgen_cpu_pct": 52.3,
+      "lo_bytes_per_s": 40.8,
+      "mem_available_mb_min": 1131.3,
+      "cpu_busy_pct": {
+       "2": 53.3,
+       "3": 11.4,
+       "6": 6.6,
+       "7": 53.3
+      },
+      "cpu2_other_pct": 1.0,
+      "cpu2_mhz_mean": 3121,
+      "vmstat_delta": {
+       "allocstall_normal": 0,
+       "allocstall_movable": 0,
+       "pgmajfault": 199,
+       "pgscan_direct": 0
+      }
+     }
+    },
+    {
+     "concurrency": 128,
+     "tx_per_s": 8275.1,
+     "counts": {
+      "ok": 82825,
+      "insufficient": 0,
+      "error": 0
+     },
+     "p50_ms": 11.488,
+     "p90_ms": 25.473,
+     "p99_ms": 44.091,
+     "max_ms": 57.24,
+     "system": {
+      "window_s": 10.009,
+      "server_cpu_pct": 77.3,
+      "server_cpu_s": 7.74,
+      "server_sys_cpu_s": 1.73,
+      "server_rss_mb_peak": 41.7,
+      "server_rss_mb_end": 41.7,
+      "server_rss_mb_start": 40.4,
+      "server_fds_peak": 17,
+      "loadgen_cpu_pct": 77.3,
+      "lo_bytes_per_s": 67.9,
+      "mem_available_mb_min": 1184.6,
+      "cpu_busy_pct": {
+       "2": 78.4,
+       "3": 46.1,
+       "6": 12.6,
+       "7": 60.3
+      },
+      "cpu2_other_pct": 1.1,
+      "cpu2_mhz_mean": 3225,
+      "vmstat_delta": {
+       "allocstall_normal": 0,
+       "allocstall_movable": 0,
+       "pgmajfault": 52,
+       "pgscan_direct": 0
+      }
+     }
+    }
+   ]
+  }
+ ],
+ "final_counts": {
+  "players": 128,
+  "farms": 128,
+  "trades": 463977,
+  "market": 2
+ }
+}

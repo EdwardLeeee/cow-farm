@@ -1,0 +1,50 @@
+{
+ "cmd": "seed",
+ "args": {
+  "base": "http://127.0.0.1:18080",
+  "server_pid": 2979832,
+  "pg_pid": null,
+  "mem_floor": 1000.0,
+  "seed": 1,
+  "out": "results/seed_sqlite_full.json",
+  "raw_dir": "results/raw",
+  "label": "run",
+  "cmd": "seed",
+  "n": 10000,
+  "concurrency": 32,
+  "tokens": "/tmp/claude-1000/-home-oraclelee-Desktop-cow-farm/66870844-3aca-43f4-909f-b2b955193ab6/scratchpad/data/tokens_sqlite.json"
+ },
+ "wall_s": 28.608,
+ "sessions_per_s": 349.6,
+ "summary": {
+  "window_s": 28.608,
+  "session": {
+   "count": 10000,
+   "rps": 349.55,
+   "classes": {
+    "ok": 10000
+   },
+   "error_rate": 0.0,
+   "p50_ms": 83.19,
+   "p90_ms": 103.44,
+   "p99_ms": 216.208,
+   "p999_ms": 436.7,
+   "max_ms": 469.475,
+   "mean_ms": 91.106
+  },
+  "ALL": {
+   "count": 10000,
+   "rps": 349.55,
+   "classes": {
+    "ok": 10000
+   },
+   "error_rate": 0.0,
+   "p50_ms": 83.19,
+   "p90_ms": 103.44,
+   "p99_ms": 216.208,
+   "p999_ms": 436.7,
+   "max_ms": 469.475,
+   "mean_ms": 91.106
+  }
+ }
+}

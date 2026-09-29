@@ -1,0 +1,170 @@
+{
+ "cmd": "mixed",
+ "label": "mixed_sqlite_normal_10k_run2",
+ "args": {
+  "base": "http://127.0.0.1:18080",
+  "server_pid": 2982700,
+  "pg_pid": null,
+  "mem_floor": 450.0,
+  "seed": 1,
+  "out": "results/mixed_sqlite_normal_10k_run2.json",
+  "raw_dir": "results/raw",
+  "label": "mixed_sqlite_normal_10k_run2",
+  "cmd": "mixed",
+  "tokens": "/tmp/claude-1000/-home-oraclelee-Desktop-cow-farm/66870844-3aca-43f4-909f-b2b955193ab6/scratchpad/data/tokens_sqlite.json",
+  "users": 10000,
+  "warmup": 20.0,
+  "duration": 60.0,
+  "think_min": 10,
+  "think_max": 20,
+  "conn": "close",
+  "limit": 2000
+ },
+ "env_before": {
+  "time": "2026-09-30T02:46:29+0800",
+  "loadavg": [
+   3.8623046875,
+   6.25146484375,
+   13.97119140625
+  ],
+  "mem_available_mb": 1285.9,
+  "swap_free_mb": 0.1,
+  "cpu_mhz": {
+   "2": 2800.393,
+   "3": 3000.713,
+   "6": 2901.907,
+   "7": 2900.008
+  },
+  "python": "3.10.12"
+ },
+ "aborted": null,
+ "inflight_at_end": 0,
+ "system": {
+  "window_s": 60.073,
+  "server_cpu_pct": 47.2,
+  "server_cpu_s": 28.35,
+  "server_sys_cpu_s": 4.29,
+  "server_rss_mb_peak": 58.0,
+  "server_rss_mb_end": 58.0,
+  "server_rss_mb_start": 58.0,
+  "server_fds_peak": 39,
+  "loadgen_cpu_pct": 48.7,
+  "lo_bytes_per_s": 710557.8,
+  "mem_available_mb_min": 1060.8,
+  "cpu_busy_pct": {
+   "2": 49.1,
+   "3": 27.1,
+   "6": 8.5,
+   "7": 25.5
+  },
+  "cpu2_other_pct": 1.9,
+  "cpu2_mhz_mean": 2700,
+  "vmstat_delta": {
+   "allocstall_normal": 1,
+   "allocstall_movable": 5,
+   "pgmajfault": 788,
+   "pgscan_direct": 1381
+  }
+ },
+ "summary": {
+  "window_s": 60.073,
+  "market": {
+   "count": 11968,
+   "rps": 199.22,
+   "classes": {
+    "ok": 11968
+   },
+   "error_rate": 0.0,
+   "p50_ms": 1.775,
+   "p90_ms": 3.633,
+   "p99_ms": 16.829,
+   "p999_ms": 43.115,
+   "max_ms": 49.24,
+   "mean_ms": 2.439
+  },
+  "collect": {
+   "count": 9789,
+   "rps": 162.95,
+   "classes": {
+    "ok": 9789
+   },
+   "error_rate": 0.0,
+   "p50_ms": 3.026,
+   "p90_ms": 6.641,
+   "p99_ms": 24.726,
+   "p999_ms": 61.647,
+   "max_ms": 128.42,
+   "mean_ms": 4.116
+  },
+  "sell": {
+   "count": 5884,
+   "rps": 97.95,
+   "classes": {
+    "ok": 5884
+   },
+   "error_rate": 0.0,
+   "p50_ms": 3.35,
+   "p90_ms": 7.297,
+   "p99_ms": 27.484,
+   "p999_ms": 70.936,
+   "max_ms": 128.999,
+   "mean_ms": 4.534
+  },
+  "farm": {
+   "count": 11828,
+   "rps": 196.89,
+   "classes": {
+    "ok": 11828
+   },
+   "error_rate": 0.0,
+   "p50_ms": 2.638,
+   "p90_ms": 5.394,
+   "p99_ms": 20.674,
+   "p999_ms": 52.045,
+   "max_ms": 128.666,
+   "mean_ms": 3.463
+  },
+  "ALL": {
+   "count": 39469,
+   "rps": 657.02,
+   "classes": {
+    "ok": 39469
+   },
+   "error_rate": 0.0,
+   "p50_ms": 2.536,
+   "p90_ms": 5.685,
+   "p99_ms": 21.598,
+   "p999_ms": 53.506,
+   "max_ms": 128.999,
+   "mean_ms": 3.474
+  }
+ },
+ "server_debug": {
+  "pid": 2982700,
+  "cfg": {
+   "db": "sqlite",
+   "sqlite_path": "/tmp/claude-1000/-home-oraclelee-Desktop-cow-farm/66870844-3aca-43f4-909f-b2b955193ab6/scratchpad/data/game.db",
+   "sqlite_sync": "NORMAL",
+   "sqlite_readers": 4,
+   "pg_pool": 20,
+   "tick_sec": 1.0,
+   "ws_push": true,
+   "ws_auth": true,
+   "start_milk": 1000000
+  },
+  "ws_conns": 0,
+  "ws_accepted": 0,
+  "ws_rejected": 0,
+  "broadcasts": [],
+  "tick": 980,
+  "tick_p50_ms": 0.54,
+  "tick_max_ms": 820.618,
+  "counts": {
+   "players": 10000,
+   "farms": 10000,
+   "trades": 122198,
+   "market": 2
+  }
+ },
+ "server_cpu_ms_per_req": 0.7183
+}

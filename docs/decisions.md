@@ -78,4 +78,40 @@
 
 ## 技術決定
 
-（M0 技術研究完成後補上：數字、選擇與沒選的理由。）
+### T1 後端：FastAPI、PostgreSQL、WebSocket（ceo 依實測決定，2026-09-30）
+
+依據：[`docs/research/tech-stack/backend-findings.md`](research/tech-stack/backend-findings.md)。量測在 i5-8250U 筆電上，API 只用 1 顆邏輯 CPU。
+
+- **FastAPI，先開 1 個 worker**
+  - 模擬 10,000 人同時在線（每秒 660 個請求）：零錯誤，CPU 用 47–67%。
+  - 單核飽和點約 1,000–1,200 req/s，估計每顆 vCPU 可服務 8,000–10,000 人。
+- **資料庫用 PostgreSQL 17**
+  - 規則：成交時只寫成交紀錄，全服成交量由每秒一次的市場 tick 彙總，不讓每筆交易都去更新同一列。
+    - 照這條規則：每秒可寫入 1,390–1,860 筆。
+    - 每筆交易都去更新同一列：每秒只有 300–380 筆。
+    - 10,000 人約需每秒 263 筆。
+  - 沒選 SQLite
+    - 每筆都落盤（FULL）：受磁碟限制，每秒只能寫 350–410 筆。
+    - 不每筆落盤（NORMAL）：主機當機或斷電時，可能丟掉最後幾筆已經成交的交易，而且只能用單一程序。
+- **即時行情用 WebSocket 推播**
+  - 10,000 人時 CPU 14.4%，p99 0.77 秒送到每個人，但多用約 370 MB 記憶體。
+  - 每 10 秒輪詢則要 42.4% CPU，價格最多慢 5 秒，而且會漏掉一半的更新。輪詢只留來補快照。
+  - 斷線重連用指數退避加隨機等待，上限 5 秒：1,000 條連線在伺服器恢復後 4.9 秒內全部連回。
+- **登入憑證放 `flutter_secure_storage`**
+  - 不用 `shared_preferences`：官方寫明它「must not be used for storing critical data」。
+- **M1 試玩的連線方式**
+  - 平時：Flutter 網頁版，在家裡 Wi-Fi 用 HTTP。
+  - 真機 app：只在開發版加 iOS 區網例外（`NSAllowsLocalNetworking`）。
+  - 不在同一個網路的測試者：用臨時 HTTPS tunnel，開之前先問使用者。
+- **還沒量**
+  - 10,000 人同時重連。
+  - TLS 的額外負擔。
+  - 刪除 app 之後，Keychain 裡的憑證會不會留著。
+
+### T2 app：Flutter＋Flame 測試版（2026-09-30）
+
+- 依據：[`docs/research/tech-stack/flutter-findings.md`](research/tech-stack/flutter-findings.md)。
+- Flutter 3.47.5，裝在 `~/development/flutter`。
+- GitHub 上 iOS 只編譯（run 36615992709）和 Android APK（run 36615998539）都成功。
+- iPhone 實機數字要等 TestFlight：需要使用者在 Apple 網站做三步。
+- 簽章沿用 connect4 的團隊發布憑證和 App Store Connect API key，只新做 cow-farm 的描述檔；不採用自動簽章，因為要用權限更大的 Admin key。

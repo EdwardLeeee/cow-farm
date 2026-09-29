@@ -1,0 +1,23 @@
+== 1. 負載進行中的線上備份
+WAL 大小（備份前）: 4132392 bytes
+{"seconds": 0.0381, "integrity_check": "ok", "bytes": 4620288}
+同時段負載： 1941 requests, p99 12.5 ms, classes {'ok': 1941}
+== 2. 反例：只 cp 主檔（不含 -wal）
+當下 WAL 大小: 4132392 bytes
+  players  來源   10000 列  cp 副本   10000 列  相同
+  farms    來源   10000 列  cp 副本   10000 列  不同
+  trades   來源  122505 列  cp 副本  122406 列  不同
+  market   來源       2 列  cp 副本       2 列  相同
+== 3. 靜止時的線上備份與逐表比對
+{"seconds": 0.0629, "integrity_check": "ok", "bytes": 4624384}
+  players  來源 [10000, 'c06866106aec753ee309977422285c72']  備份 [10000, 'c06866106aec753ee309977422285c72']
+  farms    來源 [10000, '1e09650fa14eb6b0a885a96d22002016']  備份 [10000, '1e09650fa14eb6b0a885a96d22002016']
+  trades   來源 [122505, 'd97404f3e00436efe463c1d717644b0f']  備份 [122505, 'd97404f3e00436efe463c1d717644b0f']
+  market   來源 [2, '-']  備份 [2, '-']
+RESULT: 來源與備份完全一致
+還原前 GET /v1/farm: {"player_id":124,"cows":3,"milk":1000014,"coins":18817,"pending_milk":15,"server_time":1790707754.3004074}
+== 4. 還原
+stopped 2982700
+還原後 GET /v1/farm: {"player_id":124,"cows":3,"milk":1000014,"coins":18817,"pending_milk":15,"server_time":1790707755.2594965}
+RESULT: 玩家資料一致 {'player_id': (124, 124), 'cows': (3, 3), 'milk': (1000014, 1000014), 'coins': (18817, 18817)}
+還原後 POST /v1/sell: {"sold":1,"price":100,"milk":1000013,"coins":18917}

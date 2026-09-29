@@ -1,0 +1,217 @@
+{
+ "cmd": "sell",
+ "label": "sell_pg",
+ "args": {
+  "base": "http://127.0.0.1:18080",
+  "server_pid": 2968999,
+  "pg_pid": 2964031,
+  "mem_floor": 450.0,
+  "seed": 1,
+  "out": "results/sell_pg.json",
+  "raw_dir": "results/raw",
+  "label": "sell_pg",
+  "cmd": "sell",
+  "tokens": "/tmp/claude-1000/-home-oraclelee-Desktop-cow-farm/66870844-3aca-43f4-909f-b2b955193ab6/scratchpad/data/tokens_pg.json",
+  "concurrency": "1,8,32,128",
+  "duration": 15.0
+ },
+ "env_before": {
+  "time": "2026-09-30T02:13:14+0800",
+  "loadavg": [
+   3.509765625,
+   3.28857421875,
+   2.83154296875
+  ],
+  "mem_available_mb": 1160.9,
+  "swap_free_mb": 0.1,
+  "cpu_mhz": {
+   "2": 2999.891,
+   "3": 3381.264,
+   "6": 3341.36,
+   "7": 3301.05
+  },
+  "python": "3.10.12"
+ },
+ "aborted": "MemAvailable 326 MB < 450.0 MB",
+ "levels": [
+  {
+   "concurrency": 1,
+   "system": {
+    "window_s": 15.002,
+    "server_cpu_pct": 33.8,
+    "server_cpu_s": 5.07,
+    "server_rss_mb_peak": 48.4,
+    "server_rss_mb_end": 48.4,
+    "server_rss_mb_start": 48.4,
+    "server_fds_peak": 36,
+    "pg_cpu_pct": 15.2,
+    "pg_cpu_s": 2.286,
+    "pg_mem_mb_peak": 96.4,
+    "loadgen_cpu_pct": 11.7,
+    "lo_bytes_per_s": 358086.4,
+    "mem_available_mb_min": 1157.4,
+    "cpu_busy_pct": {
+     "2": 36.4,
+     "3": 11.0,
+     "6": 17.7,
+     "7": 11.5
+    }
+   },
+   "summary": {
+    "count": 2614,
+    "rps": 174.24,
+    "classes": {
+     "ok": 2614
+    },
+    "error_rate": 0.0,
+    "p50_ms": 5.091,
+    "p90_ms": 7.843,
+    "p99_ms": 10.796,
+    "p999_ms": 21.009,
+    "max_ms": 22.218,
+    "mean_ms": 5.724
+   }
+  },
+  {
+   "concurrency": 8,
+   "system": {
+    "window_s": 15.035,
+    "server_cpu_pct": 48.9,
+    "server_cpu_s": 7.35,
+    "server_rss_mb_peak": 48.5,
+    "server_rss_mb_end": 48.5,
+    "server_rss_mb_start": 48.4,
+    "server_fds_peak": 43,
+    "pg_cpu_pct": 31.0,
+    "pg_cpu_s": 4.662,
+    "pg_mem_mb_peak": 100.1,
+    "loadgen_cpu_pct": 17.0,
+    "lo_bytes_per_s": 781584.8,
+    "mem_available_mb_min": 1141.6,
+    "cpu_busy_pct": {
+     "2": 50.4,
+     "3": 15.8,
+     "6": 32.7,
+     "7": 14.5
+    }
+   },
+   "summary": {
+    "count": 5662,
+    "rps": 376.59,
+    "classes": {
+     "ok": 5662
+    },
+    "error_rate": 0.0,
+    "p50_ms": 14.289,
+    "p90_ms": 48.438,
+    "p99_ms": 100.895,
+    "p999_ms": 172.985,
+    "max_ms": 239.684,
+    "mean_ms": 21.212
+   }
+  },
+  {
+   "concurrency": 32,
+   "system": {
+    "window_s": 15.091,
+    "server_cpu_pct": 47.8,
+    "server_cpu_s": 7.22,
+    "server_rss_mb_peak": 48.5,
+    "server_rss_mb_end": 48.5,
+    "server_rss_mb_start": 48.5,
+    "server_fds_peak": 67,
+    "pg_cpu_pct": 41.7,
+    "pg_cpu_s": 6.287,
+    "pg_mem_mb_peak": 104.0,
+    "loadgen_cpu_pct": 17.1,
+    "lo_bytes_per_s": 734163.4,
+    "mem_available_mb_min": 1090.5,
+    "cpu_busy_pct": {
+     "2": 48.9,
+     "3": 26.2,
+     "6": 43.5,
+     "7": 38.1
+    }
+   },
+   "summary": {
+    "count": 5157,
+    "rps": 341.73,
+    "classes": {
+     "ok": 5157
+    },
+    "error_rate": 0.0,
+    "p50_ms": 71.739,
+    "p90_ms": 176.012,
+    "p99_ms": 343.692,
+    "p999_ms": 502.675,
+    "max_ms": 593.207,
+    "mean_ms": 93.334
+   }
+  },
+  {
+   "concurrency": 128,
+   "system": {
+    "window_s": 15.45,
+    "server_cpu_pct": 52.3,
+    "server_cpu_s": 8.08,
+    "server_rss_mb_peak": 48.6,
+    "server_rss_mb_end": 41.9,
+    "server_rss_mb_start": 48.5,
+    "server_fds_peak": 163,
+    "pg_cpu_pct": 45.7,
+    "pg_cpu_s": 7.055,
+    "pg_mem_mb_peak": 105.0,
+    "loadgen_cpu_pct": 18.7,
+    "lo_bytes_per_s": 627689.3,
+    "mem_available_mb_min": 169.5,
+    "cpu_busy_pct": {
+     "2": 56.4,
+     "3": 47.1,
+     "6": 51.2,
+     "7": 36.2
+    }
+   },
+   "summary": {
+    "count": 4496,
+    "rps": 291.0,
+    "classes": {
+     "ok": 4496
+    },
+    "error_rate": 0.0,
+    "p50_ms": 406.876,
+    "p90_ms": 578.932,
+    "p99_ms": 792.548,
+    "p999_ms": 1010.989,
+    "max_ms": 1108.732,
+    "mean_ms": 432.908
+   }
+  }
+ ],
+ "server_debug": {
+  "pid": 2968999,
+  "cfg": {
+   "db": "postgres",
+   "sqlite_path": "game.db",
+   "sqlite_sync": "FULL",
+   "sqlite_readers": 4,
+   "pg_pool": 20,
+   "tick_sec": 1.0,
+   "ws_push": true,
+   "ws_auth": true,
+   "start_milk": 1000000
+  },
+  "ws_conns": 0,
+  "ws_accepted": 0,
+  "ws_rejected": 0,
+  "broadcasts": [],
+  "tick": 691,
+  "tick_p50_ms": 9.105,
+  "tick_max_ms": 762.881,
+  "counts": {
+   "players": 10257,
+   "farms": 10257,
+   "trades": 129010,
+   "market": 2
+  }
+ }
+}

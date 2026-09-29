@@ -1,0 +1,182 @@
+{
+ "cmd": "dbbench",
+ "args": {
+  "db": "postgres",
+  "path": "",
+  "sync": "FULL",
+  "pool": 20,
+  "pg_pid": 2964031,
+  "concurrency": "1,8,32,128",
+  "hotrow": "0",
+  "duration": 10,
+  "mem_floor": 800,
+  "out": "results/dbbench_pg_append.json"
+ },
+ "env_before": {
+  "time": "2026-09-30T02:01:59+0800",
+  "loadavg": [
+   2.76513671875,
+   2.3427734375,
+   2.1728515625
+  ],
+  "mem_available_mb": 1238.3,
+  "swap_free_mb": 0.1,
+  "cpu_mhz": {
+   "2": 1499.951,
+   "3": 1500.549,
+   "6": 1499.957,
+   "7": 1500.363
+  },
+  "python": "3.10.12"
+ },
+ "aborted": null,
+ "modes": [
+  {
+   "hotrow": false,
+   "levels": [
+    {
+     "concurrency": 1,
+     "tx_per_s": 227.5,
+     "counts": {
+      "ok": 2276,
+      "insufficient": 0,
+      "error": 0
+     },
+     "p50_ms": 4.173,
+     "p90_ms": 5.74,
+     "p99_ms": 7.934,
+     "max_ms": 12.618,
+     "system": {
+      "window_s": 10.006,
+      "server_cpu_pct": 28.6,
+      "server_cpu_s": 2.86,
+      "server_rss_mb_peak": 37.4,
+      "server_rss_mb_end": 37.4,
+      "server_rss_mb_start": 37.3,
+      "server_fds_peak": 19,
+      "pg_cpu_pct": 21.8,
+      "pg_cpu_s": 2.177,
+      "pg_mem_mb_peak": 80.5,
+      "loadgen_cpu_pct": 28.6,
+      "lo_bytes_per_s": 238454.6,
+      "mem_available_mb_min": 1224.5,
+      "cpu_busy_pct": {
+       "2": 31.0,
+       "3": 12.8,
+       "6": 25.0,
+       "7": 8.3
+      }
+     }
+    },
+    {
+     "concurrency": 8,
+     "tx_per_s": 1387.9,
+     "counts": {
+      "ok": 13886,
+      "insufficient": 0,
+      "error": 0
+     },
+     "p50_ms": 4.864,
+     "p90_ms": 8.396,
+     "p99_ms": 11.418,
+     "max_ms": 16.172,
+     "system": {
+      "window_s": 10.005,
+      "server_cpu_pct": 69.1,
+      "server_cpu_s": 6.91,
+      "server_rss_mb_peak": 38.1,
+      "server_rss_mb_end": 38.1,
+      "server_rss_mb_start": 37.6,
+      "server_fds_peak": 23,
+      "pg_cpu_pct": 62.1,
+      "pg_cpu_s": 6.213,
+      "pg_mem_mb_peak": 107.9,
+      "loadgen_cpu_pct": 69.1,
+      "lo_bytes_per_s": 1455228.3,
+      "mem_available_mb_min": 1140.9,
+      "cpu_busy_pct": {
+       "2": 69.8,
+       "3": 10.3,
+       "6": 63.8,
+       "7": 13.8
+      }
+     }
+    },
+    {
+     "concurrency": 32,
+     "tx_per_s": 1772.8,
+     "counts": {
+      "ok": 17746,
+      "insufficient": 0,
+      "error": 0
+     },
+     "p50_ms": 14.625,
+     "p90_ms": 31.229,
+     "p99_ms": 49.46,
+     "max_ms": 83.951,
+     "system": {
+      "window_s": 10.01,
+      "server_cpu_pct": 81.3,
+      "server_cpu_s": 8.14,
+      "server_rss_mb_peak": 38.9,
+      "server_rss_mb_end": 38.9,
+      "server_rss_mb_start": 38.6,
+      "server_fds_peak": 35,
+      "pg_cpu_pct": 79.1,
+      "pg_cpu_s": 7.92,
+      "pg_mem_mb_peak": 132.4,
+      "loadgen_cpu_pct": 81.3,
+      "lo_bytes_per_s": 1860899.0,
+      "mem_available_mb_min": 1290.0,
+      "cpu_busy_pct": {
+       "2": 82.2,
+       "3": 12.0,
+       "6": 80.3,
+       "7": 11.8
+      }
+     }
+    },
+    {
+     "concurrency": 128,
+     "tx_per_s": 1855.6,
+     "counts": {
+      "ok": 18684,
+      "insufficient": 0,
+      "error": 0
+     },
+     "p50_ms": 15.863,
+     "p90_ms": 189.053,
+     "p99_ms": 402.546,
+     "max_ms": 1011.418,
+     "system": {
+      "window_s": 10.069,
+      "server_cpu_pct": 84.1,
+      "server_cpu_s": 8.47,
+      "server_rss_mb_peak": 39.7,
+      "server_rss_mb_end": 39.7,
+      "server_rss_mb_start": 39.4,
+      "server_fds_peak": 35,
+      "pg_cpu_pct": 80.5,
+      "pg_cpu_s": 8.103,
+      "pg_mem_mb_peak": 135.2,
+      "loadgen_cpu_pct": 84.1,
+      "lo_bytes_per_s": 1947267.6,
+      "mem_available_mb_min": 1268.6,
+      "cpu_busy_pct": {
+       "2": 84.6,
+       "3": 11.0,
+       "6": 81.5,
+       "7": 7.6
+      }
+     }
+    }
+   ]
+  }
+ ],
+ "final_counts": {
+  "players": 257,
+  "farms": 257,
+  "trades": 70622,
+  "market": 2
+ }
+}

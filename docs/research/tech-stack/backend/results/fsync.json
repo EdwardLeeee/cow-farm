@@ -1,0 +1,21 @@
+{
+ "dir": "/tmp/claude-1000/-home-oraclelee-Desktop-cow-farm/66870844-3aca-43f4-909f-b2b955193ab6/scratchpad/data",
+ "results": {
+  "fsync": {
+   "n": 500,
+   "p50_ms": 4.576,
+   "p90_ms": 8.058,
+   "p99_ms": 10.658,
+   "max_ms": 15.692,
+   "mean_ms": 5.685
+  },
+  "fdatasync": {
+   "n": 500,
+   "p50_ms": 4.071,
+   "p90_ms": 4.553,
+   "p99_ms": 8.526,
+   "max_ms": 21.279,
+   "mean_ms": 3.468
+  }
+ }
+}

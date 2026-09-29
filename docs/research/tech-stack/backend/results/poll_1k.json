@@ -1,0 +1,92 @@
+{
+ "cmd": "poll",
+ "label": "poll_1k",
+ "args": {
+  "host": "127.0.0.1",
+  "port": 18080,
+  "server_pid": 2994645,
+  "tokens": "/tmp/claude-1000/-home-oraclelee-Desktop-cow-farm/66870844-3aca-43f4-909f-b2b955193ab6/scratchpad/data/tokens_sqlite.json",
+  "procs": 1,
+  "mem_floor": 600.0,
+  "label": "poll_1k",
+  "out": "results/poll_1k.json",
+  "cmd": "poll",
+  "n": 1000,
+  "interval": 10.0,
+  "warmup": 12.0,
+  "duration": 30.0,
+  "base": "http://127.0.0.1:18080"
+ },
+ "env_before": {
+  "time": "2026-09-30T02:56:29+0800",
+  "loadavg": [
+   3.69287109375,
+   3.49462890625,
+   8.68408203125
+  ],
+  "mem_available_mb": 755.9,
+  "swap_free_mb": 0.2,
+  "cpu_mhz": {
+   "2": 2900.591,
+   "3": 3042.796,
+   "6": 3042.59,
+   "7": 3075.856
+  },
+  "python": "3.10.12"
+ },
+ "counts": {
+  "req": 3000,
+  "ok": 3000,
+  "err": 0,
+  "bytes": 960995,
+  "new_tick": 3000,
+  "missed_ticks": 3000
+ },
+ "req_per_s": 100.0,
+ "latency_ms": {
+  "n": 3000,
+  "p50": 2.795,
+  "p90": 5.027,
+  "p99": 8.59,
+  "max": 14.88
+ },
+ "freshness_ms_publish_to_recv": {
+  "n": 3000,
+  "p50": 2664.81,
+  "p90": 4512.847,
+  "p99": 4940.338,
+  "max": 5000.798
+ },
+ "lo_baseline_bytes_per_s": 822.7,
+ "system": {
+  "window_s": 30.004,
+  "server_cpu_pct": 10.9,
+  "server_cpu_s": 3.26,
+  "server_sys_cpu_s": 0.56,
+  "server_rss_mb_peak": 40.0,
+  "server_rss_mb_end": 40.0,
+  "server_rss_mb_start": 40.0,
+  "server_fds_peak": 22,
+  "loadgen_cpu_pct": 0.4,
+  "lo_bytes_per_s": 115606.2,
+  "mem_available_mb_min": 668.0,
+  "cpu_busy_pct": {
+   "2": 19.5,
+   "3": 23.5,
+   "6": 18.4,
+   "7": 25.5
+  },
+  "cpu2_other_pct": 8.6,
+  "cpu2_mhz_mean": 1727,
+  "vmstat_delta": {
+   "allocstall_normal": 41,
+   "allocstall_movable": 1,
+   "pgmajfault": 1994,
+   "pgscan_direct": 2999
+  }
+ },
+ "client_rss_mb": [
+  48.9
+ ],
+ "lo_bytes_per_s_net": 114783.5
+}

@@ -1,0 +1,18 @@
+== 1. pg_dump（線上）
+dump 秒數: 2.661623254  大小: 1814735 bytes
+資料庫大小: 22 MB
+== 2. 還原到新資料庫 cowfarm_restore
+NOTICE:  database "cowfarm_restore" does not exist, skipping
+restore 秒數: 5.877816373
+== 3. 比對（market 每秒 tick 會變，只比列數）
+market|2|-|market|2|-
+players|10257|3669c9cbcb7f2a154df1eac2ece94d15|players|10257|3669c9cbcb7f2a154df1eac2ece94d15
+farms|10257|52ee8a7ae2cbdddfa17b8ebea60c5429|farms|10257|52ee8a7ae2cbdddfa17b8ebea60c5429
+trades|129010|eaf89a714a9ea0ce27f8577b5a315de8|trades|129010|eaf89a714a9ea0ce27f8577b5a315de8
+RESULT: 來源與還原完全一致
+== 4. 主機 pg_dump（pg_dump (PostgreSQL) 14.24 (Ubuntu 14.24-0ubuntu0.22.04.1)）直接連 17 版伺服器
+失敗訊息：
+pg_dump: error: server version: 17.11 (Debian 17.11-1.pgdg13+2); pg_dump version: 14.24 (Ubuntu 14.24-0ubuntu0.22.04.1)
+pg_dump: error: aborting because of server version mismatch
+stopped 2979170
+== 5. API 指向 cowfarm_restore 後 GET /v1/farm 與 POST /v1/sell 皆 200（同一玩家的 milk/coins 與原資料庫一致）

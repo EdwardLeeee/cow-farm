@@ -1,0 +1,82 @@
+{
+ "cmd": "reconnect",
+ "label": "reconnect_1k_fixed1",
+ "args": {
+  "host": "127.0.0.1",
+  "port": 18080,
+  "server_pid": null,
+  "tokens": "/tmp/claude-1000/-home-oraclelee-Desktop-cow-farm/66870844-3aca-43f4-909f-b2b955193ab6/scratchpad/data/tokens_sqlite.json",
+  "procs": 1,
+  "mem_floor": 900,
+  "label": "reconnect_1k_fixed1",
+  "out": "results/reconnect_1k_fixed1.json",
+  "cmd": "reconnect",
+  "n": 1000,
+  "connect_rate": 500.0,
+  "gap": 5.0,
+  "observe": 45.0,
+  "policy": "fixed1",
+  "base_delay": 0.5,
+  "cap": 30.0,
+  "run_dir": "/tmp/claude-1000/-home-oraclelee-Desktop-cow-farm/66870844-3aca-43f4-909f-b2b955193ab6/scratchpad/run",
+  "base": "http://127.0.0.1:18080"
+ },
+ "env_before": {
+  "time": "2026-09-30T03:00:11+0800",
+  "loadavg": [
+   3.458984375,
+   3.26318359375,
+   7.45263671875
+  ],
+  "mem_available_mb": 755.7,
+  "swap_free_mb": 0.1,
+  "cpu_mhz": {
+   "2": 3030.574,
+   "3": 3400.213,
+   "6": 3318.454,
+   "7": 3375.134
+  },
+  "python": "3.10.12"
+ },
+ "ws_conns_before_kill": 1000,
+ "ws_conns_after": 0,
+ "old_pid": 2998238,
+ "new_pid": 2998844,
+ "restart_to_healthy_s": 1.151,
+ "reconnected": 1000,
+ "n": 1000,
+ "reconnect_ms_since_server_up": {
+  "n": 1000,
+  "p50": 813.65,
+  "p90": 1458.506,
+  "p99": 1571.885,
+  "max": 1589.349
+ },
+ "reconnect_ms_since_drop": {
+  "n": 1000,
+  "p50": 6942.741,
+  "p90": 7578.326,
+  "p99": 7717.921,
+  "max": 7734.781
+ },
+ "attempts_per_client": {
+  "n": 1000,
+  "p50": 6,
+  "p90": 6,
+  "p99": 7,
+  "max": 7
+ },
+ "attempts_total_after_kill": 6083,
+ "attempts_per_s_after_up_first10s": [
+  928,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0,
+  0
+ ]
+}

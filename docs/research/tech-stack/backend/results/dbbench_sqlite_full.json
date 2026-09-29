@@ -1,0 +1,299 @@
+{
+ "cmd": "dbbench",
+ "args": {
+  "db": "sqlite",
+  "path": "/tmp/claude-1000/-home-oraclelee-Desktop-cow-farm/66870844-3aca-43f4-909f-b2b955193ab6/scratchpad/data/bench_FULL.db",
+  "sync": "FULL",
+  "pool": 20,
+  "pg_pid": null,
+  "concurrency": "1,8,32,128",
+  "hotrow": "1,0",
+  "duration": 10,
+  "mem_floor": 450.0,
+  "out": "results/dbbench_sqlite_full.json"
+ },
+ "env_before": {
+  "time": "2026-09-30T02:38:27+0800",
+  "loadavg": [
+   3.44580078125,
+   9.04345703125,
+   19.41748046875
+  ],
+  "mem_available_mb": 1580.3,
+  "swap_free_mb": 1.8,
+  "cpu_mhz": {
+   "2": 2938.621,
+   "3": 2938.593,
+   "6": 2938.561,
+   "7": 2938.418
+  },
+  "python": "3.10.12"
+ },
+ "aborted": null,
+ "modes": [
+  {
+   "hotrow": true,
+   "levels": [
+    {
+     "concurrency": 1,
+     "tx_per_s": 377.7,
+     "counts": {
+      "ok": 3777,
+      "insufficient": 0,
+      "error": 0
+     },
+     "p50_ms": 2.306,
+     "p90_ms": 4.0,
+     "p99_ms": 6.735,
+     "max_ms": 16.884,
+     "system": {
+      "window_s": 10.001,
+      "server_cpu_pct": 10.8,
+      "server_cpu_s": 1.08,
+      "server_rss_mb_peak": 34.6,
+      "server_rss_mb_end": 34.6,
+      "server_rss_mb_start": 34.3,
+      "server_fds_peak": 17,
+      "loadgen_cpu_pct": 10.8,
+      "lo_bytes_per_s": 212.8,
+      "mem_available_mb_min": 1591.4,
+      "cpu_busy_pct": {
+       "2": 13.5,
+       "3": 4.5,
+       "6": 99.2,
+       "7": 92.0
+      }
+     }
+    },
+    {
+     "concurrency": 8,
+     "tx_per_s": 314.9,
+     "counts": {
+      "ok": 3156,
+      "insufficient": 0,
+      "error": 0
+     },
+     "p50_ms": 24.766,
+     "p90_ms": 31.928,
+     "p99_ms": 45.251,
+     "max_ms": 52.327,
+     "system": {
+      "window_s": 10.022,
+      "server_cpu_pct": 23.5,
+      "server_cpu_s": 2.36,
+      "server_rss_mb_peak": 34.8,
+      "server_rss_mb_end": 34.8,
+      "server_rss_mb_start": 34.7,
+      "server_fds_peak": 17,
+      "loadgen_cpu_pct": 23.5,
+      "lo_bytes_per_s": 9159.7,
+      "mem_available_mb_min": 1509.2,
+      "cpu_busy_pct": {
+       "2": 29.9,
+       "3": 9.9,
+       "6": 16.4,
+       "7": 12.3
+      }
+     }
+    },
+    {
+     "concurrency": 32,
+     "tx_per_s": 329.7,
+     "counts": {
+      "ok": 3330,
+      "insufficient": 0,
+      "error": 0
+     },
+     "p50_ms": 100.242,
+     "p90_ms": 107.261,
+     "p99_ms": 117.052,
+     "max_ms": 119.997,
+     "system": {
+      "window_s": 10.101,
+      "server_cpu_pct": 28.6,
+      "server_cpu_s": 2.89,
+      "server_rss_mb_peak": 35.1,
+      "server_rss_mb_end": 35.1,
+      "server_rss_mb_start": 34.9,
+      "server_fds_peak": 17,
+      "loadgen_cpu_pct": 28.6,
+      "lo_bytes_per_s": 0.0,
+      "mem_available_mb_min": 1618.1,
+      "cpu_busy_pct": {
+       "2": 31.3,
+       "3": 6.7,
+       "6": 5.7,
+       "7": 5.9
+      }
+     }
+    },
+    {
+     "concurrency": 128,
+     "tx_per_s": 349.5,
+     "counts": {
+      "ok": 3600,
+      "insufficient": 0,
+      "error": 0
+     },
+     "p50_ms": 375.788,
+     "p90_ms": 415.494,
+     "p99_ms": 433.043,
+     "max_ms": 434.964,
+     "system": {
+      "window_s": 10.299,
+      "server_cpu_pct": 24.8,
+      "server_cpu_s": 2.55,
+      "server_rss_mb_peak": 35.8,
+      "server_rss_mb_end": 35.8,
+      "server_rss_mb_start": 35.6,
+      "server_fds_peak": 17,
+      "loadgen_cpu_pct": 24.8,
+      "lo_bytes_per_s": 0.0,
+      "mem_available_mb_min": 1438.6,
+      "cpu_busy_pct": {
+       "2": 28.7,
+       "3": 33.6,
+       "6": 32.1,
+       "7": 8.9
+      }
+     }
+    }
+   ]
+  },
+  {
+   "hotrow": false,
+   "levels": [
+    {
+     "concurrency": 1,
+     "tx_per_s": 404.5,
+     "counts": {
+      "ok": 4046,
+      "insufficient": 0,
+      "error": 0
+     },
+     "p50_ms": 2.325,
+     "p90_ms": 2.509,
+     "p99_ms": 4.783,
+     "max_ms": 10.69,
+     "system": {
+      "window_s": 10.002,
+      "server_cpu_pct": 13.7,
+      "server_cpu_s": 1.37,
+      "server_rss_mb_peak": 36.0,
+      "server_rss_mb_end": 36.0,
+      "server_rss_mb_start": 35.8,
+      "server_fds_peak": 17,
+      "loadgen_cpu_pct": 13.7,
+      "lo_bytes_per_s": 0.0,
+      "mem_available_mb_min": 1434.7,
+      "cpu_busy_pct": {
+       "2": 19.2,
+       "3": 39.2,
+       "6": 100.0,
+       "7": 67.9
+      }
+     }
+    },
+    {
+     "concurrency": 8,
+     "tx_per_s": 389.2,
+     "counts": {
+      "ok": 3899,
+      "insufficient": 0,
+      "error": 0
+     },
+     "p50_ms": 18.883,
+     "p90_ms": 25.562,
+     "p99_ms": 36.054,
+     "max_ms": 46.915,
+     "system": {
+      "window_s": 10.017,
+      "server_cpu_pct": 12.9,
+      "server_cpu_s": 1.29,
+      "server_rss_mb_peak": 36.1,
+      "server_rss_mb_end": 36.1,
+      "server_rss_mb_start": 36.0,
+      "server_fds_peak": 17,
+      "loadgen_cpu_pct": 12.9,
+      "lo_bytes_per_s": 634.1,
+      "mem_available_mb_min": 1404.2,
+      "cpu_busy_pct": {
+       "2": 21.0,
+       "3": 19.1,
+       "6": 100.0,
+       "7": 91.9
+      }
+     }
+    },
+    {
+     "concurrency": 32,
+     "tx_per_s": 393.7,
+     "counts": {
+      "ok": 3968,
+      "insufficient": 0,
+      "error": 0
+     },
+     "p50_ms": 78.076,
+     "p90_ms": 92.159,
+     "p99_ms": 136.718,
+     "max_ms": 151.249,
+     "system": {
+      "window_s": 10.079,
+      "server_cpu_pct": 13.7,
+      "server_cpu_s": 1.38,
+      "server_rss_mb_peak": 36.2,
+      "server_rss_mb_end": 36.2,
+      "server_rss_mb_start": 36.1,
+      "server_fds_peak": 17,
+      "loadgen_cpu_pct": 13.7,
+      "lo_bytes_per_s": 223626.0,
+      "mem_available_mb_min": 1229.3,
+      "cpu_busy_pct": {
+       "2": 35.9,
+       "3": 40.2,
+       "6": 98.9,
+       "7": 99.6
+      }
+     }
+    },
+    {
+     "concurrency": 128,
+     "tx_per_s": 411.6,
+     "counts": {
+      "ok": 4239,
+      "insufficient": 0,
+      "error": 0
+     },
+     "p50_ms": 303.923,
+     "p90_ms": 322.853,
+     "p99_ms": 463.163,
+     "max_ms": 488.843,
+     "system": {
+      "window_s": 10.299,
+      "server_cpu_pct": 13.4,
+      "server_cpu_s": 1.38,
+      "server_rss_mb_peak": 36.4,
+      "server_rss_mb_end": 36.4,
+      "server_rss_mb_start": 36.2,
+      "server_fds_peak": 17,
+      "loadgen_cpu_pct": 13.4,
+      "lo_bytes_per_s": 11.3,
+      "mem_available_mb_min": 1429.1,
+      "cpu_busy_pct": {
+       "2": 18.2,
+       "3": 24.2,
+       "6": 100.0,
+       "7": 86.6
+      }
+     }
+    }
+   ]
+  }
+ ],
+ "final_counts": {
+  "players": 128,
+  "farms": 128,
+  "trades": 32670,
+  "market": 2
+ }
+}

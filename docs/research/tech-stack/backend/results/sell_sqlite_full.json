@@ -1,0 +1,205 @@
+{
+ "cmd": "sell",
+ "label": "sell_sqlite_full",
+ "args": {
+  "base": "http://127.0.0.1:18080",
+  "server_pid": 2979832,
+  "pg_pid": null,
+  "mem_floor": 450.0,
+  "seed": 1,
+  "out": "results/sell_sqlite_full.json",
+  "raw_dir": "results/raw",
+  "label": "sell_sqlite_full",
+  "cmd": "sell",
+  "tokens": "/tmp/claude-1000/-home-oraclelee-Desktop-cow-farm/66870844-3aca-43f4-909f-b2b955193ab6/scratchpad/data/tokens_sqlite.json",
+  "concurrency": "1,8,32,128",
+  "duration": 15.0
+ },
+ "env_before": {
+  "time": "2026-09-30T02:30:00+0800",
+  "loadavg": [
+   11.34716796875,
+   25.12353515625,
+   29.35009765625
+  ],
+  "mem_available_mb": 1027.1,
+  "swap_free_mb": 0.2,
+  "cpu_mhz": {
+   "2": 2599.968,
+   "3": 2599.96,
+   "6": 2599.948,
+   "7": 2599.978
+  },
+  "python": "3.10.12"
+ },
+ "aborted": null,
+ "levels": [
+  {
+   "concurrency": 1,
+   "system": {
+    "window_s": 15.003,
+    "server_cpu_pct": 32.3,
+    "server_cpu_s": 4.84,
+    "server_rss_mb_peak": 51.9,
+    "server_rss_mb_end": 51.9,
+    "server_rss_mb_start": 51.8,
+    "server_fds_peak": 27,
+    "loadgen_cpu_pct": 13.4,
+    "lo_bytes_per_s": 113787.9,
+    "mem_available_mb_min": 1019.3,
+    "cpu_busy_pct": {
+     "2": 65.4,
+     "3": 77.7,
+     "6": 98.4,
+     "7": 80.6
+    }
+   },
+   "summary": {
+    "count": 3033,
+    "rps": 202.16,
+    "classes": {
+     "ok": 3033
+    },
+    "error_rate": 0.0,
+    "p50_ms": 4.309,
+    "p90_ms": 6.871,
+    "p99_ms": 11.565,
+    "p999_ms": 16.304,
+    "max_ms": 30.098,
+    "mean_ms": 4.931
+   }
+  },
+  {
+   "concurrency": 8,
+   "system": {
+    "window_s": 15.02,
+    "server_cpu_pct": 46.3,
+    "server_cpu_s": 6.96,
+    "server_rss_mb_peak": 52.1,
+    "server_rss_mb_end": 52.1,
+    "server_rss_mb_start": 51.9,
+    "server_fds_peak": 34,
+    "loadgen_cpu_pct": 19.2,
+    "lo_bytes_per_s": 199367.5,
+    "mem_available_mb_min": 1530.5,
+    "cpu_busy_pct": {
+     "2": 47.9,
+     "3": 19.6,
+     "6": 40.9,
+     "7": 40.7
+    }
+   },
+   "summary": {
+    "count": 5314,
+    "rps": 353.79,
+    "classes": {
+     "ok": 5314
+    },
+    "error_rate": 0.0,
+    "p50_ms": 21.049,
+    "p90_ms": 28.924,
+    "p99_ms": 39.007,
+    "p999_ms": 62.726,
+    "max_ms": 74.763,
+    "mean_ms": 22.583
+   }
+  },
+  {
+   "concurrency": 32,
+   "system": {
+    "window_s": 15.08,
+    "server_cpu_pct": 52.5,
+    "server_cpu_s": 7.92,
+    "server_rss_mb_peak": 52.2,
+    "server_rss_mb_end": 52.2,
+    "server_rss_mb_start": 52.1,
+    "server_fds_peak": 58,
+    "loadgen_cpu_pct": 21.8,
+    "lo_bytes_per_s": 237251.4,
+    "mem_available_mb_min": 1379.6,
+    "cpu_busy_pct": {
+     "2": 54.7,
+     "3": 56.7,
+     "6": 100.0,
+     "7": 71.2
+    }
+   },
+   "summary": {
+    "count": 5821,
+    "rps": 386.01,
+    "classes": {
+     "ok": 5821
+    },
+    "error_rate": 0.0,
+    "p50_ms": 81.159,
+    "p90_ms": 87.142,
+    "p99_ms": 120.326,
+    "p999_ms": 132.262,
+    "max_ms": 133.896,
+    "mean_ms": 82.648
+   }
+  },
+  {
+   "concurrency": 128,
+   "system": {
+    "window_s": 15.332,
+    "server_cpu_pct": 53.5,
+    "server_cpu_s": 8.21,
+    "server_rss_mb_peak": 52.7,
+    "server_rss_mb_end": 52.7,
+    "server_rss_mb_start": 52.6,
+    "server_fds_peak": 154,
+    "loadgen_cpu_pct": 23.0,
+    "lo_bytes_per_s": 232164.0,
+    "mem_available_mb_min": 1301.3,
+    "cpu_busy_pct": {
+     "2": 56.9,
+     "3": 36.6,
+     "6": 100.0,
+     "7": 93.5
+    }
+   },
+   "summary": {
+    "count": 5772,
+    "rps": 376.47,
+    "classes": {
+     "ok": 5772
+    },
+    "error_rate": 0.0,
+    "p50_ms": 331.05,
+    "p90_ms": 355.325,
+    "p99_ms": 526.59,
+    "p999_ms": 546.878,
+    "max_ms": 551.47,
+    "mean_ms": 336.026
+   }
+  }
+ ],
+ "server_debug": {
+  "pid": 2979832,
+  "cfg": {
+   "db": "sqlite",
+   "sqlite_path": "/tmp/claude-1000/-home-oraclelee-Desktop-cow-farm/66870844-3aca-43f4-909f-b2b955193ab6/scratchpad/data/game.db",
+   "sqlite_sync": "FULL",
+   "sqlite_readers": 4,
+   "pg_pool": 20,
+   "tick_sec": 1.0,
+   "ws_push": true,
+   "ws_auth": true,
+   "start_milk": 1000000
+  },
+  "ws_conns": 0,
+  "ws_accepted": 0,
+  "ws_rejected": 0,
+  "broadcasts": [],
+  "tick": 351,
+  "tick_p50_ms": 5.445,
+  "tick_max_ms": 500.924,
+  "counts": {
+   "players": 10000,
+   "farms": 10000,
+   "trades": 34506,
+   "market": 2
+  }
+ }
+}
