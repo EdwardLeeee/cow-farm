@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>牛產生器圖庫</title>
+<style>
+  body { margin: 0; background: #EEF3E6; font-family: "Noto Sans CJK TC", sans-serif; color: #3A2E28; }
+  h1 { font-size: 16px; margin: 12px 14px 0; }
+  h2 { font-size: 13px; margin: 10px 14px 4px; color: #6B5B50; font-weight: 500; }
+  .grid { display: grid; grid-template-columns: repeat(var(--cols, 4), 1fr); gap: 8px; padding: 8px 12px 12px; }
+  .cell { background: #FFFFFF; border-radius: 12px; padding: 4px 4px 6px; text-align: center; font-size: 11px; line-height: 1.35; }
+  .cell svg, .cell canvas { display: block; margin: 0 auto; }
+  .cell.big { --pad: 0; }
+  .genes { color: #7C6D63; font-size: 11px; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module" src="gallery.js"></script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+/* 風格 C「軟萌立體」：沒有描邊，靠柔和漸層、內側高光與外側軟陰影做出黏土／軟膠玩具的立體感。 */
+.style-c {
+  --ink: #4A3A52; --sub: #8C7C99;
+  --clay-bg: linear-gradient(180deg, #FFFFFF 0%, #F8F3FF 100%);
+  --clay-sh: 0 10px 22px rgba(74, 48, 110, 0.17), 0 2px 5px rgba(74, 48, 110, 0.12), inset 0 2px 0 rgba(255, 255, 255, 0.95), inset 0 -4px 8px rgba(120, 96, 170, 0.12);
+  color: var(--ink);
+}
+.style-c .num { font-weight: 900; font-variant-numeric: tabular-nums; letter-spacing: 0.2px; }
+
+/* 上方資訊列 */
+.style-c .avatar {
+  position: relative; z-index: 2; flex: none; width: 56px; height: 56px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 28%, #E6F5FF 0%, #A8D7FA 60%, #7DBDF0 100%);
+  border: 3px solid #FFFFFF; box-shadow: 0 7px 14px rgba(74, 48, 110, 0.25), inset 0 -4px 7px rgba(40, 90, 150, 0.22);
+  display: grid; place-items: center; overflow: hidden;
+}
+.style-c .avatar svg { width: 50px; height: 50px; margin-top: 5px; }
+.style-c .profile-text {
+  margin-left: -18px; height: 46px; padding: 4px 16px 4px 26px; border-radius: 0 23px 23px 0;
+  background: var(--clay-bg); box-shadow: var(--clay-sh);
+}
+.style-c .farm-name { font-size: 15px; font-weight: 900; line-height: 19px; letter-spacing: 0.3px; }
+.style-c .farm-level { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; line-height: 16px; color: var(--sub); margin-top: 1px; }
+.style-c .lv {
+  display: inline-flex; border-radius: 8px; padding: 0 6px; color: #FFFFFF;
+  background: linear-gradient(180deg, #9CC2FF 0%, #6189F2 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 2px 5px rgba(70, 90, 180, 0.35);
+}
+.style-c .lv .num { font-size: 11px; line-height: 15px; }
+.style-c .coins {
+  position: relative; height: 40px; padding: 0 16px 0 27px; margin-left: 20px; border-radius: 20px;
+  background: var(--clay-bg); box-shadow: var(--clay-sh);
+}
+.style-c .coin-icon { position: absolute; left: -18px; top: 50%; transform: translateY(-50%); line-height: 0; }
+.style-c .num-coins { font-size: 19px; line-height: 1; }
+
+/* 新聞跑馬燈 */
+.style-c .ticker {
+  height: 32px; padding: 0 12px 0 4px; border-radius: 16px; background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 6px 14px rgba(74, 48, 110, 0.14), inset 0 2px 0 #FFFFFF, inset 0 -3px 6px rgba(120, 96, 170, 0.08);
+}
+.style-c .ticker-icon {
+  flex: none; width: 36px; height: 26px; display: grid; place-items: center; margin-right: 8px; border-radius: 13px;
+  background: linear-gradient(180deg, #FFEAE6 0%, #FFCFC6 100%); box-shadow: inset 0 1px 0 #FFFFFF;
+}
+.style-c .ticker-text { font-size: 13px; font-weight: 700; line-height: 26px; }
+
+/* 下方卡片 */
+.style-c .dock { bottom: 110px; gap: 10px; }
+.style-c .card { border-radius: 22px; background: var(--clay-bg); box-shadow: var(--clay-sh); padding: 9px 11px 9px; }
+.style-c .card-head { justify-content: space-between; }
+.style-c .card-title {
+  display: inline-block; border-radius: 10px; padding: 0 9px; font-size: 12px; font-weight: 900; line-height: 20px; color: #FFFFFF;
+  background: var(--chip, linear-gradient(180deg, #9ED6FF 0%, #5AAEF0 100%));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 2px 5px rgba(60, 120, 190, 0.3);
+}
+.style-c .storage { --chip: linear-gradient(180deg, #FFD98A 0%, #F2A93B 100%); }
+.style-c .storage .card-title { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 2px 5px rgba(200, 130, 40, 0.3); }
+.style-c .num-pct { font-size: 22px; line-height: 26px; }
+.style-c .bucket-body { gap: 6px; margin-top: 3px; }
+.style-c .bucket-icon { flex: none; line-height: 0; margin-left: -4px; }
+.style-c .bucket-info { flex: 1; min-width: 0; }
+.style-c .bar { height: 14px; border-radius: 7px; background: #ECE6F5; box-shadow: inset 0 2px 4px rgba(74, 48, 110, 0.2); overflow: hidden; }
+.style-c .bar i {
+  display: block; height: 100%; border-radius: 7px; background: linear-gradient(180deg, #9EDCFF 0%, #4CA3EE 100%);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.6), 0 1px 3px rgba(40, 110, 190, 0.35);
+}
+.style-c .bucket-count { font-size: 12px; font-weight: 700; margin-top: 5px; line-height: 16px; color: var(--sub); }
+.style-c .num-count { font-size: 14px; color: var(--ink); }
+.style-c .unit { font-size: 12px; font-weight: 700; margin-left: 2px; color: var(--sub); }
+
+.style-c .storage { padding-bottom: 7px; }
+.style-c .stock { gap: 6px; margin-top: 3px; }
+.style-c .stock-icon { flex: none; width: 26px; display: grid; place-items: center; line-height: 0; }
+.style-c .stock-line { font-size: 13px; font-weight: 700; line-height: 18px; }
+.style-c .stock-name { margin-right: 5px; }
+.style-c .num-qty { font-size: 15px; }
+.style-c .fresh { display: flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; line-height: 15px; color: #3E9A55; }
+.style-c .num-fresh { font-size: 11px; }
+
+.style-c .market { padding: 8px 11px 6px; }
+.style-c .mk-head { gap: 5px; }
+.style-c .mk-icon { line-height: 0; flex: none; }
+.style-c .mk-icon svg { width: 22px; height: 22px; }
+.style-c .mk-name { font-size: 13px; font-weight: 900; }
+.style-c .mk-chg { margin-left: auto; display: flex; align-items: center; gap: 2px; font-size: 12px; font-weight: 900; border-radius: 10px; padding: 1px 7px; }
+.style-c .num-chg { font-size: 13px; }
+.style-c .up .mk-chg { color: #E0474C; background: #FFE6E6; }
+.style-c .down .mk-chg { color: #1C9656; background: #DDF5E6; }
+.style-c .mk-body { justify-content: space-between; align-items: flex-end; margin-top: 2px; }
+.style-c .num-price { font-size: 24px; line-height: 28px; }
+.style-c .mk-spark { line-height: 0; }
+
+/* 底部分頁：浮起來的軟膠托盤 */
+.style-c .tabbar {
+  left: 10px; right: 10px; bottom: var(--safe-bottom); height: 66px; padding: 0 4px; border-radius: 26px;
+  background: var(--clay-bg); box-shadow: 0 12px 26px rgba(74, 48, 110, 0.22), 0 2px 6px rgba(74, 48, 110, 0.12), inset 0 2px 0 #FFFFFF, inset 0 -4px 8px rgba(120, 96, 170, 0.12);
+}
+.style-c .tab { gap: 2px; }
+.style-c .tab-icon { line-height: 0; }
+.style-c .tab-label { font-size: 12px; font-weight: 700; color: var(--sub); line-height: 15px; }
+.style-c .tab.active .tab-icon {
+  padding: 2px 12px; border-radius: 16px; margin-top: -2px;
+  background: linear-gradient(180deg, #FFE1DB 0%, #FFC2B7 100%);
+  box-shadow: 0 5px 10px rgba(240, 104, 95, 0.28), inset 0 2px 0 rgba(255, 255, 255, 0.8);
+}
+.style-c .tab.active .tab-label { color: var(--ink); font-weight: 900; }
+
+/* 奶桶滿了 泡泡 */
+.style-c .bubble {
+  border-radius: 16px; padding: 3px 11px 3px 6px; gap: 3px; margin-top: -10px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #F6F1FF 100%);
+  box-shadow: 0 8px 16px rgba(74, 48, 110, 0.22), inset 0 2px 0 #FFFFFF, inset 0 -3px 6px rgba(120, 96, 170, 0.12);
+}
+.style-c .bubble::after {
+  content: ""; position: absolute; left: 50%; bottom: -6px; width: 14px; height: 14px; margin-left: -7px; border-radius: 3px;
+  background: #F6F1FF; transform: rotate(45deg); box-shadow: 4px 4px 8px rgba(74, 48, 110, 0.12); z-index: -1;
+}
+.style-c .bubble-text { font-size: 13px; font-weight: 900; line-height: 22px; }

@@ -1,0 +1,16 @@
+{
+  "name": "cow-farm-artboards-round1",
+  "private": true,
+  "version": "0.0.0",
+  "description": "R1 美術風格選項：獨立 HTML mockup 與出圖腳本",
+  "type": "module",
+  "scripts": {
+    "capture": "node harness/capture.mjs",
+    "compose": "node harness/compose.mjs",
+    "build": "node harness/capture.mjs && node harness/compose.mjs",
+    "serve": "node harness/serve.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.0"
+  }
+}

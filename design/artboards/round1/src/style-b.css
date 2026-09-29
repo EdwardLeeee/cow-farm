@@ -1,0 +1,112 @@
+/* 風格 B「像素風」：1 美術像素 = 3 CSS px。框線、間距、尺寸都用 3 的倍數。
+   像素框用 box-shadow：上下左右各位移 3px 畫外框（四角自然缺一格），內側 3px 做亮面與暗面。 */
+.style-b {
+  --ink: #2B1D2E; --cream: #FFF1D0; --cream-hl: #FFFFFF; --cream-sh: #E8C995;
+  --tab-h: 63px;
+  color: var(--ink);
+}
+.style-b img.px-img, .style-b canvas.px-scene { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+.style-b img.px-img { image-rendering: pixelated; }
+.style-b canvas.px-scene { image-rendering: pixelated; }
+.style-b .scene > canvas { width: 390px; height: 846px; }
+
+.style-b .profile-text, .style-b .coins, .style-b .card, .style-b .bubble, .style-b .avatar, .style-b .tab.active {
+  background: var(--bg, var(--cream));
+  box-shadow:
+    0 -3px 0 0 var(--ol, var(--ink)), 0 3px 0 0 var(--ol, var(--ink)), -3px 0 0 0 var(--ol, var(--ink)), 3px 0 0 0 var(--ol, var(--ink)),
+    inset 3px 3px 0 0 var(--hl, var(--cream-hl)), inset -3px -3px 0 0 var(--sh, var(--cream-sh)),
+    0 9px 0 -3px var(--drop, rgba(43, 29, 46, 0.38));
+}
+.style-b .num { display: inline-flex; align-items: center; line-height: 0; }
+
+/* 上方資訊列 */
+.style-b .hud { top: 54px; height: 51px; left: 12px; right: 12px; gap: 6px; }
+.style-b .avatar { --bg: #9AD8FC; --hl: #9AD8FC; --sh: #9AD8FC; flex: none; width: 45px; height: 45px; position: relative; z-index: 2; }
+.style-b .avatar img { width: 45px; height: 45px; }
+.style-b .profile-text { height: 45px; margin-left: 9px; padding: 3px 9px 3px 9px; justify-content: center; gap: 3px; }
+.style-b .farm-name { font-size: 15px; font-weight: 900; line-height: 18px; letter-spacing: 0; }
+.style-b .farm-level { display: flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 700; line-height: 18px; height: 18px; }
+.style-b .lv {
+  display: inline-flex; padding: 0 3px; background: #3F7FD1; margin-left: 3px;
+  box-shadow: 0 -3px 0 0 var(--ink), 0 3px 0 0 var(--ink), -3px 0 0 0 var(--ink), 3px 0 0 0 var(--ink);
+}
+.style-b .coins { height: 39px; padding: 0 9px 0 27px; margin-left: 21px; position: relative; }
+.style-b .coin-icon { position: absolute; left: -21px; top: 0; }
+.style-b .coin-icon img { width: 39px; height: 39px; }
+
+/* 新聞跑馬燈：深色 LED 條 */
+.style-b .ticker {
+  top: 114px; left: 15px; right: 15px; height: 30px; padding: 0 12px 0 6px;
+  background: #22304F;
+  box-shadow: 0 -3px 0 0 var(--ink), 0 3px 0 0 var(--ink), -3px 0 0 0 var(--ink), 3px 0 0 0 var(--ink),
+    inset 0 3px 0 0 #3A4E7E, inset 0 -3px 0 0 #18223A, 0 9px 0 -3px rgba(43, 29, 46, 0.38);
+}
+.style-b .ticker-icon { flex: none; margin-right: 9px; }
+.style-b .ticker-icon img { width: 33px; height: 24px; }
+.style-b .ticker-text { font-size: 13px; font-weight: 700; line-height: 30px; color: #FFE27A; letter-spacing: 0.5px; }
+
+/* 下方卡片 */
+.style-b .dock { left: 15px; right: 15px; bottom: 109px; gap: 15px 12px; }
+.style-b .card { padding: 9px 9px 9px; }
+.style-b .card-head { justify-content: space-between; align-items: center; height: 24px; }
+.style-b .card-title {
+  font-size: 12px; font-weight: 900; line-height: 18px; color: #FFFFFF; padding: 0 6px; margin-left: 3px;
+  background: var(--tag, #3F7FD1);
+  box-shadow: 0 -3px 0 0 var(--ink), 0 3px 0 0 var(--ink), -3px 0 0 0 var(--ink), 3px 0 0 0 var(--ink), inset 0 -3px 0 0 rgba(0, 0, 0, 0.18);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+}
+.style-b .storage { --tag: #D9962B; }
+.style-b .bucket-body { gap: 9px; margin-top: 6px; }
+.style-b .bucket-icon img { width: 48px; height: 48px; }
+.style-b .bucket-info { flex: 1; min-width: 0; }
+.style-b .bar {
+  height: 15px; background: #CFE3F2; margin: 3px 3px 0;
+  box-shadow: 0 -3px 0 0 var(--ink), 0 3px 0 0 var(--ink), -3px 0 0 0 var(--ink), 3px 0 0 0 var(--ink), inset 0 3px 0 0 #A9C4DA;
+}
+.style-b .bar i { display: block; height: 100%; background: repeating-linear-gradient(90deg, #4E9BE0 0 9px, #3F7FD1 9px 12px); box-shadow: inset 0 3px 0 0 #8CC6F5; }
+.style-b .bucket-count { display: flex; align-items: center; gap: 3px; margin-top: 9px; font-size: 12px; font-weight: 700; }
+.style-b .unit { font-size: 12px; font-weight: 700; margin-left: 3px; }
+
+.style-b .stock { gap: 6px; margin-top: 3px; }
+.style-b .stock-icon { flex: none; width: 33px; display: grid; place-items: center; }
+.style-b .stock-icon img.ic-bottle { width: 24px; height: 36px; }
+.style-b .stock-icon img.ic-crate { width: 33px; height: 30px; }
+.style-b .stock-line { display: flex; align-items: center; font-size: 13px; font-weight: 700; line-height: 18px; }
+.style-b .stock-name { margin-right: 6px; }
+.style-b .fresh { display: flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; line-height: 15px; color: #2F7A3E; margin-top: 3px; }
+.style-b .fresh img.ic-leaf { width: 21px; height: 21px; margin-right: 1px; }
+.style-b .fresh .num { margin-left: 3px; }
+
+.style-b .market { padding: 9px 9px 6px; }
+.style-b .mk-head { gap: 6px; }
+.style-b .mk-icon img.ic-bottle-sm { width: 18px; height: 27px; }
+.style-b .mk-icon img.ic-crate-sm { width: 24px; height: 21px; }
+.style-b .mk-name { font-size: 13px; font-weight: 900; }
+.style-b .mk-chg { margin-left: auto; display: flex; }
+.style-b .mk-body { justify-content: space-between; align-items: flex-end; margin-top: 9px; }
+.style-b .mk-spark img { width: 72px; height: 30px; }
+
+/* 底部分頁：木板 */
+.style-b .tabbar {
+  background:
+    linear-gradient(180deg, var(--ink) 0 3px, #E6A96A 3px 6px, transparent 6px),
+    repeating-linear-gradient(180deg, #C27A45 0 18px, #A8653A 18px 21px);
+}
+.style-b .tab { padding-top: 6px; }
+.style-b .tab.active { margin: 6px 6px 3px; padding-top: 0; --drop: rgba(43, 29, 46, 0.45); }
+.style-b .tab-icon img { width: 33px; height: 33px; }
+.style-b .tab-label { font-size: 12px; font-weight: 700; line-height: 15px; color: #FFF1D0; margin-top: 3px; text-shadow: 0 2px 0 #5A3420; }
+.style-b .tab:not(.active) .tab-icon img { filter: saturate(0.55) brightness(0.92); }
+.style-b .tab.active .tab-label { color: var(--ink); text-shadow: none; font-weight: 900; }
+
+/* 奶桶滿了 泡泡 */
+.style-b .bubble { --bg: #FFFFFF; --sh: #D6E6F2; padding: 3px 9px 3px 6px; gap: 3px; margin-top: -12px; justify-content: center; }
+.style-b .bubble img.ic-bubble { width: 27px; height: 24px; }
+.style-b .bubble-text { font-size: 13px; font-weight: 900; line-height: 24px; }
+/* 泡泡尾巴：一格一格往下收的像素三角 */
+.style-b .bubble::after {
+  content: ""; position: absolute; left: var(--tail-x, 50%); top: 100%; width: 3px; height: 3px; background: #FFFFFF;
+  box-shadow: -3px 0 0 0 #FFFFFF, -6px 0 0 0 var(--ink), 3px 0 0 0 var(--ink),
+    -3px 3px 0 0 var(--ink), 0 3px 0 0 #FFFFFF, 3px 3px 0 0 var(--ink),
+    0 6px 0 0 var(--ink);
+}
