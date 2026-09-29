@@ -43,6 +43,16 @@
   - Go、Rust 後端：遊戲的負擔用不到它們的速度，開發也比較慢。
   - Serverpod（Dart）和 Nakama：M0 會拿來跟 FastAPI 比較。
 
+### D5 GitHub repo 公開
+
+- 原話：「repo公開就好，這樣潛了github actions就不要錢了」。
+- 內容：repo 是 `EdwardLeeee/cow-farm`，公開。主分支是 `main`，2026-09-30 建立。
+- 依據：GitHub 文件寫明，公開 repo 使用標準 GitHub 代管機器「free」，包含打包 iOS 用的 Mac 機器；私有 repo 的 Mac 機器每分鐘 US$0.062。
+- 影響
+  - 企劃書、經濟數值、伺服器程式任何人都看得到。
+  - 金鑰和憑證只放在 GitHub secrets 與使用者的備份，不進 repo。
+  - repo 名稱之後可以改成正式遊戲名，GitHub 會自動轉址。
+
 ## 設計底線（ceo 以總設計師身分決定，使用者 2026-09-30 核准計畫時一併同意）
 
 - **原創**
