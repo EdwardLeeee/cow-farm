@@ -9,23 +9,32 @@ import math
 from typing import Dict, List, Optional
 
 from cowecon.farm import (
+    OX,
     Cow,
+    beef_grade_probs,
     beef_quality,
     beef_storage_factor,
     beef_weight,
     bucket_cap,
     cow_milk_rate,
+    cow_rice_rate,
+    field_cap_for,
     fresh_times_h,
     freshness,
+    is_milker,
     milk_frac,
+    rice_factor,
     wh_cap,
 )
 from cowecon.params import HOUR
 
 from .game import TYPE_WIRE, Game, Player, level_threshold, ship_value
+from .names import display_name
+
+NPC_STUD_NAME = "電腦 公營種牛站"  # 電腦假玩家（系統）上架的公牛：錢不給任何人
 
 TIER_NAMES = ("一般", "優良", "稀有", "傳說")
-TYPE_NAMES = ("乳用", "兼用", "肉用")
+GRADE_NAMES = ("A", "B", "C")
 
 
 def r6(x: float) -> float:
@@ -42,23 +51,28 @@ def ci(x) -> Optional[int]:
 
 
 def cow_stage(p: Player, c: Cow, now: float) -> str:
-    """calf：還沒長大；adult：壯年；old：過了巔峰（母牛產奶開始下降／公牛肉質開始下降）。"""
+    """calf：還沒長大；adult：壯年；old：過了巔峰（母乳牛產奶、耕牛工作力開始下降；其他牛肉質開始下降）。"""
     fp = p.farm.fp
     if now < c.adult_at:
         return "calf"
     a = c.adult_age_h(now)
-    if c.bull:
-        return "old" if a > fp.peak_age_h[c.ctype] + fp.beef_hold_h else "adult"
-    return "old" if a > fp.milk_prime_h else "adult"
+    if is_milker(c) or c.ctype == OX:
+        return "old" if a > fp.milk_prime_h else "adult"
+    return "old" if a > fp.peak_age_h[c.ctype] + fp.beef_hold_h else "adult"
+
+
+def grade_dict(probs) -> dict:
+    return {g: round(x, 6) for g, x in zip(GRADE_NAMES, probs)}
 
 
 def cow_view(game: Game, p: Player, c: Cow, now: float) -> dict:
     fp = p.farm.fp
     adult = c.is_adult(now)
+    working = c.field >= 0
     return {
         "id": c.cid,
         "type": TYPE_WIRE[c.ctype],
-        "type_name": TYPE_NAMES[c.ctype],
+        "type_name": fp.type_names[c.ctype],
         "bull": c.bull,
         "tier": c.tier,
         "tier_name": TIER_NAMES[c.tier],
@@ -66,13 +80,24 @@ def cow_view(game: Game, p: Player, c: Cow, now: float) -> dict:
         "born_at": c.born_at,
         "adult_at": c.adult_at,
         "ready_at": c.ready_at,
-        "breed_ready": adult and now >= c.ready_at,
+        "breed_ready": c.can_breed_now(now),
         "age_h": r2((now - c.born_at) / HOUR),
         "milk_per_h": r2(cow_milk_rate(fp, c, now)),
-        "milk_frac": r2(milk_frac(fp, c.adult_age_h(now))) if adult and not c.bull else 0.0,
+        "milk_frac": r2(milk_frac(fp, c.adult_age_h(now))) if adult and (is_milker(c) or c.ctype == OX) else 0.0,
         "weight_kg": r2(beef_weight(fp, c, now)),
         "beef_quality": r2(beef_quality(fp, c, now)) if adult else 1.0,
         "ship_value": round(ship_value(game, p, c, now)),
+        # v0.2
+        "bred": c.bred,
+        "working": working,
+        "field": c.field if working else None,
+        "listed": c.listed,
+        "can_breed": c.can_breed_now(now),
+        "can_ship": adult and not c.is_busy(),
+        "can_work": c.ctype == OX and adult and not c.is_busy(),
+        "rice_per_h": r2(cow_rice_rate(fp, c, now)) if c.ctype == OX else 0.0,
+        "grade_probs": grade_dict(beef_grade_probs(fp, c, now)) if adult else None,
+        "origin": c.origin or None,
     }
 
 
@@ -108,7 +133,9 @@ def warehouse_view(p: Player, now: float) -> dict:
             "qty": r6(l.qty), "tier": l.tier, "cow_id": l.cow_id, "shipped_at": l.t,
             "quality": round(f.beef_lot_mult(l, now) / fp.tier_mult[l.tier], 4),
             "storage_factor": round(beef_storage_factor(fp, (now - l.t) / HOUR), 4),
+            "grade": GRADE_NAMES[l.grade] if 0 <= l.grade < 3 else None,
         })
+    rice_lots = [{"qty": r6(l.qty), "harvested_at": l.t, "quality": round(rice_factor(fp, (now - l.t) / HOUR), 4)} for l in f.rice_lots]
     return {
         "capacity": r2(f.wh_capacity()),
         "used": r6(f.wh_used()),
@@ -116,6 +143,8 @@ def warehouse_view(p: Player, now: float) -> dict:
         "beef_total": r6(f.beef_stock()),
         "milk_lots": milk_lots,
         "beef_lots": beef_lots,
+        "rice_total": r6(f.rice_stock()),
+        "rice_lots": rice_lots,
     }
 
 
@@ -140,12 +169,64 @@ def upgrades_view(p: Player, now: float) -> dict:
     bc = f.next_bucket_cost()
     wc = f.next_wh_cost()
     fc = f.next_fresh_cost()
+    flc = f.next_field_cost()
     return {
         "pen": {"level": f.expansions, "cost": ci(f.next_pen_cost()), "next_open_at": _first_open_at(p, now), "slots": f.slots, "next_slots": f.slots + 1 if f.next_pen_cost() is not None else None},
         "bucket": {"level": f.bucket_level, "cost": ci(bc), "capacity": r2(bucket_cap(fp, f.bucket_level)), "next_capacity": r2(bucket_cap(fp, f.bucket_level + 1)) if bc is not None else None},
         "warehouse": {"level": f.wh_level, "cost": ci(wc), "capacity": r2(wh_cap(fp, f.wh_level)), "next_capacity": r2(wh_cap(fp, f.wh_level + 1)) if wc is not None else None},
         "fresh": {"level": f.fresh_level, "cost": ci(fc), "fresh_h": full_h, "half_h": half_h,
                   "next_fresh_h": nfull_h if fc is not None else None, "next_half_h": nhalf_h if fc is not None else None},
+        "field": {"level": len(f.fields) - fp.field_start, "cost": ci(flc), "count": len(f.fields), "max": fp.field_max},
+    }
+
+
+def fields_view(p: Player, now: float) -> List[dict]:
+    f = p.farm
+    fp = f.fp
+    grown = f.field_preview(now)
+    out = []
+    for i, (fl, q) in enumerate(zip(f.fields, grown)):
+        ox = f.cow_by_id(fl.ox) if fl.ox >= 0 else None
+        cap = field_cap_for(fp, ox) if ox is not None else None
+        out.append({
+            "index": i, "cow_id": ox.cid if ox is not None else None, "rice": r6(q),
+            "capacity": r2(cap) if cap is not None else None,
+            "per_hour": r6(cow_rice_rate(fp, ox, now)) if ox is not None else 0.0,
+        })
+    return out
+
+
+def rice_view(p: Player, now: float) -> dict:
+    f = p.farm
+    return {"in_fields": r6(sum(f.field_preview(now))), "stock": r6(f.rice_stock()), "per_hour": r6(f.rice_rate(now))}
+
+
+def shop_view(game: Game, p: Player) -> dict:
+    fp = p.farm.fp
+    return {
+        "calf_price": {w: ci(fp.shop_grade_price[-1]) for w in TYPE_WIRE},  # v0.1 欄位：v0.2 起是最便宜（C 級）的價格
+        "grades": [{"grade": g, "price": ci(fp.shop_grade_price[i])} for i, g in enumerate(fp.shop_grade_names)],
+    }
+
+
+def listing_view(game: Game, lst, me: Optional[int], now: float) -> dict:
+    fp = game.params.farm
+    owner = game.players.get(lst.owner) if lst.owner is not None else None
+    bull = owner.farm.cow_by_id(lst.cow_id) if owner is not None else None
+    return {
+        "id": lst.lid,
+        "price": ci(lst.price),
+        "type": TYPE_WIRE[lst.ctype],
+        "type_name": fp.type_names[lst.ctype],
+        "tier": lst.tier,
+        "tier_name": TIER_NAMES[lst.tier],
+        "owner_id": lst.owner,
+        "owner_name": display_name(owner.name, owner.is_bot) if owner is not None else NPC_STUD_NAME,
+        "is_bot": owner.is_bot if owner is not None else True,
+        "is_mine": lst.owner is not None and lst.owner == me,
+        "cow_id": lst.cow_id if lst.owner is not None else None,
+        "listed_at": lst.listed_at,
+        "weight_kg": r2(beef_weight(fp, bull, now)) if bull is not None else None,
     }
 
 
@@ -174,9 +255,14 @@ def state_view(game: Game, p: Player, now: float, clock) -> dict:
         "warehouse": warehouse_view(p, now),
         "pen": pen_view(p, now),
         "upgrades": upgrades_view(p, now),
-        "shop": {"calf_price": {w: ci(f.fp.calf_price) for w in TYPE_WIRE}},
-        "breed": {"first_free": f.p.onboarding.first_breed_free and not f.first_breed_used},
+        "shop": shop_view(game, p),
+        "breed": {"first_free": False},
         "codex": codex_view(p),
+        # v0.2
+        "fields": fields_view(p, now),
+        "rice": rice_view(p, now),
+        "stud": {"listings": [listing_view(game, l, p.pid, now) for l in game.stud.owner_listings(p.pid)],
+                 "income": int(round(p.stud_income)), "prices": [ci(x) for x in f.fp.stud_prices]},
     }
 
 

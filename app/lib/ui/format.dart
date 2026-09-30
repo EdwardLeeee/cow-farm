@@ -24,6 +24,9 @@ String fmtPct(num ratio, [int digits = 1]) => '${ratio > 0 ? '+' : ''}${(ratio *
 
 String fmtPlainPct(num ratio) => '${(ratio * 100).toStringAsFixed(0)}%';
 
+/// 機率：0.1375 → "13.8%"。
+String fmtPlainPct1(num ratio) => '${(ratio * 100).toStringAsFixed(1)}%';
+
 /// 倍率：144 → "144"，1.5 → "1.5"。
 String fmtScale(double s) => s == s.roundToDouble() ? s.round().toString() : s.toStringAsFixed(1);
 
@@ -71,6 +74,17 @@ String stageName(CowStage s) => switch (s) {
   CowStage.old => S.stageOld,
 };
 
-String commodityName(Commodity c) => c == Commodity.milk ? S.milk : S.beef;
+String commodityName(Commodity c) => switch (c) {
+  Commodity.milk => S.milk,
+  Commodity.beef => S.beef,
+  Commodity.rice => S.rice,
+};
 
-String unitName(Commodity c) => c == Commodity.milk ? S.unitMilk : S.unitBeef;
+String unitName(Commodity c) => switch (c) {
+  Commodity.milk => S.unitMilk,
+  Commodity.beef => S.unitBeef,
+  Commodity.rice => S.unitRice,
+};
+
+/// 牛的一行摘要：乳牛・母・稀有。
+String cowSummary(Cow c) => '${typeName(c.type)}・${sexName(c.bull)}・${tierName(c.tier)}';

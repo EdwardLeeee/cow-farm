@@ -7,11 +7,13 @@
 #   scripts/serve.sh logs           看最後 50 行日誌
 #
 # 用 systemd-run --scope 限制記憶體 1500 MB、不用 swap（這台電腦 2026-09-30 因記憶體耗盡當機過）。
-# PID 與日誌放在 ~/.cache/cow-farm/。前景執行（看得到日誌）用：cd backend && .venv/bin/python -m server
+# PID 與日誌放在 ~/.cache/cow-farm/（COWFARM_RUN_DIR 可以換，例如同時跑第二台驗證用的伺服器：
+#   COWFARM_RUN_DIR=/tmp/cowfarm-verify COWFARM_PORT=8789 COWFARM_PG_DSN=... scripts/serve.sh start 144）。
+# 前景執行（看得到日誌）用：cd backend && .venv/bin/python -m server
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")/.." && pwd)"
-RUN_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/cow-farm"
+RUN_DIR="${COWFARM_RUN_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/cow-farm}"
 PID_FILE="$RUN_DIR/server.pid"
 LOG_FILE="$RUN_DIR/server.log"
 PORT="${COWFARM_PORT:-8787}"

@@ -271,7 +271,8 @@ class TestTickInvariance(unittest.TestCase):
             for _ in range(int(10 * 86400 / dt)):
                 t += dt
                 ex.step(t, 1.0)
-            seqs.append([(e.start_at, e.factor, e.targets, e.headline) for e in ex.event_log_history])
+            # 同一個 tick 裡同時變成可見的事件，出現順序會跟 tick 大小有關；比「有哪些事件」要照開始時間排序
+            seqs.append(sorted((e.start_at, e.factor, e.targets, e.headline) for e in ex.event_log_history))
         self.assertEqual(seqs[0], seqs[1])
         self.assertGreater(len(seqs[0]), 15)
 

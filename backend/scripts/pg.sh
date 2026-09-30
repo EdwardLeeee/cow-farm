@@ -6,6 +6,8 @@
 #   scripts/pg.sh stop      停止容器（資料留在資料卷）
 #   scripts/pg.sh psql      進資料庫的 psql
 #   scripts/pg.sh dump F    線上備份成 F（pg_dump -Fc，在容器裡跑：主機的 pg_dump 14 不能備份 17）
+#   scripts/pg.sh resetdb [名稱]  清掉一個資料庫重建成空的（預設 cowfarm；伺服器下次啟動會建立新世界）。
+#                                 要輸入資料庫名稱確認，或加 --yes。舊（v0.1）世界不相容 v0.2 伺服器時用這個。
 #   scripts/pg.sh destroy   刪除容器、資料卷與密碼檔（所有遊戲資料都會消失；要輸入 DESTROY 確認，或加 --yes）
 #
 # 設計
@@ -134,6 +136,25 @@ cmd_dump() {
   echo "備份到 $out（$(du -h "$out" | cut -f1)）"
 }
 
+cmd_resetdb() {
+  local db="${1:-cowfarm}"
+  [ "${1:-}" = "--yes" ] && db="cowfarm"
+  local yes="0"
+  for a in "$@"; do [ "$a" = "--yes" ] && yes="1"; done
+  running || { echo "$NAME 沒有在跑，先 scripts/pg.sh up" >&2; exit 1; }
+  echo "會清掉資料庫 $db 的所有內容（牧場、行情、成交紀錄），重建成空的。請先停掉用這個資料庫的伺服器。"
+  if [ "$yes" != "1" ]; then
+    read -r -p "確定的話輸入資料庫名稱（$db）：" ans
+    if [ "$ans" != "$db" ]; then
+      echo "取消，什麼都沒動。"
+      exit 1
+    fi
+  fi
+  podman exec "$NAME" psql -q -h 127.0.0.1 -p "$PORT" -U cowfarm -d postgres \
+    -c "DROP DATABASE IF EXISTS \"$db\" WITH (FORCE)" -c "CREATE DATABASE \"$db\""
+  echo "已重建空的資料庫 $db"
+}
+
 cmd_destroy() {
   echo "會刪除：容器 $NAME、資料卷 $VOLUME（全部遊戲資料）、密碼檔 $ENV_FILE"
   if [ "${1:-}" != "--yes" ]; then
@@ -161,9 +182,10 @@ case "${1:-}" in
   stop | down) cmd_stop ;;
   psql) shift; cmd_psql "$@" ;;
   dump) shift; cmd_dump "$@" ;;
+  resetdb) shift; cmd_resetdb "$@" ;;
   destroy) shift; cmd_destroy "$@" ;;
   *)
-    sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
     exit 2
     ;;
 esac

@@ -3,8 +3,9 @@
     cd docs/research/economy && python3 -m sim.report && python3 -m sim.plots
 
 配色與線條照 dataviz skill 的參考色盤（淺色底）：類別色依固定順序
-藍 #2a78d6、橘 #eb6834、青 #1baf7a、黃 #eda100（已用 validate_palette.js 驗過：
-相鄰 CVD ΔE 9.1、一般視覺 ΔE 22.9；青、黃對底色不到 3:1，所以每張圖都有直接標籤，筆記另附表格）。
+藍 #2a78d6、橘 #eb6834、青 #1baf7a、黃 #eda100、粉 #e87ba4、綠 #008300（v0.2 六種策略；
+validate_palette.js：相鄰 CVD ΔE 9.1、一般視覺 ΔE 19.6；青、黃、粉對底色不到 3:1，所以圖上有直接標籤，
+筆記另附表格）。商店 A／B／C 是有順序的等級，用單一色相的有序色階 #184f95／#3987e5／#86b6ef（--ordinal 通過）。
 中文字型用 Noto Sans CJK TC（從系統的 .ttc 取出 TC 字面；取不到就退回 JP 字面，再不行改英文標籤）。
 """
 
@@ -27,6 +28,7 @@ HERE = Path(__file__).resolve().parent.parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
+import sim  # noqa: E402,F401
 from sim import scenarios as S  # noqa: E402
 
 RUNS = HERE / "out" / "runs"
@@ -39,9 +41,14 @@ INK2 = "#52514e"
 MUTED = "#898781"
 GRID = "#e1e0d9"
 AXIS = "#c3c2b7"
-BLUE, ORANGE, AQUA, YELLOW = "#2a78d6", "#eb6834", "#1baf7a", "#eda100"
-STRAT_COLOR = {"S1": BLUE, "S2": ORANGE, "S3": AQUA, "S4": YELLOW}
-STRAT_LABEL = {"S1": "S1 即賣", "S2": "S2 牛肉派", "S3": "S3 配種收集", "S4": "S4 抓時機"}
+BLUE, ORANGE, AQUA, YELLOW, MAGENTA, GREEN = "#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300"
+STRATS = ("D", "B", "F", "C", "T", "L")
+STRAT_COLOR = {"D": BLUE, "B": ORANGE, "F": AQUA, "C": YELLOW, "T": MAGENTA, "L": GREEN}
+STRAT_LABEL = {"D": "乳牛派", "B": "肉牛派", "F": "耕田派", "C": "配種收集派", "T": "抓時機派", "L": "出借公牛派"}
+CIDS = ("milk", "beef", "rice")
+CN = {"milk": "牛奶", "beef": "牛肉", "rice": "稻米"}
+CCOLOR = {"milk": BLUE, "beef": ORANGE, "rice": AQUA}
+GRADE_COLOR = {"A": "#184f95", "B": "#3987e5", "C": "#86b6ef"}
 DPI = 150
 LW = 1.0  # 1pt ≈ 2px（150 dpi）
 
@@ -134,21 +141,20 @@ def fig_price_path(goals) -> None:
     run = "base_1000_s1"
     d = read_csv(RUNS / f"{run}_prices_5m.csv")
     days = [t / 24 for t in d["t_h"]]
-    fig, axes = plt.subplots(2, 1, figsize=(9, 5.2), sharex=True)
-    for ax, cid, name, color in ((axes[0], "milk", "牛奶", BLUE), (axes[1], "beef", "牛肉", ORANGE)):
+    fig, axes = plt.subplots(3, 1, figsize=(9, 7.2), sharex=True)
+    for ax, cid in zip(axes, CIDS):
         style_axes(ax)
-        ax.plot(days, d[cid], color=color, linewidth=LW * 0.8, zorder=3)
+        ax.plot(days, d[cid], color=CCOLOR[cid], linewidth=LW * 0.8, zorder=3)
         ref_line(ax, 1.7, "軟邊界 1.7 倍")
-        ref_line(ax, 1.0, "基本價", color=AXIS)
+        ref_line(ax, 1.0, "基本價")
         ref_line(ax, 0.6, "軟邊界 0.6 倍")
         ax.set_ylim(0.5, 1.8)
-        ax.set_ylabel(f"{name}價格／基本價")
-        ins = goals["a_price"]["1000"][cid]["inside_min"]
-        lo, hi = goals["a_price"]["1000"][cid]["p1"], goals["a_price"]["1000"][cid]["p99"]
-        ax.text(0.005, 0.97, f"{name}：{ins:.1%} 的時間在 0.6–1.7 倍內；1–99 百分位 {lo:.2f}–{hi:.2f} 倍", transform=ax.transAxes, fontsize=8, color=INK2, va="top")
-    axes[1].set_xlabel("開服後第幾天（2026-10-05 週一 00:00 起，台灣時間）")
-    axes[1].set_xlim(0, 30)
-    fig.suptitle("30 天價格有起伏但不崩（1,000 名玩家，seed 1，每 5 分鐘取樣）", x=0.01, ha="left", fontsize=11, fontweight="bold", color=INK)
+        ax.set_ylabel(f"{CN[cid]}／基本價")
+        r = goals["a_price"]["1000"][cid]
+        ax.text(0.005, 0.97, f"{CN[cid]}：{r['inside_min']:.1%} 的時間在 0.6–1.7 倍內；1–99 百分位 {r['p1']:.2f}–{r['p99']:.2f} 倍", transform=ax.transAxes, fontsize=8, color=INK2, va="top")
+    axes[-1].set_xlabel("開服後第幾天（2026-10-05 週一 00:00 起，台灣時間）")
+    axes[-1].set_xlim(0, 30)
+    fig.suptitle("v0.2 三種商品 30 天價格：有起伏但不崩（1,000 名玩家，seed 1，每 5 分鐘取樣）", x=0.01, ha="left", fontsize=11, fontweight="bold", color=INK)
     fig.tight_layout()
     save(fig, "price_30d_1000.png")
 
@@ -156,27 +162,28 @@ def fig_price_path(goals) -> None:
 def fig_price_distribution(goals) -> None:
     a = goals["a_price"]
     pops = [p for p in ("10", "100", "1000", "10000") if p in a]
-    fig, ax = plt.subplots(figsize=(8, 4.2))
+    fig, ax = plt.subplots(figsize=(9, 4.4))
     style_axes(ax)
-    xs = range(len(pops))
-    for off, cid, name, color in ((-0.12, "milk", "牛奶", BLUE), (0.12, "beef", "牛肉", ORANGE)):
+    for j, cid in enumerate(CIDS):
+        off = (j - 1) * 0.18
         for i, p in enumerate(pops):
             r = a[p][cid]
             x = i + off
-            ax.plot([x, x], [r["p1"], r["p99"]], color=color, linewidth=LW, zorder=3)
-            ax.plot([x, x], [r["p5"], r["p95"]], color=color, linewidth=LW * 4.5, solid_capstyle="butt", zorder=3, label=name if i == 0 else None)
-            ax.plot([x], [r["p50"]], marker="o", markersize=5, color=color, markeredgecolor=SURFACE, markeredgewidth=1.2, zorder=4)
-            ax.annotate(f"{r['inside_min']:.1%}", xy=(x, r["p1"]), xytext=(0, -4), textcoords="offset points", ha="center", va="top", fontsize=7, color=INK2)
+            ax.plot([x, x], [r["p1"], r["p99"]], color=CCOLOR[cid], linewidth=LW, zorder=3)
+            ax.plot([x, x], [r["p5"], r["p95"]], color=CCOLOR[cid], linewidth=LW * 4.5, solid_capstyle="butt", zorder=3, label=CN[cid] if i == 0 else None)
+            ax.plot([x], [r["p50"]], marker="o", markersize=5, color=CCOLOR[cid], markeredgecolor=SURFACE, markeredgewidth=1.2, zorder=4)
+            ax.annotate(f"{r['inside_min']:.1%}", xy=(x, r["p1"]), xytext=(0, -4), textcoords="offset points", ha="center", va="top", fontsize=6.5, color=INK2)
     ref_line(ax, 1.7, "軟邊界 1.7")
     ref_line(ax, 1.0, "基本價")
     ref_line(ax, 0.6, "軟邊界 0.6")
-    ax.set_xticks(list(xs))
-    ax.set_xticklabels([f"{int(p):,} 人" for p in pops])
+    ax.set_xticks(range(len(pops)))
+    ax.set_xticklabels([f"{int(p):,} 人（{a[p]['days']} 天）" for p in pops])
     ax.set_ylim(0.45, 1.8)
     ax.set_ylabel("價格／基本價")
-    ax.legend(loc="upper left", ncol=2)
+    ax.legend(loc="upper left", ncol=3)
     ax.text(0.99, 0.02, "細線 1–99 百分位、粗段 5–95、圓點中位數；下方數字 = 在 0.6–1.7 倍內的時間（各 seed 最低）", transform=ax.transAxes, ha="right", va="bottom", fontsize=7, color=MUTED)
-    ax.set_title("每種人數下，價格 99% 以上的時間落在 0.6–1.7 倍")
+    worst = min(a[p][cid]["inside_min"] for p in pops for cid in CIDS)
+    ax.set_title(f"每種人數、三種商品，價格至少 {worst:.1%} 的時間落在 0.6–1.7 倍")
     fig.tight_layout()
     save(fig, "price_distribution.png")
 
@@ -186,37 +193,89 @@ def fig_strategies(goals) -> None:
     pop = "10000" if "10000" in b else "1000"
     row = b[pop]
     weeks = [w["week"] for w in row["weeks"]]
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 4.2))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 4.4))
     style_axes(ax1)
     style_axes(ax2)
-    for k in ("S1", "S2", "S3", "S4"):
+    for k in STRATS:
         ys = [w["means"][k] / 1000 for w in row["weeks"]]
         ax1.plot(weeks, ys, color=STRAT_COLOR[k], linewidth=LW, marker="o", markersize=4.5, markeredgecolor=SURFACE, markeredgewidth=1.0, label=STRAT_LABEL[k])
     ax1.set_xticks(weeks)
     ax1.set_xticklabels([f"第 {w} 週" for w in weeks])
-    ax1.set_ylabel("平均週收入（千幣，賣牛奶＋牛肉）")
+    ax1.set_ylabel("平均週收入（千幣）")
     ax1.set_ylim(0, None)
-    ax1.legend(loc="upper left")
-    ax1.set_title(f"各策略週收入（{int(pop):,} 名玩家）")
-    # 右：相對 S1
+    ax1.legend(loc="upper left", ncol=2)
+    ax1.set_title(f"六種玩法的週收入（{int(pop):,} 名玩家）")
+    # 右：差距與耕田÷乳牛（兩個都是比值，同一個軸）
+    spread = [w["max_over_min"] for w in row["weeks"]]
+    fd = [w["F_over_D"] for w in row["weeks"]]
+    ax2.plot(weeks, spread, color=INK2, linewidth=LW, marker="o", markersize=4.5, markeredgecolor=SURFACE, markeredgewidth=1.0, label="六種玩法 最高÷最低")
+    ax2.plot(weeks, fd, color=STRAT_COLOR["F"], linewidth=LW, marker="o", markersize=4.5, markeredgecolor=SURFACE, markeredgewidth=1.0, label="耕田派÷乳牛派")
+    ax2.annotate(f"{spread[-1]:.2f}", xy=(weeks[-1], spread[-1]), xytext=(6, 0), textcoords="offset points", va="center", fontsize=7.5, color=INK2)
+    if abs(fd[-1] - spread[-1]) > 0.02:  # 兩個值一樣時只標一次，免得疊在一起
+        ax2.annotate(f"{fd[-1]:.2f}", xy=(weeks[-1], fd[-1]), xytext=(6, 0), textcoords="offset points", va="center", fontsize=7.5, color=INK2)
     ref_line(ax2, 1.5, "上限 1.5 倍")
-    ref_line(ax2, 1 / 1.5, "下限 1/1.5 倍")
-    ax2.axhline(1.0, color=BLUE, linewidth=LW, zorder=2, label="S1 即賣（= 1）")
-    for k in ("S2", "S3", "S4"):
-        ys = [w["means"][k] / w["means"]["S1"] for w in row["weeks"]]
-        ax2.plot(weeks, ys, color=STRAT_COLOR[k], linewidth=LW, marker="o", markersize=4.5, markeredgecolor=SURFACE, markeredgewidth=1.0, label=STRAT_LABEL[k])
-        if k == "S4":  # 只直接標故事主角；其他靠圖例（終點太近會疊在一起）
-            ax2.annotate(f"S4 {ys[-1]:.2f}", xy=(weeks[-1], ys[-1]), xytext=(6, 0), textcoords="offset points", va="center", fontsize=7.5, color=INK2)
+    ref_line(ax2, 1.07, "耕田 1.07")
+    ref_line(ax2, 0.93, "耕田 0.93")
+    ax2.axhline(1.0, color=AXIS, linewidth=0.6)
     ax2.set_xticks(weeks)
     ax2.set_xticklabels([f"第 {w} 週" for w in weeks])
-    ax2.set_xlim(weeks[0] - 0.2, weeks[-1] + 0.6)
-    ax2.set_ylim(0.6, 1.6)
-    ax2.set_ylabel("週收入 ÷ S1 週收入")
-    ax2.legend(loc="lower right", ncol=2)
-    last = row["weeks"][-1]
-    ax2.set_title(f"與 S1 相比都在 1.5 倍內，第 {last['week']} 週最高是 {last['top']}")
+    ax2.set_xlim(weeks[0] - 0.2, weeks[-1] + 0.5)
+    ax2.set_ylim(0.7, 1.7)
+    ax2.set_ylabel("比值")
+    ax2.legend(loc="upper right")
+    ax2.set_title("差距都在 1.5 倍內；耕田派 ÷ 乳牛派在 0.93–1.07")
     fig.tight_layout()
     save(fig, "strategy_weekly.png")
+
+
+def fig_shop(goals) -> None:
+    sh = goals["new_c_shop"]
+    if "surplus" not in sh:
+        return
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(11, 4.0), gridspec_kw={"width_ratios": [1, 1.3]})
+    style_axes(ax1)
+    grades = ("A", "B", "C")
+    xs = range(3)
+    vals = [sh["pops"]["1000"]["value"][g]["mean"] for g in grades]
+    prices = [sh["grades"][g]["price"] for g in grades]
+    surplus = [sh["surplus"][g] for g in grades]
+    w = 0.22
+    ax1.bar([x - w / 2 - 0.02 for x in xs], [p / 1000 for p in prices], width=w, color=MUTED, label="價格", zorder=3)
+    ax1.bar([x + w / 2 + 0.02 for x in xs], [s / 1000 for s in surplus], width=w, color=BLUE, label="淨賺（一生價值 − 價格）", zorder=3)
+    for x, p, s in zip(xs, prices, surplus):
+        ax1.annotate(f"{p / 1000:.1f}", xy=(x - w / 2 - 0.02, p / 1000), xytext=(0, 2), textcoords="offset points", ha="center", va="bottom", fontsize=7, color=INK2)
+        ax1.annotate(f"{s / 1000:.1f}", xy=(x + w / 2 + 0.02, s / 1000), xytext=(0, 2), textcoords="offset points", ha="center", va="bottom", fontsize=7, color=INK2)
+    ax1.set_xticks(list(xs))
+    ax1.set_xticklabels([f"{g} 級" for g in grades])
+    ax1.set_ylabel("千幣")
+    ax1.legend(loc="upper center", bbox_to_anchor=(0.5, -0.1), ncol=2)
+    ax1.set_title(f"三級淨賺相差 {sh['surplus_max_over_min'] - 1:.1%} 以內（1,000 人實測）", fontsize=9.5)
+    # 右：各策略的購買份額（堆疊橫條，有序色階）
+    style_axes(ax2, ygrid=False)
+    ax2.grid(True, axis="x")
+    pops = sh["pops"]["1000"]["per_strategy"]
+    names = list(STRATS)
+    lefts = [0.0] * len(names)
+    for g in grades:
+        vals_g = []
+        for k in names:
+            t = sum(pops[k].values()) or 1
+            vals_g.append(pops[k][g] / t * 100)
+        ax2.barh(range(len(names)), vals_g, left=lefts, color=GRADE_COLOR[g], height=0.55, label=f"{g} 級", edgecolor=SURFACE, linewidth=1.0, zorder=3)
+        for i, (l, v) in enumerate(zip(lefts, vals_g)):
+            if v >= 9:
+                ax2.text(l + v / 2, i, f"{v:.0f}%", ha="center", va="center", fontsize=7, color="#ffffff" if g != "C" else INK)
+        lefts = [l + v for l, v in zip(lefts, vals_g)]
+    ax2.set_yticks(range(len(names)))
+    ax2.set_yticklabels([STRAT_LABEL[k] for k in names])
+    ax2.invert_yaxis()
+    ax2.set_xlim(0, 100)
+    ax2.set_xlabel("購買份額（%）")
+    ax2.legend(loc="lower right", ncol=3, bbox_to_anchor=(1.0, 1.0), fontsize=7.5)
+    ax2.set_title("各玩法買了哪一級（1,000 人，seed 1–2）", fontsize=9.5, loc="left")
+    fig.suptitle("商店 A／B／C：沒有明顯最划算的一級，三級都有人買", x=0.01, ha="left", fontsize=10.5, fontweight="bold", color=INK)
+    fig.tight_layout()
+    save(fig, "shop_grades.png")
 
 
 def fig_whale(goals) -> None:
@@ -278,13 +337,13 @@ def fig_whale(goals) -> None:
         ax.set_xticklabels(ticks, fontsize=7.5)
         ax.set_title(f"{name}：成交價比當下市價低多少（滑價）", fontsize=9.5)
         ax.axhline(0, color=AXIS, linewidth=0.6)
-        ax.set_ylim(0, 32)
+        ax.set_ylim(0, 34)
     axes[0].set_ylabel("平均折扣（%）")
     handles, labs = axes[0].get_legend_handles_labels()
     fig.legend(handles, labs, loc="upper right", ncol=2, bbox_to_anchor=(0.99, 0.99))
-    diffs = [(c[k][cid]["dump_slip"] - c[k][cid]["batch_slip"]) * 100 for k in keys for cid in ("milk", "beef") if (c[k][cid].get("dump_hours_of_server_flow") or 0) >= 3]
+    diffs = [(c[k][cid]["dump_slip"] - c[k][cid]["batch_slip"]) * 100 for k in keys for cid in ("milk", "beef") if (c[k][cid].get("dump_hours_of_server_flow") or 0) >= 3] or [0.0]
     fig.suptitle(f"囤貨量達全服 3 小時以上的賣量時，一次倒出的滑價比分批大 {min(diffs):.0f}–{max(diffs):.0f} 個百分點", x=0.01, ha="left", fontsize=10.5, fontweight="bold", color=INK)
-    fig.text(0.01, -0.03, "橫軸第三行 = 大戶倒出的量相當於全服其他玩家平常幾小時的賣量（估計）。囤貨只佔全服約 20 分鐘的量時，倒出和分批差不多（市場吃得下）。", ha="left", va="top", fontsize=8, color=INK2)
+    fig.text(0.01, -0.03, "橫軸第三行 = 大戶倒出的量相當於全服其他玩家平常幾小時的賣量（估計）。囤貨只佔全服 1–2 小時的量時，倒出和分批差不多：市場吃得下，而分批裡夜間那幾批遇到的市場比較淺。", ha="left", va="top", fontsize=8, color=INK2)
     fig.tight_layout(rect=(0, 0, 1, 0.93))
     save(fig, "whale_price.png")
 
@@ -296,32 +355,31 @@ def fig_panic(goals) -> None:
     wp = read_csv(RUNS / f"event_{n}_panic_s1_window_1m.csv")
     wc = read_csv(RUNS / f"event_{n}_calm_s1_window_1m.csv")
     t = [th - S.EVENT_H for th in wp["t_h"]]
-    fig, axes = plt.subplots(1, 3, figsize=(11, 3.6))
-    for ax, cid, name in ((axes[0], "milk", "牛奶"), (axes[1], "beef", "牛肉")):
+    fig, axes = plt.subplots(1, 4, figsize=(14, 3.6))
+    sel = [i for i, x in enumerate(t) if -1 <= x <= 8]
+    for ax, cid in zip(axes, CIDS):
         style_axes(ax)
-        sel = [i for i, x in enumerate(t) if -1 <= x <= 8]
         ax.plot([t[i] for i in sel], [wc[cid][i] for i in sel], color=MUTED, linewidth=LW, label="沒有恐慌（對照）")
         ax.plot([t[i] for i in sel], [wp[cid][i] for i in sel], color=BLUE, linewidth=LW, label="60% 玩家 30 分鐘內全賣")
         ax.axvline(0, color=AXIS, linewidth=0.6)
         ref_line(ax, 1.0, "基本價")
         r = goals["panic_after_event"][n][cid]
-        ax.set_title(f"{name}：多跌 {r['max_drop_direct']:.1%}，{r['recover_90pct_h']:.1f} 小時回復九成" if r.get("recover_90pct_h") is not None else f"{name}：多跌 {r['max_drop_direct']:.1%}", fontsize=9.5)
+        rec = f"，{r['recover_90pct_h']:.1f} 小時回復九成" if r.get("recover_90pct_h") is not None else ""
+        ax.set_title(f"{CN[cid]}：多跌 {r['max_drop_direct']:.1%}{rec}", fontsize=9.5)
         ax.set_xlabel("+40% 新聞開始後幾小時")
-        ax.set_ylabel(f"{name}價格／基本價")
+        ax.set_ylabel(f"{CN[cid]}／基本價")
         ax.set_xlim(-1, 8)
-    axes[0].legend(loc="upper right")
-    ax = axes[2]
+    axes[0].legend(loc="upper right", fontsize=7)
+    ax = axes[3]
     style_axes(ax)
-    sel = [i for i, x in enumerate(t) if -1 <= x <= 3]
-    ax.plot([t[i] for i in sel], [wc["online"][i] for i in sel], color=MUTED, linewidth=LW, label="對照")
-    ax.plot([t[i] for i in sel], [wp["online"][i] for i in sel], color=BLUE, linewidth=LW, label="恐慌")
-    ax.set_title("線上人數", fontsize=9.5)
+    sel2 = [i for i, x in enumerate(t) if -1 <= x <= 3]
+    ax.plot([t[i] for i in sel2], [wc["online"][i] for i in sel2], color=MUTED, linewidth=LW, label="對照")
+    ax.plot([t[i] for i in sel2], [wp["online"][i] for i in sel2], color=BLUE, linewidth=LW, label="恐慌")
+    ax.set_title("同時在線人數", fontsize=9.5)
     ax.set_xlabel("新聞開始後幾小時")
-    ax.set_ylabel("同時在線人數")
     ax.set_ylim(0, None)
     ax.legend(loc="upper right")
-    rm, rb = goals["panic_after_event"][n]["milk"], goals["panic_after_event"][n]["beef"]
-    fig.suptitle(f"+40% 新聞後 60% 玩家同時全賣：牛奶多跌 {rm['max_drop_direct']:.1%}、牛肉多跌 {rb['max_drop_direct']:.1%}，都在 {max(rm['recover_90pct_h'] or 0, rb['recover_90pct_h'] or 0):.1f} 小時內回復九成（{int(n):,} 名玩家）", x=0.01, ha="left", fontsize=10.5, fontweight="bold", color=INK)
+    fig.suptitle(f"三種商品 +40% 後 60% 玩家同時全賣：牛肉多跌最多（大家一次出貨很多頭），牛奶、稻米多跌很少（{int(n):,} 名玩家）", x=0.01, ha="left", fontsize=10.5, fontweight="bold", color=INK)
     fig.tight_layout()
     save(fig, "panic_event.png")
 
@@ -343,12 +401,13 @@ def fig_low(goals) -> None:
     axes[1].plot(t, wr["milk"], color=MUTED, linewidth=LW * 0.8, label="平常")
     axes[1].plot(t, wl["milk"], color=BLUE, linewidth=LW * 0.8, label="人少的一天")
     ref_line(axes[1], 1.0, "基本價")
-    axes[1].set_ylabel("牛奶價格／基本價")
+    axes[1].set_ylabel("牛奶／基本價")
     for ax in axes:
         ax.axvspan(S.LOW_DAY, S.LOW_DAY + 1, color="#f0efec", zorder=0, linewidth=0)
     r = goals["low_online_day"][n]
     axes[1].set_xlabel("開服後第幾天（灰底 = 人少的那一天）")
-    fig.suptitle(f"某天線上人數只剩兩成：牛奶價格平均只差 {abs(r['milk_low_over_ref_mean'] - 1):.1%}，電腦買家補足需求（{int(n):,} 名玩家）", x=0.01, ha="left", fontsize=10.5, fontweight="bold", color=INK)
+    diffs = "、".join(f"{CN[c]} {abs(r[c + '_low_over_ref_mean'] - 1):.1%}" for c in CIDS)
+    fig.suptitle(f"某天線上人數只剩兩成：平均價格只差 {diffs}（{int(n):,} 名玩家）", x=0.01, ha="left", fontsize=10.5, fontweight="bold", color=INK)
     fig.tight_layout()
     save(fig, "low_online.png")
 
@@ -360,6 +419,7 @@ def main() -> None:
     fig_price_path(goals)
     fig_price_distribution(goals)
     fig_strategies(goals)
+    fig_shop(goals)
     fig_whale(goals)
     fig_panic(goals)
     fig_low(goals)

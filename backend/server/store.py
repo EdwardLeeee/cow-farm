@@ -1,7 +1,8 @@
 """PostgreSQL 存取（asyncpg）。
 
 表（原型可以簡化，但重啟一定要能回復）
-- meta：世界設定（亂數種子、開服時間、參數指紋）、遊戲時鐘、交易所的新聞產生器與進行中的事件。
+- meta：世界設定（亂數種子、開服時間、參數指紋、引擎版本）、遊戲時鐘、交易所的新聞產生器與進行中的事件、
+  借種市場（StudMarket.to_dict()，v0.2；全服一份，和改到它的動作同一個交易寫入）。
 - players：id、token 的 SHA-256、牧場名、是不是假玩家、建立時間。
 - farms：player_id、狀態 JSONB（cowecon Farm.to_dict() 加上圖鑑、累積收入、假玩家排程）、版本號（樂觀鎖）。
 - markets：商品、Market.to_dict()（不含 24 小時歷史，那在 price_history）、更新時間。
@@ -174,16 +175,21 @@ class Store:
                 await conn.execute("INSERT INTO farms(player_id, state, version, game_t) VALUES($1, $2, 1, $3)", pid, state, created_t)
 
     async def commit_action(self, pid: int, state: dict, version: int, game_t: float, trades: Sequence[dict],
-                            request: Optional[Tuple[str, str, Any]] = None) -> None:
-        """一個動作的結果：牧場狀態（樂觀鎖）、成交紀錄、request_id 與回應，同一個交易。"""
+                            request: Optional[Tuple[str, str, Any]] = None,
+                            others: Sequence[Tuple[int, dict, int, float]] = (), stud: Optional[dict] = None) -> None:
+        """一個動作的結果，同一個交易：牧場狀態（樂觀鎖）、被動到的別的牧場（借種的主人）、借種市場、
+        成交紀錄、request_id 與回應。"""
         async with self.pool.acquire() as conn:
             async with conn.transaction():
-                r = await conn.execute(
-                    "UPDATE farms SET state=$1, version=version+1, game_t=$2, updated_at=now() WHERE player_id=$3 AND version=$4",
-                    state, game_t, pid, version,
-                )
-                if r != "UPDATE 1":
-                    raise VersionConflict(f"player {pid} version {version}")
+                for p_id, p_state, p_version, p_t in [(pid, state, version, game_t), *others]:
+                    r = await conn.execute(
+                        "UPDATE farms SET state=$1, version=version+1, game_t=$2, updated_at=now() WHERE player_id=$3 AND version=$4",
+                        p_state, p_t, p_id, p_version,
+                    )
+                    if r != "UPDATE 1":
+                        raise VersionConflict(f"player {p_id} version {p_version}")
+                if stud is not None:
+                    await conn.execute("INSERT INTO meta(key, value) VALUES('stud', $1) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=now()", stud)
                 if trades:
                     await conn.executemany(
                         "INSERT INTO trades(seq, player_id, commodity, qty, coins, proceeds, price, discount, t, market_t, contrib) "

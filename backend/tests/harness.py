@@ -1,6 +1,6 @@
-"""在服務層重跑經濟情境（不經過資料庫，速度和研究模擬差不多）。
+"""在服務層重跑經濟情境（v0.2；不經過資料庫，速度和研究模擬差不多）。
 
-ServiceWorld 照 docs/research/economy/sim/world.py 的時間軸、上線排程、市場 tick 與統計移植；
+ServiceWorld 照 docs/research/economy/sim/world.py（v0.2）的時間軸、上線排程、三個市場的 tick、借種市場與統計移植；
 差別是玩家動作全部經過 server.game.Game（伺服器的服務層）與 server.bots（移植的策略）。
 情境資料照 docs/research/economy/sim/scenarios.py 複製一份（純資料）。
 """
@@ -51,7 +51,7 @@ def whale(players: int, mode: str, cows: int, seed: int = 1) -> dict:
 def panic(players: int, with_panic: bool, seed: int = 1) -> dict:
     sc = {
         "name": f"event_{players}_{'panic' if with_panic else 'calm'}_s{seed}", "group": "event", "players": players, "days": 23, "tick_s": 60, "seed": seed,
-        "inject_events": [{"targets": ["milk", "beef"], "factor": 1.4, "at_h": EVENT_H, "half_life_h": 4.0, "headline": "（情境）全國牧場節：鮮奶、牛肉收購價大漲"}],
+        "inject_events": [{"targets": ["milk", "beef", "rice"], "factor": 1.4, "at_h": EVENT_H, "half_life_h": 4.0, "headline": "（情境）全國農牧節：鮮奶、牛肉、稻米收購價大漲"}],
     }
     if with_panic:
         sc["panic"] = {"at_h": EVENT_H + 0.25, "share": 0.6, "window_min": 30}
@@ -66,8 +66,10 @@ def low_online(players: int, seed: int = 1, low: bool = True) -> dict:
 # ---------------------------------------------------------------------------
 # 帳本（每位玩家「類別 × 第幾天」的收支）
 # ---------------------------------------------------------------------------
-AMOUNT_KINDS = ("milk", "beef", "calf", "breed", "expand", "bucket", "warehouse", "fresh")
-QTY_KINDS = ("milk", "beef", "collect", "spoiled")
+AMOUNT_KINDS = ("milk", "beef", "rice", "calf", "breed", "expand", "bucket", "warehouse", "fresh", "field", "stud_in", "stud_out")
+QTY_KINDS = ("milk", "beef", "rice", "collect", "spoiled", "harvest", "breed", "stud_in", "stud_out",
+             "grade_A", "grade_B", "grade_C", "shop_A", "shop_B", "shop_C")
+REVENUE_KINDS = ("milk", "beef", "rice", "stud_in")  # 週收入 = 賣出收入 + 借種收入
 
 
 class Ledger:
@@ -97,6 +99,13 @@ class Ledger:
         i = self._AIDX[kind]
         return sum(self.amount[i * self.n + d] for d in range(d0, min(d1, self.n)))
 
+    def qty_days(self, kind: str, d0: int, d1: int) -> float:
+        j = self._QIDX[kind]
+        return sum(self.qty[j * self.n + d] for d in range(d0, min(d1, self.n)))
+
+    def revenue_days(self, d0: int, d1: int) -> float:
+        return sum(self.amount_days(k, d0, d1) for k in REVENUE_KINDS)
+
 
 # ---------------------------------------------------------------------------
 # 世界
@@ -114,6 +123,9 @@ class ServiceWorld:
         # 服務層（和伺服器同一個 Game 類別）；市場亂數的種子和研究模擬相同
         self.game = Game(self.params, seed, self.t0, events_enabled=sc.get("events", True))
         self.ex = self.game.ex
+        self.cids = tuple(self.params.commodity_ids)
+        self.npc_rng = random.Random(f"{seed}:npc")
+        self.game.stud.npc_refill(self.t0, self.npc_rng)
         self.online_int = array("d", [0.0]) * (self.n_ticks + 2)
         self.online_frac = array("d", [0.0]) * (self.n_ticks + 2)
         self.heap: List[tuple] = []
@@ -121,7 +133,7 @@ class ServiceWorld:
         self.low_days = {int(d): float(k) for d, k in sc.get("low_online_days", {}).items()}
 
         n = int(sc["players"])
-        mix = sc.get("mix", {"S1": 0.25, "S2": 0.25, "S3": 0.25, "S4": 0.25})
+        mix = sc.get("mix", {k: 1.0 / len(B.PLAYER_STRATEGIES) for k in B.PLAYER_STRATEGIES})
         strategies = self._assign(n, mix)
         self.bots: List[B.Bot] = []
         for pid in range(n):
@@ -130,16 +142,15 @@ class ServiceWorld:
         wcfg = sc.get("whale")
         self.whale: Optional[B.Bot] = None
         if wcfg:
-            pid = len(self.bots)
-            join = self.t0 + wcfg.get("join_h", 0.0) * HOUR
-            b = self._add_bot(pid, "S5", join=join)
-            B.setup_whale(b, join + TUTORIAL_S, {
+            b = self._add_bot(len(self.bots), "W")
+            B.setup_whale(b, {
                 "cows": wcfg["cows"], "mode": wcfg["mode"],
                 "hoard_from": self.t0 + wcfg["hoard_from_h"] * HOUR, "dump_at": self.t0 + wcfg["dump_at_h"] * HOUR,
                 "batches": wcfg.get("batches", 1), "batch_gap_s": wcfg.get("batch_gap_h", 1.0) * HOUR,
             })
-            b.tut_end = join
             self.whale = b
+            # 囤貨開始那一刻一定要有一次上線（換成大牧場）
+            self.schedule(self.t0 + wcfg["hoard_from_h"] * HOUR, b.pid, "session", 5 * MINUTE)
 
         for ev in sc.get("inject_events", []):
             self.ex.inject_event(
@@ -152,10 +163,13 @@ class ServiceWorld:
             prng = random.Random(f"{seed}:panic")
             t_start = self.t0 + pan["at_h"] * HOUR
             for b in self.bots:
-                if prng.random() < pan["share"]:
+                if b.strategy != "W" and prng.random() < pan["share"]:
                     self.schedule(t_start + prng.uniform(0, pan["window_min"] * MINUTE), b.pid, "panic_sell", 5 * MINUTE)
 
-        self.rec: Dict[str, array] = {k: array("d") for k in ("t", "milk", "beef", "online", "milk_e", "beef_e", "milk_y", "beef_y")}
+        keys = ["t", "online"]
+        for cid in self.cids:
+            keys += [cid, f"{cid}_e", f"{cid}_y"]
+        self.rec: Dict[str, array] = {k: array("d") for k in keys}
         self.wall: dict = {}
 
     # ---- 給 bot 用的 ctx ----
@@ -171,7 +185,7 @@ class ServiceWorld:
     # ---- 建構 ----
     def _assign(self, n: int, mix: Dict[str, float]) -> List[str]:
         names = list(mix)
-        counts = [int(math.floor(n * mix[k])) for k in names]
+        counts = [int(n * mix[k]) for k in names]
         i = 0
         while sum(counts) < n:
             counts[i % len(names)] += 1
@@ -194,16 +208,16 @@ class ServiceWorld:
             else:
                 join = self.t0 + rng_s.uniform(0, join_h) * HOUR
         p = self.game.create_player(join, f"bot{pid}", is_bot=True, rng=rng_a, pid=pid)
-        b = B.Bot(self.game, pid, strategy, join, rng=rng_a)
+        taste = rng_a.uniform(0.0, 0.3)  # 和研究模擬的 Bot.__init__ 同一個抽亂數順序
+        b = B.Bot(self.game, pid, strategy, join, taste, rng=rng_a)
         b.sched = sched
         b.ledger = Ledger(self.t0, self.n_days)
         b.worth = [0.0] * self.n_days
         p.farm.log = b.ledger
         self.bots.append(b)
-        if strategy != "S5":
-            for k in range(int(TUTORIAL_S // MINUTE)):
-                self.schedule(join + k * MINUTE, pid, "tutorial", 0.0)
-            self._add_online(join, TUTORIAL_S)
+        for k in range(int(TUTORIAL_S // MINUTE)):
+            self.schedule(join + k * MINUTE, pid, "tutorial", 0.0)
+        self._add_online(join, TUTORIAL_S)
         return b
 
     def _add_online(self, s: float, dur: float) -> None:
@@ -235,7 +249,7 @@ class ServiceWorld:
     def run(self, stop_after_ticks: Optional[int] = None) -> "ServiceWorld":
         t_wall = time.time()
         rec = self.rec
-        mk, bk = self.ex.markets["milk"], self.ex.markets["beef"]
+        mks = [(cid, self.ex.markets[cid]) for cid in self.cids]
         run_int = 0.0
         tick = 0
         n_actions = 0
@@ -248,6 +262,7 @@ class ServiceWorld:
                 while heap and heap[0][0] < t_end:
                     t_ev, _, pid, kind = heapq.heappop(heap)
                     if t_ev < self.t0 + self.n_days * DAY:
+                        self.game.begin()
                         B.act(self.bots[pid], self, t_ev, kind)
                         n_actions += 1
                 run_int += self.online_int[tick]
@@ -255,17 +270,16 @@ class ServiceWorld:
                 self.game.tick(t_end, online)
                 self.game.captured.clear()  # 沒有資料庫：成交紀錄不用留
                 rec["t"].append(t_end)
-                rec["milk"].append(mk.price)
-                rec["beef"].append(bk.price)
                 rec["online"].append(online)
-                rec["milk_e"].append(mk.excess)
-                rec["beef_e"].append(bk.excess)
-                rec["milk_y"].append(mk.pressure)
-                rec["beef_y"].append(bk.pressure)
+                for cid, m in mks:
+                    rec[cid].append(m.price)
+                    rec[f"{cid}_e"].append(m.excess)
+                    rec[f"{cid}_y"].append(m.pressure)
                 tick += 1
             t_day = self.t0 + (day + 1) * DAY
+            pm, pb, pr = (self.ex.markets[c].price for c in ("milk", "beef", "rice"))
             for b in self.bots:
-                b.worth[day] = b.farm.net_worth(t_day, mk.price, bk.price)
+                b.worth[day] = b.farm.net_worth(t_day, pm, pb, pr)
         self.wall = {"seconds": time.time() - t_wall, "actions": n_actions}
         return self
 
@@ -292,6 +306,7 @@ def price_stats(ratios, lo=0.6, hi=1.7) -> dict:
 
 
 def strategy_weeks(w: ServiceWorld) -> Dict[str, dict]:
+    """各策略每週收入（賣牛奶、牛肉、稻米 + 借種收入）。"""
     groups: Dict[str, list] = {}
     for b in w.bots:
         groups.setdefault(b.strategy, []).append(b)
@@ -301,25 +316,39 @@ def strategy_weeks(w: ServiceWorld) -> Dict[str, dict]:
         for d0, d1 in WEEKS:
             if d1 > w.n_days:
                 break
-            rev = [b.ledger.amount_days("milk", d0, d1) + b.ledger.amount_days("beef", d0, d1) for b in bs]
-            weeks.append(statistics.fmean(rev))
+            weeks.append(statistics.fmean([b.ledger.revenue_days(d0, d1) for b in bs]))
         out[s] = {"n": len(bs), "weeks": weeks, "total": sum(weeks)}
     return out
 
 
+def shop_counts(w: ServiceWorld) -> Dict[str, float]:
+    ob = [b for b in w.bots if b.strategy != "W"]
+    return {g: sum(b.ledger.qty_days("shop_" + g, 0, w.n_days) for b in ob) for g in ("A", "B", "C")}
+
+
+def stud_stats(w: ServiceWorld) -> dict:
+    ob = [b for b in w.bots if b.strategy != "W"]
+    lenders = [b for b in ob if b.strategy == "L"]
+    lend_in = sum(b.ledger.amount_days("stud_in", 0, w.n_days) for b in lenders)
+    lend_rev = sum(b.ledger.revenue_days(0, w.n_days) for b in lenders)
+    borrows = sum(b.ledger.qty_days("stud_out", 0, w.n_days) for b in ob)
+    return {"borrows": borrows, "lender_share": lend_in / lend_rev if lend_rev > 0 else 0.0,
+            "grades": {g: sum(b.ledger.qty_days("grade_" + g, 0, w.n_days) for b in ob) for g in ("A", "B", "C")}}
+
+
 def goal_b(w: ServiceWorld) -> dict:
     st = strategy_weeks(w)
-    keys = ("S1", "S2", "S3", "S4")
+    keys = B.PLAYER_STRATEGIES
     weeks = []
     for i in range(len(st["S1"]["weeks"])):
         vals = {k: st[k]["weeks"][i] for k in keys}
         weeks.append(max(vals.values()) / min(vals.values()))
     tot = {k: st[k]["total"] for k in keys}
-    return {"week_max_over_min": weeks, "total": tot, "top": max(tot, key=tot.get), "S4_over_S1": tot["S4"] / tot["S1"]}
+    return {"week_max_over_min": weeks, "total": tot, "top": max(tot, key=tot.get), "F_over_D": tot["F"] / tot["D"]}
 
 
 def onboarding(w: ServiceWorld) -> dict:
-    ob = [b for b in w.bots if b.strategy != "S5"]
+    ob = [b for b in w.bots if b.strategy != "W"]
     out = {"of": len(ob)}
     for key in ("first_sale", "first_expand", "first_breed"):
         vals = sorted(getattr(b, key) / MINUTE for b in ob if getattr(b, key) is not None)

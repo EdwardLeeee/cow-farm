@@ -1,0 +1,17 @@
+{
+ "exchange_step_us": {
+  "median": 20.270902999982354,
+  "max": 23.913593999964178
+ },
+ "sell_all_milk_20_cows_us": {
+  "median": 50.49899500022548,
+  "max": 64.36547499959033
+ },
+ "farm_advance_20_cows_us": {
+  "median": 31.5817949999655,
+  "max": 39.26157600000124
+ },
+ "impact_state_json_bytes": 123,
+ "market_snapshot_json_bytes": 747,
+ "python": "3.10.12"
+}

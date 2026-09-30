@@ -11,22 +11,21 @@ import '../palette.dart';
 import '../widgets/action_button.dart';
 import '../widgets/price_chart.dart';
 
-/// 市場：牛奶／牛肉兩個分頁；現價與 24 小時漲跌（漲紅跌綠）、折線圖、新聞、賣出面板。
+/// 市場：牛奶／牛肉／稻米三個分頁；現價與 24 小時漲跌（漲紅跌綠）、折線圖、新聞、賣出面板。
 class MarketScreen extends StatelessWidget {
   const MarketScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: Commodity.values.length,
       child: Column(
         children: [
-          const TabBar(tabs: [Tab(text: S.milk), Tab(text: S.beef)]),
+          TabBar(tabs: [for (final c in Commodity.values) Tab(text: commodityName(c))]),
           Expanded(
             child: TabBarView(
               children: [
-                CommodityView(key: const PageStorageKey('m-milk'), commodity: Commodity.milk),
-                CommodityView(key: const PageStorageKey('m-beef'), commodity: Commodity.beef),
+                for (final c in Commodity.values) CommodityView(key: PageStorageKey('m-${c.wire}'), commodity: c),
               ],
             ),
           ),
@@ -166,7 +165,7 @@ class _SellPanelState extends State<SellPanel> {
   double _inventory(GameModel m) {
     final w = m.state?.warehouse;
     if (w == null) return 0;
-    return widget.commodity == Commodity.milk ? w.milkTotal : w.beefTotal;
+    return w.total(widget.commodity);
   }
 
   /// 滑桿位置 → 要賣的量。

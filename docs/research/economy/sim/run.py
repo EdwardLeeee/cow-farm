@@ -3,7 +3,7 @@
     cd docs/research/economy
     python3 -m sim.run                 # 全部（已經有結果的會跳過）
     python3 -m sim.run --only base_100 # 名稱包含 base_100 的情境
-    python3 -m sim.run --force --jobs 4
+    python3 -m sim.run --force            # 一次一個情境（這台電腦當機過）
 
 每個情境輸出：
 - <name>.json：摘要（價格分布、各策略週收入、新手時間、大戶成交…）
@@ -55,17 +55,19 @@ def run_one(sc: dict) -> str:
     rec = w.rec
     n = len(rec["t"])
     step5 = max(1, int(round(300 / w.dt)))
+    cids = list(w.cids)
     with open(RUNS / f"{name}_prices_5m.csv", "w", newline="") as fh:
         wr = csv.writer(fh)
-        wr.writerow(["t_h", "milk", "beef", "online", "milk_excess", "beef_excess"])
+        wr.writerow(["t_h"] + cids + ["online"] + [f"{c}_excess" for c in cids])
         for i in range(step5 - 1, n, step5):
-            wr.writerow([f"{(rec['t'][i] - w.t0) / HOUR:.4f}", f"{rec['milk'][i] / p.milk.base_price:.5f}", f"{rec['beef'][i] / p.beef.base_price:.5f}", f"{rec['online'][i]:.3f}", f"{rec['milk_e'][i]:.4f}", f"{rec['beef_e'][i]:.4f}"])
+            wr.writerow([f"{(rec['t'][i] - w.t0) / HOUR:.4f}"] + [f"{rec[c][i] / p.commodity(c).base_price:.5f}" for c in cids]
+                        + [f"{rec['online'][i]:.3f}"] + [f"{rec[c + '_e'][i]:.4f}" for c in cids])
     win = _window(sc)
     if win:
         a, b = win
         with open(RUNS / f"{name}_window_1m.csv", "w", newline="") as fh:
             wr = csv.writer(fh)
-            cols = ["milk", "beef", "online", "milk_e", "beef_e", "milk_y", "beef_y", "milk_ev", "beef_ev"]
+            cols = cids + ["online"] + [f"{c}_{k}" for k in ("e", "y", "ev") for c in cids]
             wr.writerow(["t_h"] + cols)
             for i in range(n):
                 th = (rec["t"][i] - w.t0) / HOUR
@@ -73,20 +75,20 @@ def run_one(sc: dict) -> str:
                     row = [f"{th:.4f}"]
                     for c in cols:
                         v = rec[c][i]
-                        if c in ("milk",):
-                            v /= p.milk.base_price
-                        elif c in ("beef",):
-                            v /= p.beef.base_price
+                        if c in cids:
+                            v /= p.commodity(c).base_price
                         row.append(f"{v:.6f}")
                     wr.writerow(row)
     if sc["group"] == "base":
         with open(RUNS / f"{name}_players.csv", "w", newline="") as fh:
             wr = csv.writer(fh)
-            wr.writerow(["pid", "strategy", "sessions_per_day", "week1", "week2", "week3", "week4", "worth_end", "slots_end", "cows_end", "first_sale_min", "first_expand_min", "first_breed_min"])
+            wr.writerow(["pid", "strategy", "sessions_per_day", "week1", "week2", "week3", "week4", "worth_end", "slots_end", "cows_end", "fields_end", "stud_in", "first_sale_min", "first_expand_min", "first_breed_min"])
             last = w.n_days - 1
             for bt in w.bots:
-                wk = [bt.ledger.amount_days("milk", 7 * k, 7 * k + 7) + bt.ledger.amount_days("beef", 7 * k, 7 * k + 7) for k in range(4)]
-                wr.writerow([bt.pid, bt.strategy, bt.sched.per_day] + [f"{x:.0f}" for x in wk] + [f"{bt.worth[last]:.0f}", bt.farm.slots, len(bt.farm.cows)] + [f"{x / 60:.2f}" if x is not None else "" for x in (bt.first_sale, bt.first_expand, bt.first_breed)])
+                wk = [bt.ledger.revenue_days(7 * k, 7 * k + 7) for k in range(4)]
+                wr.writerow([bt.pid, bt.strategy, bt.sched.per_day] + [f"{x:.0f}" for x in wk]
+                            + [f"{bt.worth[last]:.0f}", bt.farm.slots, len(bt.farm.cows), len(bt.farm.fields), f"{bt.ledger.amount_days('stud_in', 0, w.n_days):.0f}"]
+                            + [f"{x / 60:.2f}" if x is not None else "" for x in (bt.first_sale, bt.first_expand, bt.first_breed)])
     summary["wall"]["total_seconds"] = time.time() - t0
     (RUNS / f"{name}.json").write_text(json.dumps(summary, ensure_ascii=False, indent=1))
     return f"{name}: {time.time() - t0:.0f}s"
@@ -95,7 +97,7 @@ def run_one(sc: dict) -> str:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--only", default="", help="只跑名稱包含這段文字的情境（逗號分隔多個）")
-    ap.add_argument("--jobs", type=int, default=max(1, min(4, (os.cpu_count() or 2) - 1)))
+    ap.add_argument("--jobs", type=int, default=1, help="平行幾個行程；這台電腦當機過，預設一次一個")
     ap.add_argument("--force", action="store_true", help="已有結果也重跑")
     args = ap.parse_args()
     RUNS.mkdir(parents=True, exist_ok=True)

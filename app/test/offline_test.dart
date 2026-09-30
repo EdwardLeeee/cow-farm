@@ -25,7 +25,7 @@ void main() {
     // 商店的按鈕也停用
     await tester.tap(find.byKey(const Key('tab-shop')));
     await tester.pump();
-    expect(_btn(tester, 'buy-dairy-cow').onPressed, isNull);
+    expect(_btn(tester, 'buy-grade-C').onPressed, isNull);
     expect(_btn(tester, 'up-bucket').onPressed, isNull);
 
     // 連回來
@@ -33,14 +33,14 @@ void main() {
     await tester.pump();
     await tester.pump();
     expect(find.text(S.connecting), findsNothing);
-    expect(_btn(tester, 'buy-dairy-cow').onPressed, isNotNull);
+    expect(_btn(tester, 'buy-grade-C').onPressed, isNotNull);
     expect(_btn(tester, 'up-bucket').onPressed, isNotNull);
 
     // 又斷線
     push.isConnected = false;
     await tester.pump();
     expect(find.text(S.connecting), findsOneWidget);
-    expect(_btn(tester, 'buy-dairy-cow').onPressed, isNull);
+    expect(_btn(tester, 'buy-grade-C').onPressed, isNull);
   });
 
   testWidgets('斷線時市場的賣出按鈕與牛的出貨按鈕也停用', (tester) async {

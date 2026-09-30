@@ -464,7 +464,7 @@ class MarketEvent:
 class EventGenerator:
     """Poisson 新聞事件。每則事件的所有屬性在抽到發生時間時一次抽完，所以結果與 tick 大小無關。"""
 
-    def __init__(self, ep: EventParams, rng: random.Random, t0: float, commodity_ids: Sequence[str] = ("milk", "beef")):
+    def __init__(self, ep: EventParams, rng: random.Random, t0: float, commodity_ids: Sequence[str] = ("milk", "beef", "rice")):
         self.ep = ep
         self.rng = rng
         self.cids = tuple(commodity_ids)
@@ -475,16 +475,28 @@ class EventGenerator:
     def _gap(self) -> float:
         return self.rng.expovariate(self.ep.rate_per_day / DAY)
 
+    def _target_table(self) -> List[Tuple[Tuple[str, ...], float]]:
+        """params 的 targets 只留下這個交易所有的商品，機率重新正規化。"""
+        rows = []
+        for tg, p in self.ep.targets:
+            kept = tuple(c for c in tg if c in self.cids)
+            if kept and p > 0:
+                rows.append((kept, p))
+        total = sum(p for _, p in rows)
+        return [(tg, p / total) for tg, p in rows]
+
     def _draw(self, start: float) -> MarketEvent:
         ep, r = self.ep, self.rng
         u = r.random()
-        p_milk, p_beef, _ = ep.target_probs
-        if u < p_milk:
-            targets, key = ("milk",), "milk"
-        elif u < p_milk + p_beef:
-            targets, key = ("beef",), "beef"
-        else:
-            targets, key = ("milk", "beef"), "both"
+        table = self._target_table()
+        targets = table[-1][0]
+        acc = 0.0
+        for tg, p in table:
+            acc += p
+            if u < acc:
+                targets = tg
+                break
+        key = targets[0] if len(targets) == 1 else "all"
         rare = r.random() < ep.rare_prob
         mag = r.uniform(ep.rare_lo, ep.rare_hi) if rare else r.uniform(ep.mag_lo, ep.mag_hi)
         up = r.random() < ep.up_prob
@@ -541,7 +553,10 @@ class EventGenerator:
 # 交易所：多種商品 + 共用事件
 # ---------------------------------------------------------------------------
 class Exchange:
-    def __init__(self, params: EconomyParams, seed, t0: float, commodity_ids: Sequence[str] = ("milk", "beef"), events_enabled: bool = True):
+    def __init__(self, params: EconomyParams, seed, t0: float, commodity_ids: Optional[Sequence[str]] = None, events_enabled: bool = True):
+        """commodity_ids 沒給就用 params.commodity_ids（v0.2：牛奶、牛肉、稻米）。"""
+        if commodity_ids is None:
+            commodity_ids = params.commodity_ids
         self.params = params
         self.t = t0
         self.markets: Dict[str, Market] = {

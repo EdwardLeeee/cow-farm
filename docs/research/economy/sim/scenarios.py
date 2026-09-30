@@ -1,4 +1,6 @@
-"""情境定義（純資料）。M1 伺服器測試可以直接 import 這份清單，照同樣的 seed 跑出同樣的數字。
+"""情境定義（純資料，v0.2）。M1 伺服器測試可以直接 import 這份清單，照同樣的 seed 跑出同樣的數字。
+
+策略比例預設六種各 1/6（D 乳牛、B 肉牛、F 耕田、C 配種收集、T 抓時機、L 出借公牛）；大戶 W 另外加一位。
 
 時間都以「開服後幾小時」表示；開服 = 2026-10-05（週一）00:00 台灣時間。
 第 20 天 21:00 = 20×24+21 = 501 小時（晚上尖峰）。
@@ -35,7 +37,7 @@ def whale(players: int, mode: str, cows: int, seed: int = 1) -> dict:
 def panic(players: int, with_panic: bool, seed: int = 1) -> dict:
     sc = {
         "name": f"event_{players}_{'panic' if with_panic else 'calm'}_s{seed}", "group": "event", "players": players, "days": 23, "tick_s": 60, "seed": seed,
-        "inject_events": [{"targets": ["milk", "beef"], "factor": 1.4, "at_h": EVENT_H, "half_life_h": 4.0, "headline": "（情境）全國牧場節：鮮奶、牛肉收購價大漲"}],
+        "inject_events": [{"targets": ["milk", "beef", "rice"], "factor": 1.4, "at_h": EVENT_H, "half_life_h": 4.0, "headline": "（情境）全國農牧節：鮮奶、牛肉、稻米收購價大漲"}],
     }
     if with_panic:
         sc["panic"] = {"at_h": EVENT_H + 0.25, "share": 0.6, "window_min": 30}
