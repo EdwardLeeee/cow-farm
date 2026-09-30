@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>R8 牧場主畫面</title>
+<link rel="stylesheet" href="common.css">
+<link rel="stylesheet" href="style-a.css">
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+// ?v=a|b|c|d|e：畫面、UI、假資料都是 R1-A，只有牛換成指定的外型
+import { mount, ready } from './ui.js';
+import * as kit from './style-a.js';
+mount(kit);
+await ready();
+</script>
+</body>
+</html>
