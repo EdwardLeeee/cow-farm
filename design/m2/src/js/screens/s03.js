@@ -149,7 +149,7 @@ full('S03-08', '一頭牛都沒有', (ctx) => ranchPage(ctx, {
   herd: [],
   pen: { used: 0, slots: 10 },
   dock: { bucket: { qty: 0, perHour: 0 } },
-  center: `<div class="card empty-ranch" style="position:absolute;left:24px;right:24px;top:calc(var(--safe-top) + 250px);z-index:15">
+  center: `<div class="card empty-ranch" style="position:absolute;left:24px;right:24px;top:calc(var(--safe-top) + var(--hud-h) + 112px);z-index:15">
     <div class="empty"><div class="t1">牛舍裡還沒有牛</div><div class="t2">到商店抽一頭牛，或等配種的小牛出生。</div>${btn('去商店', { kind: 'primary' })}</div></div>`,
 }));
 

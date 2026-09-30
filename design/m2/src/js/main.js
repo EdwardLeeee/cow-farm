@@ -12,8 +12,21 @@ async function settle() {
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 }
 
-if (q.has('list')) {
+if (q.has('anim')) {
+  // 動畫：?anim=A-01&w=390 畫底圖，window.__frame(t) 把畫面停在第 t 秒
+  const { ANIMS } = await import('./anims.js');
+  const a = ANIMS.find((x) => x.id === q.get('anim'));
+  const ctx = { dev, w, q };
+  app.innerHTML = a.base(ctx);
+  window.__frame = async (t) => { a.frame(app, t, ctx); await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); };
+  window.__animMeta = { id: a.id, name: a.name, dur: a.dur, keys: a.keys, reduced: a.reduced, where: a.where };
+  await settle();
+  await window.__frame(0);
+  window.__ready = true;
+} else if (q.has('list')) {
   window.__states = STATES.map(({ render, ...m }) => m);
+  const { ANIMS } = await import('./anims.js');
+  window.__anims = ANIMS.map((a) => ({ id: a.id, name: a.name, dur: a.dur, keys: a.keys, reduced: a.reduced, where: a.where }));
   window.__ready = true;
 } else {
   const st = STATES.find((s) => s.id === q.get('id'));
@@ -29,11 +42,11 @@ if (q.has('list')) {
   }
   const ph = app.querySelector('.phone');
   let h = dev.h;
-  if (st.tall && ph) {
+  if (st.tall && ph) { // 長頁：把手機撐高到內容的高度；整頁狀態另外畫「手機一個畫面到這裡」的線
     const c = ph.querySelector('.content');
     h = Math.max(dev.h, Math.ceil(c.offsetTop + c.scrollHeight));
     ph.style.height = `${h}px`;
-    ph.insertAdjacentHTML('beforeend', `<div class="fold-line" style="top:${dev.h}px"><span>手機一個畫面到這裡</span></div>`);
+    if (st.type === 'full') ph.insertAdjacentHTML('beforeend', `<div class="fold-line" style="top:${dev.h}px"><span>手機一個畫面到這裡</span></div>`);
     await settle();
   }
   if (st.type !== 'sheet') { window.__size = { w: dev.w, h }; window.__ready = true; }

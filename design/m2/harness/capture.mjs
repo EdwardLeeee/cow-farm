@@ -48,7 +48,7 @@ function measure() {
   };
   shown.forEach((t) => { t.vr = visRect(t.el, t.rect); });
   // 被截：超出 overflow 不是 visible 的祖先（含手機邊界）
-  const clipped = [], belowFold = hiddenTexts.map((t) => t.text);
+  const clipped = [], truncated = [], belowFold = hiddenTexts.map((t) => t.text);
   shown.forEach((t) => {
     if (t.el.closest('[data-marquee], [data-hscroll]')) return; // 跑馬燈、橫向捲動的列本來就會切到
     for (let a = t.el.parentElement; a && a !== document.body; a = a.parentElement) {
@@ -56,6 +56,7 @@ function measure() {
       if (cs.overflowX !== 'visible' || cs.overflowY !== 'visible') {
         const ar = a.getBoundingClientRect(), r = t.rect;
         if (r.left < ar.left - 0.5 || r.right > ar.right + 0.5 || r.top < ar.top - 0.5 || r.bottom > ar.bottom + 0.5) {
+          if (getComputedStyle(t.el).textOverflow === 'ellipsis' && a === t.el.parentElement) { truncated.push(t.text); break; }
           // 可以捲動的內容區：底下被切到只是「要往下捲才看得到」，另外記
           if (a.classList.contains('content') && r.left >= ar.left - 0.5 && r.right <= ar.right + 0.5) belowFold.push(t.text);
           else clipped.push({ text: t.text, by: String(a.className).slice(0, 40) });
@@ -63,7 +64,10 @@ function measure() {
         }
       }
     }
-    if (t.el.scrollWidth > t.el.clientWidth + 1 && getComputedStyle(t.el).overflowX !== 'visible') clipped.push({ text: t.text, by: 'scrollWidth' });
+    if (t.el.scrollWidth > t.el.clientWidth + 1 && getComputedStyle(t.el).overflowX !== 'visible') {
+      if (getComputedStyle(t.el).textOverflow === 'ellipsis') truncated.push(t.text); // 刻意截成「…」
+      else clipped.push({ text: t.text, by: 'scrollWidth' });
+    }
   });
   // 超出所屬的框
   const CONT = '.card, .btn, .badge, .tier, .toast, .dialog, .sheet, .tab, .seg button, .coins, .profile-text, .bubble, .ticker, .pen-pill, .notice, .filter button, .w-item, .gift, .cow-pop, .kv .cell, .chip-box';
@@ -124,7 +128,7 @@ function measure() {
     horizontalScroll: document.scrollingElement.scrollWidth > innerWidth + 0.5,
     minFontSize: shown.length ? Math.min(...shown.map((t) => t.fontSize)) : null,
     smallestTexts: texts.filter((t) => t.fontSize < 12).map((t) => `${t.fontSize}px ${t.text}`),
-    clipped, belowFold, outside, wrapped, overlaps, smallTargets: small, unsafe,
+    clipped, truncated, belowFold, outside, wrapped, overlaps, smallTargets: small, unsafe,
     texts: texts.map((t) => ({ text: t.text, fontSize: t.fontSize, lines: t.lines, box: box(t.rect) })),
   };
 }
@@ -163,6 +167,7 @@ async function run(filter, widths) {
       const page = await ctx.newPage();
       page.setDefaultTimeout(20000);
       for (const s of want.filter((x) => x.type !== 'sheet')) {
+       try {
         const errors = [];
         const onErr = (e) => errors.push(String(e));
         const onCon = (m) => { if (m.type() === 'error') errors.push(m.text()); };
@@ -178,8 +183,12 @@ async function run(filter, widths) {
           const r = await page.evaluate((sel) => { const e = document.querySelector(sel); if (!e) return null; const b = e.getBoundingClientRect(); return { x: b.left, y: b.top, w: b.width, h: b.height }; }, s.crop);
           if (!r) errors.push(`找不到 crop：${s.crop}`);
           else {
-            const pad = 8, x = Math.max(0, r.x - pad), y = Math.max(0, r.y - pad);
-            await page.screenshot({ path: `${base}.png`, clip: { x, y, width: Math.min(vw - x, r.w + pad * 2), height: r.h + pad * 2 } });
+            // 只截畫面裡看得到的部分（窄手機上局部可能超出畫面）
+            const vh2 = (s.tall && size ? size.h : vh), pad = 8;
+            const x = Math.max(0, r.x - pad), y = Math.max(0, r.y - pad);
+            const cw = Math.min(vw - x, r.w + pad * 2), chh = Math.min(vh2 - y, r.h + pad * 2 - (y - (r.y - pad)));
+            if (cw > 10 && chh > 10) await page.screenshot({ path: `${base}.png`, clip: { x, y, width: cw, height: chh } });
+            else errors.push('局部在畫面外，沒有截圖');
           }
         } else {
           await page.screenshot({ path: `${base}.png`, fullPage: !!s.tall });
@@ -192,6 +201,10 @@ async function run(filter, widths) {
         summary.push({ id: s.id, w, min: meta.minFontSize, issues, hscroll: meta.horizontalScroll, errors: errors.length });
         const flag = errors.length || meta.horizontalScroll || issues.some((n) => n);
         console.log(`${flag ? '!!' : 'ok'} ${s.id} ${w}  字 ${meta.minFontSize}px${(meta.belowFold || []).length ? `  要捲${meta.belowFold.length}` : ''}  截${issues[0]} 出框${issues[1]} 換行${issues[2]} 疊${issues[3]} 小鈕${issues[4]} 安全區${issues[5]}${meta.horizontalScroll ? ' 橫捲' : ''}${errors.length ? ' 錯誤:' + errors.join('|') : ''}`);
+       } catch (e) {
+        console.log(`!! ${s.id} ${w}  出圖失敗：${String(e).split('\n')[0]}`);
+        summary.push({ id: s.id, w, failed: String(e).split('\n')[0] });
+       }
       }
       await ctx.close();
     }

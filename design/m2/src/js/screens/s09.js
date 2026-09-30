@@ -1,6 +1,6 @@
 // S09 圖鑑（24 格）與 S12 排行榜（紀錄分頁）
 import { frame, btn, seg, icon, fmt, cowSVG, bar, tierChip, useChip, badge, BREEDS } from '../kit.js';
-import { FOUND, RANK, RANCH } from '../fixtures.js';
+import { FOUND, RANK, RANCH, compactBig } from '../fixtures.js';
 import { CODEX_ORDER, INTRO, NEW_IN_M2, TIER_NAME, TRAIT_NAME, USE_NAME, tierOf } from '../../cow/breeds.js';
 
 const USES = [['dairy', '乳牛'], ['draft', '耕牛'], ['beef', '肉牛']];
@@ -84,7 +84,7 @@ S.push({ id: 'S09-05', name: '24 種全圖（核准外型）', type: 'sheet', vi
 const KINDS = [['networth', '總資產', '幣'], ['collection', '圖鑑', '種'], ['weekly', '本週收入', '幣']];
 function rankRow(r, unit, me = false) {
   const medal = r.rank <= 3 ? `<span class="medal m${r.rank}">${r.rank}</span>` : `<span class="rk num">${r.rank}</span>`;
-  return `<div class="rank-row${me ? ' me' : ''}">${medal}<div class="grow"><div class="rn">${r.bot ? '<span class="bot">電腦</span>' : ''}${r.name}<span class="tag">${r.tag}</span></div><div class="rl"><span class="lv num">Lv ${r.level}</span>${me ? '<span class="badge new">我</span>' : ''}</div></div><b class="num rv">${fmt(r.value)}<small>${unit}</small></b></div>`;
+  return `<div class="rank-row${me ? ' me' : ''}">${medal}<div class="grow"><div class="rn">${r.bot ? '<span class="bot">電腦</span>' : ''}${r.name}<span class="tag">${r.tag}</span></div><div class="rl"><span class="lv num">Lv ${r.level}</span>${me ? '<span class="badge new">我</span>' : ''}</div></div><b class="num rv">${compactBig(r.value)}<small>${unit}</small></b></div>`;
 }
 function rankPage(ctx, { kind = 0, me = null, state = '', rows = null, tall = false } = {}) {
   const [key, label, unit] = KINDS[kind];
@@ -100,7 +100,7 @@ function rankPage(ctx, { kind = 0, me = null, state = '', rows = null, tall = fa
     <p class="hint">${key === 'weekly' ? '每週一 00:00（台灣時間）重新計算。' : key === 'networth' ? '金幣＋庫存照市價估＋牛的估值。' : '發現的品種數，最多 24 種。'}下拉可以重新整理。</p>
     <article class="card rank-card">${body}</article>
   </div>`;
-  const my = `<div class="my-rank"><span class="k">我的名次</span><b class="num">${state ? '—' : myVal && myVal.rank ? `第 ${myVal.rank} 名` : '未上榜'}</b><span class="grow"></span>${myVal && myVal.value != null && !state ? `<b class="num">${fmt(myVal.value)}</b><small>${unit}</small>` : ''}</div>`;
+  const my = `<div class="my-rank"><span class="k">我的名次</span><b class="num">${state ? '—' : myVal && myVal.rank ? `第 ${myVal.rank} 名` : '未上榜'}</b><span class="grow"></span>${myVal && myVal.value != null && !state ? `<b class="num">${compactBig(myVal.value)}</b><small>${unit}</small>` : ''}</div>`;
   return frame(ctx.dev, { tab: 'records', content, body: my, tall, contentCls: 'has-myrank' });
 }
 const S2 = [];

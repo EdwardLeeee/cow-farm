@@ -56,7 +56,7 @@ function upRow(key, o = {}) {
     warehouse: ['box', '加大倉庫', `${U.warehouse.now} → ${U.warehouse.next} 瓶`, U.warehouse.cost, `第 ${U.warehouse.level} 級`],
     fresh: ['leaf', '冷藏設備', `新鮮 100% 的時間 ${U.fresh.now[0]} → ${U.fresh.next[0]} 小時`, U.fresh.cost, `第 ${U.fresh.level} / 4 級`],
   }[key];
-  const [ic, name, effect, cost, lv] = spec;
+  const [ic, name, effect, cost, lv] = o.spec || spec;
   const action = o.maxed ? `<span class="maxed">已滿級</span>` : o.opensIn ? btn(`${o.opensIn}後開放`, { small: true, disabled: true, ic: 'clock' }) : o.busy ? btn('處理中…', { small: true, busy: true }) : btn(`${fmt(cost)} 幣`, { kind: 'primary', small: true, ic: 'coin', disabled: o.disabled });
   return `<article class="card up-card${o.done ? ' done' : ''}"><span class="up-ic">${icon(ic, 30)}</span><div class="grow"><b class="up-name">${name}</b><div class="up-lv">${o.maxed ? '最高級' : lv}</div>
     <div class="up-eff">${o.maxed ? (key === 'fresh' ? '新鮮 100% 的時間 18 小時' : '已經最大了') : effect}</div>${o.reason ? `<div class="warn-text">${o.reason}</div>` : ''}</div>${action}</article>`;
@@ -78,7 +78,7 @@ part10('S10-03', '已滿級', '#crop', (ctx) => frame(ctx.dev, { tab: 'shop', co
 part10('S10-04', '第一次擴建還沒開放（開局第 15 分鐘）', '#crop', (ctx) => frame(ctx.dev, { tab: 'shop', content: `<div id="crop" class="stack">${upRow('pen', { opensIn: '3 分' }).replace(`${U.pen.now} → ${U.pen.next} 格`, '2 → 3 格').replace(`擴建過 ${U.pen.level} 次`, '還沒擴建過').replace(`${fmt(U.pen.cost)} 幣`, '280 幣')}</div>` }));
 full10('S10-05', '升級成功', (ctx) => facilityPage(ctx, {
   hud: { coins: RANCH.coins - 310 },
-  rows: { bucket: { done: true } },
+  rows: { bucket: { done: true, spec: ['pail', '加大奶桶', '63 → 94 瓶', 481, '第 2 級'] } },
   overlays: toast('ok', '升級完成：奶桶 42 → 63 瓶'),
 }));
 

@@ -155,5 +155,7 @@ export const RANK = {
 // 格式
 export const fmt = (n, d = 0) => Number(n).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
 // 很大的數字用「萬」：1,234,567 → 123.5萬（頂列金幣、牧場頁的小卡片）
+// 排行榜的大數字：一億以上寫「億」、一百萬以上寫「萬」
+export const compactBig = (n) => (n >= 1e8 ? `${(n / 1e8).toFixed(1)}億` : n >= 1e6 ? `${Math.round(n / 1e4).toLocaleString('en-US')}萬` : fmt(n));
 export const compact = (n, from = 10000) => (n >= from ? `${(Math.floor(n / 1000) / 10).toFixed(1).replace(/\.0$/, '')}萬` : fmt(n));
 export const pct = (v, d = 1) => `${(v * 100).toFixed(d).replace(/\.0$/, '')}%`;
