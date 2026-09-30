@@ -14,12 +14,14 @@ session 照進度分批開，名稱用 `cow-<角色>`。
 | 角色 | 路徑 | 什麼時候開 |
 |---|---|---|
 | ceo（主 session） | `docs/`、全案協調、企劃與經濟平衡 | 現在 |
-| cow-ui | `design/` | M2 |
+| cow-ui | `design/` | 2026-09-30 開（使用者提議，提前到畫風探索階段） |
 | cow-back | `backend/`、`tests/`、協定文件 | M3 |
 | cow-app | `app/` | M3 |
 | cow-release | `.github/workflows/`、簽章、商店資料 | M4 |
 
-分支和 PR 流程在 M3 補上，照 connect4 的做法：在自己的 worktree 開分支 → 開 PR → 必要檢查全綠 → ceo 讀過 diff 再合併。
+除了 ceo 以外，每個角色都在自己的 worktree（`~/Desktop/cow-farm-worktrees/<角色>`）開分支，開 PR 給 ceo 讀過 diff 再合併，不直接推 main。必要的自動檢查在 M3 補上，做法照 connect4。
+
+記憶體安全：這台電腦 2026-09-30 因記憶體耗盡當機過。開 Playwright、headless Chrome、大型建置或長時間模擬之前，先看 `free -m`（available 少於 2000 MB 就等），指令用 `systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0` 包起來，一次只跑一個。
 
 ## 規則
 
