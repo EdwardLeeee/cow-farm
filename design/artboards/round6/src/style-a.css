@@ -1,0 +1,105 @@
+/* 風格 A「圓潤Q版」：粗圓描邊（3px 可可色）、扁平粉彩、貼紙般的實心下陰影。 */
+.style-a { --ink: #4B3326; --paper: #FFFBF3; color: var(--ink); }
+.style-a .num { font-weight: 900; letter-spacing: 0.2px; font-variant-numeric: tabular-nums; }
+
+/* 上方資訊列 */
+.style-a .avatar {
+  position: relative; z-index: 2; flex: none; width: 56px; height: 56px; border-radius: 50%;
+  background: #BFE6FF; border: 3px solid var(--ink); box-shadow: 0 3px 0 var(--ink); overflow: hidden;
+  display: grid; place-items: center;
+}
+.style-a .avatar svg { width: 52px; height: 52px; margin-top: 4px; }
+.style-a .profile-text {
+  margin-left: -18px; height: 46px; padding: 3px 16px 4px 26px; background: #FFFFFF;
+  border: 3px solid var(--ink); border-radius: 0 23px 23px 0; box-shadow: 0 3px 0 var(--ink);
+}
+.style-a .farm-name { font-size: 15px; font-weight: 900; line-height: 19px; letter-spacing: 0.3px; }
+.style-a .farm-level { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; line-height: 16px; margin-top: 1px; }
+.style-a .lv { display: inline-flex; background: #FFD45E; border: 2px solid var(--ink); border-radius: 8px; padding: 0 5px; }
+.style-a .lv .num { font-size: 11px; line-height: 13px; }
+.style-a .coins {
+  position: relative; height: 40px; padding: 0 14px 0 26px; margin-left: 18px; background: #FFFFFF;
+  border: 3px solid var(--ink); border-radius: 20px; box-shadow: 0 3px 0 var(--ink);
+}
+.style-a .coin-icon { position: absolute; left: -19px; top: 50%; transform: translateY(-50%); display: block; line-height: 0; }
+.style-a .num-coins { font-size: 19px; line-height: 1; }
+
+/* 新聞跑馬燈 */
+.style-a .ticker {
+  height: 32px; padding: 0 12px 0 3px; background: #FFF1B8; border: 3px solid var(--ink); border-radius: 17px;
+  box-shadow: 0 3px 0 var(--ink);
+}
+.style-a .ticker-icon {
+  flex: none; width: 34px; height: 24px; display: grid; place-items: center; margin-right: 8px;
+  background: #FFFFFF; border: 2px solid var(--ink); border-radius: 12px;
+}
+.style-a .ticker-text { font-size: 13px; font-weight: 700; line-height: 26px; }
+
+/* 下方卡片 */
+.style-a .card {
+  background: var(--paper); border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 4px 0 var(--ink);
+  padding: 7px 10px 8px;
+}
+.style-a .card-head { justify-content: space-between; }
+.style-a .card-title {
+  display: inline-block; border: 2px solid var(--ink); border-radius: 10px; padding: 0 8px;
+  font-size: 12px; font-weight: 900; line-height: 18px;
+}
+.style-a .bucket .card-title { background: #A9DBFF; }
+.style-a .storage .card-title { background: #FFD45E; }
+.style-a .num-pct { font-size: 22px; line-height: 26px; }
+.style-a .bucket-body { gap: 6px; margin-top: 3px; }
+.style-a .bucket-icon { flex: none; line-height: 0; margin-left: -4px; }
+.style-a .bucket-info { flex: 1; min-width: 0; }
+.style-a .bar { height: 14px; border: 2.5px solid var(--ink); border-radius: 8px; background: #E6F3FC; overflow: hidden; }
+.style-a .bar i { display: block; height: 100%; background: #6FBDF0; border-right: 2.5px solid var(--ink); box-shadow: inset 0 3px 0 rgba(255,255,255,.55); }
+.style-a .bucket-count { font-size: 12px; font-weight: 700; margin-top: 5px; line-height: 16px; }
+.style-a .num-count { font-size: 14px; }
+.style-a .unit { font-size: 12px; font-weight: 700; margin-left: 2px; }
+
+.style-a .storage { padding-bottom: 6px; }
+.style-a .stock { gap: 6px; margin-top: 3px; }
+.style-a .stock-icon { flex: none; width: 26px; display: grid; place-items: center; line-height: 0; }
+.style-a .stock-line { font-size: 13px; font-weight: 700; line-height: 18px; }
+.style-a .stock-name { margin-right: 5px; }
+.style-a .num-qty { font-size: 15px; }
+.style-a .fresh { display: flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; line-height: 15px; color: #3F8F4A; }
+.style-a .fresh svg { flex: none; }
+.style-a .num-fresh { font-size: 11px; }
+
+.style-a .market { padding: 7px 10px 6px; }
+.style-a .mk-head { gap: 5px; }
+.style-a .mk-icon { line-height: 0; flex: none; }
+.style-a .mk-icon svg { width: 22px; height: 22px; }
+.style-a .mk-name { font-size: 13px; font-weight: 900; }
+.style-a .mk-chg { margin-left: auto; display: flex; align-items: center; gap: 2px; font-size: 12px; font-weight: 900; }
+.style-a .num-chg { font-size: 13px; }
+.style-a .up .mk-chg { color: #E5484D; }
+.style-a .down .mk-chg { color: #1E9A5A; }
+.style-a .mk-body { justify-content: space-between; align-items: flex-end; margin-top: 2px; }
+.style-a .num-price { font-size: 24px; line-height: 28px; }
+.style-a .mk-spark { line-height: 0; }
+
+/* 底部分頁 */
+.style-a .tabbar { background: #FFF8EC; border-top: 3px solid var(--ink); border-radius: 24px 24px 0 0; }
+.style-a .tab { gap: 1px; }
+.style-a .tab-icon { line-height: 0; }
+.style-a .tab-label { font-size: 12px; font-weight: 700; color: #8A6F60; line-height: 15px; }
+.style-a .tab.active .tab-icon {
+  background: #FFE2DA; border: 2.5px solid var(--ink); border-radius: 16px; padding: 2px 11px; margin-top: -6px;
+  box-shadow: 0 2px 0 var(--ink);
+}
+.style-a .tab.active .tab-label { color: var(--ink); font-weight: 900; }
+
+/* 奶桶滿了 泡泡 */
+.style-a .bubble {
+  background: #FFFFFF; border: 3px solid var(--ink); border-radius: 16px; padding: 2px 10px 2px 5px; gap: 3px;
+  box-shadow: 0 3px 0 var(--ink); margin-top: -8px;
+}
+.style-a .bubble::before, .style-a .bubble::after {
+  content: ""; position: absolute; left: 50%; width: 0; height: 0; border-style: solid; transform: translateX(-50%);
+}
+.style-a .bubble::before { bottom: -13px; border-width: 11px 9px 0 9px; border-color: var(--ink) transparent transparent transparent; }
+.style-a .bubble::after { bottom: -7px; border-width: 8px 6px 0 6px; border-color: #FFFFFF transparent transparent transparent; }
+.style-a .bubble svg { flex: none; }
+.style-a .bubble-text { font-size: 13px; font-weight: 900; line-height: 22px; }
