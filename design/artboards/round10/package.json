@@ -1,0 +1,16 @@
+{
+  "name": "cow-farm-artboards-round10",
+  "private": true,
+  "version": "0.0.0",
+  "description": "R10 正面乳房在胸口、和牛重新設計、黑牛線條、側面拿掉乳房、臉長 A（依第 9 輪意見）：獨立 HTML mockup 與出圖腳本",
+  "type": "module",
+  "scripts": {
+    "capture": "node harness/capture.mjs",
+    "compose": "node harness/compose.mjs",
+    "build": "node harness/capture.mjs && node harness/compose.mjs",
+    "serve": "node harness/serve.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.0"
+  }
+}
