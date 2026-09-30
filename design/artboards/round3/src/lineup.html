@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>R3 品種排排站</title>
+<link rel="stylesheet" href="common.css">
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+// 七頭側面牛放大排排站：荷斯坦與荷斯坦小牛並排，其他五個品種；七頭同一比例
+import { drawCow, LINEUP_ROWS } from './kit.js';
+const s = new URLSearchParams(location.search).get('s') || 'c';
+const link = Object.assign(document.createElement('link'), { rel: 'stylesheet', href: `styles/${s}.css` });
+await new Promise((res) => { link.onload = res; document.head.appendChild(link); });
+const { style } = await import(`./styles/${s}.js`);
+const all = LINEUP_ROWS.flat();
+const probe = all.map((e, i) => drawCow(style, e, { idp: `p${i}` }).box);
+const Wd = (b) => b.x1 - b.x0, Hd = (b) => b.y1 - b.y0;
+const maxH = Math.max(...probe.map(Hd));
+let i0 = 0;
+const rowW = LINEUP_ROWS.map((r) => { const w = r.reduce((a, e, j) => a + Wd(probe[i0 + j]), 0); i0 += r.length; return w; });
+const INNER = 572;
+const k = Math.min(...LINEUP_ROWS.map((r, ri) => (INNER - 30 * r.length) / rowW[ri]), 176 / maxH);
+let idx = 0;
+const rows = LINEUP_ROWS.map((r) => `<div class="lu-row">${r.map((e) => {
+  const b = probe[idx]; const i = idx++;
+  const w = Wd(b) * k + 16, h = maxH * k + 14;
+  const cow = drawCow(style, e, { x: 8 - b.x0 * k, y: h - 7, scale: k, idp: `l${i}` });
+  return `<figure class="lu-fig"><svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${style.cowShadow(cow.shadow)}${cow.svg}</svg><figcaption class="lu-name">${e.label}</figcaption></figure>`;
+}).join('')}</div>`).join('');
+document.getElementById('app').innerHTML = `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>${style.globalDefs()}</defs></svg>
+  <div class="lineup style-${s}"><div class="lu-head"><span class="lu-title">品種排排站</span><span class="lu-sub">${style.name}・七頭同一比例・小牛在成年荷斯坦旁邊</span></div><div class="lu-rows">${rows}</div></div>`;
+if (style.afterLineup) style.afterLineup(document.getElementById('app'));
+await document.fonts.ready;
+window.__ready = true;
+</script>
+</body>
+</html>

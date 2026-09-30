@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>R3 牧場主畫面</title>
+<link rel="stylesheet" href="common.css">
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+// ?s=a|b|c|d|e：同一個牧場主畫面、同一組假資料，整個畫面換成指定畫風
+import { mount, ready } from './ui.js';
+import { makeKit } from './kit.js';
+const s = new URLSearchParams(location.search).get('s') || 'c';
+const link = Object.assign(document.createElement('link'), { rel: 'stylesheet', href: `styles/${s}.css` });
+await new Promise((res) => { link.onload = res; document.head.appendChild(link); });
+const { style } = await import(`./styles/${s}.js`);
+mount(makeKit(style));
+await ready();
+</script>
+</body>
+</html>

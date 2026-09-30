@@ -37,3 +37,4 @@ key.properties
 # 系統
 .DS_Store
 docs/research/economy/out/runs/*.csv
+design/artboards/round[3-9]*/raw/*.png

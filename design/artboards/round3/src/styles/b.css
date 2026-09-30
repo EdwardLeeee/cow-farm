@@ -1,0 +1,85 @@
+/* B 剪紙拼貼：每個面板是一張剪下來的色紙（邊緣不規則、底下有小陰影、紙纖維），標題是斜貼的紙條 */
+.style-b {
+  --ink: #3A2E2A;
+  --fiber: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' seed='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 -1.0 0.55'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  --jag: polygon(0.6% 2%, 11% 0.3%, 24% 1.6%, 37% 0%, 51% 1.4%, 64% 0.2%, 78% 1.7%, 90% 0.1%, 99.4% 1.8%, 100% 22%, 99.1% 41%, 100% 61%, 99.2% 80%, 99.7% 98.2%, 89% 100%, 76% 98.6%, 62% 100%, 48% 98.8%, 34% 100%, 21% 98.7%, 9% 100%, 0.2% 98.4%, 0.9% 79%, 0% 60%, 0.8% 40%, 0% 21%);
+  color: var(--ink);
+}
+.style-b .num { font-weight: 900; font-variant-numeric: tabular-nums; }
+.style-b .avatar, .style-b .profile-text, .style-b .coins, .style-b .ticker, .style-b .card, .style-b .bubble, .style-b .tabbar, .style-b .lu-name, .style-b .card-title, .style-b .lv {
+  background: none; isolation: isolate; filter: drop-shadow(0.8px 1.8px 0.6px rgba(46, 32, 20, 0.38));
+}
+.style-b .avatar, .style-b .profile-text, .style-b .card, .style-b .lu-name, .style-b .card-title, .style-b .lv { position: relative; }
+.style-b .avatar::before, .style-b .profile-text::before, .style-b .coins::before, .style-b .ticker::before, .style-b .card::before, .style-b .bubble::before, .style-b .tabbar::before, .style-b .lu-name::before, .style-b .card-title::before, .style-b .lv::before {
+  content: ""; position: absolute; inset: 0; z-index: -1; background: var(--paper, #F6E7CB) var(--fiber); clip-path: var(--jag);
+}
+.style-b .avatar { --paper: #F7C548; z-index: 2; flex: none; width: 54px; height: 54px; display: grid; place-items: center; }
+.style-b .avatar::before { clip-path: circle(49% at 50% 50%); }
+.style-b .avatar svg { width: 50px; height: 50px; margin-top: 3px; border-radius: 50%; }
+.style-b .profile-text { --paper: #FFFDF6; margin-left: -12px; height: 46px; padding: 3px 16px 4px 22px; }
+.style-b .farm-name { font-size: 15px; font-weight: 900; line-height: 19px; letter-spacing: 0.5px; }
+.style-b .farm-level { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; line-height: 16px; margin-top: 1px; }
+.style-b .lv { --paper: #6BAF4F; color: #FFFFFF; padding: 0 5px; transform: rotate(-3deg); }
+.style-b .lv .num { font-size: 11px; line-height: 15px; }
+.style-b .coins { --paper: #F2B93B; position: relative; height: 40px; padding: 0 16px 0 28px; margin-left: 20px; }
+.style-b .coin-icon { position: absolute; left: -18px; top: 50%; transform: translateY(-50%) rotate(-6deg); line-height: 0; }
+.style-b .num-coins { font-size: 20px; line-height: 1; }
+.style-b .ticker { --paper: #D1495B; height: 32px; padding: 0 12px 0 6px; color: #FFF6E0; }
+.style-b .ticker-icon { flex: none; width: 30px; height: 26px; display: grid; place-items: center; margin-right: 6px; background: #FFF6E0; border-radius: 50%; }
+.style-b .ticker-text { font-size: 13px; font-weight: 700; line-height: 32px; }
+
+.style-b .card { --paper: #FFFDF6; padding: 9px 11px 9px; }
+.style-b .bucket { --paper: #CFE7F3; }
+.style-b .storage { --paper: #F6E7CB; padding-bottom: 7px; }
+.style-b .card-head { justify-content: space-between; }
+.style-b .card-title { --paper: #3E7CB1; color: #FFFFFF; display: inline-block; padding: 0 9px; font-size: 13px; font-weight: 900; line-height: 21px; transform: rotate(-2.5deg); margin-left: -2px; }
+.style-b .storage .card-title { --paper: #D1495B; transform: rotate(2deg); }
+.style-b .num-pct { font-size: 24px; line-height: 26px; }
+.style-b .bucket-body { gap: 6px; margin-top: 3px; }
+.style-b .bucket-icon { flex: none; line-height: 0; margin-left: -4px; }
+.style-b .bucket-info { flex: 1; min-width: 0; }
+.style-b .bar { height: 13px; background: #FFFFFF; clip-path: var(--jag); }
+.style-b .bar i { display: block; height: 100%; background: #3E7CB1 var(--fiber); clip-path: var(--jag); }
+.style-b .bucket-count { font-size: 12px; font-weight: 700; margin-top: 6px; line-height: 16px; }
+.style-b .num-count { font-size: 15px; }
+.style-b .unit { font-size: 12px; font-weight: 700; margin-left: 2px; }
+.style-b .stock { gap: 6px; margin-top: 3px; }
+.style-b .stock-icon { flex: none; width: 26px; display: grid; place-items: center; line-height: 0; }
+.style-b .stock-line { font-size: 13px; font-weight: 700; line-height: 18px; }
+.style-b .stock-name { margin-right: 5px; }
+.style-b .num-qty { font-size: 15px; }
+.style-b .fresh { display: flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; line-height: 15px; color: #3F7F34; }
+.style-b .num-fresh { font-size: 11px; }
+.style-b .market { padding: 8px 11px 6px; }
+.style-b .mk-head { gap: 5px; }
+.style-b .mk-icon { line-height: 0; flex: none; }
+.style-b .mk-name { font-size: 13px; font-weight: 900; }
+.style-b .mk-chg { margin-left: auto; display: flex; align-items: center; gap: 2px; font-size: 12px; font-weight: 900; }
+.style-b .num-chg { font-size: 13px; }
+.style-b .up .mk-chg { color: #C2352B; }
+.style-b .down .mk-chg { color: #2A7F4E; }
+.style-b .mk-body { justify-content: space-between; align-items: flex-end; margin-top: 2px; }
+.style-b .num-price { font-size: 26px; line-height: 30px; }
+.style-b .mk-spark { line-height: 0; }
+
+.style-b .tabbar { --paper: #E4C9A0; }
+.style-b .tabbar::before { clip-path: polygon(0 5%, 8% 0.5%, 20% 4%, 33% 0%, 47% 4.5%, 60% 0.5%, 74% 4%, 87% 0.5%, 100% 4%, 100% 100%, 0 100%); }
+.style-b .tab { gap: 1px; }
+.style-b .tab-icon { line-height: 0; width: 46px; height: 40px; display: grid; place-items: center; border-radius: 50%; }
+.style-b .tab-label { font-size: 12px; font-weight: 700; color: #7A6450; line-height: 15px; }
+.style-b .tab.active .tab-icon { background: #F7C548 var(--fiber); border-radius: 48% 52% 46% 54%; box-shadow: 0.8px 1.8px 0 rgba(46, 32, 20, 0.35); }
+.style-b .tab.active .tab-label { color: var(--ink); font-weight: 900; }
+
+.style-b .bubble { --paper: #FFFDF6; padding: 2px 11px 2px 6px; gap: 3px; margin-top: -10px; }
+.style-b .bubble::after { content: ""; position: absolute; left: 50%; bottom: -8px; margin-left: -7px; border: 8px solid transparent; border-bottom: 0; border-top-color: #FFFDF6; }
+.style-b .bubble-text { font-size: 13px; font-weight: 900; line-height: 22px; }
+
+.lineup.style-b { width: 640px; height: 864px; padding: 22px 20px; background: #E3CDA8 var(--fiber); display: flex; flex-direction: column; }
+.style-b .lu-head { display: flex; align-items: baseline; gap: 10px; margin: 0 6px 12px; }
+.style-b .lu-title { font-size: 24px; font-weight: 900; line-height: 30px; }
+.style-b .lu-sub { font-size: 13px; font-weight: 700; color: #6E5840; line-height: 18px; }
+.style-b .lu-rows { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+.style-b .lu-row { flex: 1; display: flex; justify-content: space-around; align-items: flex-end; padding: 0 6px 10px; background: linear-gradient(transparent 72%, #A9CB5B 72%); filter: drop-shadow(0 2px 1px rgba(46, 32, 20, 0.25)); }
+.style-b .lu-fig { margin: 0; display: flex; flex-direction: column; align-items: center; }
+.style-b .lu-fig svg { display: block; }
+.style-b .lu-name { --paper: #FFFDF6; font-size: 14px; font-weight: 900; line-height: 21px; padding: 0 9px; white-space: nowrap; margin-top: 3px; transform: rotate(-2deg); }

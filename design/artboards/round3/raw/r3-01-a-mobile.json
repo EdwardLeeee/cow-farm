@@ -1,0 +1,528 @@
+{
+  "job": "r3-01-a-mobile",
+  "page": "src/screen.html?s=a",
+  "browser": "chromium 151.0.7922.34",
+  "device": {
+    "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "deviceScaleFactor": 3,
+    "isMobile": true,
+    "hasTouch": true,
+    "locale": "zh-TW",
+    "colorScheme": "light",
+    "reducedMotion": "reduce"
+  },
+  "errors": [],
+  "lang": "zh-Hant-TW",
+  "fontsCheck": {
+    "notoTC700": true,
+    "notoTC900": true,
+    "fontFaces": []
+  },
+  "viewport": {
+    "w": 390,
+    "h": 844,
+    "dpr": 3
+  },
+  "horizontalScroll": false,
+  "minFontSize": 11,
+  "minFontSizeText": 11,
+  "minPixelGlyph": null,
+  "texts": [
+    {
+      "text": "奶桶滿了",
+      "cls": "bubble-text",
+      "fontSize": 15,
+      "weight": "400",
+      "lines": 1,
+      "lineHeight": 24,
+      "box": {
+        "x": 105.7,
+        "y": 308.4,
+        "w": 60,
+        "h": 17
+      }
+    },
+    {
+      "text": "晴天．高原．牧場",
+      "cls": "farm-name",
+      "fontSize": 18,
+      "weight": "400",
+      "lines": 1,
+      "lineHeight": 21,
+      "box": {
+        "x": 77,
+        "y": 59.5,
+        "w": 152,
+        "h": 20
+      }
+    },
+    {
+      "text": "Lv.5",
+      "cls": "num num-lv",
+      "fontSize": 11,
+      "weight": "700",
+      "lines": 1,
+      "lineHeight": 15,
+      "box": {
+        "x": 82,
+        "y": 81.5,
+        "w": 21.5,
+        "h": 16
+      }
+    },
+    {
+      "text": "場主",
+      "cls": "title",
+      "fontSize": 12,
+      "weight": "500",
+      "lines": 1,
+      "lineHeight": 16,
+      "box": {
+        "x": 114.5,
+        "y": 80.5,
+        "w": 24,
+        "h": 17
+      }
+    },
+    {
+      "text": "12,450",
+      "cls": "num num-coins",
+      "fontSize": 19,
+      "weight": "700",
+      "lines": 1,
+      "lineHeight": 19,
+      "box": {
+        "x": 298.8,
+        "y": 65,
+        "w": 62.2,
+        "h": 27
+      }
+    },
+    {
+      "text": "颱風接近，牛奶收購價上漲中",
+      "cls": "ticker-text",
+      "fontSize": 13,
+      "weight": "500",
+      "lines": 1,
+      "lineHeight": 30,
+      "box": {
+        "x": 57,
+        "y": 117,
+        "w": 169,
+        "h": 19
+      }
+    },
+    {
+      "text": "牛奶桶",
+      "cls": "card-title nowrap",
+      "fontSize": 16,
+      "weight": "400",
+      "lines": 1,
+      "lineHeight": 21,
+      "box": {
+        "x": 28,
+        "y": 572,
+        "w": 48,
+        "h": 18
+      }
+    },
+    {
+      "text": "72%",
+      "cls": "num num-pct",
+      "fontSize": 22,
+      "weight": "700",
+      "lines": 1,
+      "lineHeight": 26,
+      "box": {
+        "x": 131.8,
+        "y": 565,
+        "w": 47.2,
+        "h": 32
+      }
+    },
+    {
+      "text": "36/50",
+      "cls": "num num-count",
+      "fontSize": 14,
+      "weight": "700",
+      "lines": 1,
+      "lineHeight": 16,
+      "box": {
+        "x": 72,
+        "y": 619.5,
+        "w": 38.5,
+        "h": 20
+      }
+    },
+    {
+      "text": "瓶",
+      "cls": "unit",
+      "fontSize": 12,
+      "weight": "500",
+      "lines": 1,
+      "lineHeight": 16,
+      "box": {
+        "x": 112.5,
+        "y": 621.5,
+        "w": 12,
+        "h": 17
+      }
+    },
+    {
+      "text": "倉庫",
+      "cls": "card-title nowrap",
+      "fontSize": 16,
+      "weight": "400",
+      "lines": 1,
+      "lineHeight": 21,
+      "box": {
+        "x": 215,
+        "y": 569,
+        "w": 32,
+        "h": 18
+      }
+    },
+    {
+      "text": "牛奶",
+      "cls": "stock-name",
+      "fontSize": 13,
+      "weight": "500",
+      "lines": 1,
+      "lineHeight": 18,
+      "box": {
+        "x": 243,
+        "y": 590,
+        "w": 26,
+        "h": 19
+      }
+    },
+    {
+      "text": "120",
+      "cls": "num num-qty",
+      "fontSize": 15,
+      "weight": "700",
+      "lines": 1,
+      "lineHeight": 18,
+      "box": {
+        "x": 274,
+        "y": 589,
+        "w": 26.6,
+        "h": 21
+      }
+    },
+    {
+      "text": "瓶",
+      "cls": "unit",
+      "fontSize": 12,
+      "weight": "500",
+      "lines": 1,
+      "lineHeight": 18,
+      "box": {
+        "x": 302.6,
+        "y": 592,
+        "w": 12,
+        "h": 17
+      }
+    },
+    {
+      "text": "新鮮度",
+      "cls": "fresh-label",
+      "fontSize": 11,
+      "weight": "500",
+      "lines": 1,
+      "lineHeight": 15,
+      "box": {
+        "x": 260,
+        "y": 609,
+        "w": 33,
+        "h": 16
+      }
+    },
+    {
+      "text": "92%",
+      "cls": "num num-fresh",
+      "fontSize": 11,
+      "weight": "700",
+      "lines": 1,
+      "lineHeight": 15,
+      "box": {
+        "x": 296,
+        "y": 609,
+        "w": 23.6,
+        "h": 16
+      }
+    },
+    {
+      "text": "牛肉",
+      "cls": "stock-name",
+      "fontSize": 13,
+      "weight": "500",
+      "lines": 1,
+      "lineHeight": 18,
+      "box": {
+        "x": 243,
+        "y": 629,
+        "w": 26,
+        "h": 19
+      }
+    },
+    {
+      "text": "3",
+      "cls": "num num-qty",
+      "fontSize": 15,
+      "weight": "700",
+      "lines": 1,
+      "lineHeight": 18,
+      "box": {
+        "x": 274,
+        "y": 628,
+        "w": 8.9,
+        "h": 21
+      }
+    },
+    {
+      "text": "箱",
+      "cls": "unit",
+      "fontSize": 12,
+      "weight": "500",
+      "lines": 1,
+      "lineHeight": 18,
+      "box": {
+        "x": 284.9,
+        "y": 631,
+        "w": 12,
+        "h": 17
+      }
+    },
+    {
+      "text": "牛奶",
+      "cls": "mk-name nowrap",
+      "fontSize": 16,
+      "weight": "400",
+      "lines": 1,
+      "lineHeight": 20,
+      "box": {
+        "x": 51,
+        "y": 679,
+        "w": 32,
+        "h": 18
+      }
+    },
+    {
+      "text": "3.2%",
+      "cls": "num num-chg up",
+      "fontSize": 13,
+      "weight": "700",
+      "lines": 1,
+      "lineHeight": 18.2,
+      "box": {
+        "x": 146.9,
+        "y": 678.5,
+        "w": 32.1,
+        "h": 19
+      }
+    },
+    {
+      "text": "12.4",
+      "cls": "num num-price",
+      "fontSize": 25,
+      "weight": "700",
+      "lines": 1,
+      "lineHeight": 29,
+      "box": {
+        "x": 24,
+        "y": 698,
+        "w": 52.4,
+        "h": 36
+      }
+    },
+    {
+      "text": "牛肉",
+      "cls": "mk-name nowrap",
+      "fontSize": 16,
+      "weight": "400",
+      "lines": 1,
+      "lineHeight": 20,
+      "box": {
+        "x": 238,
+        "y": 679,
+        "w": 32,
+        "h": 18
+      }
+    },
+    {
+      "text": "1.1%",
+      "cls": "num num-chg down",
+      "fontSize": 13,
+      "weight": "700",
+      "lines": 1,
+      "lineHeight": 18.2,
+      "box": {
+        "x": 333.9,
+        "y": 678.5,
+        "w": 32.1,
+        "h": 19
+      }
+    },
+    {
+      "text": "38.0",
+      "cls": "num num-price",
+      "fontSize": 25,
+      "weight": "700",
+      "lines": 1,
+      "lineHeight": 29,
+      "box": {
+        "x": 211,
+        "y": 698,
+        "w": 52.4,
+        "h": 36
+      }
+    },
+    {
+      "text": "牧場",
+      "cls": "tab-label",
+      "fontSize": 14,
+      "weight": "400",
+      "lines": 1,
+      "lineHeight": 17,
+      "box": {
+        "x": 25,
+        "y": 790.5,
+        "w": 28,
+        "h": 16
+      }
+    },
+    {
+      "text": "市場",
+      "cls": "tab-label",
+      "fontSize": 14,
+      "weight": "400",
+      "lines": 1,
+      "lineHeight": 17,
+      "box": {
+        "x": 103,
+        "y": 790.5,
+        "w": 28,
+        "h": 16
+      }
+    },
+    {
+      "text": "配種",
+      "cls": "tab-label",
+      "fontSize": 14,
+      "weight": "400",
+      "lines": 1,
+      "lineHeight": 17,
+      "box": {
+        "x": 181,
+        "y": 790.5,
+        "w": 28,
+        "h": 16
+      }
+    },
+    {
+      "text": "圖鑑",
+      "cls": "tab-label",
+      "fontSize": 14,
+      "weight": "400",
+      "lines": 1,
+      "lineHeight": 17,
+      "box": {
+        "x": 259,
+        "y": 790.5,
+        "w": 28,
+        "h": 16
+      }
+    },
+    {
+      "text": "排行",
+      "cls": "tab-label",
+      "fontSize": 14,
+      "weight": "400",
+      "lines": 1,
+      "lineHeight": 17,
+      "box": {
+        "x": 337,
+        "y": 790.5,
+        "w": 28,
+        "h": 16
+      }
+    }
+  ],
+  "pxTexts": [],
+  "clipped": [],
+  "outside": [],
+  "wrapped": [],
+  "tabs": [
+    {
+      "label": "牧場",
+      "x": 0,
+      "y": 749,
+      "w": 78,
+      "h": 61
+    },
+    {
+      "label": "市場",
+      "x": 78,
+      "y": 749,
+      "w": 78,
+      "h": 61
+    },
+    {
+      "label": "配種",
+      "x": 156,
+      "y": 749,
+      "w": 78,
+      "h": 61
+    },
+    {
+      "label": "圖鑑",
+      "x": 234,
+      "y": 749,
+      "w": 78,
+      "h": 61
+    },
+    {
+      "label": "排行",
+      "x": 312,
+      "y": 749,
+      "w": 78,
+      "h": 61
+    }
+  ],
+  "minTab": {
+    "w": 78,
+    "h": 61
+  },
+  "safeArea": {
+    "top": 47,
+    "bottom": 34,
+    "hudTop": 53,
+    "tabbarTop": 748,
+    "tabContentBottom": 810,
+    "hudBelowStatusbar": true,
+    "tabsAboveHome": true
+  },
+  "overlays": {
+    "statusbar": {
+      "cls": "sim-statusbar",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 47
+    },
+    "home": {
+      "cls": "sim-home-indicator",
+      "x": 128,
+      "y": 831,
+      "w": 134,
+      "h": 5
+    }
+  },
+  "pixelScales": [],
+  "pixelImages": 0,
+  "errorOverlay": false
+}

@@ -1,0 +1,78 @@
+/* C 扁平幾何：沒有描邊、沒有漸層，大色塊＋簡單幾何；深藍墨、珊瑚紅、芥末黃、深青綠 */
+.style-c { --ink: #26305A; --coral: #FF6B4A; --mustard: #FFC145; --teal: #1F6F78; color: var(--ink); }
+.style-c .num { font-weight: 900; letter-spacing: 0.3px; font-variant-numeric: tabular-nums; }
+
+.style-c .avatar { position: relative; z-index: 2; flex: none; width: 54px; height: 54px; border-radius: 50%; background: var(--mustard); display: grid; place-items: center; overflow: hidden; }
+.style-c .avatar svg { width: 50px; height: 50px; margin-top: 4px; }
+.style-c .profile-text { margin-left: -16px; height: 46px; padding: 4px 18px 4px 26px; background: var(--ink); color: #FFFFFF; border-radius: 0 23px 23px 0; }
+.style-c .farm-name { font-size: 15px; font-weight: 900; line-height: 19px; letter-spacing: 0.5px; }
+.style-c .farm-level { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; line-height: 16px; color: var(--mustard); margin-top: 1px; }
+.style-c .lv { background: var(--coral); color: #FFFFFF; border-radius: 5px; padding: 0 5px; }
+.style-c .lv .num { font-size: 11px; line-height: 15px; }
+.style-c .coins { position: relative; height: 40px; padding: 0 16px 0 28px; margin-left: 20px; background: var(--coral); color: #FFFFFF; border-radius: 20px; }
+.style-c .coin-icon { position: absolute; left: -18px; top: 50%; transform: translateY(-50%); line-height: 0; }
+.style-c .num-coins { font-size: 20px; line-height: 1; }
+
+.style-c .ticker { height: 32px; padding: 0 12px 0 4px; background: var(--ink); border-radius: 16px; }
+.style-c .ticker-icon { flex: none; width: 34px; height: 24px; display: grid; place-items: center; margin-right: 8px; background: var(--coral); border-radius: 12px; }
+.style-c .ticker-icon svg { filter: brightness(10); }
+.style-c .ticker-text { font-size: 13px; font-weight: 700; line-height: 32px; color: #FFE3B8; }
+
+.style-c .card { border-radius: 18px; padding: 9px 11px 9px; background: #FFFFFF; }
+.style-c .card-head { justify-content: space-between; }
+.style-c .card-title { display: inline-block; border-radius: 6px; padding: 0 8px; font-size: 12px; font-weight: 900; line-height: 20px; }
+.style-c .bucket { background: var(--teal); color: #FFFFFF; }
+.style-c .bucket .card-title { background: rgba(255, 255, 255, 0.2); }
+.style-c .num-pct { font-size: 24px; line-height: 26px; }
+.style-c .bucket-body { gap: 6px; margin-top: 3px; }
+.style-c .bucket-icon { flex: none; line-height: 0; margin-left: -4px; }
+.style-c .bucket-info { flex: 1; min-width: 0; }
+.style-c .bar { height: 12px; border-radius: 6px; background: rgba(255, 255, 255, 0.24); overflow: hidden; }
+.style-c .bar i { display: block; height: 100%; background: var(--mustard); }
+.style-c .bucket-count { font-size: 12px; font-weight: 700; margin-top: 6px; line-height: 16px; }
+.style-c .num-count { font-size: 15px; }
+.style-c .unit { font-size: 12px; font-weight: 700; margin-left: 2px; }
+.style-c .storage { background: var(--mustard); padding-bottom: 7px; }
+.style-c .storage .card-title { background: var(--ink); color: var(--mustard); }
+.style-c .stock { gap: 6px; margin-top: 3px; }
+.style-c .stock-icon { flex: none; width: 26px; display: grid; place-items: center; line-height: 0; }
+.style-c .stock-line { font-size: 13px; font-weight: 700; line-height: 18px; }
+.style-c .stock-name { margin-right: 5px; }
+.style-c .num-qty { font-size: 15px; }
+.style-c .fresh { display: flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; line-height: 15px; color: #1F5C35; }
+.style-c .num-fresh { font-size: 11px; }
+.style-c .market { padding: 8px 11px 6px; }
+.style-c .market.up { box-shadow: inset 0 5px 0 #E4372E; }
+.style-c .market.down { box-shadow: inset 0 5px 0 #1E9A5A; }
+.style-c .mk-head { gap: 5px; margin-top: 2px; }
+.style-c .mk-icon { line-height: 0; flex: none; }
+.style-c .mk-name { font-size: 13px; font-weight: 900; }
+.style-c .mk-chg { margin-left: auto; display: flex; align-items: center; gap: 2px; font-size: 12px; font-weight: 900; border-radius: 6px; padding: 1px 6px; color: #FFFFFF; }
+.style-c .num-chg { font-size: 13px; }
+.style-c .up .mk-chg { background: #E4372E; }
+.style-c .down .mk-chg { background: #1E9A5A; }
+.style-c .mk-body { justify-content: space-between; align-items: flex-end; margin-top: 2px; }
+.style-c .num-price { font-size: 26px; line-height: 30px; }
+.style-c .mk-spark { line-height: 0; }
+
+.style-c .tabbar { background: #FFFFFF; border-radius: 22px 22px 0 0; }
+.style-c .tab { gap: 2px; }
+.style-c .tab-icon { line-height: 0; width: 44px; height: 38px; display: grid; place-items: center; border-radius: 14px; }
+.style-c .tab-label { font-size: 12px; font-weight: 700; color: #8A90A8; line-height: 15px; }
+.style-c .tab.active .tab-icon { background: #FFE0D6; }
+.style-c .tab.active .tab-label { color: var(--ink); font-weight: 900; }
+
+.style-c .bubble { background: var(--ink); color: #FFFFFF; border-radius: 14px; padding: 3px 11px 3px 6px; gap: 3px; margin-top: -10px; }
+.style-c .bubble::after { content: ""; position: absolute; left: 50%; bottom: -8px; margin-left: -8px; border: 8px solid transparent; border-bottom: 0; border-top-color: var(--ink); }
+.style-c .bubble-text { font-size: 13px; font-weight: 900; line-height: 22px; }
+
+/* 排排站 */
+.lineup.style-c { width: 640px; height: 864px; padding: 22px 20px; background: #FFE6CC; display: flex; flex-direction: column; }
+.style-c .lu-head { display: flex; align-items: baseline; gap: 10px; margin: 0 6px 12px; }
+.style-c .lu-title { font-size: 22px; font-weight: 900; line-height: 28px; }
+.style-c .lu-sub { font-size: 13px; font-weight: 700; color: #7A6A6A; line-height: 18px; }
+.style-c .lu-rows { flex: 1; display: flex; flex-direction: column; justify-content: space-between; gap: 12px; }
+.style-c .lu-row { flex: 1; display: flex; justify-content: space-around; align-items: flex-end; background: linear-gradient(transparent 70%, #86CF6E 70%); border-radius: 18px; padding: 0 6px 8px; background-color: #FFF4E6; }
+.style-c .lu-fig { margin: 0; display: flex; flex-direction: column; align-items: center; }
+.style-c .lu-fig svg { display: block; }
+.style-c .lu-name { font-size: 14px; font-weight: 900; line-height: 21px; color: #FFFFFF; background: var(--ink); border-radius: 6px; padding: 0 8px; margin-top: 2px; white-space: nowrap; }
