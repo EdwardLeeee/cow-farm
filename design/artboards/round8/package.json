@@ -1,0 +1,16 @@
+{
+  "name": "cow-farm-artboards-round8",
+  "private": true,
+  "version": "0.0.0",
+  "description": "R8 牛的身體曲線、正面臉長、乳房、尾巴（依第 7 輪意見）：獨立 HTML mockup 與出圖腳本",
+  "type": "module",
+  "scripts": {
+    "capture": "node harness/capture.mjs",
+    "compose": "node harness/compose.mjs",
+    "build": "node harness/capture.mjs && node harness/compose.mjs",
+    "serve": "node harness/serve.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.0"
+  }
+}

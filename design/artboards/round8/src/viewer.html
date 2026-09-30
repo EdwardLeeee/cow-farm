@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-Hant-TW"><head><meta charset="utf-8"><title>R2 單頭牛放大檢視</title>
+<style>body{margin:0;background:#EAF7E1;font-family:"Noto Sans CJK TC";color:#4B3326}.g{display:grid;grid-template-columns:repeat(var(--c,4),1fr);gap:6px;padding:8px}.c{background:#fff;border-radius:12px;text-align:center;font-size:13px;font-weight:700}</style></head>
+<body><div class="g" id="g"></div>
+<script type="module">
+// 開發用：把七頭（或指定品種）放大看細節。?v=a|b|c&s=放大倍數&cols=欄數
+import { LINEUP } from './data.js';
+import { drawCow, extent } from './cows.js';
+const q = new URLSearchParams(location.search);
+const v = q.get('v') || 'b', s = +(q.get('s') || 2.4), cols = +(q.get('cols') || 4), facing = q.get('f') || 'left';
+document.documentElement.style.setProperty('--c', cols);
+const only = q.get('only');
+document.getElementById('g').innerHTML = LINEUP.filter((e, i) => !only || only.split(',').includes(String(i))).map((e, i) => {
+  const b = extent(v, e); const W = (b.x1 - b.x0) * s + 20, H = (b.y1 - b.y0) * s + 16;
+  const cow = drawCow(v, e, { x: 10 - (facing === 'right' ? -b.x1 : b.x0) * s, y: H - 6, scale: s, id: 'v' + i, facing });
+  return `<div class="c"><svg width="${W}" height="${H}">${cow.svg}</svg><div>${e.label}</div></div>`;
+}).join('');
+await document.fonts.ready; window.__ready = true;
+</script></body></html>
