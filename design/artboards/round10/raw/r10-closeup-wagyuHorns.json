@@ -1,0 +1,80 @@
+{
+  "job": "r10-closeup-wagyuHorns",
+  "page": "src/closeup.html?v=wagyuHorns",
+  "browser": "chromium 151.0.7922.34",
+  "device": {
+    "viewport": {
+      "width": 720,
+      "height": 900
+    },
+    "deviceScaleFactor": 3,
+    "isMobile": true,
+    "hasTouch": true,
+    "locale": "zh-TW",
+    "colorScheme": "light",
+    "reducedMotion": "reduce"
+  },
+  "errors": [],
+  "lang": "zh-Hant-TW",
+  "minFontSize": 13,
+  "texts": [
+    {
+      "text": "和牛與安格斯・側面（放大）",
+      "fontSize": 17
+    },
+    {
+      "text": "和牛：黑亮加短角",
+      "fontSize": 13
+    },
+    {
+      "text": "安格斯",
+      "fontSize": 14
+    },
+    {
+      "text": "和牛",
+      "fontSize": 14
+    },
+    {
+      "text": "和牛與安格斯・正面（放大）",
+      "fontSize": 17
+    },
+    {
+      "text": "安格斯",
+      "fontSize": 14
+    },
+    {
+      "text": "和牛",
+      "fontSize": 14
+    },
+    {
+      "text": "牧場上的實際大小",
+      "fontSize": 17
+    },
+    {
+      "text": "看一眼分不分得出來",
+      "fontSize": 13
+    },
+    {
+      "text": "安格斯・側面",
+      "fontSize": 14
+    },
+    {
+      "text": "和牛・側面",
+      "fontSize": 14
+    },
+    {
+      "text": "安格斯・正面",
+      "fontSize": 14
+    },
+    {
+      "text": "和牛・正面",
+      "fontSize": 14
+    }
+  ],
+  "outside": [],
+  "clipped": [],
+  "figOverflow": 0,
+  "silNameOverlap": 0,
+  "horizontalScroll": false,
+  "view": "closeup-dark"
+}
