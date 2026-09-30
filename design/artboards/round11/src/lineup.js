@@ -26,11 +26,11 @@ const fig = (i, kk, sil, idp) => {
   const sh = sil ? '' : `<ellipse cx="${cow.shadow.cx}" cy="${h - 4}" rx="${cow.shadow.rx}" ry="${cow.shadow.ry}" fill="#9DD68A"/>`;
   return `<figure class="fig"><svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">${sil ? `<defs>${SIL_DEFS}</defs>` : ''}${sh}${cow.svg}</svg><figcaption class="${sil ? 'sname' : 'name'}">${e.label}</figcaption></figure>`;
 };
+const ROWNAME = ['乳牛', '乳牛（稀有）', '耕牛', '肉牛'];
 const rows = ROWS.map((r, ri) => `<div class="rowwrap"><span class="rowtag">${ROWNAME[ri] || ''}</span><div class="row">${r.map((i) => fig(i, k, false, `lu${view}`)).join('')}</div></div>`).join('');
 const ks = Math.min((INNER - 8 * LINE.length) / LINE.reduce((a, e, i) => a + W(i), 0), 90 / maxH);
 const sils = `<div class="row sil">${LINE.map((e, i) => fig(i, ks, true, `si${view}`)).join('')}</div>`;
 const title = view === 'side' ? '側面（牧場上平常走路的樣子，照 9966）' : '正面（停下來、被點到、奶桶滿了，照 9967）';
-const ROWNAME = ['乳牛', '乳牛（稀有）', '耕牛', '肉牛'];
 
 app.innerHTML = `<div class="panel">
   <section class="sec grow"><div class="sec-head"><span class="sec-title">${title}</span></div><div class="sec-sub2">${LABELS[v]}・12 頭同一比例（兩塊面板也同一比例）</div>${rows}</section>
