@@ -2,16 +2,20 @@
 
 FastAPI + PostgreSQL 17。規格：[`docs/design/m1-prototype.md`](../docs/design/m1-prototype.md)；協定（app 照這份寫）：[`docs/protocol.md`](../docs/protocol.md)。
 
+**v0.2 玩法**（企劃書 4.0、決定 D17；2026-09-30）：乳牛／耕牛／肉牛、耕田與稻米行情、商店 A／B／C 等級抽牛、出貨評級、
+每頭牛一輩子配種一次（自己配免費）、借種市場。引擎版本 0.2（`cowecon.ENGINE_VERSION`）。
+v0.1 的資料庫不相容，見「從舊資料庫升級」。
+
 | 路徑 | 內容 |
 |---|---|
 | `cowecon/` | 經濟引擎（行情與牧場規則，只用標準函式庫）。從 `docs/research/economy/cowecon/` 搬來，只保留這一份；研究模擬也 import 這一份。 |
-| `server/game.py` | 服務層：收奶、賣出、出貨、買小牛、配種、升級。**真人（API）和電腦假玩家呼叫同一組函式。** |
-| `server/bots.py` | 假玩家策略 S1–S4（S5 大戶只給測試），照 `docs/research/economy/sim/bots.py` 移植。 |
+| `server/game.py` | 服務層：收奶、賣出（牛奶、牛肉、稻米）、出貨評級、商店抽牛、配種、田地、借種、升級。**真人（API）和電腦假玩家呼叫同一組函式。** |
+| `server/bots.py` | 假玩家六種玩法（乳牛、肉牛、耕田、配種收集、抓時機、出借公牛；W 大戶只給測試），照 `docs/research/economy/sim/bots.py`（v0.2）移植。 |
 | `server/runtime.py` | 遊戲時鐘、市場 tick、假玩家排程、存檔與 request_id 防重送、WebSocket 推播、重啟回復。 |
 | `server/app.py` | HTTP／WebSocket 端點、錯誤格式、網頁版靜態檔。 |
 | `server/store.py` | PostgreSQL 表與存取。 |
 | `server/data/ranch_words.json` | 牧場名詞庫（3 組 × 12 詞）。 |
-| `scripts/pg.sh` | PostgreSQL 容器（rootless podman）的啟停。 |
+| `scripts/pg.sh` | PostgreSQL 容器（rootless podman）的啟停、備份、清掉資料庫重來（`resetdb`）。 |
 | `scripts/serve.sh` | 在背景啟動／停止伺服器。 |
 | `tests/` | pytest：存檔回復、經濟情境、協定、重啟回復。 |
 
@@ -36,6 +40,7 @@ scripts/pg.sh status    # 狀態與記憶體
 scripts/pg.sh stop      # 停止（資料留著；再 up 就回來）
 scripts/pg.sh psql      # 進資料庫
 scripts/pg.sh dump cowfarm.dump   # 線上備份（在容器裡跑 pg_dump；主機的 pg_dump 14 不能備份 17）
+scripts/pg.sh resetdb [名稱]      # 清掉一個資料庫重建成空的（預設 cowfarm；要輸入名稱確認）
 scripts/pg.sh destroy   # 刪除容器、資料卷與密碼檔（所有遊戲資料消失；要輸入 DESTROY）
 ```
 
@@ -75,6 +80,16 @@ iPhone 在同一個 Wi-Fi 用 Safari 開 `http://<這台電腦的區網 IP>:8787
 | `COWFARM_PORT`／`COWFARM_HOST` | 8787／0.0.0.0 | |
 | `COWFARM_PG_DSN` | 讀 `~/.config/cow-farm/pg.env` | 資料庫 |
 | `COWFARM_SEED`、`COWFARM_GAME_START` | 隨機、現在 | 只在第一次建立世界時用（測試用） |
+| `COWFARM_RUN_DIR` | `~/.cache/cow-farm` | `serve.sh` 的 PID 與日誌位置；同時跑第二台伺服器時換一個，才不會停到別台 |
+
+同時跑第二台（例如驗證用，不動 8787 上的試玩伺服器）：
+
+```bash
+DSN="$(grep ^COWFARM_PG_DSN ~/.config/cow-farm/pg.env | cut -d= -f2- | sed 's#/cowfarm$#/cowfarm_v02#')"
+scripts/pg.sh resetdb cowfarm_v02 --yes           # 空的資料庫
+COWFARM_RUN_DIR=/tmp/cowfarm-v02 COWFARM_PORT=8789 COWFARM_PG_DSN="$DSN" scripts/serve.sh start 144
+COWFARM_RUN_DIR=/tmp/cowfarm-v02 COWFARM_PORT=8789 scripts/serve.sh stop
+```
 
 啟動時日誌會印 `cowecon 參數指紋 c07566a5d81d7eec`：和經濟研究筆記相同，代表用的是模擬驗證過的那一份參數。
 
@@ -85,10 +100,25 @@ iPhone 在同一個 Wi-Fi 用 Safari 開 `http://<這台電腦的區網 IP>:8787
 - 強制終止（`kill -9`、當機）也不會丟已經回覆給手機的動作：每個動作回覆前已經寫進資料庫；市場狀態每個 tick 存一次，之後的成交照序號重建。
 - 正常停止（`serve.sh stop`）會存下關機那一刻的遊戲時間；強制終止時從最後一個 tick 或動作接著走，所以重啟後的遊戲時間可能比斷線前最後看到的早一點（最多 1 遊戲分鐘），牧場狀態不受影響。
 
+### 從舊資料庫升級（v0.1 → v0.2）
+
+**原型階段直接清掉重來，不做搬移。** v0.1 的世界只有兩個市場、牛的規則也不同（兼用牛產奶、配種有冷卻），
+v0.2 伺服器啟動時發現資料庫是 v0.1 的世界，會停下來並在日誌說明（不會讀到一半壞掉）。
+
+```bash
+scripts/serve.sh stop            # 先停掉用這個資料庫的伺服器
+scripts/pg.sh resetdb            # 清掉 cowfarm 重建成空的（要輸入 cowfarm 確認）
+scripts/serve.sh start 144       # 建立新的 v0.2 世界（30 位假玩家、電腦公營種牛站的 3 頭公牛）
+```
+
+玩家的 token 會失效：app 收到 `401 unauthorized` 時重新建立訪客帳號（協定第 2 節）。
+想留一份舊資料的話，清掉前先 `scripts/pg.sh dump cowfarm-v01.dump`。
+
 ### 原型規則（試玩後再定）
 
 - **出貨後的牛肉放在倉庫**，之後再用賣出賣掉（規格如此；經濟引擎原本是出貨即賣出）。倉庫裡的牛肉 24 遊戲小時內價值不變，之後 96 小時降到 6 成，之後維持 6 成；不佔牛奶倉庫的容量，不設上限。ceo 2026-09-30 核准為原型規則，冷凍庫容量與牛肉新鮮度的正式數字等使用者試玩後再定。
-- 假玩家出貨後立刻賣，所以結果和研究模擬完全相同。
+- 假玩家出貨後立刻賣（抓時機派例外，會存著等好價），和研究模擬的規則相同。
+- 田地是「稻米持續長、長滿就停、收成清空」（和奶桶同一種算法），不是企劃書寫的「耕地 → 種稻 → 收成」週期；研究筆記 9.2 說明了原因。
 
 ## 4. 測試
 
@@ -98,16 +128,20 @@ scripts/pg.sh up
 systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 .venv/bin/python -m pytest -q
 ```
 
-約 2 分鐘。會建立 `cowfarm_test_*` 資料庫（每次重建），不會碰到試玩用的 `cowfarm` 資料庫；沒有資料庫時，需要資料庫的測試會 skip。
+約 4 分鐘。會建立 `cowfarm_test_*` 資料庫（每次重建），不會碰到試玩用的 `cowfarm` 資料庫；沒有資料庫時，需要資料庫的測試會 skip。
 
 | 檔案 | 測什麼 | 要資料庫 |
 |---|---|---|
-| `test_persist.py` | cowecon 各類別存檔回復；同一個 seed「跑一半存檔、回復、再跑」＝「一路跑到底」（每個數字） | 否 |
-| `test_scenarios.py` | 經濟情境在服務層重跑並達到筆記的目標；和研究模擬逐數字相同（見下） | 否 |
-| `test_api.py` | 協定欄位、request_id 防重送、錢不夠、牛不存在、冷卻中、還沒長大、牛舍滿、格式錯誤、WebSocket 與 4401 | 是 |
-| `test_recovery.py` | 當機回復逐數字相同；「跑一半當機再跑」＝「一路跑到底」；真的伺服器程序 SIGKILL 後重開 | 是 |
+| `test_persist.py` | cowecon 各類別（含田地、稻米、借種市場）存檔回復；同一個 seed「跑一半存檔、回復、再跑」＝「一路跑到底」（每個數字） | 否 |
+| `test_scenarios.py` | v0.2 經濟情境在服務層重跑並達到筆記的目標；和研究模擬逐數字相同（見下） | 否 |
+| `test_api.py` | 協定欄位、request_id 防重送（含抽牛、出貨、借種）、錢不夠、牛不存在、還沒長大、牛舍滿、格式錯誤、WebSocket 與 4401；v0.2：抽牛機率與引擎一致（含抽樣）、評級機率與抽法、配種一次、借種付款與小牛歸屬、田地流程、舊資料庫拒絕啟動 | 是 |
+| `test_recovery.py` | 當機回復逐數字相同（含借種市場、田地）；「跑一半當機再跑」＝「一路跑到底」；真的伺服器程序 SIGKILL 後重開 | 是 |
 
-經濟情境（`test_scenarios.py`，約 50 秒）的規模：10 人（seed 1–5）與 100 人（seed 1–3）各 30 天；大戶（100 人＋100 頭，倒貨／分批／一直囤）、大利多後恐慌賣（100 人）各 23 天；人少的一天（100 人）20 天。1,000 人 30 天約 40 秒，預設不跑（`COWFARM_SCENARIO_1000=1` 才跑）；1,000 人的大戶與 10,000 人沒有在服務層重跑。服務層和研究模擬同一個 seed 逐數字相同（有測試比對），所以筆記裡 1,000／10,000 人的數字同樣適用。
+經濟代理還在調 `cowecon/params.py` 的數值：測試裡的期望值都由引擎算，不寫死數字。
+假玩家的調整值（`server/bots.py` 的 `VALUE_TABLE` 等）要和研究模擬同步：不同步時 `test_bot_tunables_match_research` 會出警告（不算失敗），
+逐數字比對的測試會先把研究模擬的調整值複製過來再比，比的是流程。
+
+經濟情境（`test_scenarios.py`，約 2.5 分鐘）的規模：10 人（seed 1–5）與 100 人（seed 1–3）各 30 天；大戶（100 人＋100 頭，倒貨／分批／一直囤）、大利多後恐慌賣（100 人）各 23 天；人少的一天（100 人）20 天。1,000 人 30 天預設不跑（`COWFARM_SCENARIO_1000=1` 才跑）；1,000 人的大戶與 10,000 人沒有在服務層重跑。服務層和研究模擬同一個 seed 逐數字相同（10 人 30 天、大戶倒貨、恐慌賣有測試比對），所以筆記裡 1,000／10,000 人的數字同樣適用。
 
 研究模擬（`docs/research/economy/`）自己的 30 個測試照樣可以跑：
 

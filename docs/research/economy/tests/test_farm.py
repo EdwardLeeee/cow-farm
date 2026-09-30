@@ -101,16 +101,15 @@ class TestBeef(unittest.TestCase):
         self.assertAlmostEqual(beef_weight(FP, cow, cow.adult_at + FP.peak_age_h[2] * HOUR), FP.peak_weight_kg[2])
 
     def test_no_calf_arbitrage(self):
-        """商店小牛一長大就出貨，在軟邊界上限價格（1.7 倍）下期望值也要低於小牛價格。"""
-        q = FP.shop_recessive_freq
-        p_aa = q * q
-        # 3 個稀有基因座各自獨立：稀有度 k 的機率
-        from math import comb
+        """商店 C 級小牛一長大就出貨，在軟邊界上限價格（1.7 倍）、評到 A 級，期望值也要低於 C 級價格。"""
+        from cowecon.farm import shop_grade_distribution
 
-        exp_mult = sum(comb(3, k) * p_aa ** k * (1 - p_aa) ** (3 - k) * FP.tier_mult[k] for k in range(4))
-        for t in range(3):
-            v = FP.adult_weight_kg[t] * FP.bull_weight_mult * DEFAULT.beef.base_price * DEFAULT.beef.soft_hi * exp_mult
-            self.assertLess(v, FP.calf_price, f"type={t}")
+        best = max(FP.beef_grade_mult)
+        v = 0.0
+        for (t, bull, mask), p in shop_grade_distribution(FP, "C").items():
+            w = FP.adult_weight_kg[t] * (FP.bull_weight_mult if bull else 1.0)
+            v += p * w * DEFAULT.beef.base_price * DEFAULT.beef.soft_hi * best * FP.tier_mult[bin(mask).count("1")]
+        self.assertLess(v, FP.shop_grade_price[FP.shop_grade_names.index("C")])
 
 
 class TestBreeding(unittest.TestCase):

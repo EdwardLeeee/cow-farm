@@ -1,6 +1,6 @@
 """重啟回復（需要 PostgreSQL）。
 
-1. 當機後從資料庫回復：市場（含亂數、pending、24 小時歷史）、新聞產生器、每座牧場，和當機前的記憶體逐數字相同。
+1. 當機後從資料庫回復：市場（含亂數、pending、24 小時歷史）、新聞產生器、每座牧場、借種市場，和當機前的記憶體逐數字相同。
 2. 「跑一半當機、回復、再跑」和「一路跑到底」：價格與每座牧場最後完全一樣（含 4 位假玩家）。
 3. 真的伺服器程序：SIGKILL 之後重開，進度與行情都還在（同一個 token 還能用）。
 """
@@ -30,27 +30,41 @@ def world_state(server) -> dict:
         "players": {pid: p.state_dict() for pid, p in sorted(g.players.items())},
         "trade_seq": g.trade_seq,
         "history": {cid: list(h) for cid, h in server.history.items()},
+        "stud": g.stud.to_dict(),
     }
 
 
 def play_hour(h: Harness, tok: str, hour: int) -> None:
-    """一個遊戲小時的固定劇本：先跑 tick（假玩家跟著動），再做幾個動作（這些成交會留在下一個 tick 的 pending 裡）。"""
+    """一個遊戲小時的固定劇本（v0.2）：先跑 tick（假玩家跟著動），再做幾個動作（這些成交會留在下一個 tick 的 pending 裡）。"""
     h.advance(3600)
     h.post("/v1/collect", tok, {"request_id": new_rid()})
     st = h.get("/v1/state", tok).json()
     if st["warehouse"]["milk_total"] > 0:
         frac = 1.0 if hour % 2 else 0.5
         h.post("/v1/sell", tok, {"commodity": "milk", "qty": st["warehouse"]["milk_total"] * frac, "request_id": new_rid()})
-    if hour == 1:
+    cows = st["cows"]
+    ox = next((c for c in cows if c["bull"] and c["type"] == "dual"), None)
+    if hour == 0 and ox is not None:
+        h.post("/v1/field/assign", tok, {"cow_id": ox["id"], "request_id": new_rid()})  # 開局小公牛是耕牛，下田
+    if hour == 2:
+        h.post("/v1/field/harvest", tok, {"request_id": new_rid()})
+        rice = h.get("/v1/state", tok).json()["warehouse"]["rice_total"]
+        if rice > 0:
+            h.post("/v1/sell", tok, {"commodity": "rice", "qty": rice, "request_id": new_rid()})
+    if hour == 3 and ox is not None:
+        h.post("/v1/field/recall", tok, {"cow_id": ox["id"], "request_id": new_rid()})
         h.post("/v1/upgrade", tok, {"kind": "pen", "request_id": new_rid()})
-        cows = h.get("/v1/state", tok).json()["cows"]
-        bull = next(c for c in cows if c["bull"])
         cow = next(c for c in cows if not c["bull"])
-        h.post("/v1/breed", tok, {"sire": bull["id"], "dam": cow["id"], "request_id": new_rid()})
-    if hour == 3:
-        bull = next(c for c in h.get("/v1/state", tok).json()["cows"] if c["bull"])
-        h.post("/v1/ship", tok, {"cow_id": bull["id"], "request_id": new_rid()})
-        h.post("/v1/sell", tok, {"commodity": "beef", "qty": 10, "request_id": new_rid()})
+        npc = next(x for x in h.get("/v1/stud", tok).json()["listings"] if x["owner_id"] is None)
+        h.post("/v1/stud/borrow", tok, {"listing_id": npc["id"], "dam": cow["id"], "request_id": new_rid()})
+        h.post("/v1/stud/list", tok, {"cow_id": ox["id"], "price": 800, "request_id": new_rid()})
+    if hour == 5:
+        adult = next((c for c in h.get("/v1/state", tok).json()["cows"] if c["can_ship"]), None)
+        if adult is not None:
+            h.post("/v1/ship", tok, {"cow_id": adult["id"], "request_id": new_rid()})
+            h.post("/v1/sell", tok, {"commodity": "beef", "qty": 10, "request_id": new_rid()})
+    if hour == 6 and h.get("/v1/state", tok).json()["coins"] >= 900:
+        h.post("/v1/shop/buy", tok, {"grade": "C", "request_id": new_rid()})
 
 
 HOURS = 8
@@ -74,6 +88,7 @@ def test_restore_is_exact():
             assert after["players"] == before["players"]
             assert after["trade_seq"] == before["trade_seq"]
             assert after["history"] == before["history"]
+            assert after["stud"] == before["stud"]
             assert h2.get("/v1/state", tok).status_code == 200  # 同一個 token 還能用
 
 
@@ -98,6 +113,7 @@ def test_resume_after_crash_equals_uninterrupted():
     assert a["ex"] == b["ex"]
     assert a["players"] == b["players"]
     assert a["trade_seq"] == b["trade_seq"]
+    assert a["stud"] == b["stud"]
     bots = [p for p in a["players"].values() if p["bot"]]
     assert len(bots) == 4 and all(p["farm"]["n_sales"] > 0 for p in bots)  # 假玩家真的有在賣
 
@@ -130,7 +146,8 @@ def stable(st: dict) -> dict:
     """不會隨時間變的部分（奶桶、新鮮度、估值會隨遊戲時間變）。"""
     return {
         "coins": st["coins"], "level_progress": st["level_progress"], "codex": st["codex"],
-        "cows": [{k: c[k] for k in ("id", "type", "bull", "tier", "born_at", "adult_at", "ready_at")} for c in st["cows"]],
+        "cows": [{k: c[k] for k in ("id", "type", "bull", "tier", "born_at", "adult_at", "ready_at", "bred", "field", "listed")} for c in st["cows"]],
+        "rice_lots": [(l["qty"], l["harvested_at"]) for l in st["warehouse"]["rice_lots"]],
         "milk_lots": [(l["qty"], l["tier"], l["collected_at"]) for l in st["warehouse"]["milk_lots"]],
         "beef_lots": [(l["qty"], l["tier"], l["shipped_at"]) for l in st["warehouse"]["beef_lots"]],
         "pen": {k: st["pen"][k] for k in ("slots", "used", "next_cost")},
@@ -150,8 +167,11 @@ def test_real_server_survives_sigkill(tmp_path):
         assert c.post("/v1/collect", headers=hd, json={"request_id": new_rid()}).status_code == 200
         assert c.post("/v1/sell", headers=hd, json={"commodity": "milk", "qty": 12, "request_id": new_rid()}).status_code == 200
         asyncio.run(_ws_once(s["token"]))  # 連一次 WebSocket：網址帶 token，日誌裡不能出現
-        time.sleep(3)  # 倍率 720：約 36 遊戲分鐘，假玩家做完教學的一部分
+        time.sleep(3)  # 倍率 720：約 36 遊戲分鐘，假玩家做完教學的一部分；開局小公牛已經長大
+        ox = next(x for x in c.get("/v1/state", headers=hd).json()["cows"] if x["bull"])
+        assert c.post("/v1/field/assign", headers=hd, json={"cow_id": ox["id"], "request_id": new_rid()}).status_code == 200
         before = c.get("/v1/state", headers=hd).json()
+        assert any(x["working"] for x in before["cows"])
         hist_before = c.get("/v1/market/history", headers=hd, params={"commodity": "milk", "range": "1h"}).json()["points"]
         health_before = c.get("/healthz").json()
         assert health_before["ticks"] > 20 and health_before["bot_actions"] > 0

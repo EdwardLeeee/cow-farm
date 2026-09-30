@@ -2,8 +2,9 @@
 
 一個程序（uvicorn 1 個 worker）負責全部，狀態在記憶體，資料庫是持久紀錄（T1）。
 
-- 每個會改狀態的動作：同一位玩家排隊（asyncio.Lock）→ 查 request_id → 呼叫服務層（同步）→
-  同一個交易寫牧場狀態（樂觀鎖）、成交紀錄、request_id 與回應 → 成功才回覆。寫入失敗就把記憶體改回去。
+- 每個會改狀態的動作：全部排成一列（一個 asyncio.Lock；v0.2 的借種會同時改兩位玩家）→ 查 request_id →
+  呼叫服務層（同步）→ 同一個交易寫所有動到的牧場（樂觀鎖）、借種市場、成交紀錄、request_id 與回應 →
+  成功才回覆。寫入失敗就把記憶體改回去。
 - 每遊戲分鐘一個 tick：先讓這一分鐘該動的假玩家動作（走同一套服務層），算同時在線人數，
   Exchange.step，再把市場狀態、價格、新聞寫進資料庫。
 - 重啟：從資料庫載入最後一個 tick 的市場狀態，加上之後的成交（依序號）重建 pending，每個數字都和
@@ -24,7 +25,7 @@ import time
 from collections import deque
 from typing import Any, Callable, Deque, Dict, List, Optional, Set, Tuple
 
-from cowecon import DEFAULT, ENGINE_VERSION, Exchange
+from cowecon import DEFAULT, ENGINE_VERSION, Exchange, StudMarket
 from cowecon.params import DAY, HOUR, MINUTE
 
 from . import bots as B
@@ -56,6 +57,8 @@ class ServerBots:
     S4 安排的回訪存在牧場狀態的 bot 欄位，已經做過的動作用 last_t 跳過。
     """
 
+    npc_rng = None  # ctx：電腦假玩家補借種上架的亂數，None = 服務層預設（由上架編號導出）
+
     def __init__(self, server: "GameServer"):
         self.server = server
         self.game = server.game
@@ -83,7 +86,7 @@ class ServerBots:
     # ---- 建立與載入 ----
     def attach(self, p: Player) -> None:
         meta = p.bot
-        b = B.Bot(self.game, p.pid, meta["strategy"], meta["joined_at"], rng=None)
+        b = B.Bot(self.game, p.pid, meta["strategy"], meta["joined_at"], meta.get("taste", 0.0), rng=None)
         b.returns = set(meta.get("returns", []))
         self.bots[p.pid] = b
         last = meta.get("last_t")
@@ -143,6 +146,8 @@ class ServerBots:
                 continue
 
             def fn(_now, b=b, pid=pid, t_ev=t_ev, kind=kind):
+                # 這次動作的亂數（挑商店等級、抽牛、評級、配種）：由 (種子, 玩家, 時間, 動作) 導出，重啟後一樣
+                b.rng = random.Random(f"{self.game.seed}:bot:{pid}:{t_ev!r}:{kind}")
                 try:
                     B.act(b, self, t_ev, kind)
                 except Exception:  # noqa: BLE001
@@ -172,8 +177,8 @@ class GameServer:
         self.clock = clock
         self.game: Optional[Game] = None
         self.tokens: Dict[bytes, int] = {}
-        self.locks: Dict[int, asyncio.Lock] = {}
-        self.history: Dict[str, Deque[Tuple[float, float]]] = {"milk": deque(), "beef": deque()}
+        self.write_lock = asyncio.Lock()  # 所有會改狀態的動作排成一列（借種會同時改兩位玩家）
+        self.history: Dict[str, Deque[Tuple[float, float]]] = {}
         self.news_seen: Set[int] = set()
         self.news_log: Dict[int, Any] = {}  # eid → MarketEvent（已公開過的，含已結束）
         self.bots: Optional[ServerBots] = None
@@ -193,7 +198,7 @@ class GameServer:
         else:
             await self._restore(data)
         await self._ensure_bots()
-        log.info("cowecon %s 參數指紋 %s（研究筆記的是 c07566a5d81d7eec）", ENGINE_VERSION, self.fingerprint)
+        log.info("cowecon %s 參數指紋 %s（和 docs/research/economy/out/goals.json 的 params_fingerprint 相同，才是模擬驗證過的那一份參數）", ENGINE_VERSION, self.fingerprint)
         log.info("遊戲時間 %.0f、倍率 %s、玩家 %d（假玩家 %d）", self.clock.now(), self.clock.scale, len(self.game.players), len(self.bots.bots))
         if self.cfg.run_loops:
             self.tasks.append(asyncio.create_task(self._tick_loop(), name="tick"))
@@ -236,16 +241,17 @@ class GameServer:
         t0 = self.cfg.game_start if self.cfg.game_start is not None else time.time()
         t0 = math.floor(t0 / TICK_S) * TICK_S
         self.game = Game(DEFAULT, seed, t0)
+        self.game.stud.npc_refill(t0, self.game.npc_rng())  # 電腦假玩家先上架幾頭公牛，借種市場不會是空的
         if self.clock is None:
             self.clock = GameClock(t0, self.cfg.time_scale)
         world = {"seed": seed, "game_start": t0, "created_real": time.time(), "fingerprint": self.fingerprint, "engine": ENGINE_VERSION}
         prices = {cid: m.price for cid, m in self.game.ex.markets.items()}
         await self.store.init_world(
-            {"world": world, "exchange": self._ex_meta(), "clock": self._clock_meta()},
+            {"world": world, "exchange": self._ex_meta(), "clock": self._clock_meta(), "stud": self.game.stud.to_dict()},
             self._market_snaps(), t0, prices,
         )
         for cid, p in prices.items():
-            self.history[cid].append((t0, p))
+            self.history[cid] = deque([(t0, p)])
         self.bots = ServerBots(self)
         self.bots.day0 = local_midnight_utc(t0)
         log.info("建立新世界：開服遊戲時間 %.0f", t0)
@@ -253,15 +259,22 @@ class GameServer:
     async def _restore(self, data: dict) -> None:
         meta = data["meta"]
         world = meta["world"]
+        engine = str(world.get("engine", "0.1.0"))
+        if engine.split(".")[:2] != ENGINE_VERSION.split(".")[:2] or set(data["markets"]) != set(DEFAULT.commodity_ids):
+            raise RuntimeError(
+                f"資料庫裡的世界是引擎 {engine} 建的（商品 {sorted(data['markets'])}），和這版伺服器（引擎 {ENGINE_VERSION}）不相容。"
+                "原型階段不做搬移：請清掉資料庫重建新世界（backend/README.md「從舊資料庫升級」），"
+                "或用 COWFARM_PG_DSN 指到另一個空的資料庫。"
+            )
         if world.get("fingerprint") != self.fingerprint:
             log.warning("參數指紋不同：資料庫 %s，程式 %s", world.get("fingerprint"), self.fingerprint)
         ex_d = dict(meta["exchange"])
         ex_d["markets"] = data["markets"]
         ex_t = ex_d["t"]
-        ma_window = DEFAULT.milk.ma_window_s
-        hist = {cid: await self.store.price_history(cid, ex_t - ma_window) for cid in data["markets"]}
+        hist = {cid: await self.store.price_history(cid, ex_t - DEFAULT.commodity(cid).ma_window_s) for cid in data["markets"]}
         ex = Exchange.from_dict(DEFAULT, ex_d, hist)
-        self.game = Game(DEFAULT, world["seed"], exchange=ex)
+        stud = StudMarket.from_dict(DEFAULT, meta["stud"]) if "stud" in meta else StudMarket(DEFAULT)
+        self.game = Game(DEFAULT, world["seed"], exchange=ex, stud=stud)
         for r in data["players"]:
             p = Player.from_state(DEFAULT, r["id"], r["ranch_name"], r["is_bot"], r["created_game_t"], r["state"],
                                   token_hash=bytes(r["token_sha256"]) if r["token_sha256"] is not None else None,
@@ -277,7 +290,7 @@ class GameServer:
                 ex.markets[tr["commodity"]].apply_contribution(tr["contrib"])
                 n_pending += 1
         for cid in data["markets"]:
-            self.history[cid].extend(await self.store.price_history(cid, ex_t - HISTORY_KEEP_S))
+            self.history[cid] = deque(await self.store.price_history(cid, ex_t - HISTORY_KEEP_S))
         from cowecon.market import MarketEvent
 
         for r in data["news"]:
@@ -307,9 +320,9 @@ class GameServer:
             return
         game = self.game
         now = self.clock.now()
-        mix = ["S1", "S2", "S3", "S4"]
-        # 策略比例各 25%：依序輪流，再用固定種子打亂
-        order = [mix[i % 4] for i in range(len(have) + n_new)]
+        mix = list(B.PLAYER_STRATEGIES)
+        # 六種玩法各六分之一：依序輪流，再用固定種子打亂
+        order = [mix[i % len(mix)] for i in range(len(have) + n_new)]
         random.Random(f"{game.seed}:assign").shuffle(order)
         for i in range(len(have), len(have) + n_new):
             pid = game.next_pid
@@ -318,7 +331,7 @@ class GameServer:
             name = random_ranch_name(r)
             p = game.create_player(joined, name, is_bot=True, pid=pid)
             p.bot = {"strategy": order[i], "joined_at": joined, "per_day": r.randint(4, 8), "shift_min": r.uniform(-60.0, 60.0),
-                     "returns": [], "extra": [], "last_t": None}
+                     "taste": r.uniform(0.0, 0.3), "returns": [], "extra": [], "last_t": None}
             await self.store.create_player(pid, None, name, True, joined, p.state_dict())
             p.version = 1
             self.bots.attach(p)
@@ -357,9 +370,12 @@ class GameServer:
     async def run_action(self, pid: int, fn: Callable[[float], Any], request_id: Optional[str] = None,
                          endpoint: Optional[str] = None, respond: Optional[Callable[[Any, float], dict]] = None,
                          now: Optional[float] = None) -> Any:
-        """執行一個會改狀態的動作並存檔。fn(now) 是同步的服務層呼叫。"""
-        lock = self.locks.setdefault(pid, asyncio.Lock())
-        async with lock:
+        """執行一個會改狀態的動作並存檔。fn(now) 是同步的服務層呼叫。
+
+        所有動作排成一列（write_lock）：借種會同時改借的人和公牛主人兩座牧場，排成一列才不會兩個動作
+        各自拿著舊的牧場去存檔。原型的量（30 位假玩家＋幾位真人）綽綽有餘；上萬人時要改成只鎖相關玩家（M3）。
+        """
+        async with self.write_lock:
             if request_id is not None:
                 prev = await self.store.processed(pid, request_id)
                 if prev is not None:
@@ -369,37 +385,81 @@ class GameServer:
                     return resp
             game = self.game
             p = game.player(pid)
-            backup = json.loads(json.dumps(p.state_dict()))
+            game.begin()
+            backup = p.copy()
+            stud_backup = game.stud.to_dict()
+            seq0 = game.trade_seq
             t = self.clock.now() if now is None else now
-            game.take_captured()  # 保險：清掉不屬於這個動作的紀錄
             try:
                 result = fn(t)
+            except GameError:
+                game.take_captured()  # 服務層先檢查後修改：檢查不過時什麼都沒改
+                raise
             except Exception:
-                game.take_captured()
+                self._undo(pid, backup, stud_backup, game.take_captured(), seq0)
                 raise
             trades = game.take_captured()
-            response = respond(result, t) if respond is not None else result
+            try:
+                response = respond(result, t) if respond is not None else result
+            except Exception:
+                self._undo(pid, backup, stud_backup, trades, seq0)  # 回應組不出來：當作沒做，記憶體改回去
+                raise
+            others = []
+            for opid in sorted(game.touched - {pid}):
+                q = game.players[opid]
+                others.append((opid, q.state_dict(), q.version, max(t, q.game_t)))
             try:
                 await self.store.commit_action(pid, p.state_dict(), p.version, max(t, p.game_t), trades,
-                                               (request_id, endpoint, response) if request_id is not None else None)
+                                               (request_id, endpoint, response) if request_id is not None else None,
+                                               others=others, stud=game.stud.to_dict() if game.stud_dirty else None)
             except Exception:
-                # 寫入失敗：記憶體改回動作之前（牧場）；市場扣回這些成交的貢獻
-                game.players[pid] = Player.from_state(game.params, pid, p.name, p.is_bot, p.created_at, backup,
-                                                      token_hash=p.token_hash, version=p.version, game_t=p.game_t)
-                # （假玩家的 Bot 物件用 property 讀牧場，會自動指到回復後的牧場）
-                for tr in trades:
-                    c = tr["contrib"]
-                    if c:
-                        m = game.ex.markets[tr["commodity"]]
-                        m.pending_counted -= c[0]
-                        m.pending_actual -= c[1]
-                        m.pending_ord_w -= c[2]
-                        m.pending_ord_wq -= c[3]
+                self._undo(pid, backup, stud_backup, trades, seq0)
                 self.stats["errors"] += 1
                 raise
             p.version += 1
             p.game_t = max(t, p.game_t)
-            return response
+            for opid, _st, _v, gt in others:
+                q = game.players[opid]
+                q.version += 1
+                q.game_t = gt
+            events, game.stud_events = game.stud_events, []
+        for ev in events:
+            await self._notify_stud(ev)
+        return response
+
+    def _undo(self, pid: int, backup: Player, stud_backup: dict, trades: List[dict], seq0: int) -> None:
+        """存檔失敗（或程式出錯）：記憶體改回動作之前。牧場、別人的牧場、借種市場用備份；市場扣回成交的貢獻。"""
+        game = self.game
+        game.players[pid] = backup
+        for opid, b in game.backups.items():
+            game.players[opid] = b
+        game.stud = StudMarket.from_dict(game.params, stud_backup)
+        for tr in trades:
+            c = tr["contrib"]
+            if c:
+                m = game.ex.markets[tr["commodity"]]
+                m.pending_counted -= c[0]
+                m.pending_actual -= c[1]
+                m.pending_ord_w -= c[2]
+                m.pending_ord_wq -= c[3]
+        game.trade_seq = seq0
+        game.begin()
+        # （假玩家的 Bot 物件用 property 讀牧場與借種市場，會自動指到還原後的物件）
+
+    async def _notify_stud(self, ev: dict) -> None:
+        """有人借了你的公牛：推播給主人（在線的話）。"""
+        owner = ev.get("owner")
+        if owner is None:
+            return
+        msg = {"type": "stud", "event": "borrowed", **V.time_fields(self.clock, self.clock.now()),
+               "listing_id": ev["listing_id"], "cow_id": ev["cow_id"], "price": int(round(ev["price"]))}
+        text = json.dumps(msg, ensure_ascii=False)
+        for ws, wpid in list(self.ws.items()):
+            if wpid == owner:
+                try:
+                    await ws.send_text(text)
+                except Exception:  # noqa: BLE001
+                    self.ws.pop(ws, None)
 
     # ------------------------------------------------------------------ tick
     def _real_online(self) -> int:
@@ -428,7 +488,7 @@ class GameServer:
             game.tick(t_end, online)
             prices = {cid: m.price for cid, m in game.ex.markets.items()}
             for cid, p in prices.items():
-                h = self.history[cid]
+                h = self.history.setdefault(cid, deque())
                 h.append((t_end, p))
                 while h and h[0][0] < t_end - HISTORY_KEEP_S:
                     h.popleft()
@@ -470,7 +530,7 @@ class GameServer:
     def market_message(self) -> dict:
         now = self.clock.now()
         msg = {"type": "market", **V.time_fields(self.clock, now), "tick_t": self.game.ex.t}
-        for cid in ("milk", "beef"):
+        for cid in self.game.cids:
             msg[cid] = V.quote_view(self.game, cid, self.history[cid], now)
         return msg
 
@@ -501,7 +561,7 @@ class GameServer:
     def market_view(self) -> dict:
         now = self.clock.now()
         out = {**V.time_fields(self.clock, now), "tick_t": self.game.ex.t, "next_tick_at": self.game.ex.t + TICK_S}
-        for cid in ("milk", "beef"):
+        for cid in self.game.cids:
             m = self.game.ex.markets[cid]
             day = [x for x in self.history[cid] if x[0] >= now - 24 * HOUR]
             out[cid] = {

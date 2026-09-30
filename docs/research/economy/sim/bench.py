@@ -67,7 +67,8 @@ def main() -> None:
     imp = json.dumps({k: v.to_dict() for k, v in farm.impact.items()})
     market_state = json.dumps({cid: m.snapshot() for cid, m in ex.markets.items()})
     out = {
-        "exchange_step_us": {"median": tick_med * 1e6, "max": tick_max * 1e6},
+        "exchange_step_us": {"median": tick_med * 1e6, "max": tick_max * 1e6},  # 三個市場（牛奶、牛肉、稻米）
+        "farm_json_bytes_20_cows": len(json.dumps(farm.to_dict())),
         "sell_all_milk_20_cows_us": {"median": sess_med * 1e6, "max": sess_max * 1e6},
         "farm_advance_20_cows_us": {"median": adv_med * 1e6, "max": adv_max * 1e6},
         "impact_state_json_bytes": len(imp),

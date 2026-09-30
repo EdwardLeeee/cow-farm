@@ -2,12 +2,15 @@
 
 單位規則
 - 時間一律存「秒」，因為伺服器用 Unix 時間；寫法用 HOUR、MINUTE，讀起來就是幾小時、幾分鐘。
-- 價格：牛奶是「幣／瓶」，牛肉是「幣／公斤」。
+- 價格：牛奶是「幣／瓶」，牛肉、稻米是「幣／公斤」。
 - 流量（賣出量、需求量）：單位／小時。
 - 「對數」：價格乘上 1.1 等於對數加 0.095；小幅度時對數約等於百分比。
 
 改參數的方法：用 `with_overrides()` 產生新的一份，不要直接改 DEFAULT（DEFAULT 是凍結的）。
 企劃書的初始數值就是這裡的預設值；M1 伺服器 import 同一份。
+
+v0.2（2026-09-30，企劃書 4.0／決定 D17）：乳牛／耕牛／肉牛、只有成年母乳牛產奶、耕牛耕田產稻米
+（第三種行情商品）、商店只挑 A／B／C 等級、出貨評 A／B／C 級、每頭牛一輩子配一次、借種市場。
 """
 
 from __future__ import annotations
@@ -23,7 +26,7 @@ HOUR = 3600.0
 DAY = 86400.0
 TZ_OFFSET_S = 8 * HOUR  # 台灣時間 UTC+8，沒有日光節約時間
 
-ENGINE_VERSION = "0.1.0"
+ENGINE_VERSION = "0.2.0"
 
 
 # ---------------------------------------------------------------------------
@@ -87,7 +90,7 @@ MILK = CommodityParams(
     id="milk",
     name="牛奶",
     unit="瓶",
-    base_price=10.0,
+    base_price=12.0,
     intraday_amp=0.08,
     intraday_peak_hour=20.0,
     weekly_amp=0.03,
@@ -154,14 +157,57 @@ BEEF = CommodityParams(
 )
 
 
+RICE = CommodityParams(
+    id="rice",
+    name="稻米",
+    unit="公斤",
+    base_price=5.0,
+    intraday_amp=0.06,
+    intraday_peak_hour=11.0,
+    weekly_amp=0.04,
+    weekly_peak_day=6.0,
+    noise_half_life_s=6 * HOUR,
+    noise_sd=0.06,
+    pressure_half_life_s=1.5 * HOUR,
+    pressure_absorb_s=48 * HOUR,
+    pressure_down_per_h=0.12,
+    pressure_up_per_h=0.012,
+    excess_clip_hi=1.5,
+    flow_tau_s=15 * MINUTE,
+    online_tau_s=15 * MINUTE,
+    ref_tau_s=12 * HOUR,
+    ref_warmup_s=1 * HOUR,
+    npc_online_equiv=2.0,
+    online_surge_cap=3.0,
+    ref_flow_prior=100.0,
+    player_cap_frac=0.25,
+    player_cap_window_s=15 * MINUTE,
+    slip_kappa=0.3,
+    slip_qmax=1.0,
+    slip_window_s=30 * MINUTE,
+    slip_typical_mult=20.0,
+    slip_decay_s=1 * HOUR,
+    order_size_prior=150.0,
+    order_size_tau_s=12 * HOUR,
+    order_size_update_cap=5.0,
+)
+
+COMMODITY_IDS: Tuple[str, ...] = ("milk", "beef", "rice")  # 行情商品清單：Exchange、新聞、Farm.impact 都照這份
+
+
 # ---------------------------------------------------------------------------
 # 新聞事件
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
 class EventParams:
-    rate_per_day: float = 3.0  # Poisson 平均每天幾次
-    # 作用對象的機率：(只有牛奶, 只有牛肉, 兩者)
-    target_probs: Tuple[float, float, float] = (0.4, 0.3, 0.3)
+    rate_per_day: float = 4.0  # Poisson 平均每天幾次（v0.2 三種商品，每種每天約 1.8–2 則，和 v0.1 相近）
+    # 作用對象與機率：(商品組合, 機率)；「all」= 三種一起
+    targets: Tuple[Tuple[Tuple[str, ...], float], ...] = (
+        (("milk",), 0.30),
+        (("beef",), 0.25),
+        (("rice",), 0.25),
+        (("milk", "beef", "rice"), 0.20),
+    )
     mag_lo: float = 0.05  # 一般事件幅度下限（±5%）
     mag_hi: float = 0.25  # 一般事件幅度上限（±25%）
     rare_prob: float = 0.05  # 罕見大事件的機率
@@ -184,8 +230,10 @@ HEADLINES: Dict[str, Tuple[str, ...]] = {
     "milk-": ("鄰近牧場產量大增", "超市推出鮮奶特賣", "連日寒流，冰品銷量下滑", "物流塞車，乳品廠暫停收購"),
     "beef+": ("烤肉季開跑", "餐廳推出牛排節", "年節備貨潮提前", "牛肉麵大賽熱鬧登場"),
     "beef-": ("健康飲食風潮，肉品需求降溫", "進口牛肉到港量創新高", "冷凍倉庫滿載，肉商暫緩收購", "連假結束，餐廳訂單減少"),
-    "both+": ("觀光牧場人潮湧入", "農產品博覽會開幕", "連假出遊潮，餐飲需求旺"),
-    "both-": ("颱風過境，市場休市一日", "物價調查公布，消費者縮減開支", "港口罷工，出口受阻"),
+    "rice+": ("颱風過境，稻米收購價上漲", "便當業者搶購新米", "米食文化節開幕", "外銷訂單增加，米價走揚"),
+    "rice-": ("中部豐收，新米大量上市", "公糧收購暫停", "連日好天氣，各地提早收割", "米倉滿載，糧商暫緩收購"),
+    "all+": ("觀光牧場人潮湧入", "農產品博覽會開幕", "連假出遊潮，餐飲需求旺"),
+    "all-": ("颱風過境，市場休市一日", "物價調查公布，消費者縮減開支", "港口罷工，出口受阻"),
 }
 
 
@@ -194,37 +242,63 @@ HEADLINES: Dict[str, Tuple[str, ...]] = {
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
 class FarmParams:
-    # 用途基因 M/F：MM 乳用、MF 兼用、FF 肉用（索引 0/1/2）
-    type_names: Tuple[str, str, str] = ("乳用", "兼用", "肉用")
-    milk_per_h: Tuple[float, float, float] = (11.0, 9.0, 6.0)  # 壯年母牛每小時產奶（瓶）
+    # 用途基因 M/F：MM 乳牛、MF 耕牛、FF 肉牛（索引 0/1/2）
+    type_names: Tuple[str, str, str] = ("乳牛", "耕牛", "肉牛")
+    milk_per_h: Tuple[float, float, float] = (14.0, 0.0, 0.0)  # 壯年母牛每小時產奶（瓶）；v0.2 只有母乳牛產奶
     adult_weight_kg: Tuple[float, float, float] = (30.0, 30.0, 30.0)  # 剛成年的體重（低，避免買小牛立刻出貨套利）
-    peak_weight_kg: Tuple[float, float, float] = (250.0, 350.0, 440.0)  # 最佳體重
+    peak_weight_kg: Tuple[float, float, float] = (250.0, 450.0, 800.0)  # 最佳體重：肉牛最多、耕牛中等、乳牛最少
     peak_age_h: Tuple[float, float, float] = (72.0, 72.0, 72.0)  # 成年後幾小時達到最佳體重
-    bull_weight_mult: float = 1.2  # 公牛比母牛重多少倍（公牛不產奶）
+    bull_weight_mult: float = 1.1  # 公牛比母牛重多少倍
 
-    # 老牛：產奶先維持壯年，之後線性衰退
-    milk_prime_h: float = 48.0  # 成年後幾小時內全速產奶
+    # 老牛：產奶（和耕田）先維持壯年，之後線性衰退
+    milk_prime_h: float = 48.0  # 成年後幾小時內全速
     milk_decline_end_h: float = 168.0  # 衰退到最低的時間（成年後）
     milk_old_frac: float = 0.4  # 最低剩幾成
 
-    # 肉質：過了最佳體重一段時間後變差，牛肉單價打折
+    # 肉質（年齡因素）：過了最佳體重一段時間後變差。v0.2 起不再直接乘在價格上，而是影響出貨評級的機率；
+    # 倉庫裡的牛肉批次仍用同一條曲線折價（beef_storage_factor）。
     beef_hold_h: float = 24.0  # 到達最佳體重後，肉質還維持滿分的時間
     beef_decline_h: float = 96.0  # 之後花多久降到最低
     beef_quality_min: float = 0.6
 
+    # 出貨評級 A／B／C：分數 s = (1 − w) × 狀態 + w × 稀有度/3；狀態 = 體重/最佳體重 × 肉質
+    # P(A) = a0 + a1 × s；P(C) = c0 × (1 − s)；P(B) = 其餘
+    beef_grade_names: Tuple[str, str, str] = ("A", "B", "C")
+    beef_grade_mult: Tuple[float, float, float] = (1.25, 1.0, 0.75)  # 牛肉賣價倍率
+    beef_grade_tier_weight: float = 0.3
+    beef_grade_a0: float = 0.10
+    beef_grade_a1: float = 0.50
+    beef_grade_c0: float = 0.40
+
     # 稀有度：隱性稀有基因 A/B/C 有幾個是純合
     tier_names: Tuple[str, str, str, str] = ("一般", "優良", "稀有", "傳說")
     tier_growth_h: Tuple[float, float, float, float] = (1.0, 2.0, 4.0, 8.0)  # 小牛長大要幾小時
-    tier_mult: Tuple[float, float, float, float] = (1.0, 1.3, 1.7, 2.5)  # 牛奶、牛肉賣價倍率
+    tier_mult: Tuple[float, float, float, float] = (1.0, 1.3, 1.7, 2.5)  # 牛奶、牛肉賣價倍率；耕田產量倍率
 
-    # 商店小牛
-    calf_price: float = 1000.0  # 一般小牛價格（幣），可選用途與公母
-    shop_recessive_freq: float = 0.15  # 商店小牛每個稀有基因是隱性的機率
+    # 耕田：成年耕牛（公母都可以）派去田裡，稻米持續長在田裡，最多存 field_cap_h 小時的量，收成時進倉庫
+    rice_per_h: Tuple[float, float, float] = (0.0, 11.0, 0.0)  # 壯年耕牛每小時產稻米（公斤），× 稀有度倍率 × 年齡曲線
+    field_start: int = 1  # 開局田地數
+    field_max: int = 12
+    field_cost_base: float = 1800.0  # 第 n 塊新田（開局那塊不算）= base × growth^(n−1)
+    field_cost_growth: float = 1.6
+    field_cap_h: float = 8.0  # 一塊田最多累積這頭耕牛壯年幾小時的產量（等於「成熟後就停」）
+    # 倉庫裡的稻米：rice_full_h 小時內 100%，之後線性降到 rice_floor_h 小時剩 rice_floor，之後維持
+    rice_full_h: float = 72.0
+    rice_floor_h: float = 240.0
+    rice_floor: float = 0.7
 
-    # 配種
-    breed_fee_base: float = 300.0  # 配種費 = base × (1 + 父母最高稀有度)
-    cow_breed_cooldown_h: float = 24.0  # 同一頭母牛多久能再配一次
-    bull_breed_cooldown_h: float = 2.0
+    # 商店：只挑 A／B／C 等級；用途、公母、稀有特徵隨機。等級越高，稀有基因越常見
+    shop_grade_names: Tuple[str, str, str] = ("A", "B", "C")
+    shop_grade_price: Tuple[float, float, float] = (3200.0, 1700.0, 900.0)
+    shop_grade_recessive_freq: Tuple[float, float, float] = (0.5, 0.3, 0.1)  # 每個稀有基因座、每個等位基因是隱性的機率
+    shop_type_probs: Tuple[float, float, float] = (0.45, 0.275, 0.275)  # 乳牛／耕牛／肉牛（乳牛多一些：牛奶是核心）
+    shop_bull_prob: float = 0.5
+    calf_price: float = 900.0  # 舊版（v0.1）「選用途與公母」的小牛價格；v0.2 = C 級價格，只為相容保留
+
+    # 配種：每頭牛一輩子一次（公母一樣）；自己的公母免費。借種價位（幣）固定幾檔
+    stud_prices: Tuple[float, ...] = (300.0, 800.0, 2000.0, 5000.0)
+    npc_stud_listings: int = 3  # 電腦假玩家最少維持幾筆上架（每種用途一頭一般公牛）
+    npc_stud_price: float = 300.0
 
     # 牛舍（格數）
     pen_start_slots: int = 2
@@ -233,7 +307,7 @@ class FarmParams:
     pen_cost_growth: float = 1.4
 
     # 奶桶（離線也會累積，滿了就停）
-    bucket_start_cap: float = 24.0  # 起始容量（瓶）≈ 起始母牛 2 小時產量
+    bucket_start_cap: float = 28.0  # 起始容量（瓶）≈ 起始母牛 2 小時產量
     bucket_cap_growth: float = 1.5  # 每升一級容量乘多少
     bucket_cost_base: float = 200.0  # 升到第 L+1 級 = base × growth^L
     bucket_cost_growth: float = 1.55
@@ -263,25 +337,29 @@ class OnboardingParams:
     start_coins: float = 100.0
     start_bucket: float = 20.0  # 奶桶裡預先放好的牛奶（瓶）：打開就能收、能賣
     starter_cow_type: int = 0  # 起始成年母牛：乳用
-    starter_calf_type: int = 1  # 起始小牛：兼用公牛
+    starter_calf_type: int = 1  # 起始小牛：耕牛公牛（配種後可以下田）
     starter_calf_remaining_s: float = 20 * MINUTE  # 起始小牛還要多久長大 = 配種解鎖時間
     newbie_boost_mult: float = 5.0  # 開局一小時產奶 ×5（新手期）
     newbie_boost_s: float = 1 * HOUR
     first_expand_unlock_s: float = 15 * MINUTE  # 教學在第 15 分鐘開放第一次擴建
     first_expand_cost: float = 280.0  # 第一次擴建的價格；市價跌到 0.55 倍也買得起
-    first_breed_free: bool = True  # 第一次配種免費（教學）
+    first_breed_free: bool = True  # v0.1 遺留；v0.2 自己的公母配種本來就免費
 
 
 @dataclass(frozen=True)
 class EconomyParams:
     milk: CommodityParams = MILK
     beef: CommodityParams = BEEF
+    rice: CommodityParams = RICE
+    commodity_ids: Tuple[str, ...] = COMMODITY_IDS
     events: EventParams = field(default_factory=EventParams)
     farm: FarmParams = field(default_factory=FarmParams)
     onboarding: OnboardingParams = field(default_factory=OnboardingParams)
 
     def commodity(self, cid: str) -> CommodityParams:
-        return self.milk if cid == "milk" else self.beef
+        if cid not in self.commodity_ids:
+            raise KeyError(f"未知商品：{cid}")
+        return getattr(self, cid)
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -298,12 +376,12 @@ DEFAULT = EconomyParams()
 def with_overrides(p: EconomyParams, overrides: Dict[str, Any]) -> EconomyParams:
     """用 {"milk.pressure_down_per_h": 0.1, "farm.calf_price": 900} 這種寫法產生新的一份參數。
 
-    "market.xxx" 會同時改 milk 與 beef。
+    "market.xxx" 會同時改所有行情商品（牛奶、牛肉、稻米）。
     """
     groups: Dict[str, Dict[str, Any]] = {}
     for key, value in overrides.items():
         grp, _, name = key.partition(".")
-        targets = ["milk", "beef"] if grp == "market" else [grp]
+        targets = list(p.commodity_ids) if grp == "market" else [grp]
         for g in targets:
             sub = getattr(p, g)
             if not is_dataclass(sub) or name not in {f.name for f in fields(sub)}:

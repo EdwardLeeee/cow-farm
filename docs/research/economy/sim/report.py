@@ -1,6 +1,8 @@
-"""讀 out/runs/ 的結果，算出四個目標的實際數字，寫 out/goals.json 並印出摘要。
+"""讀 out/runs/ 的結果，算出 v0.2 各目標的實際數字，寫 out/goals.json 並印出摘要。
 
     cd docs/research/economy && python3 -m sim.report
+
+v0.1 的結果保留在 out/v0.1/（這支程式不再讀它）。
 """
 
 from __future__ import annotations
@@ -16,14 +18,17 @@ from typing import Dict, List, Optional
 HERE = Path(__file__).resolve().parent.parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
-import sim  # noqa: E402,F401  （把 backend/ 加進 sys.path；cowecon 在 backend/cowecon/）
 
+import sim  # noqa: E402,F401
 from cowecon.params import DEFAULT, HOUR  # noqa: E402
 from sim import scenarios as S  # noqa: E402
 
 RUNS = HERE / "out" / "runs"
 OUT = HERE / "out"
-STRATS = ("S1", "S2", "S3", "S4")
+STRATS = ("D", "B", "F", "C", "T", "L")
+NAMES = {"D": "乳牛派", "B": "肉牛派", "F": "耕田派", "C": "配種收集派", "T": "抓時機派", "L": "出借公牛派"}
+CIDS = tuple(DEFAULT.commodity_ids)
+WHALE_CAP = 0.01  # 提出的上限：一位玩家一次倒貨，2 小時內價格最多低 1%（理論上限 0.75%）
 
 
 def load(name: str) -> Optional[dict]:
@@ -40,17 +45,21 @@ def load_window(name: str) -> Dict[str, List[float]]:
     return cols
 
 
+def base_runs(n: int) -> List[dict]:
+    return [d for d in (load(f"base_{n}_s{s}") for s in S.POP_SEEDS.get(n, [])) if d]
+
+
 # ---------------------------------------------------------------------------
 # (a) 價格
 # ---------------------------------------------------------------------------
 def goal_a() -> dict:
     out = {}
-    for n, seeds in S.POP_SEEDS.items():
-        runs = [d for d in (load(f"base_{n}_s{s}") for s in seeds) if d]
+    for n in S.POP_SEEDS:
+        runs = base_runs(n)
         if not runs:
             continue
-        row = {"seeds": len(runs)}
-        for cid in ("milk", "beef"):
+        row = {"seeds": len(runs), "days": runs[0]["scenario"]["days"]}
+        for cid in CIDS:
             ps = [d["price"][cid] for d in runs]
             row[cid] = {
                 "inside_min": min(p["inside_soft_band"] for p in ps),
@@ -59,52 +68,77 @@ def goal_a() -> dict:
                 "min": min(p["min"] for p in ps),
                 "max": max(p["max"] for p in ps),
             }
-        row["excess_mean"] = {cid: statistics.fmean(d["excess_mean"][cid] for d in runs) for cid in ("milk", "beef")}
-        row["pressure_mean"] = {cid: statistics.fmean(d["pressure_mean"][cid] for d in runs) for cid in ("milk", "beef")}
+        row["pressure_mean"] = {cid: statistics.fmean(d["pressure_mean"][cid] for d in runs) for cid in CIDS}
         row["online_mean"] = statistics.fmean(d["online"]["mean"] for d in runs)
-        row["pass"] = all(row[c]["inside_min"] >= 0.95 for c in ("milk", "beef"))
+        row["pass"] = all(row[c]["inside_min"] >= 0.95 for c in CIDS)
         out[str(n)] = row
     return out
 
 
 # ---------------------------------------------------------------------------
-# (b) 各策略週收入
+# (b) 各策略週收入、新增 a：耕田派 vs 乳牛派
 # ---------------------------------------------------------------------------
 def goal_b() -> dict:
     out = {}
-    for n, seeds in S.POP_SEEDS.items():
-        runs = [d for d in (load(f"base_{n}_s{s}") for s in seeds) if d]
+    for n in S.POP_SEEDS:
+        runs = base_runs(n)
         if not runs:
             continue
+        n_weeks = min(len(d["strategies"]["D"]["weeks"]) for d in runs)
         weeks = []
-        for w in range(4):
+        for w in range(n_weeks):
             means = {k: statistics.fmean(d["strategies"][k]["weeks"][w]["revenue_mean"] for d in runs) for k in STRATS}
+            parts = {k: {p: statistics.fmean(d["strategies"][k]["weeks"][w][p + "_mean"] for d in runs) for p in ("milk", "beef", "rice", "stud_in")} for k in STRATS}
             weeks.append({
                 "week": w + 1,
                 "means": means,
+                "parts": parts,
                 "max_over_min": max(means.values()) / min(means.values()),
                 "top": max(means, key=means.get),
-                "S4_over_S1": means["S4"] / means["S1"],
+                "bottom": min(means, key=means.get),
+                "F_over_D": means["F"] / means["D"],
             })
         tot = {k: sum(wk["means"][k] for wk in weeks) for k in STRATS}
         worth = {k: statistics.fmean(d["strategies"][k]["worth_end_mean"] for d in runs) for k in STRATS}
         net = {k: statistics.fmean(sum(x["net_mean"] for x in d["strategies"][k]["weeks"]) for d in runs) for k in STRATS}
-        herd = {k: statistics.fmean(d["strategies"][k]["slots_end_mean"] for d in runs) for k in STRATS}
+        slots = {k: statistics.fmean(d["strategies"][k]["slots_end_mean"] for d in runs) for k in STRATS}
+        fields = {k: statistics.fmean(d["strategies"][k]["fields_end_mean"] for d in runs) for k in STRATS}
+        types = {k: [sum(d["strategies"][k]["type_counts_end"][i] for d in runs) for i in range(3)] for k in STRATS}
         tiers = {k: [sum(d["strategies"][k]["tier_counts_end"][i] for d in runs) for i in range(4)] for k in STRATS}
+        f_over_d = [wk["F_over_D"] for wk in weeks]
+        # 全服收入組成（各策略人數加權，28 天）
+        comp = {p: 0.0 for p in ("milk", "beef", "rice", "stud_in")}
+        for d in runs:
+            for k in STRATS:
+                st = d["strategies"][k]
+                for wk_ in st["weeks"][:n_weeks]:
+                    for p in comp:
+                        comp[p] += st["n"] * wk_[p + "_mean"]
+        comp_total = sum(comp.values())
+        share = {p: v / comp_total for p, v in comp.items()}
+        ranking = sorted(tot, key=tot.get, reverse=True)
         out[str(n)] = {
             "seeds": len(runs),
             "weeks": weeks,
-            "total_28d": tot,
+            "total": tot,
             "total_max_over_min": max(tot.values()) / min(tot.values()),
             "total_top": max(tot, key=tot.get),
-            "total_S4_over_S1": tot["S4"] / tot["S1"],
+            "total_bottom": min(tot, key=tot.get),
+            "total_F_over_D": tot["F"] / tot["D"],
             "week_max_over_min_worst": max(wk["max_over_min"] for wk in weeks),
-            "net_28d": net,
+            "week_F_over_D_range": [min(f_over_d), max(f_over_d)],
+            "net": net,
             "worth_end": worth,
-            "slots_end": herd,
+            "slots_end": slots,
+            "fields_end": fields,
+            "type_counts_end": types,
             "tier_counts_end": tiers,
+            "revenue_share": share,
+            "ranking": ranking,
+            "F_rank": ranking.index("F") + 1,
             "pass_spread": max(wk["max_over_min"] for wk in weeks) <= 1.5,
-            "pass_s4_top_total": max(tot, key=tot.get) == "S4",
+            "pass_farm_vs_dairy": 0.93 <= tot["F"] / tot["D"] <= 1.07,
+            "pass_milk_share": 0.25 <= share["milk"] <= 0.40,
         }
     return out
 
@@ -113,13 +147,8 @@ def goal_b() -> dict:
 # (c) 大戶拋售
 # ---------------------------------------------------------------------------
 def _gap_stats(t: List[float], p_a: List[float], p_b: List[float], t_evt: float, direct_h: float = 3.0, horizon_h: float = 18.0) -> dict:
-    """p_a 相對 p_b（對照組，同 seed）的差距。
-
-    - max_drop_direct：事件後 direct_h 小時內的最大跌幅 = 這個動作本身造成的影響。
-    - max_drop_18h：18 小時內的最大差距；之後其他 bot 看到不同價格而做了不同決定，路徑會慢慢分岔（蝴蝶效應），
-      這部分不算「倒貨造成的下跌」，只列出來參考。
-    - recover_90pct_h：直接影響的最大跌幅之後，差距縮到最大值一成以內要幾小時（最大跌幅 < 0.3% 時視為無明顯下跌，不算）。
-    """
+    """p_a 相對 p_b（對照組，同 seed）的差距。max_drop_direct：事件後 direct_h 小時內的最大跌幅；
+    recover_90pct_h：之後差距縮到最大值一成以內要幾小時（最大跌幅 < 0.3% 時不算）。"""
     direct, full = [], []
     for th, a, b in zip(t, p_a, p_b):
         if t_evt <= th <= t_evt + horizon_h:
@@ -147,17 +176,12 @@ def _gap_stats(t: List[float], p_a: List[float], p_b: List[float], t_evt: float,
 
 
 def _hours_of_flow(run: str, cid: str, units) -> Optional[float]:
-    """大戶倒出的量相當於「其他玩家平常幾小時的賣出量」（估計）。
-
-    用對照組第 3 週（第 15–21 天）S1–S4 的賣出收入 ÷ 基本價 ÷ 168 小時估全服每小時賣出量；
-    市價平均在基本價 ±5% 內，所以誤差約 ±5%。
-    """
+    """大戶倒出的量相當於「其他玩家平常幾小時的賣出量」（估計：對照組第 3 週賣出收入 ÷ 基本價 ÷ 168）。"""
     if not units:
         return None
     summ = load(run)
     base = DEFAULT.commodity(cid).base_price
-    kind = "milk_mean" if cid == "milk" else "beef_mean"
-    coins = sum(st["n"] * st["weeks"][2][kind] for k, st in summ["strategies"].items() if k != "S5")
+    coins = sum(st["n"] * st["weeks"][2][cid + "_mean"] for k, st in summ["strategies"].items() if k != "W")
     per_h = coins / base / 168.0
     return units / per_h if per_h > 0 else None
 
@@ -189,14 +213,10 @@ def goal_c() -> dict:
             case[cid]["batch_avg_market"] = tb.get("avg_market_price")
             if td.get("avg_price") and tb.get("avg_price"):
                 case[cid]["dump_over_batch"] = td["avg_price"] / tb["avg_price"]
-                # 扣掉「分批期間市價本來就在變」的影響：只比滑價（成交價 ÷ 成交當下市價）
                 case[cid]["dump_slip"] = 1 - td["avg_price"] / td["avg_market_price"]
                 case[cid]["batch_slip"] = 1 - tb["avg_price"] / tb["avg_market_price"]
-            # 大戶倒出的量相當於全服平常幾小時的賣出量（用對照組倒貨前 24 小時的流量估）
             case[cid]["dump_hours_of_server_flow"] = _hours_of_flow(names["hold"], cid, td.get("units"))
-        case["pass_drop"] = all(case[c]["dump_vs_hold"].get("max_drop_direct", 1) <= 0.15 for c in ("milk", "beef"))
-        case["pass_dump_worse_slippage"] = all(case[c].get("dump_slip", 0) > case[c].get("batch_slip", 1) for c in ("milk", "beef"))
-        case["pass_dump_worse_raw"] = all(case[c].get("dump_over_batch", 2) < 1.0 for c in ("milk", "beef"))
+        case["pass_drop"] = all(case[c]["dump_vs_hold"].get("max_drop_direct", 1) <= WHALE_CAP for c in ("milk", "beef"))
         out["cases"][f"{n}p_{cows}cows"] = case
     return out
 
@@ -214,6 +234,8 @@ def goal_d() -> dict:
                 continue
             with open(f) as fh:
                 for row in csv.DictReader(fh):
+                    if row["strategy"] == "W":
+                        continue
                     of += 1
                     for k, col in (("first_sale", "first_sale_min"), ("first_expand", "first_expand_min"), ("first_breed", "first_breed_min")):
                         if row[col]:
@@ -227,10 +249,80 @@ def goal_d() -> dict:
     for k, xs in vals.items():
         out[k] = {"n": len(xs), "median": q(xs, 0.5), "p10": q(xs, 0.1), "p90": q(xs, 0.9), "max": max(xs) if xs else None, "min": min(xs) if xs else None}
     out["pass"] = (
-        out["first_sale"]["max"] is not None and out["first_sale"]["max"] <= 5
-        and out["first_breed"]["max"] is not None and out["first_breed"]["max"] <= 30 and out["first_breed"]["n"] == of
-        and out["first_expand"]["median"] is not None and 10 <= out["first_expand"]["median"] <= 20
+        out["first_sale"]["n"] == of and out["first_sale"]["max"] <= 5
+        and out["first_breed"]["n"] == of and out["first_breed"]["max"] <= 30
     )
+    return out
+
+
+# ---------------------------------------------------------------------------
+# 新增 b：借種市場
+# ---------------------------------------------------------------------------
+def goal_stud() -> dict:
+    fp = DEFAULT.farm
+    milk_day = fp.milk_per_h[0] * 24 * DEFAULT.milk.base_price  # 一頭壯年乳牛一天的奶錢（基本價）
+    out = {"milk_money_per_day": milk_day, "top_price": max(fp.stud_prices), "top_price_days_of_milk": max(fp.stud_prices) / milk_day, "pops": {}}
+    for n in S.POP_SEEDS:
+        runs = base_runs(n)
+        if not runs:
+            continue
+        days = runs[0]["scenario"]["days"]
+        st = [d["stud"] for d in runs]
+        by_price: Dict[str, float] = {}
+        for x in st:
+            for k, v in x["by_price"].items():
+                by_price[k] = by_price.get(k, 0) + v / len(st)
+        lender_week = [x["lender_income_mean"] / days * 7 for x in st]
+        out["pops"][str(n)] = {
+            "trades_per_day": statistics.fmean(x["trades"] for x in st) / days,
+            "trades_per_player_day": statistics.fmean(x["trades"] for x in st) / days / n,
+            "share_player_listing": statistics.fmean(x["trades_player_listing"] / x["trades"] if x["trades"] else 0 for x in st),
+            "by_price_mean": by_price,
+            "lender_income_per_week": statistics.fmean(lender_week),
+            "lender_income_share": statistics.fmean(x["lender_income_share"] for x in st),
+            "lender_income_max_30d": max(x["lender_income_max"] for x in st),
+            "max_trade_price": max(x["max_trade_price"] for x in st),
+        }
+    pops = out["pops"]
+    out["pass"] = all(p["trades_per_day"] > 0 and p["lender_income_share"] < 0.2 for p in pops.values()) if pops else False
+    return out
+
+
+# ---------------------------------------------------------------------------
+# 新增 c：商店 A／B／C
+# ---------------------------------------------------------------------------
+def goal_shop() -> dict:
+    from cowecon.farm import shop_grade_tier_probs
+
+    fp = DEFAULT.farm
+    out = {"grades": {}, "pops": {}}
+    for gi, g in enumerate(fp.shop_grade_names):
+        out["grades"][g] = {"price": fp.shop_grade_price[gi], "tier_probs": shop_grade_tier_probs(fp, g)}
+    for n in S.POP_SEEDS:
+        runs = base_runs(n)
+        if not runs:
+            continue
+        shares = {}
+        tot = {g: sum(d["shop"]["all"][g] for d in runs) for g in ("A", "B", "C")}
+        s = sum(tot.values())
+        shares = {g: tot[g] / s if s else 0.0 for g in tot}
+        per_strategy = {k: {g: sum(d["shop"][k][g] for d in runs) for g in ("A", "B", "C")} for k in STRATS}
+        vals = {}
+        for g in ("A", "B", "C"):
+            items = [(d["value"]["origin"][g]["n"], d["value"]["origin"][g]["mean"]) for d in runs if g in d["value"]["origin"]]
+            nn = sum(i[0] for i in items)
+            if nn:
+                vals[g] = {"n": nn, "mean": sum(i[0] * i[1] for i in items) / nn}
+        out["pops"][str(n)] = {"shares": shares, "per_strategy": per_strategy, "value": vals}
+    # 以 1,000 人（seed 1、2）的實際價值判斷
+    ref = out["pops"].get("1000") or next(iter(out["pops"].values()), None)
+    if ref and len(ref["value"]) == 3:
+        surplus = {g: ref["value"][g]["mean"] - out["grades"][g]["price"] for g in ("A", "B", "C")}
+        per_coin = {g: ref["value"][g]["mean"] / out["grades"][g]["price"] for g in ("A", "B", "C")}
+        out["surplus"] = surplus
+        out["value_per_coin"] = per_coin
+        out["surplus_max_over_min"] = max(surplus.values()) / min(surplus.values())
+        out["pass"] = out["surplus_max_over_min"] <= 1.10 and all(v >= 0.10 for v in ref["shares"].values())
     return out
 
 
@@ -245,13 +337,11 @@ def panic_scenario() -> dict:
             continue
         wp, wc = load_window(a), load_window(b)
         row = {}
-        for cid in ("milk", "beef"):
+        for cid in CIDS:
             g = _gap_stats(wp["t_h"], wp[cid], wc[cid], S.EVENT_H + 0.25)
             pre = [p for th, p in zip(wc["t_h"], wc[cid]) if S.EVENT_H - 1 <= th < S.EVENT_H]
             peak_calm = max(p for th, p in zip(wc["t_h"], wc[cid]) if S.EVENT_H <= th <= S.EVENT_H + 3)
-            peak_panic = max(p for th, p in zip(wp["t_h"], wp[cid]) if S.EVENT_H <= th <= S.EVENT_H + 3)
-            low_panic = min(p for th, p in zip(wp["t_h"], wp[cid]) if S.EVENT_H <= th <= S.EVENT_H + 6)
-            row[cid] = {**g, "pre_price": statistics.fmean(pre), "peak_calm": peak_calm, "peak_panic": peak_panic, "low_panic_6h": low_panic}
+            row[cid] = {**g, "pre_price": statistics.fmean(pre), "peak_calm": peak_calm}
         row["online_peak_panic"] = max(o for th, o in zip(wp["t_h"], wp["online"]) if S.EVENT_H <= th <= S.EVENT_H + 2)
         row["online_peak_calm"] = max(o for th, o in zip(wc["t_h"], wc["online"]) if S.EVENT_H <= th <= S.EVENT_H + 2)
         out[str(n)] = row
@@ -269,41 +359,45 @@ def low_scenario() -> dict:
         row = {}
         for label, w in (("low", wl), ("ref", wr)):
             sel = [i for i, th in enumerate(w["t_h"]) if d0 <= th < d1]
-            row[label] = {
-                "online_mean": statistics.fmean(w["online"][i] for i in sel),
-                "milk_mean": statistics.fmean(w["milk"][i] for i in sel),
-                "beef_mean": statistics.fmean(w["beef"][i] for i in sel),
-                "milk_min": min(w["milk"][i] for i in sel),
-                "milk_max": max(w["milk"][i] for i in sel),
-                "milk_excess_mean": statistics.fmean(w["milk_e"][i] for i in sel),
-                "beef_excess_mean": statistics.fmean(w["beef_e"][i] for i in sel),
-                "milk_y_mean": statistics.fmean(w["milk_y"][i] for i in sel),
-            }
-        ratio = [wl["milk"][i] / wr["milk"][i] for i, th in enumerate(wl["t_h"]) if d0 <= th < d1]
-        row["milk_low_over_ref_mean"] = statistics.fmean(ratio)
-        row["milk_low_over_ref_max"] = max(ratio)
+            row[label] = {"online_mean": statistics.fmean(w["online"][i] for i in sel)}
+            for cid in CIDS:
+                row[label][cid + "_mean"] = statistics.fmean(w[cid][i] for i in sel)
+        for cid in CIDS:
+            ratio = [wl[cid][i] / wr[cid][i] for i, th in enumerate(wl["t_h"]) if d0 <= th < d1]
+            row[cid + "_low_over_ref_mean"] = statistics.fmean(ratio)
+            row[cid + "_low_over_ref_max"] = max(ratio)
+            row[cid + "_low_over_ref_min"] = min(ratio)
         out[str(n)] = row
     return out
 
 
 def tick_compare() -> dict:
-    """同一個 seed 用 1 分鐘與 5 分鐘 tick 跑，比較價格分布與各策略收入（兩個 seed）。"""
     out = {}
     for seed in (1, 2):
         a, b = load(f"base_1000_s{seed}"), load(f"base_1000_s{seed}_tick300")
         if not (a and b):
             continue
         row = {}
-        for cid in ("milk", "beef"):
+        for cid in CIDS:
             row[cid] = {k: {"tick60": a["price"][cid][k], "tick300": b["price"][cid][k]} for k in ("inside_soft_band", "p5", "p50", "p95", "log_sd", "daily_range_median")}
             row[cid]["pressure_mean"] = {"tick60": a["pressure_mean"][cid], "tick300": b["pressure_mean"][cid]}
         row["revenue_28d"] = {k: {"tick60": a["strategies"][k]["revenue_total_mean"], "tick300": b["strategies"][k]["revenue_total_mean"]} for k in STRATS}
         row["wall_s"] = {"tick60": a["wall"]["seconds"], "tick300": b["wall"]["seconds"]}
         out[f"s{seed}"] = row
-    # 參考：同樣 1 分鐘 tick、不同 seed 的差距（隨機性本身有多大）
     a, b = load("base_1000_s1"), load("base_1000_s2")
     if a and b:
-        out["seed_to_seed_tick60"] = {cid: {"p50": [a["price"][cid]["p50"], b["price"][cid]["p50"]], "log_sd": [a["price"][cid]["log_sd"], b["price"][cid]["log_sd"]]} for cid in ("milk", "beef")}
+        out["seed_to_seed_tick60"] = {cid: {"p50": [a["price"][cid]["p50"], b["price"][cid]["p50"]], "log_sd": [a["price"][cid]["log_sd"], b["price"][cid]["log_sd"]]} for cid in CIDS}
+    return out
+
+
+def beef_grades() -> dict:
+    out = {}
+    for n in S.POP_SEEDS:
+        runs = base_runs(n)
+        if runs:
+            tot = {g: sum(d["beef_grades"][g] for d in runs) for g in ("A", "B", "C")}
+            s = sum(tot.values())
+            out[str(n)] = {g: tot[g] / s for g in tot} if s else {}
     return out
 
 
@@ -311,54 +405,67 @@ def walls() -> dict:
     out = {}
     for f in sorted(RUNS.glob("*.json")):
         d = json.loads(f.read_text())
-        out[f.stem] = {"players": d["players"], "tick_s": d["tick_s"], "seconds": round(d["wall"].get("total_seconds", d["wall"]["seconds"]), 1), "actions": d["wall"].get("actions")}
+        out[f.stem] = {"players": d["players"], "tick_s": d["tick_s"], "days": d["scenario"]["days"], "seconds": round(d["wall"].get("total_seconds", d["wall"]["seconds"]), 1), "actions": d["wall"].get("actions")}
     return out
 
 
 def main() -> None:
     goals = {
+        "engine_version": "0.2.0",
         "params_fingerprint": DEFAULT.fingerprint(),
         "a_price": goal_a(),
         "b_strategies": goal_b(),
         "c_whale": goal_c(),
         "d_onboarding": goal_d(),
+        "new_b_stud": goal_stud(),
+        "new_c_shop": goal_shop(),
+        "beef_grades": beef_grades(),
         "panic_after_event": panic_scenario(),
         "low_online_day": low_scenario(),
         "tick_60_vs_300": tick_compare(),
         "wall": walls(),
     }
+    bs = goals["b_strategies"]
+    goals["farm_not_always_top"] = {
+        "F_rank_by_pop": {n: bs[n]["F_rank"] for n in ("10", "100", "1000") if n in bs},
+        "pass": any(bs[n]["F_rank"] > 1 for n in ("10", "100", "1000") if n in bs),
+    }
     (OUT / "goals.json").write_text(json.dumps(goals, ensure_ascii=False, indent=1))
-    a = goals["a_price"]
-    print("(a) 價格在 0.6–1.7 倍的時間比例（各 seed 最低）")
-    for n, row in a.items():
-        print(f"  {n:>6} 人: 牛奶 {row['milk']['inside_min']:.4f}  牛肉 {row['beef']['inside_min']:.4f}  "
-              f"牛奶 p1–p99 {row['milk']['p1']:.2f}–{row['milk']['p99']:.2f}  牛肉 p1–p99 {row['beef']['p1']:.2f}–{row['beef']['p99']:.2f}  pass={row['pass']}")
-    print("(b) 各策略 28 天收入（千幣）與最大/最小")
+    print("(a) 價格在 0.6–1.7 倍的時間（各 seed 最低）")
+    for n, row in goals["a_price"].items():
+        print(f"  {n:>6} 人（{row['days']} 天）: " + "  ".join(f"{c} {row[c]['inside_min']:.4f}（p1–p99 {row[c]['p1']:.2f}–{row[c]['p99']:.2f}）" for c in CIDS) + f"  pass={row['pass']}")
+    print("(b) 各策略收入（千幣）；新增 a 耕田÷乳牛")
     for n, row in goals["b_strategies"].items():
-        tot = " ".join(f"{k}:{v / 1000:.0f}" for k, v in row["total_28d"].items())
+        tot = " ".join(f"{k}:{v / 1000:.0f}" for k, v in row["total"].items())
         wk = " ".join(f"{w['max_over_min']:.2f}" for w in row["weeks"])
-        print(f"  {n:>6} 人: {tot}  總計 max/min={row['total_max_over_min']:.3f} top={row['total_top']} S4/S1={row['total_S4_over_S1']:.3f}  每週 max/min={wk}")
+        print(f"  {n:>6} 人: {tot}  合計 max/min={row['total_max_over_min']:.3f} 排名={''.join(row['ranking'])}（耕田第 {row['F_rank']}）  每週 max/min={wk}  F/D={row['total_F_over_D']:.3f}（每週 {row['week_F_over_D_range'][0]:.2f}–{row['week_F_over_D_range'][1]:.2f}）  牛奶佔 {row['revenue_share']['milk']:.1%}")
     c = goals["c_whale"]
     print(f"(c) 大戶：理論上限 一次倒貨 {c['bound_single_dump']:.2%}、持續賣 {c['bound_single_player_sustained']:.2%}")
     for k, case in c["cases"].items():
         for cid in ("milk", "beef"):
             g = case[cid]["dump_vs_hold"]
-            print(f"  {k} {cid}: 倒出量≈全服 {case[cid].get('dump_hours_of_server_flow') or float('nan'):.1f} 小時的量；2 小時內最大跌幅 {g.get('max_drop_direct', float('nan')):.2%}（{g.get('t_max_h', float('nan')):.2f}h），90%回復 {g.get('recover_90pct_h')}h；"
-                  f"滑價 倒 {case[cid].get('dump_slip', float('nan')):.1%} vs 分批 {case[cid].get('batch_slip', float('nan')):.1%}；均價 倒/分批 = {case[cid].get('dump_over_batch', float('nan')):.3f}")
+            print(f"  {k} {cid}: 倒出≈全服 {case[cid].get('dump_hours_of_server_flow') or float('nan'):.1f} 小時；2 小時內最多低 {g.get('max_drop_direct', float('nan')):.2%}；滑價 倒 {case[cid].get('dump_slip', float('nan')):.1%} vs 分批 {case[cid].get('batch_slip', float('nan')):.1%}；均價 倒/分批 {case[cid].get('dump_over_batch', float('nan')):.3f}")
     d = goals["d_onboarding"]
-    print(f"(d) 新手（{d['players']} 人）：" + "  ".join(f"{k} 中位 {v['median']} 分、p90 {v['p90']}、最慢 {v['max']}（{v['n']} 人）" for k, v in d.items() if isinstance(v, dict)) + f" pass={d['pass']}")
+    print(f"(d) 新手（{d['players']} 人）：" + "  ".join(f"{k} 中位 {v['median']}、最慢 {v['max']}（{v['n']} 人）" for k, v in d.items() if isinstance(v, dict)) + f" pass={d['pass']}")
+    sb = goals["new_b_stud"]
+    print(f"新增 b 借種：最高價 {sb['top_price']:.0f} ≈ {sb['top_price_days_of_milk']:.2f} 天奶錢（{sb['milk_money_per_day']:.0f}/天）")
+    for n, p in sb["pops"].items():
+        print(f"  {n:>6} 人: 每天 {p['trades_per_day']:.1f} 筆（每人 {p['trades_per_player_day']:.2f}），玩家上架 {p['share_player_listing']:.0%}，出借派收入 {p['lender_income_per_week']:.0f}/週、佔 {p['lender_income_share']:.1%}，最高成交 {p['max_trade_price']:.0f}")
+    sh = goals["new_c_shop"]
+    if "surplus" in sh:
+        print("新增 c 商店：" + "  ".join(f"{g} 價 {sh['grades'][g]['price']:.0f} 淨賺 {sh['surplus'][g]:.0f} 每元 {sh['value_per_coin'][g]:.1f}" for g in ("A", "B", "C")) + f"  淨賺 max/min {sh['surplus_max_over_min']:.3f} pass={sh.get('pass')}")
+    for n, p in sh["pops"].items():
+        print(f"  {n:>6} 人 份額: " + " ".join(f"{g} {p['shares'][g]:.0%}" for g in ("A", "B", "C")))
+    print("出貨評級：" + "  ".join(f"{n} 人 " + "/".join(f"{v:.0%}" for v in r.values()) for n, r in goals["beef_grades"].items()))
     for n, row in goals["panic_after_event"].items():
-        print(f"  大利多後恐慌賣 {n} 人: " + "  ".join(f"{cid} 3 小時內多跌 {row[cid].get('max_drop_direct', 0):.2%}（{row[cid].get('t_max_h', 0):.2f}h）90%回復 {row[cid].get('recover_90pct_h')}h 事件前 {row[cid]['pre_price']:.3f} 峰值 {row[cid]['peak_calm']:.3f}→{row[cid]['peak_panic']:.3f}" for cid in ("milk", "beef")))
+        print(f"  恐慌賣 {n} 人: " + "  ".join(f"{cid} 多跌 {row[cid].get('max_drop_direct', 0):.2%} 回復九成 {row[cid].get('recover_90pct_h')}" for cid in CIDS))
     for n, row in goals["low_online_day"].items():
-        print(f"  人少的一天 {n} 人: 線上 {row['ref']['online_mean']:.1f}→{row['low']['online_mean']:.1f}，牛奶均價 {row['ref']['milk_mean']:.3f}→{row['low']['milk_mean']:.3f}（low/ref 平均 {row['milk_low_over_ref_mean']:.3f}，最大 {row['milk_low_over_ref_max']:.3f}）")
+        print(f"  人少 {n} 人: 線上 {row['ref']['online_mean']:.1f}→{row['low']['online_mean']:.1f} " + "  ".join(f"{cid} 人少÷平常 {row[cid + '_low_over_ref_mean']:.3f}" for cid in CIDS))
     for seed, t in goals["tick_60_vs_300"].items():
         if not seed[1:].isdigit():
             continue
-        print(f"  tick 60s vs 300s（{seed}）: " + "  ".join(f"{cid} p50 {t[cid]['p50']['tick60']:.3f}/{t[cid]['p50']['tick300']:.3f} sd {t[cid]['log_sd']['tick60']:.3f}/{t[cid]['log_sd']['tick300']:.3f} 賣壓 {t[cid]['pressure_mean']['tick60']:+.3f}/{t[cid]['pressure_mean']['tick300']:+.3f}" for cid in ("milk", "beef")))
-        print("    收入 " + " ".join(f"{k} {v['tick60'] / 1000:.0f}/{v['tick300'] / 1000:.0f}" for k, v in t["revenue_28d"].items()) + f"  耗時 {t['wall_s']['tick60']:.0f}s/{t['wall_s']['tick300']:.0f}s")
-    ss = goals["tick_60_vs_300"].get("seed_to_seed_tick60")
-    if ss:
-        print("  參考：1 分鐘 tick、seed 1 vs seed 2：" + "  ".join(f"{cid} p50 {v['p50'][0]:.3f}/{v['p50'][1]:.3f} sd {v['log_sd'][0]:.3f}/{v['log_sd'][1]:.3f}" for cid, v in ss.items()))
+        print(f"  tick 60/300（{seed}）: " + "  ".join(f"{cid} p50 {t[cid]['p50']['tick60']:.3f}/{t[cid]['p50']['tick300']:.3f} 賣壓 {t[cid]['pressure_mean']['tick60']:+.3f}/{t[cid]['pressure_mean']['tick300']:+.3f}" for cid in CIDS))
+        print("    收入 " + " ".join(f"{k} {v['tick60'] / 1000:.0f}/{v['tick300'] / 1000:.0f}" for k, v in t["revenue_28d"].items()))
 
 
 if __name__ == "__main__":

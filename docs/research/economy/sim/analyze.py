@@ -67,8 +67,11 @@ def price_stats(ratios: List[float], dt: float, soft=(0.6, 1.7)) -> dict:
     }
 
 
+PLAYER_KEYS = ("D", "B", "F", "C", "T", "L")
+
+
 def strategy_weeks(world) -> dict:
-    """各策略每週收入（牛奶 + 牛肉的賣出收入，幣）等統計。"""
+    """各策略每週收入（賣牛奶、牛肉、稻米的收入 + 借種收入，幣）等統計。大戶（W）另計。"""
     groups: Dict[str, list] = {}
     for b in world.bots:
         groups.setdefault(b.strategy, []).append(b)
@@ -78,29 +81,29 @@ def strategy_weeks(world) -> dict:
         for d0, d1 in WEEKS:
             if d1 > world.n_days:
                 break
-            rev = [b.ledger.amount_days("milk", d0, d1) + b.ledger.amount_days("beef", d0, d1) for b in bs]
-            milk = [b.ledger.amount_days("milk", d0, d1) for b in bs]
-            beef = [b.ledger.amount_days("beef", d0, d1) for b in bs]
-            opex = [-(b.ledger.amount_days("calf", d0, d1) + b.ledger.amount_days("breed", d0, d1)) for b in bs]
-            capex = [-sum(b.ledger.amount_days(k, d0, d1) for k in ("expand", "bucket", "warehouse", "fresh")) for b in bs]
-            spoiled = [b.ledger.qty_days("spoiled", d0, d1) for b in bs]
+            rev = [b.ledger.revenue_days(d0, d1) for b in bs]
+            part = {k: statistics.fmean([b.ledger.amount_days(k, d0, d1) for b in bs]) for k in ("milk", "beef", "rice", "stud_in")}
+            opex = [-(b.ledger.amount_days("calf", d0, d1) + b.ledger.amount_days("stud_out", d0, d1)) for b in bs]
+            capex = [-sum(b.ledger.amount_days(k, d0, d1) for k in ("expand", "bucket", "warehouse", "fresh", "field")) for b in bs]
             weeks.append({
                 "days": [d0, d1],
                 "revenue_mean": statistics.fmean(rev), "revenue_median": statistics.median(rev),
                 "revenue_p25": _pct(rev, 0.25), "revenue_p75": _pct(rev, 0.75),
-                "milk_mean": statistics.fmean(milk), "beef_mean": statistics.fmean(beef),
+                "milk_mean": part["milk"], "beef_mean": part["beef"], "rice_mean": part["rice"], "stud_in_mean": part["stud_in"],
                 "net_mean": statistics.fmean([r - o for r, o in zip(rev, opex)]),
                 "opex_mean": statistics.fmean(opex), "capex_mean": statistics.fmean(capex),
-                "spoiled_mean": statistics.fmean(spoiled),
+                "spoiled_mean": statistics.fmean([b.ledger.qty_days("spoiled", d0, d1) for b in bs]),
             })
         last = world.n_days - 1
         worth = [b.worth[last] for b in bs]
         tiers = [0, 0, 0, 0]
+        types = [0, 0, 0]
         herd = []
         for b in bs:
             herd.append(len(b.farm.cows))
             for c in b.farm.cows:
                 tiers[c.tier] += 1
+                types[c.ctype] += 1
         out[s] = {
             "n": len(bs),
             "weeks": weeks,
@@ -108,25 +111,29 @@ def strategy_weeks(world) -> dict:
             "worth_end_median": statistics.median(worth),
             "herd_end_mean": statistics.fmean(herd),
             "slots_end_mean": statistics.fmean([b.farm.slots for b in bs]),
+            "fields_end_mean": statistics.fmean([len(b.farm.fields) for b in bs]),
             "tier_counts_end": tiers,
+            "type_counts_end": types,
             "revenue_total_mean": sum(w["revenue_mean"] for w in weeks),
         }
     return out
 
 
-def week_ratios(strategies: dict, keys=("S1", "S2", "S3", "S4")) -> List[dict]:
-    """每週 S1–S4 平均週收入的 最大/最小，以及 S4/S1。"""
+def week_ratios(strategies: dict, keys=PLAYER_KEYS) -> List[dict]:
+    """每週各策略平均週收入的 最大/最小、最高者、耕田÷乳牛、抓時機÷乳牛。"""
     rows = []
-    n_weeks = min(len(strategies[k]["weeks"]) for k in keys if k in strategies)
+    keys = [k for k in keys if k in strategies]
+    n_weeks = min(len(strategies[k]["weeks"]) for k in keys)
     for w in range(n_weeks):
-        vals = {k: strategies[k]["weeks"][w]["revenue_mean"] for k in keys if k in strategies}
+        vals = {k: strategies[k]["weeks"][w]["revenue_mean"] for k in keys}
         hi, lo = max(vals.values()), min(vals.values())
         rows.append({
             "week": w + 1,
             "means": vals,
             "max_over_min": hi / lo if lo > 0 else float("inf"),
             "top": max(vals, key=vals.get),
-            "S4_over_S1": vals.get("S4", float("nan")) / vals["S1"] if vals.get("S1") else None,
+            "F_over_D": vals["F"] / vals["D"] if vals.get("D") and "F" in vals else None,
+            "T_over_D": vals["T"] / vals["D"] if vals.get("D") and "T" in vals else None,
         })
     return rows
 
@@ -140,13 +147,13 @@ def main(argv: List[str]) -> None:
         if "price" not in d:
             continue
         print(f"== {f.stem}  players={d['players']} tick={d['tick_s']}s wall={d['wall'].get('seconds', 0):.0f}s")
-        for cid in ("milk", "beef"):
+        for cid in d["price"]:
             ps = d["price"][cid]
             print(f"  {cid}: inside={ps['inside_soft_band']:.4f} p1={ps['p1']:.3f} p5={ps['p5']:.3f} p50={ps['p50']:.3f} p95={ps['p95']:.3f} p99={ps['p99']:.3f} mdd={ps['max_drawdown']:.3f}")
         if d.get("strategies"):
             for row in week_ratios(d["strategies"]):
                 means = " ".join(f"{k}={v:,.0f}" for k, v in row["means"].items())
-                print(f"  week{row['week']}: {means}  max/min={row['max_over_min']:.2f} top={row['top']} S4/S1={row['S4_over_S1']:.3f}")
+                print(f"  week{row['week']}: {means}  max/min={row['max_over_min']:.2f} top={row['top']} F/D={row['F_over_D']:.3f}")
 
 
 if __name__ == "__main__":
