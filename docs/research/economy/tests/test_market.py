@@ -1,6 +1,6 @@
 """行情引擎測試：價格邊界、滑價隨單量單調、每位玩家上限、tick 大小不影響結果、結果固定。
 
-執行：cd docs/research/economy && python3 -m unittest discover -s tests -v
+執行：cd docs/research/economy && python3 -m unittest -v
 """
 
 import math
@@ -11,6 +11,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import sim  # noqa: E402,F401  （把 backend/ 加進 sys.path；cowecon 在 backend/cowecon/）
 
 from cowecon import DEFAULT, HOUR, MINUTE, Exchange, ImpactState, with_overrides  # noqa: E402
 from cowecon.market import Market, _ramp_integral  # noqa: E402

@@ -4,17 +4,17 @@
 
 | 路徑 | 內容 |
 |---|---|
-| `cowecon/` | 經濟引擎（純 Python 3.10 標準函式庫，給定 seed 結果固定）。M1 的 FastAPI 伺服器直接 import。 |
-| `cowecon/params.py` | **所有可調參數**，附單位與中文註解；企劃書的初始數值以這份為準。 |
-| `cowecon/market.py` | 行情：每個 tick 的價格更新、滑價成交、新聞事件、需求（線上人數 + 電腦買家）、每位玩家影響上限。 |
-| `cowecon/farm.py` | 牧場：牛的一生、產奶與奶桶、新鮮度、牛肉價值、配種機率、各項成本、新手開局。 |
+| [`../../../backend/cowecon/`](../../../backend/cowecon/) | 經濟引擎（純 Python 3.10 標準函式庫，給定 seed 結果固定）。2026-09-30 從這裡用 `git mv` 搬到 `backend/`，只保留那一份：伺服器和這裡的模擬 import 同一份。`sim/__init__.py` 會把 `backend/` 加進 `sys.path`。 |
+| `backend/cowecon/params.py` | **所有可調參數**，附單位與中文註解；企劃書的初始數值以這份為準。 |
+| `backend/cowecon/market.py` | 行情：每個 tick 的價格更新、滑價成交、新聞事件、需求（線上人數 + 電腦買家）、每位玩家影響上限。 |
+| `backend/cowecon/farm.py` | 牧場：牛的一生、產奶與奶桶、新鮮度、牛肉價值、配種機率、各項成本、新手開局。 |
 | `sim/` | 玩家 bot、情境、執行、統計、畫圖（可用 numpy／matplotlib；目前只用 matplotlib）。 |
 | `tests/` | `python3 -m unittest` 測試 30 個：結果固定、價格邊界、滑價隨單量單調、新鮮度單調、tick 大小不影響結果、每位玩家上限等。 |
 | `out/` | 圖（PNG）、`goals.json`（四個目標的實際數字）、`runs/`（每個情境的 JSON 摘要與 CSV）。 |
 
 ## 怎麼跑
 
-以下指令都在這個資料夾執行：
+以下指令都在這個資料夾執行（`sim` 與 `tests` 會自動從 `backend/cowecon/` import 引擎，不用另外設定）：
 
 ```bash
 cd docs/research/economy
@@ -49,6 +49,8 @@ systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 python3 -m s
 - 量測環境：Surface（Linux 6.19，8 核心），Python 3.10.12。實際耗時看 `out/goals.json` 的 `wall` 欄位。
 
 ## 伺服器怎麼用（M1）
+
+M1 伺服器已經做好，在 [`../../../backend/`](../../../backend/)（說明見那裡的 README）。下面是引擎本身的用法：
 
 ```python
 from cowecon import DEFAULT, Exchange, Farm

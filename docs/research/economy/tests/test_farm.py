@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import sim  # noqa: E402,F401  （把 backend/ 加進 sys.path；cowecon 在 backend/cowecon/）
 
 from cowecon import DEFAULT, HOUR, MINUTE, Exchange  # noqa: E402
 from cowecon.farm import (  # noqa: E402

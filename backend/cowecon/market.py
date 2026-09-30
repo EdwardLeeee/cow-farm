@@ -13,6 +13,10 @@
 
 所有參數都是真實時間，換 tick 大小（1 分鐘、5 分鐘）統計結果不變；見 tests/test_market.py。
 本模組只用標準函式庫；亂數一律由呼叫端傳入 random.Random，給定 seed 結果固定。
+
+存檔與回復（M1 伺服器用）：Market、Exchange、ImpactState 都有 to_dict()／from_dict()，
+內容是純 JSON（亂數狀態也在裡面）。回復後繼續跑，和沒中斷過的同一個 seed 每個數字都一樣
+（backend/tests/test_persist.py）。
 """
 
 from __future__ import annotations
@@ -33,6 +37,19 @@ from .params import (
 )
 
 LN2 = math.log(2.0)
+
+
+def rng_to_state(rng: random.Random) -> list:
+    """random.Random 的完整狀態 → JSON 可存的 list（含 gauss 的暫存值，Market.step 用 gauss）。"""
+    version, internal, gauss_next = rng.getstate()
+    return [version, list(internal), gauss_next]
+
+
+def rng_from_state(state: Sequence) -> random.Random:
+    rng = random.Random()
+    version, internal, gauss_next = state
+    rng.setstate((version, tuple(internal), gauss_next))
+    return rng
 
 
 # ---------------------------------------------------------------------------
@@ -128,6 +145,7 @@ class Market:
         self.price = cp.base_price * math.exp(self.season_log)
         self._hist: deque = deque()
         self._hist_sum = 0.0
+        self.last_contribution: Optional[Tuple[float, float, float, float]] = None  # 上一筆成交對 pending 的貢獻
         self._push_hist(t0, self.price)
 
     # ---- 讀取 ----
@@ -209,13 +227,25 @@ class Market:
         imp.recent = recent + total
         imp.allow = allow - counted
         imp.t = now
+        self.last_contribution = None
         if total > 0:
-            self.pending_counted += counted
             # 長期平均賣出量：每筆最多算平常單量的 order_size_update_cap 倍，大戶倒貨不會把「平常需求」墊高
-            self.pending_actual += min(total, cp.order_size_update_cap * self.typical_order())
-            self.pending_ord_w += total
-            self.pending_ord_wq += total * min(total, cp.order_size_update_cap * self.typical_order())
+            capped = min(total, cp.order_size_update_cap * self.typical_order())
+            self.last_contribution = (counted, capped, total, total * capped)
+            self.apply_contribution(self.last_contribution)
         return SaleResult(proceeds, total, counted, disc, self.price)
+
+    def apply_contribution(self, c: Sequence[float]) -> None:
+        """把一筆成交對下一個 tick 的貢獻加進 pending。
+
+        c = (計入賣壓的量, 計入長期平均的量, 賣出量, 賣出量 × 計入長期平均的量)，就是 execute_sale 後的
+        last_contribution。伺服器把它存進成交紀錄；當機重啟時，照原本的順序把上一個 tick 之後的成交
+        再加一次，pending 就和當機前完全一樣。
+        """
+        self.pending_counted += c[0]
+        self.pending_actual += c[1]
+        self.pending_ord_w += c[2]
+        self.pending_ord_wq += c[3]
 
     # ---- 每個 tick ----
     def step(self, now: float, online_count: float, event_log: float) -> None:
@@ -312,8 +342,44 @@ class Market:
         while self._hist and self._hist[0][0] < limit:
             self._hist_sum -= self._hist.popleft()[1]
 
+    # ---- 存檔與回復 ----
+    _STATE_FIELDS = (
+        "t_start", "t", "x", "y", "y_base", "flow", "online", "ref_flow", "ref_online",
+        "_ord_wq", "_ord_w", "pending_counted", "pending_actual", "pending_ord_w", "pending_ord_wq",
+        "event_log", "season_log", "excess", "price", "_hist_sum",
+    )
+
+    def to_dict(self, include_hist: bool = True) -> dict:
+        """完整狀態（純 JSON）。include_hist=False 時不含走勢圖的 24 小時歷史（伺服器另存在價格表）。"""
+        d = {"id": self.cp.id}
+        for k in self._STATE_FIELDS:
+            d[k.lstrip("_")] = getattr(self, k)
+        d["rng"] = rng_to_state(self.rng)
+        if include_hist:
+            d["hist"] = [[t, p] for t, p in self._hist]
+        return d
+
+    @classmethod
+    def from_dict(cls, cp: CommodityParams, d: dict, hist: Optional[Iterable[Tuple[float, float]]] = None) -> "Market":
+        """從 to_dict() 回復。hist 沒給就用 d["hist"]；兩者都沒有時，歷史只剩目前價格一筆。"""
+        if d.get("id", cp.id) != cp.id:
+            raise ValueError(f"商品不符：存檔是 {d.get('id')}，參數是 {cp.id}")
+        m = cls.__new__(cls)
+        m.cp = cp
+        for k in cls._STATE_FIELDS:
+            setattr(m, k, d[k.lstrip("_")])
+        m.rng = rng_from_state(d["rng"])
+        m.last_contribution = None
+        if hist is None:
+            hist = d.get("hist")
+        m._hist = deque((float(t), float(p)) for t, p in hist) if hist is not None else deque()
+        if not m._hist:
+            m._hist.append((m.t, m.price))
+            m._hist_sum = m.price
+        return m
+
     def snapshot(self) -> dict:
-        """給伺服器存檔／除錯用。"""
+        """給畫面／除錯用的摘要（不能用來回復；回復用 to_dict）。"""
         return {
             "t": self.t,
             "price": self.price,
@@ -359,6 +425,7 @@ class MarketEvent:
         return self.log_mag * 2.0 ** (-(s - self.ramp_s) / self.half_life_s)
 
     def to_dict(self) -> dict:
+        """摘要（模擬報表用）。存檔回復用 to_state()。"""
         return {
             "id": self.eid,
             "targets": list(self.targets),
@@ -369,6 +436,29 @@ class MarketEvent:
             "headline": self.headline,
             "rare": self.rare,
         }
+
+    def to_state(self) -> dict:
+        return {
+            "id": self.eid, "targets": list(self.targets), "factor": self.factor,
+            "announce_at": self.announce_at, "start_at": self.start_at, "ramp_s": self.ramp_s,
+            "half_life_s": self.half_life_s, "end_at": self.end_at, "headline": self.headline, "rare": self.rare,
+        }
+
+    @classmethod
+    def from_state(cls, d: dict) -> "MarketEvent":
+        ev = cls.__new__(cls)
+        ev.eid = d["id"]
+        ev.targets = tuple(d["targets"])
+        ev.factor = d["factor"]
+        ev.log_mag = math.log(ev.factor)
+        ev.announce_at = d["announce_at"]
+        ev.start_at = d["start_at"]
+        ev.ramp_s = d["ramp_s"]
+        ev.half_life_s = d["half_life_s"]
+        ev.end_at = d["end_at"]
+        ev.headline = d["headline"]
+        ev.rare = d["rare"]
+        return ev
 
 
 class EventGenerator:
@@ -415,6 +505,26 @@ class EventGenerator:
             headline=headline,
             rare=rare,
         )
+
+    def to_dict(self) -> dict:
+        return {
+            "n": self._n,
+            "next_start": self._next_start,
+            "queue": [ev.to_state() for ev in self._queue],
+            "rng": rng_to_state(self.rng),
+            "commodities": list(self.cids),
+        }
+
+    @classmethod
+    def from_dict(cls, ep: EventParams, d: dict) -> "EventGenerator":
+        g = cls.__new__(cls)
+        g.ep = ep
+        g.rng = rng_from_state(d["rng"])
+        g.cids = tuple(d["commodities"])
+        g._n = d["n"]
+        g._queue = [MarketEvent.from_state(e) for e in d["queue"]]
+        g._next_start = d["next_start"]
+        return g
 
     def advance(self, now: float) -> List[MarketEvent]:
         """回傳到 now 為止新公開（公告或開始）的事件。"""
@@ -495,3 +605,44 @@ class Exchange:
 
     def price(self, cid: str) -> float:
         return self.markets[cid].price
+
+    # ---- 存檔與回復 ----
+    def to_dict(self, include_hist: bool = True, include_history: bool = True) -> dict:
+        """完整狀態（純 JSON）。
+
+        include_hist：各市場走勢圖的 24 小時歷史（伺服器另存在價格表，可以不含）。
+        include_history：出現過的全部事件（模擬報表用；伺服器另存在新聞表，可以不含）。
+        """
+        d = {
+            "engine": "cowecon",
+            "t": self.t,
+            "markets": {cid: m.to_dict(include_hist=include_hist) for cid, m in self.markets.items()},
+            "generator": self.generator.to_dict() if self.generator is not None else None,
+            "events": [ev.to_state() for ev in self.events],
+        }
+        if include_history:
+            d["history"] = [ev.to_state() for ev in self.event_log_history]
+        return d
+
+    @classmethod
+    def from_dict(cls, params: EconomyParams, d: dict, hist: Optional[Dict[str, Iterable[Tuple[float, float]]]] = None) -> "Exchange":
+        """從 to_dict() 回復。hist = {商品: [(時間, 價格), ...]}，存檔沒有含歷史時由呼叫端補。"""
+        ex = cls.__new__(cls)
+        ex.params = params
+        ex.t = d["t"]
+        hist = hist or {}
+        ex.markets = {cid: Market.from_dict(params.commodity(cid), md, hist.get(cid)) for cid, md in d["markets"].items()}
+        ex.generator = EventGenerator.from_dict(params.events, d["generator"]) if d.get("generator") is not None else None
+        by_id: Dict[int, MarketEvent] = {}
+        if "history" in d:
+            ex.event_log_history = []
+            for e in d["history"]:
+                ev = MarketEvent.from_state(e)
+                by_id[ev.eid] = ev
+                ex.event_log_history.append(ev)
+        ex.events = [by_id.get(e["id"]) or MarketEvent.from_state(e) for e in d["events"]]
+        if "history" not in d:
+            ex.event_log_history = list(ex.events)
+        ex._cap_hi = math.log(params.events.total_cap_up)
+        ex._cap_lo = math.log(params.events.total_cap_down)
+        return ex

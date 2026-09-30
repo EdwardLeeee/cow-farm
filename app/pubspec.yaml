@@ -1,0 +1,33 @@
+name: cowfarm
+description: "牛市牧場 M1 連線原型（只用色塊和文字，不是正式畫面）"
+publish_to: 'none'
+
+# 顯示版本 0.1.0、建置號 1。
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.13.4
+  flutter: 3.47.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # 狀態管理：ChangeNotifier + provider（簡單做法）。
+  provider: ^6.1.5
+  # HTTP 與 WebSocket。
+  http: ^1.6.0
+  web_socket_channel: ^3.0.3
+  # request_id 用 UUID v4。
+  uuid: ^4.5.1
+  # 登入 token：手機存 Keychain／Keystore（T1：不用 shared_preferences）。
+  flutter_secure_storage: ^10.0.0
+  # 網頁版把 token 存在瀏覽器 localStorage（區網 http 不是安全環境，無法用 WebCrypto）。
+  web: ^1.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
