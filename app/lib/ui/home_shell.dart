@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -6,6 +8,7 @@ import '../state/game_model.dart';
 import 'screens/breed_screen.dart';
 import 'screens/codex_screen.dart';
 import 'screens/cow_detail_screen.dart';
+import 'screens/fields_screen.dart';
 import 'screens/leaderboard_screen.dart';
 import 'screens/market_screen.dart';
 import 'screens/ranch_screen.dart';
@@ -13,18 +16,43 @@ import 'screens/shop_screen.dart';
 import 'widgets/top_bar.dart';
 
 /// 外框：頂列＋內容＋底部分頁。分頁切換不算「按鈕」，斷線時仍可切換查看。
-class HomeShell extends StatelessWidget {
+/// 伺服器推來的提示（例如有人借了你的公牛）用 SnackBar 顯示。
+class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
 
-  static const _labels = [S.tabRanch, S.tabMarket, S.tabBreed, S.tabShop, S.tabCodex, S.tabRank];
+  static const labels = [S.tabRanch, S.tabMarket, S.tabFields, S.tabBreed, S.tabShop, S.tabRecords];
   static const _icons = [
     Icons.grass,
     Icons.show_chart,
+    Icons.agriculture,
     Icons.favorite_border,
     Icons.store_outlined,
-    Icons.grid_view,
     Icons.emoji_events_outlined,
   ];
+
+  @override
+  State<HomeShell> createState() => _HomeShellState();
+}
+
+class _HomeShellState extends State<HomeShell> {
+  final _messengerKey = GlobalKey<ScaffoldMessengerState>();
+  StreamSubscription<String>? _sub;
+
+  @override
+  void initState() {
+    super.initState();
+    _sub = context.read<GameModel>().notices.listen((text) {
+      _messengerKey.currentState?.showSnackBar(
+        SnackBar(key: const Key('notice'), content: Text(text), duration: const Duration(seconds: 4)),
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _sub?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +62,9 @@ class HomeShell extends StatelessWidget {
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) m.closeCow();
       },
-      child: Scaffold(
+      child: ScaffoldMessenger(
+        key: _messengerKey,
+        child: Scaffold(
         body: SafeArea(
           child: Column(
             children: [
@@ -51,10 +81,15 @@ class HomeShell extends StatelessWidget {
                 height: 64,
                 onDestinationSelected: (i) => m.selectTab(AppTab.values[i]),
                 destinations: [
-                  for (var i = 0; i < _labels.length; i++)
-                    NavigationDestination(key: Key('tab-${AppTab.values[i].name}'), icon: Icon(_icons[i]), label: _labels[i]),
+                  for (var i = 0; i < HomeShell.labels.length; i++)
+                    NavigationDestination(
+                      key: Key('tab-${AppTab.values[i].name}'),
+                      icon: Icon(HomeShell._icons[i]),
+                      label: HomeShell.labels[i],
+                    ),
                 ],
               ),
+        ),
       ),
     );
   }
@@ -65,10 +100,10 @@ class HomeShell extends StatelessWidget {
     return switch (m.tab) {
       AppTab.ranch => const RanchScreen(),
       AppTab.market => const MarketScreen(),
+      AppTab.fields => const FieldsScreen(),
       AppTab.breed => const BreedScreen(),
       AppTab.shop => const ShopScreen(),
-      AppTab.codex => const CodexScreen(),
-      AppTab.rank => const LeaderboardScreen(),
+      AppTab.records => const _Records(),
     };
   }
 }
@@ -90,6 +125,24 @@ class _Loading extends StatelessWidget {
           ],
           const SizedBox(height: 24),
           Text(S.prototypeNote, style: Theme.of(context).textTheme.bodySmall),
+        ],
+      ),
+    );
+  }
+}
+
+/// 紀錄：圖鑑與排行榜兩個分頁。
+class _Records extends StatelessWidget {
+  const _Records();
+
+  @override
+  Widget build(BuildContext context) {
+    return const DefaultTabController(
+      length: 2,
+      child: Column(
+        children: [
+          TabBar(tabs: [Tab(text: S.subCodex), Tab(text: S.subRank)]),
+          Expanded(child: TabBarView(children: [CodexScreen(), LeaderboardScreen()])),
         ],
       ),
     );

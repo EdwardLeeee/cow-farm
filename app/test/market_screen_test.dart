@@ -18,6 +18,14 @@ Future<GameModel> _openMarket(WidgetTester tester, {FakeGameApi? api}) async {
 
 Color? _color(WidgetTester tester, String key) => tester.widget<Text>(find.byKey(Key(key))).style?.color;
 
+/// 換一份行情重開市場的稻米分頁，回傳稻米漲跌的顏色。
+Future<Color?> _openMarketAgain(WidgetTester tester, Map<String, dynamic> market) async {
+  await _openMarket(tester, api: FakeGameApi(market: market));
+  await tester.tap(find.text('稻米').first);
+  await tester.pumpAndSettle();
+  return _color(tester, 'change-rice');
+}
+
 void main() {
   testWidgets('漲紅跌綠：牛奶漲是紅色、牛肉跌是綠色', (tester) async {
     await _openMarket(tester);
@@ -32,6 +40,30 @@ void main() {
     expect(find.text('-0.80（-6.7%）'), findsOneWidget);
     expect(_color(tester, 'change-beef'), Palette.down);
     expect(Palette.down, const Color(0xFF2E7D32)); // 綠
+  });
+
+  testWidgets('v0.2 稻米分頁：漲紅、賣出面板一樣有試算', (tester) async {
+    final m = await _openMarket(tester);
+    final api = m.api as FakeGameApi;
+    await tester.tap(find.text('稻米').first);
+    await tester.pumpAndSettle();
+    expect(tester.widget<Text>(find.byKey(const Key('price-rice'))).data, '5.20');
+    expect(_color(tester, 'change-rice'), Palette.up);
+    expect(find.textContaining('颱風過境'), findsOneWidget);
+    expect(find.text('庫存 20 公斤'), findsOneWidget);
+
+    final slider = find.byKey(const Key('sell-slider-rice'));
+    await tester.ensureVisible(slider);
+    await tester.pump();
+    final rect = tester.getRect(slider);
+    await tester.tapAt(Offset(rect.right - 2, rect.center.dy));
+    await tester.pump(SellPanel.debounce + const Duration(milliseconds: 50));
+    await tester.pump();
+    expect(api.calls, contains('quote:rice:20.0'));
+    expect(find.text('${(10.0 * (1 - 0.0005 * 20)).toStringAsFixed(2)} 幣／公斤'), findsOneWidget);
+
+    final riceDown = await _openMarketAgain(tester, sampleMarketJson(riceChange: -0.3));
+    expect(riceDown, Palette.down);
   });
 
   testWidgets('漲跌顏色反過來也對：牛奶跌是綠色', (tester) async {

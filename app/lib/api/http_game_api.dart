@@ -122,11 +122,7 @@ class HttpGameApi implements GameApi {
       SellResult.fromJson(await _mutate('/v1/sell', {'commodity': commodity.wire, 'qty': qty}));
 
   @override
-  Future<Map<String, dynamic>> ship(Object cowId) => _mutate('/v1/ship', {'cow_id': cowId});
-
-  @override
-  Future<Map<String, dynamic>> buyCalf(CowType type, bool bull) =>
-      _mutate('/v1/buy_calf', {'type': type.wire, 'bull': bull});
+  Future<ShipResult> ship(Object cowId) async => ShipResult.fromJson(await _mutate('/v1/ship', {'cow_id': cowId}));
 
   @override
   Future<BreedPreview> breedPreview(Object sire, Object dam) async =>
@@ -151,4 +147,47 @@ class HttpGameApi implements GameApi {
   @override
   Future<Leaderboard> leaderboard(RankKind kind) async =>
       Leaderboard.fromJson(await _get('/v1/leaderboard', {'kind': kind.wire}));
+
+  // ---- v0.2 ----
+  @override
+  Future<ShipPreview> shipPreview(Object cowId) async =>
+      ShipPreview.fromJson(await _get('/v1/ship/preview', {'cow_id': '$cowId'}));
+
+  @override
+  Future<ShopInfo> shop() async => ShopInfo.fromJson(await _get('/v1/shop'));
+
+  @override
+  Future<ShopBuyResult> shopBuy(String grade) async =>
+      ShopBuyResult.fromJson(await _mutate('/v1/shop/buy', {'grade': grade}));
+
+  @override
+  Future<Map<String, dynamic>> fieldAssign(Object cowId, {int? field}) =>
+      _mutate('/v1/field/assign', {'cow_id': cowId, 'field': ?field});
+
+  @override
+  Future<Map<String, dynamic>> fieldRecall(Object cowId) => _mutate('/v1/field/recall', {'cow_id': cowId});
+
+  @override
+  Future<Map<String, dynamic>> fieldHarvest() => _mutate('/v1/field/harvest', const {});
+
+  @override
+  Future<Map<String, dynamic>> fieldExpand() => _mutate('/v1/field/expand', const {});
+
+  @override
+  Future<StudMarket> stud() async => StudMarket.fromJson(await _get('/v1/stud'));
+
+  @override
+  Future<BreedPreview> studPreview(Object listingId, Object dam) async =>
+      BreedPreview.fromJson(await _get('/v1/stud/preview', {'listing_id': '$listingId', 'dam': '$dam'}));
+
+  @override
+  Future<Map<String, dynamic>> studList(Object cowId, double price) =>
+      _mutate('/v1/stud/list', {'cow_id': cowId, 'price': price.round()});
+
+  @override
+  Future<Map<String, dynamic>> studUnlist(Object listingId) => _mutate('/v1/stud/unlist', {'listing_id': listingId});
+
+  @override
+  Future<BreedResult> studBorrow(Object listingId, Object dam) async =>
+      BreedResult.fromJson(await _mutate('/v1/stud/borrow', {'listing_id': listingId, 'dam': dam}));
 }

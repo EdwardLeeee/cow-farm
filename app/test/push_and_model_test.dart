@@ -146,16 +146,80 @@ void main() {
   group('models', () {
     test('協定欄位解析', () {
       final s = GameState.fromJson(sampleStateJson());
-      expect(s.cows, hasLength(3));
+      expect(s.cows, hasLength(5));
       expect(s.cows[1].bull, isTrue);
       expect(s.cows[2].stage, CowStage.calf);
       expect(s.upgrades[UpgradeKind.fresh]!.cost, isNull);
       expect(s.upgrades[UpgradeKind.bucket]!.cost, 200);
-      expect(s.calfPrice(CowType.beef), 1000);
+      expect(s.calfPrice(CowType.beef), 900);
       expect(s.upgrades[UpgradeKind.bucket]!.next, 36);
       expect(s.codex, {(type: CowType.dairy, tier: 0), (type: CowType.dual, tier: 1)});
       expect(s.warehouse.milkTotal, 150.5);
       expect(s.warehouse.worstFreshness, 0.8);
+    });
+
+    test('v0.2 欄位解析：田地、稻米、商店等級、借種、牛的狀態', () {
+      final s = GameState.fromJson(sampleStateJson(bullListed: true));
+      expect(s.warehouse.riceTotal, 20);
+      expect(s.warehouse.total(Commodity.rice), 20);
+      expect(s.fields, hasLength(2));
+      expect(s.fields[0].cowId, 4);
+      expect(s.fields[1].empty, isTrue);
+      expect(s.rice.stock, 20);
+      expect(s.shopGrades.map((g) => g.grade), ['A', 'B', 'C']);
+      expect(s.gradePrice('B'), 1700);
+      expect(s.stud.prices, [300, 800, 2000, 5000]);
+      expect(s.stud.listings.single.isMine, isTrue);
+      expect(s.upgrades[UpgradeKind.field]!.maxLevel, 12);
+      final ox = s.cowById('4')!;
+      expect(ox.working, isTrue);
+      expect(ox.fieldIndex, 0);
+      expect(ox.canShipAt(t0), isFalse);
+      expect(ox.canBreedAt(t0), isFalse);
+      expect(s.cowById('5')!.bred, isTrue);
+      expect(s.cowById('2')!.listed, isTrue);
+      expect(s.cowById('1')!.gradeProbs!['A'], closeTo(0.137323, 1e-9));
+      expect(s.cowById('1')!.milker, isTrue);
+      expect(s.cowById('2')!.milker, isFalse);
+    });
+
+    test('出貨、商店、借種的回應', () {
+      final ship = ShipResult.fromJson({
+        'cow_id': 1,
+        'grade': 'C',
+        'grade_probs': {'A': 0.15, 'B': 0.49, 'C': 0.36},
+        'beef': {'qty': 40.4, 'grade': 'C', 'value_estimate': 375},
+      });
+      expect(ship.grade, 'C');
+      expect(ship.valueEstimate, 375);
+      final prev = ShipPreview.fromJson({
+        'grade_probs': {'A': 0.1, 'B': 0.5, 'C': 0.4},
+        'value_by_grade': {'A': 625, 'B': 500, 'C': 375},
+        'expected_value': 475,
+        'can_ship': false,
+        'blockers': [
+          {'code': 'cow_in_field', 'message': '牛在田裡工作'},
+        ],
+      });
+      expect(prev.valueByGrade['B'], 500);
+      expect(prev.canShip, isFalse);
+      expect(prev.blockers, ['牛在田裡工作']);
+      final stud = BreedPreview.fromJson({
+        'price': 800,
+        'tier_probs': [1.0, 0, 0, 0],
+        'type_probs': {'dairy': 0.5, 'dual': 0.5, 'beef': 0.0},
+        'bull_prob': 0.5,
+        'can_borrow': false,
+        'blockers': [
+          {'code': 'not_enough_coins', 'message': '金幣不夠'},
+        ],
+      });
+      expect(stud.fee, 800);
+      expect(stud.canBreed, isFalse);
+      expect(stud.typeProbs[CowType.dual], 0.5);
+      final push = PushMessage.fromJson({'type': 'stud', 'event': 'borrowed', 'listing_id': 4, 'cow_id': 2, 'price': 800});
+      expect(push, isA<StudPush>());
+      expect((push as StudPush).price, 800);
     });
 
     test('另一種寫法也讀得懂（規格表的簡寫）', () {

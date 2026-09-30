@@ -101,6 +101,7 @@ class WarehouseCard extends StatelessWidget {
             Text(S.warehouseMilk(fmtNum(w.milkTotal), fmtInt(w.capacity), w.milkLots.length), key: const Key('wh-milk')),
             if (fresh != null) Text(S.warehouseFresh(fmtPlainPct(fresh)), style: Theme.of(context).textTheme.bodySmall),
             Text(S.warehouseBeef(fmtNum(w.beefTotal), w.beefLots.length), key: const Key('wh-beef')),
+            Text(S.warehouseRice(fmtNum(w.riceTotal), w.riceLots.length), key: const Key('wh-rice')),
           ],
         ),
       ),
@@ -135,11 +136,12 @@ class CowCard extends StatelessWidget {
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      '${tierName(cow.tier)}　'
-                      '${cow.bull || cow.stage == CowStage.calf ? S.noMilk : S.milkRate(fmtNum(cow.milkPerH))}　'
-                      '${S.weight(fmtInt(cow.weightKg))}',
-                    ),
+                    Text('${tierName(cow.tier)}　${cowOutput(cow)}　${S.weight(fmtInt(cow.weightKg))}'),
+                    if (cow.bred || cow.working || cow.listed)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Wrap(spacing: 4, children: [for (final b in cowBadges(cow)) StatusBadge(text: b)]),
+                      ),
                   ],
                 ),
               ),
@@ -169,6 +171,40 @@ class CowBlock extends StatelessWidget {
       ),
       alignment: Alignment.center,
       child: Text('${typeName(cow.type)}\n${sexName(cow.bull)}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 11)),
+    );
+  }
+}
+
+/// 牛現在的產出：母乳牛產奶、在田裡的耕牛產稻米，其他不產奶。
+String cowOutput(Cow c) {
+  if (c.milker && c.stage != CowStage.calf) return S.milkRate(fmtNum(c.milkPerH));
+  if (c.working) return S.ricePerHour(fmtNum(c.ricePerH));
+  return S.noMilk;
+}
+
+/// 牛的狀態標籤：已配種、工作中、上架中。
+List<String> cowBadges(Cow c) => [
+  if (c.bred) S.badgeBred,
+  if (c.working) S.badgeWorking,
+  if (c.listed) S.badgeListed,
+];
+
+/// 小標籤（色塊＋文字）。
+class StatusBadge extends StatelessWidget {
+  const StatusBadge({super.key, required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (text) {
+      S.badgeWorking => Palette.working,
+      S.badgeListed => Palette.listed,
+      _ => Palette.unknown,
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      color: color,
+      child: Text(text, style: const TextStyle(fontSize: 12)),
     );
   }
 }

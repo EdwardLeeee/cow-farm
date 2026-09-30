@@ -25,7 +25,8 @@ class ActionResult<T> {
 }
 
 /// 分頁順序。
-enum AppTab { ranch, market, breed, shop, codex, rank }
+/// 底部分頁。配種裡有「自己配種／借種」，紀錄裡有「圖鑑／排行榜」。
+enum AppTab { ranch, market, fields, breed, shop, records }
 
 /// 整個 app 的狀態（ChangeNotifier）。
 ///
@@ -56,6 +57,10 @@ class GameModel extends ChangeNotifier {
   final Duration? uiTick;
 
   StreamSubscription<PushMessage>? _pushSub;
+  final _notices = StreamController<String>.broadcast();
+
+  /// 要跳出來提示玩家的訊息（例如有人借了你的公牛）。
+  Stream<String> get notices => _notices.stream;
   Timer? _stateTimer;
   Timer? _marketTimer;
   bool _disposed = false;
@@ -189,8 +194,9 @@ class GameModel extends ChangeNotifier {
       final m = await api.market();
       // 保留推播來的較新新聞
       market = m;
-      history[(Commodity.milk, '1d')] ??= m.recent[Commodity.milk] ?? const [];
-      history[(Commodity.beef, '1d')] ??= m.recent[Commodity.beef] ?? const [];
+      for (final c in Commodity.values) {
+        history[(c, '1d')] ??= m.recent[c] ?? const [];
+      }
       _httpOk = true;
     } on ApiException {
       // 忽略
@@ -235,6 +241,10 @@ class GameModel extends ChangeNotifier {
         } else if (api.token != null) {
           push.connect(api.token!); // 已經換過 token 了
         }
+      case StudPush(:final price):
+        // 有人借了我上架的公牛：提示一則，並重抓 state（金幣、公牛狀態都變了）。
+        _notices.add(S.studBorrowedNotice(price.round().toString()));
+        refreshState();
       case NewsPush(:final item):
         final m = market;
         if (m != null && !m.news.any((n) => n.id == item.id)) {
@@ -335,14 +345,33 @@ class GameModel extends ChangeNotifier {
     return r;
   }
 
-  Future<ActionResult<Map<String, dynamic>>> ship(Cow cow) async {
+  Future<ActionResult<ShipResult>> ship(Cow cow) async {
     final r = await _act(() => api.ship(cow.id));
     if (r.ok && detailCowKey == cow.key) detailCowKey = null;
     _notify();
     return r;
   }
 
-  Future<ActionResult<Map<String, dynamic>>> buyCalf(CowType type, bool bull) => _act(() => api.buyCalf(type, bull));
+  /// 商店抽牛（v0.2）。
+  Future<ActionResult<ShopBuyResult>> shopBuy(String grade) => _act(() => api.shopBuy(grade));
+
+  Future<ActionResult<Map<String, dynamic>>> fieldAssign(Cow cow, {int? field}) =>
+      _act(() => api.fieldAssign(cow.id, field: field));
+  Future<ActionResult<Map<String, dynamic>>> fieldRecall(Cow cow) => _act(() => api.fieldRecall(cow.id));
+  Future<ActionResult<Map<String, dynamic>>> fieldHarvest() => _act(api.fieldHarvest);
+  Future<ActionResult<Map<String, dynamic>>> fieldExpand() => _act(api.fieldExpand);
+
+  Future<ActionResult<Map<String, dynamic>>> studList(Cow bull, double price) => _act(() => api.studList(bull.id, price));
+  Future<ActionResult<Map<String, dynamic>>> studUnlist(Object listingId) => _act(() => api.studUnlist(listingId));
+
+  Future<ActionResult<BreedResult>> studBorrow(StudListing listing, Cow dam) async {
+    final r = await _act(() => api.studBorrow(listing.id, dam.id));
+    if (r.ok) {
+      lastCalfKey = r.value?.calf?.key;
+      _notify();
+    }
+    return r;
+  }
 
   Future<ActionResult<BreedResult>> breed(Cow sire, Cow dam) async {
     final r = await _act(() => api.breed(sire.id, dam.id));
@@ -381,6 +410,18 @@ class GameModel extends ChangeNotifier {
 
   Future<Leaderboard?> leaderboard(RankKind kind) => _read(() => api.leaderboard(kind));
 
+  Future<ShipPreview?> shipPreview(Cow cow) => _read(() => api.shipPreview(cow.id));
+  Future<ShopInfo?> shopInfo() => _read(api.shop);
+  Future<StudMarket?> studMarket() => _read(api.stud);
+  Future<BreedPreview?> studPreview(StudListing listing, Cow dam) => _read(() => api.studPreview(listing.id, dam.id));
+
+  /// 田裡現在大概有多少稻米（顯示用推算，長滿就停）。
+  double fieldRiceNow(FieldInfo f) {
+    final s = state;
+    if (s == null) return f.rice;
+    return f.riceAfter(gameNow - s.serverTime);
+  }
+
   Future<void> loadHistory(Commodity c, String range) async {
     final pts = await _read(() => api.marketHistory(c, range));
     if (pts != null) {
@@ -401,6 +442,7 @@ class GameModel extends ChangeNotifier {
     _pushSub?.cancel();
     push.connected.removeListener(_onConnectedChanged);
     push.close();
+    _notices.close();
     super.dispose();
   }
 }

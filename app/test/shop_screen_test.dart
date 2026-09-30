@@ -8,54 +8,67 @@ FilledButton _btn(WidgetTester tester, String key) => tester.widget<FilledButton
   find.descendant(of: find.byKey(Key(key)), matching: find.byType(FilledButton)),
 );
 
+Future<void> _openShop(WidgetTester tester, GameModel m) async {
+  await pumpApp(tester, m);
+  m.selectTab(AppTab.shop);
+  await tester.pump();
+  await tester.pump(); // 等 GET /v1/shop
+}
+
 void main() {
-  testWidgets('商店：六種小牛與四項升級，顯示費用；錢不夠或滿級就停用', (tester) async {
+  testWidgets('商店（S19）：三個等級，各自顯示價格與用途、公母、稀有度機率', (tester) async {
     final (m, api, _) = await loadedModel();
-    await pumpApp(tester, m);
-    m.selectTab(AppTab.shop);
-    await tester.pump();
+    await _openShop(tester, m);
+    expect(api.calls, contains('shop'));
+    expect(find.text('買 A 級（3,200 幣）'), findsOneWidget);
+    expect(find.text('買 B 級（1,700 幣）'), findsOneWidget);
+    expect(find.text('買 C 級（900 幣）'), findsOneWidget);
+    // 金幣 1,500：只買得起 C
+    expect(_btn(tester, 'buy-grade-A').onPressed, isNull);
+    expect(_btn(tester, 'buy-grade-B').onPressed, isNull);
+    expect(_btn(tester, 'buy-grade-C').onPressed, isNotNull);
+    expect(find.text('用途：乳牛 45.0%、耕牛 27.5%、肉牛 27.5%'), findsNWidgets(3));
+    expect(find.text('公母：公 50.0%、母 50.0%'), findsNWidgets(3));
+    expect(find.text('稀有度：一般 90.0%、優良 8.0%、稀有 1.5%、傳說 0.5%'), findsOneWidget); // C
+    expect(find.text('稀有度：一般 50.0%、優良 40.0%、稀有 7.5%、傳說 2.5%'), findsOneWidget); // A
+  });
 
-    for (final t in ['dairy', 'dual', 'beef']) {
-      for (final s in ['cow', 'bull']) {
-        expect(_btn(tester, 'buy-$t-$s').onPressed, isNotNull, reason: '$t $s');
-      }
-    }
-    expect(find.textContaining('1,000 幣'), findsNWidgets(6));
-    expect(_btn(tester, 'up-pen').onPressed, isNotNull);
-    expect(_btn(tester, 'up-bucket').onPressed, isNotNull);
-    expect(_btn(tester, 'up-warehouse').onPressed, isNull); // 5,000 > 1,500
-    expect(find.text('目前 0 級・容量 150 → 225・5,000 幣・金幣不夠'), findsOneWidget);
+  testWidgets('買 C 級之後顯示抽到的牛', (tester) async {
+    final (m, api, _) = await loadedModel();
+    await _openShop(tester, m);
+    await tester.tap(find.byKey(const Key('buy-grade-C')));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(api.calls, contains('shop-buy:C'));
+    expect(find.byKey(const Key('drawn-cow')), findsOneWidget);
+    expect(find.text('C 級抽到的牛'), findsOneWidget);
+    expect(find.text('肉牛・公・稀有（牛 #6）'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('drawn-ok')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('drawn-cow')), findsNothing);
+  });
+
+  testWidgets('升級：顯示效果與費用；錢不夠或滿級就停用', (tester) async {
+    final (m, api, _) = await loadedModel();
+    await _openShop(tester, m);
+    await tester.scrollUntilVisible(find.byKey(const Key('up-fresh')), 200);
+    expect(find.text('目前 1 級・6 → 7 格・420 幣'), findsOneWidget);
     expect(find.text('目前 0 級・容量 24 → 36・200 幣'), findsOneWidget);
-    expect(find.text('目前 1 級・4 → 5 格・420 幣'), findsOneWidget);
-    expect(_btn(tester, 'up-fresh').onPressed, isNull); // 已滿級
+    expect(find.text('目前 0 級・容量 150 → 225・5,000 幣・金幣不夠'), findsOneWidget);
     expect(find.text('目前 4 級・已滿級'), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('buy-beef-bull')));
-    await tester.pump();
-    await tester.pump();
-    expect(api.calls, contains('buy:beef:true'));
-
+    expect(_btn(tester, 'up-warehouse').onPressed, isNull);
+    expect(_btn(tester, 'up-fresh').onPressed, isNull);
     await tester.tap(find.byKey(const Key('up-bucket')));
     await tester.pump();
     await tester.pump();
     expect(api.calls, contains('upgrade:bucket'));
   });
 
-  testWidgets('錢不夠買小牛', (tester) async {
-    final (m, _, _) = await loadedModel(api: FakeGameApi(state: sampleStateJson(coins: 500)));
-    await pumpApp(tester, m);
-    m.selectTab(AppTab.shop);
-    await tester.pump();
-    expect(_btn(tester, 'buy-dairy-cow').onPressed, isNull);
-    expect(_btn(tester, 'up-bucket').onPressed, isNotNull); // 200 買得起
-  });
-
-  testWidgets('牛舍滿了不能買小牛', (tester) async {
-    final (m, _, _) = await loadedModel(api: FakeGameApi(state: sampleStateJson(penFull: true)));
-    await pumpApp(tester, m);
-    m.selectTab(AppTab.shop);
-    await tester.pump();
-    expect(_btn(tester, 'buy-dairy-cow').onPressed, isNull);
+  testWidgets('牛舍滿了不能買', (tester) async {
+    final (m, _, _) = await loadedModel(api: FakeGameApi(state: sampleStateJson(penFull: true, coins: 9999)));
+    await _openShop(tester, m);
+    expect(_btn(tester, 'buy-grade-C').onPressed, isNull);
     expect(find.text('牛舍滿了，先擴建或出貨'), findsOneWidget);
   });
 }

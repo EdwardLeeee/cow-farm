@@ -27,4 +27,14 @@ class Palette {
   static const warn = Color(0xFFE65100);
   static const card = Color(0xFFF5F5F5);
   static const unknown = Color(0xFFBDBDBD);
+  static const working = Color(0xFFC5E1A5); // 在田裡工作
+  static const listed = Color(0xFFFFCC80); // 借種上架中
+  static const rice = Color(0xFFE6EE9C); // 稻田
+
+  /// 評級色塊（A／B／C）。
+  static Color grade(String g) => switch (g) {
+    'A' => const Color(0xFFFFD54F),
+    'B' => const Color(0xFFB0BEC5),
+    _ => const Color(0xFFBCAAA4),
+  };
 }
