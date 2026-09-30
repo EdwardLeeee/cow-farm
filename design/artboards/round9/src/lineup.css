@@ -1,0 +1,16 @@
+/* 品種排排站面板：沿用 R1-A 的卡片語言（可可色粗描邊、奶油色底、實心下陰影） */
+body { background: #EEF6E6; color: #4B3326; }
+.panel { width: 720px; height: 900px; padding: 14px 14px 18px; display: flex; flex-direction: column; gap: 14px; }
+.sec { background: #FFFBF3; border: 3px solid #4B3326; border-radius: 22px; box-shadow: 0 4px 0 #4B3326; padding: 10px 14px 12px; }
+.sec.grow { flex: 1; display: flex; flex-direction: column; justify-content: space-evenly; }
+.sec-head { display: flex; align-items: baseline; gap: 10px; margin: 0 2px 4px; }
+.sec-title { font-size: 17px; font-weight: 900; line-height: 22px; }
+.sec-sub { font-size: 13px; font-weight: 700; color: #8A6F60; line-height: 18px; }
+.row { display: flex; justify-content: space-around; align-items: flex-end; background: linear-gradient(#EEF5FA 62%, #EAF7E1 62%); border-radius: 16px; padding: 2px 4px 4px; }
+.row.sil { background: none; border-bottom: 2px solid #C9B8A8; border-radius: 0; padding-bottom: 2px; }
+.fig { margin: 0; display: flex; flex-direction: column; align-items: center; }
+.row.sil .fig { min-width: 64px; }
+.fig svg { display: block; }
+.name { font-size: 14px; font-weight: 900; line-height: 21px; white-space: nowrap; margin-top: 1px; }
+.sname { font-size: 12px; font-weight: 700; line-height: 18px; white-space: nowrap; color: #6B5345; margin-top: 3px; }
+.sec-sub2 { font-size: 13px; font-weight: 700; color: #8A6F60; line-height: 18px; margin: 0 2px 2px; }
