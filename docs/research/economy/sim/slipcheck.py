@@ -12,6 +12,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent.parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
+import sim  # noqa: E402,F401  （把 backend/ 加進 sys.path；cowecon 在 backend/cowecon/）
 
 from cowecon import market as M  # noqa: E402
 from sim.world import World  # noqa: E402

@@ -16,6 +16,7 @@ from typing import Dict, List, Optional
 HERE = Path(__file__).resolve().parent.parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
+import sim  # noqa: E402,F401  （把 backend/ 加進 sys.path；cowecon 在 backend/cowecon/）
 
 from cowecon.params import DEFAULT, HOUR  # noqa: E402
 from sim import scenarios as S  # noqa: E402

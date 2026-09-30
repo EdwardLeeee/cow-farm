@@ -15,6 +15,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent.parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
+import sim  # noqa: E402,F401  （把 backend/ 加進 sys.path；cowecon 在 backend/cowecon/）
 
 from cowecon import DEFAULT, HOUR, Exchange, Farm  # noqa: E402
 from cowecon.farm import Cow, shop_genotype  # noqa: E402
