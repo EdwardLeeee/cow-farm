@@ -1,0 +1,16 @@
+{
+  "name": "cow-farm-artboards-round11",
+  "private": true,
+  "version": "0.0.0",
+  "description": "R11 v0.2 新品種名單、粉紅圓乳房三種大小、和牛加短角、黑牛炭灰：獨立 HTML mockup 與出圖腳本",
+  "type": "module",
+  "scripts": {
+    "capture": "node harness/capture.mjs",
+    "compose": "node harness/compose.mjs",
+    "build": "node harness/capture.mjs && node harness/compose.mjs",
+    "serve": "node harness/serve.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.0"
+  }
+}

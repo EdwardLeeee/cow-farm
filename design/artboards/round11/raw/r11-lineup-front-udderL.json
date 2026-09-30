@@ -1,0 +1,158 @@
+{
+  "job": "r11-lineup-front-udderL",
+  "page": "src/lineup.html?v=udderL&view=front",
+  "browser": "chromium 151.0.7922.34",
+  "device": {
+    "viewport": {
+      "width": 720,
+      "height": 1200
+    },
+    "deviceScaleFactor": 3,
+    "isMobile": true,
+    "hasTouch": true,
+    "locale": "zh-TW",
+    "colorScheme": "light",
+    "reducedMotion": "reduce"
+  },
+  "errors": [],
+  "lang": "zh-Hant-TW",
+  "minFontSize": 12,
+  "texts": [
+    {
+      "text": "正面（停下來、被點到、奶桶滿了，照 9967）",
+      "fontSize": 17
+    },
+    {
+      "text": "乳房：大（直徑約身體寬的 36%）・12 頭同一比例（兩塊面板也同一比例）",
+      "fontSize": 13
+    },
+    {
+      "text": "乳牛",
+      "fontSize": 12
+    },
+    {
+      "text": "荷斯坦",
+      "fontSize": 14
+    },
+    {
+      "text": "荷斯坦公牛",
+      "fontSize": 14
+    },
+    {
+      "text": "荷斯坦小牛",
+      "fontSize": 14
+    },
+    {
+      "text": "乳牛（稀有）",
+      "fontSize": 12
+    },
+    {
+      "text": "娟珊",
+      "fontSize": 14
+    },
+    {
+      "text": "巧克力牛",
+      "fontSize": 14
+    },
+    {
+      "text": "草莓牛",
+      "fontSize": 14
+    },
+    {
+      "text": "耕牛",
+      "fontSize": 12
+    },
+    {
+      "text": "台灣黃牛",
+      "fontSize": 14
+    },
+    {
+      "text": "高地牛",
+      "fontSize": 14
+    },
+    {
+      "text": "台灣水牛",
+      "fontSize": 14
+    },
+    {
+      "text": "肉牛",
+      "fontSize": 12
+    },
+    {
+      "text": "安格斯",
+      "fontSize": 14
+    },
+    {
+      "text": "和牛",
+      "fontSize": 14
+    },
+    {
+      "text": "夏洛來",
+      "fontSize": 14
+    },
+    {
+      "text": "剪影",
+      "fontSize": 17
+    },
+    {
+      "text": "塗黑、同一比例，只看體型",
+      "fontSize": 13
+    },
+    {
+      "text": "荷斯坦",
+      "fontSize": 12
+    },
+    {
+      "text": "荷斯坦公牛",
+      "fontSize": 12
+    },
+    {
+      "text": "荷斯坦小牛",
+      "fontSize": 12
+    },
+    {
+      "text": "娟珊",
+      "fontSize": 12
+    },
+    {
+      "text": "巧克力牛",
+      "fontSize": 12
+    },
+    {
+      "text": "草莓牛",
+      "fontSize": 12
+    },
+    {
+      "text": "台灣黃牛",
+      "fontSize": 12
+    },
+    {
+      "text": "高地牛",
+      "fontSize": 12
+    },
+    {
+      "text": "台灣水牛",
+      "fontSize": 12
+    },
+    {
+      "text": "安格斯",
+      "fontSize": 12
+    },
+    {
+      "text": "和牛",
+      "fontSize": 12
+    },
+    {
+      "text": "夏洛來",
+      "fontSize": 12
+    }
+  ],
+  "outside": [],
+  "clipped": [],
+  "figOverflow": 0,
+  "silNameOverlap": 0,
+  "horizontalScroll": false,
+  "verticalOverflow": false,
+  "view": "front",
+  "calfRatio": 0.577
+}
