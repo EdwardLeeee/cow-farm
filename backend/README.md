@@ -1,0 +1,126 @@
+# cow-farm 伺服器（M1 連線原型）
+
+FastAPI + PostgreSQL 17。規格：[`docs/design/m1-prototype.md`](../docs/design/m1-prototype.md)；協定（app 照這份寫）：[`docs/protocol.md`](../docs/protocol.md)。
+
+| 路徑 | 內容 |
+|---|---|
+| `cowecon/` | 經濟引擎（行情與牧場規則，只用標準函式庫）。從 `docs/research/economy/cowecon/` 搬來，只保留這一份；研究模擬也 import 這一份。 |
+| `server/game.py` | 服務層：收奶、賣出、出貨、買小牛、配種、升級。**真人（API）和電腦假玩家呼叫同一組函式。** |
+| `server/bots.py` | 假玩家策略 S1–S4（S5 大戶只給測試），照 `docs/research/economy/sim/bots.py` 移植。 |
+| `server/runtime.py` | 遊戲時鐘、市場 tick、假玩家排程、存檔與 request_id 防重送、WebSocket 推播、重啟回復。 |
+| `server/app.py` | HTTP／WebSocket 端點、錯誤格式、網頁版靜態檔。 |
+| `server/store.py` | PostgreSQL 表與存取。 |
+| `server/data/ranch_words.json` | 牧場名詞庫（3 組 × 12 詞）。 |
+| `scripts/pg.sh` | PostgreSQL 容器（rootless podman）的啟停。 |
+| `scripts/serve.sh` | 在背景啟動／停止伺服器。 |
+| `tests/` | pytest：存檔回復、經濟情境、協定、重啟回復。 |
+
+## 1. 安裝（第一次）
+
+需要 Python 3.10、podman（rootless）。套件裝在 `backend/.venv`（已被 .gitignore 排除），不裝到系統。
+
+```bash
+cd backend
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+```
+
+## 2. PostgreSQL
+
+**記憶體安全**（這台電腦 2026-09-30 因記憶體耗盡當機過）：先看 `free -m`，available 少於 2000 MB 就等一下。`pg.sh up` 也會檢查（加 `--force` 可以略過）。
+
+```bash
+free -m
+scripts/pg.sh up        # 第一次：產生密碼檔、建立容器 cowfarm-pg 與資料卷 cowfarm-pgdata；之後：啟動既有容器
+scripts/pg.sh status    # 狀態與記憶體
+scripts/pg.sh stop      # 停止（資料留著；再 up 就回來）
+scripts/pg.sh psql      # 進資料庫
+scripts/pg.sh dump cowfarm.dump   # 線上備份（在容器裡跑 pg_dump；主機的 pg_dump 14 不能備份 17）
+scripts/pg.sh destroy   # 刪除容器、資料卷與密碼檔（所有遊戲資料消失；要輸入 DESTROY）
+```
+
+- 容器：`postgres:17`，`--memory 256m`，`--network host`，只聽 `127.0.0.1:55433`（不對區網開放）。
+- 密碼：每台電腦第一次 `up` 時隨機產生，存在 `~/.config/cow-farm/pg.env`（權限 600，不進 repo）。伺服器自己會讀這個檔；也可以用環境變數 `COWFARM_PG_DSN` 指定別的資料庫。
+- 密碼只在第一次建立資料卷時設定。如果資料卷還在、密碼檔不見了，`up` 會停下來：找回 `pg.env`，或 `destroy` 重來。
+
+## 3. 啟動伺服器
+
+伺服器聽 `0.0.0.0:8787`，同一個 Wi-Fi 的 iPhone 可以連進來。
+
+```bash
+# 試玩：倍率 144（遊戲 1 天 = 現實 10 分鐘），在背景跑，記憶體限制 1500 MB
+scripts/serve.sh start 144
+scripts/serve.sh status   # PID、記憶體、/healthz
+scripts/serve.sh logs     # 最後 50 行日誌（~/.cache/cow-farm/server.log）
+scripts/serve.sh stop     # 用 PID 停止
+
+# 或在前景跑（Ctrl-C 停止）
+COWFARM_TIME_SCALE=144 systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 .venv/bin/python -m server
+```
+
+加上網頁版（`app/build/web` 由 app 那邊用 `flutter build web` 產生；資料夾不存在時伺服器照常啟動，只是 `/` 沒有網頁）：
+
+```bash
+COWFARM_WEB_DIR=$PWD/../app/build/web scripts/serve.sh start 144
+```
+
+iPhone 在同一個 Wi-Fi 用 Safari 開 `http://<這台電腦的區網 IP>:8787/`（`serve.sh start` 會印出來）。
+網頁資料夾只在伺服器啟動時掛上：`flutter build web` 是在伺服器啟動之後才做的話，要 `serve.sh stop` 再 `start` 一次。
+
+| 環境變數 | 預設 | 說明 |
+|---|---|---|
+| `COWFARM_TIME_SCALE` | 1 | 遊戲時間倍率；試玩 144 |
+| `COWFARM_WEB_DIR` | 無 | Flutter 網頁版的資料夾，在 `/` 提供 |
+| `COWFARM_BOTS` | 30 | 電腦假玩家數（只會增加，不會刪） |
+| `COWFARM_PORT`／`COWFARM_HOST` | 8787／0.0.0.0 | |
+| `COWFARM_PG_DSN` | 讀 `~/.config/cow-farm/pg.env` | 資料庫 |
+| `COWFARM_SEED`、`COWFARM_GAME_START` | 隨機、現在 | 只在第一次建立世界時用（測試用） |
+
+啟動時日誌會印 `cowecon 參數指紋 c07566a5d81d7eec`：和經濟研究筆記相同，代表用的是模擬驗證過的那一份參數。
+
+### 遊戲時間與重啟
+
+- 遊戲時間 = 開服遊戲時間 + (現實時間 − 開服現實時間) × 倍率；市場每遊戲分鐘 tick 一次。
+- **伺服器關著時遊戲時間暫停**，重啟後從上次存下的時間接著走。試玩時晚上關機，隔天牧場不會一下子老 48 遊戲天。正式上線（倍率 1）應該照真實時間走，M3 再改。
+- 強制終止（`kill -9`、當機）也不會丟已經回覆給手機的動作：每個動作回覆前已經寫進資料庫；市場狀態每個 tick 存一次，之後的成交照序號重建。
+- 正常停止（`serve.sh stop`）會存下關機那一刻的遊戲時間；強制終止時從最後一個 tick 或動作接著走，所以重啟後的遊戲時間可能比斷線前最後看到的早一點（最多 1 遊戲分鐘），牧場狀態不受影響。
+
+### 原型規則（試玩後再定）
+
+- **出貨後的牛肉放在倉庫**，之後再用賣出賣掉（規格如此；經濟引擎原本是出貨即賣出）。倉庫裡的牛肉 24 遊戲小時內價值不變，之後 96 小時降到 6 成，之後維持 6 成；不佔牛奶倉庫的容量，不設上限。ceo 2026-09-30 核准為原型規則，冷凍庫容量與牛肉新鮮度的正式數字等使用者試玩後再定。
+- 假玩家出貨後立刻賣，所以結果和研究模擬完全相同。
+
+## 4. 測試
+
+```bash
+free -m    # available ≥ 2000 MB 再跑；試玩或長時間跑的時候用 scripts/pg.sh status 看 PostgreSQL 的記憶體（上限 256 MB，大部分是可回收的檔案快取）
+scripts/pg.sh up
+systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 .venv/bin/python -m pytest -q
+```
+
+約 2 分鐘。會建立 `cowfarm_test_*` 資料庫（每次重建），不會碰到試玩用的 `cowfarm` 資料庫；沒有資料庫時，需要資料庫的測試會 skip。
+
+| 檔案 | 測什麼 | 要資料庫 |
+|---|---|---|
+| `test_persist.py` | cowecon 各類別存檔回復；同一個 seed「跑一半存檔、回復、再跑」＝「一路跑到底」（每個數字） | 否 |
+| `test_scenarios.py` | 經濟情境在服務層重跑並達到筆記的目標；和研究模擬逐數字相同（見下） | 否 |
+| `test_api.py` | 協定欄位、request_id 防重送、錢不夠、牛不存在、冷卻中、還沒長大、牛舍滿、格式錯誤、WebSocket 與 4401 | 是 |
+| `test_recovery.py` | 當機回復逐數字相同；「跑一半當機再跑」＝「一路跑到底」；真的伺服器程序 SIGKILL 後重開 | 是 |
+
+經濟情境（`test_scenarios.py`，約 50 秒）的規模：10 人（seed 1–5）與 100 人（seed 1–3）各 30 天；大戶（100 人＋100 頭，倒貨／分批／一直囤）、大利多後恐慌賣（100 人）各 23 天；人少的一天（100 人）20 天。1,000 人 30 天約 40 秒，預設不跑（`COWFARM_SCENARIO_1000=1` 才跑）；1,000 人的大戶與 10,000 人沒有在服務層重跑。服務層和研究模擬同一個 seed 逐數字相同（有測試比對），所以筆記裡 1,000／10,000 人的數字同樣適用。
+
+研究模擬（`docs/research/economy/`）自己的 30 個測試照樣可以跑：
+
+```bash
+cd ../docs/research/economy && python3 -m unittest
+```
+
+## 5. 停止與清除
+
+```bash
+scripts/serve.sh stop      # 停伺服器（用 PID）
+scripts/pg.sh stop         # 停 PostgreSQL（資料留著）
+scripts/pg.sh destroy      # 全部清掉：容器、資料卷、密碼檔（要輸入 DESTROY）
+```
+
+只想重開一個新世界、保留容器：先停伺服器，`scripts/pg.sh psql postgres` 裡執行 `DROP DATABASE cowfarm WITH (FORCE); CREATE DATABASE cowfarm;`。測試資料庫 `cowfarm_test_*` 也可以這樣 DROP。

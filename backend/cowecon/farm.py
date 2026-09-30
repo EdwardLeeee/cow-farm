@@ -3,6 +3,14 @@
 時間用 Unix 秒；牛的年齡在函式內換成小時。所有產量都是封閉式積分，只在玩家上線或動到牛群時結算，
 所以離線多久都算得準，也不需要每分鐘跑每位玩家。
 
+M1 伺服器加的部分（模擬沒有用到，模擬結果不變）：
+- 出貨改成兩步：ship_to_storage() 把牛變成倉庫裡的牛肉批次，sell_beef() 再賣。牛肉批次沿用牛的肉質曲線
+  （放進去 beef_hold_h 內不變，之後 beef_decline_h 降到 beef_quality_min），不佔牛奶倉庫容量。
+  這是原型規則（ceo 2026-09-30 核准），試玩後再定。
+- sell_milk()／quote_milk()：照「最舊的先賣」賣指定數量，可以只賣一批的一部分。
+- bucket_preview()：不改狀態，算現在奶桶有多少（給畫面用）。
+- Cow、Lot、BeefLot、Farm 都有 to_dict()／from_dict()（純 JSON）。
+
 基因（整數位元）：4 個基因座，每座 2 個等位基因，佔 2 個位元。
 - 第 0 座「用途」：0 = 乳用 M、1 = 肉用 F。MM 乳用、MF 兼用、FF 肉用。
 - 第 1–3 座「稀有」A/B/C：1 = 隱性稀有。某座兩個都是 1（純合）就顯現該特徵；
@@ -126,6 +134,15 @@ class Cow:
     def adult_age_h(self, now: float) -> float:
         return (now - self.adult_at) / HOUR
 
+    def to_dict(self) -> dict:
+        return {"id": self.cid, "g": self.g, "bull": self.bull, "born_at": self.born_at, "adult_at": self.adult_at, "ready_at": self.ready_at}
+
+    @classmethod
+    def from_dict(cls, fp: FarmParams, d: dict) -> "Cow":
+        c = cls(d["id"], d["g"], d["bull"], d["born_at"], fp, adult_at=d["adult_at"])
+        c.ready_at = d["ready_at"]
+        return c
+
 
 # ---- 產奶 ----
 def milk_frac(fp: FarmParams, age_h: float) -> float:
@@ -186,6 +203,13 @@ def beef_quality(fp: FarmParams, cow: Cow, now: float) -> float:
     if a <= start:
         return 1.0
     return max(fp.beef_quality_min, 1.0 - (1.0 - fp.beef_quality_min) * (a - start) / fp.beef_decline_h)
+
+
+def beef_storage_factor(fp: FarmParams, age_h: float) -> float:
+    """倉庫裡的牛肉放了 age_h 小時後剩幾成價值（原型規則：沿用牛的肉質曲線）。"""
+    if age_h <= fp.beef_hold_h:
+        return 1.0
+    return max(fp.beef_quality_min, 1.0 - (1.0 - fp.beef_quality_min) * (age_h - fp.beef_hold_h) / fp.beef_decline_h)
 
 
 def beef_value_at_base(fp: FarmParams, cow: Cow, now: float, base_price: float) -> float:
@@ -249,6 +273,54 @@ class Lot:
         self.qty = qty
         self.t = t
 
+    def to_dict(self) -> list:
+        return [self.tier, self.qty, self.t]
+
+    @classmethod
+    def from_dict(cls, d: Sequence) -> "Lot":
+        return cls(d[0], d[1], d[2])
+
+
+class BeefLot:
+    """倉庫裡的一批牛肉（出貨一頭牛 = 一批）。mult = 出貨當下的肉質 × 稀有度倍率；qty 單位是公斤。"""
+
+    __slots__ = ("tier", "qty", "mult", "t", "cow_id")
+
+    def __init__(self, tier: int, qty: float, mult: float, t: float, cow_id: int = 0):
+        self.tier = tier
+        self.qty = qty
+        self.mult = mult
+        self.t = t
+        self.cow_id = cow_id
+
+    def to_dict(self) -> list:
+        return [self.tier, self.qty, self.mult, self.t, self.cow_id]
+
+    @classmethod
+    def from_dict(cls, d: Sequence) -> "BeefLot":
+        return cls(d[0], d[1], d[2], d[3], d[4] if len(d) > 4 else 0)
+
+
+def _fifo_take(lots: Sequence, qty: float) -> List[Tuple[object, float]]:
+    """最舊的先拿，湊到 qty：回傳 [(批次, 拿多少)]，最後一批可能只拿一部分。不改任何狀態。
+
+    差在 1e-9（相對）以內視為整批，這樣「把某幾批加起來的量」一定剛好拿到那幾批整批。
+    """
+    out: List[Tuple[object, float]] = []
+    rem = qty
+    tol = 1e-9 * max(1.0, qty)
+    for l in lots:
+        if rem <= tol:
+            break
+        if rem >= l.qty - tol:
+            out.append((l, l.qty))
+            rem -= l.qty
+        else:
+            out.append((l, rem))
+            rem = 0.0
+            break
+    return out
+
 
 # ---------------------------------------------------------------------------
 # 牧場
@@ -259,6 +331,7 @@ class Farm:
     __slots__ = (
         "p", "fp", "coins", "cows", "slots", "expansions", "bucket_level", "wh_level", "fresh_level",
         "bucket", "bucket_t", "lots", "created_at", "impact", "_next_cid", "first_breed_used", "log", "n_sales",
+        "beef_lots",
     )
 
     def __init__(self, params: EconomyParams, now: float, rng: random.Random):
@@ -274,6 +347,7 @@ class Farm:
         self.fresh_level = 0
         self.created_at = now
         self.lots: List[Lot] = []
+        self.beef_lots: List[BeefLot] = []  # M1：出貨後放在倉庫、還沒賣的牛肉
         self.impact = {"milk": ImpactState(), "beef": ImpactState()}
         self._next_cid = 1
         self.first_breed_used = False
@@ -321,9 +395,16 @@ class Farm:
 
     # ---- 奶桶：離線也會累積，滿了就停 ----
     def advance(self, now: float) -> None:
+        if now <= self.bucket_t:
+            return
+        self.bucket = self.bucket_preview(now)
+        self.bucket_t = now
+
+    def bucket_preview(self, now: float) -> List[float]:
+        """到 now 為止奶桶裡各稀有度的牛奶（瓶），不改狀態。advance() 用同一個算法。"""
         t0 = self.bucket_t
         if now <= t0:
-            return
+            return list(self.bucket)
         fp = self.fp
         ob = self.p.onboarding
         produced = [0.0, 0.0, 0.0, 0.0]
@@ -339,11 +420,12 @@ class Farm:
             produced[c.tier] += q
         total = sum(produced)
         room = self.bucket_capacity() - self.bucket_total()
+        out = list(self.bucket)
         if total > 0 and room > 0:
             scale = min(1.0, room / total)
             for i in range(4):
-                self.bucket[i] += produced[i] * scale
-        self.bucket_t = now
+                out[i] += produced[i] * scale
+        return out
 
     def collect(self, now: float) -> float:
         """奶桶 → 倉庫。倉庫放不下的留在奶桶。回傳收了幾瓶。"""
@@ -406,6 +488,34 @@ class Farm:
                 break
         return earned
 
+    def _milk_parts(self, qty: float, now: float) -> List[Tuple[Lot, float]]:
+        return _fifo_take(self.lots, qty)
+
+    def quote_milk(self, market: Market, qty: float, now: float) -> SaleResult:
+        """試算從倉庫賣 qty 瓶（最舊的先賣），不改狀態。已經壞掉的牛奶不算（賣之前會先丟掉）。"""
+        fresh = [l for l in self.lots if freshness(self.fp, (now - l.t) / HOUR, self.fresh_level) > 0.0]
+        parts = [(q, self.lot_mult(l, now)) for l, q in _fifo_take(fresh, qty)]
+        return market.quote(self.impact["milk"], parts, now)
+
+    def sell_milk(self, market: Market, qty: float, now: float) -> SaleResult:
+        """從倉庫賣 qty 瓶（最舊的先賣，最後一批可以只賣一部分）。整批時和 sell_lots 完全相同。"""
+        taken = self._milk_parts(qty, now)
+        parts = [(q, self.lot_mult(l, now)) for l, q in taken]
+        res = market.execute_sale(self.impact["milk"], parts, now)
+        whole = set()
+        for l, q in taken:
+            if q >= l.qty:
+                whole.add(id(l))
+            else:
+                l.qty -= q
+        self.lots = [l for l in self.lots if id(l) not in whole]
+        coins = round(res.proceeds)
+        self.coins += coins
+        if res.units > 0:
+            self.n_sales += 1
+        self._record(now, "milk", coins, res.units)
+        return res
+
     # ---- 出貨 ----
     def ship(self, cow: Cow, market: Market, now: float) -> Optional[SaleResult]:
         """出貨一頭成年牛換牛肉收入。"""
@@ -433,6 +543,48 @@ class Farm:
             self.cows.remove(c)
         coins = round(res.proceeds)
         self.coins += coins
+        self._record(now, "beef", coins, res.units)
+        return res
+
+    def ship_to_storage(self, cow: Cow, now: float) -> Optional[BeefLot]:
+        """M1 的出貨：成年牛 → 倉庫裡的一批牛肉（還沒賣）。之後用 sell_beef 賣。"""
+        if cow not in self.cows or not cow.is_adult(now):
+            return None
+        self.advance(now)  # 先把這頭牛到現在為止的產奶結算進奶桶
+        w = beef_weight(self.fp, cow, now)
+        mult = beef_quality(self.fp, cow, now) * self.fp.tier_mult[cow.tier]
+        lot = BeefLot(cow.tier, w, mult, now, cow.cid)
+        self.cows.remove(cow)
+        self.beef_lots.append(lot)
+        self._record(now, "ship", 0.0, w)
+        return lot
+
+    def beef_lot_mult(self, lot: BeefLot, now: float) -> float:
+        return lot.mult * beef_storage_factor(self.fp, (now - lot.t) / HOUR)
+
+    def beef_stock(self) -> float:
+        return sum(l.qty for l in self.beef_lots)
+
+    def quote_beef(self, market: Market, qty: float, now: float) -> SaleResult:
+        parts = [(q, self.beef_lot_mult(l, now)) for l, q in _fifo_take(self.beef_lots, qty)]
+        return market.quote(self.impact["beef"], parts, now)
+
+    def sell_beef(self, market: Market, qty: float, now: float) -> SaleResult:
+        """從倉庫賣 qty 公斤牛肉（最舊的先賣）。出貨當下立刻全部賣掉時，和 ship_many 完全相同。"""
+        taken = _fifo_take(self.beef_lots, qty)
+        parts = [(q, self.beef_lot_mult(l, now)) for l, q in taken]
+        res = market.execute_sale(self.impact["beef"], parts, now)
+        whole = set()
+        for l, q in taken:
+            if q >= l.qty:
+                whole.add(id(l))
+            else:
+                l.qty -= q
+        self.beef_lots = [l for l in self.beef_lots if id(l) not in whole]
+        coins = round(res.proceeds)
+        self.coins += coins
+        if res.units > 0:
+            self.n_sales += 1
         self._record(now, "beef", coins, res.units)
         return res
 
@@ -546,9 +698,63 @@ class Farm:
         for l in self.lots:
             v += l.qty * milk_price * self.lot_mult(l, now)
         v += sum(q * milk_price * self.fp.tier_mult[i] for i, q in enumerate(self.bucket))
+        for bl in self.beef_lots:
+            v += bl.qty * beef_price * self.beef_lot_mult(bl, now)
         for c in self.cows:
             if c.is_adult(now):
                 v += beef_weight(self.fp, c, now) * beef_quality(self.fp, c, now) * self.fp.tier_mult[c.tier] * beef_price
             else:
                 v += self.fp.calf_price
         return v
+
+    # ---- 存檔與回復 ----
+    def to_dict(self) -> dict:
+        """完整狀態（純 JSON）。log（模擬用的帳本）不存。"""
+        return {
+            "coins": self.coins,
+            "cows": [c.to_dict() for c in self.cows],
+            "slots": self.slots,
+            "expansions": self.expansions,
+            "bucket_level": self.bucket_level,
+            "wh_level": self.wh_level,
+            "fresh_level": self.fresh_level,
+            "bucket": list(self.bucket),
+            "bucket_t": self.bucket_t,
+            "lots": [l.to_dict() for l in self.lots],
+            "beef_lots": [l.to_dict() for l in self.beef_lots],
+            "created_at": self.created_at,
+            "impact": {k: v.to_dict() for k, v in self.impact.items()},
+            "next_cid": self._next_cid,
+            "first_breed_used": self.first_breed_used,
+            "n_sales": self.n_sales,
+        }
+
+    @classmethod
+    def from_dict(cls, params: EconomyParams, d: dict) -> "Farm":
+        f = cls.__new__(cls)
+        f.p = params
+        fp = f.fp = params.farm
+        f.coins = d["coins"]
+        f.cows = [Cow.from_dict(fp, c) for c in d["cows"]]
+        f.slots = d["slots"]
+        f.expansions = d["expansions"]
+        f.bucket_level = d["bucket_level"]
+        f.wh_level = d["wh_level"]
+        f.fresh_level = d["fresh_level"]
+        f.bucket = list(d["bucket"])
+        f.bucket_t = d["bucket_t"]
+        f.lots = [Lot.from_dict(x) for x in d["lots"]]
+        f.beef_lots = [BeefLot.from_dict(x) for x in d.get("beef_lots", [])]
+        f.created_at = d["created_at"]
+        f.impact = {k: ImpactState.from_dict(v) for k, v in d["impact"].items()}
+        f._next_cid = d["next_cid"]
+        f.first_breed_used = d["first_breed_used"]
+        f.n_sales = d["n_sales"]
+        f.log = None
+        return f
+
+    def cow_by_id(self, cid: int) -> Optional[Cow]:
+        for c in self.cows:
+            if c.cid == cid:
+                return c
+        return None

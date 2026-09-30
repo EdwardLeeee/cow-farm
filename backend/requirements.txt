@@ -1,0 +1,10 @@
+# cow-farm M1 伺服器（Python 3.10）。版本沿用 docs/research/tech-stack/backend 實測過的組合。
+fastapi==0.141.1
+starlette==1.7.0
+pydantic==2.13.5
+uvicorn==0.54.0
+websockets==16.1.1
+asyncpg==0.31.0
+# 測試
+httpx==0.28.1
+pytest==9.1.1
