@@ -1,0 +1,15 @@
+"""cowecon：cow-farm 的經濟引擎（行情與牧場規則）。
+
+只用 Python 3.10 標準函式庫；給定 seed 結果固定。M1 的 FastAPI 伺服器直接 import 這個套件，
+模擬的數字就是遊戲的數字。參數全部在 params.py。
+"""
+
+from .params import DAY, DEFAULT, ENGINE_VERSION, HOUR, MINUTE, EconomyParams, with_overrides
+from .market import Exchange, ImpactState, Market, MarketEvent, SaleResult
+from .farm import Cow, Farm, Lot, freshness, offspring_distribution, tier_distribution
+
+__all__ = [
+    "DAY", "DEFAULT", "ENGINE_VERSION", "HOUR", "MINUTE", "EconomyParams", "with_overrides",
+    "Exchange", "ImpactState", "Market", "MarketEvent", "SaleResult",
+    "Cow", "Farm", "Lot", "freshness", "offspring_distribution", "tier_distribution",
+]
