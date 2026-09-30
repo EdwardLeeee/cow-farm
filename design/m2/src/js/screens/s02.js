@@ -41,7 +41,8 @@ full('S02-02', '選好後：歡迎卡與開局的牛', (ctx) => page(ctx, {
         <div class="gift">${cowSVG({ breed: 'holstein' }, { w: 96, h: 96, pose: 'front' })}<b>荷斯坦 #1</b><span>母・會產奶</span></div>
         <div class="gift">${cowSVG({ breed: 'yellow', sex: 'bull', age: 'calf', seed: 33 }, { w: 96, h: 96, pose: 'front' })}<b>台灣黃牛 #2</b><span>公・20 分後長大</span></div>
       </div>
-      <div class="gift-coin">${icon('coin', 26)}<b class="num">100</b> 幣　・　開局 1 小時產奶 ×5</div>`,
+      <div class="gift-coin">${icon('coin', 26)}<b class="num">100</b> 幣　${icon('pail', 22)}奶桶裡已經有 <b class="num">20</b> 瓶</div>
+      <p class="hint" style="text-align:center;margin-top:4px">開局 1 小時產奶 ×5，進去就能收奶、賣奶。</p>`,
     buttons: btn('進牧場', { kind: 'primary', block: true }),
   }),
 }));
