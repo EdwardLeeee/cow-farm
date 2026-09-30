@@ -1,0 +1,81 @@
+{
+  "job": "r11-closeup-udder-udderS",
+  "page": "src/closeup.html?v=udderS&mode=udder",
+  "browser": "chromium 151.0.7922.34",
+  "device": {
+    "viewport": {
+      "width": 720,
+      "height": 900
+    },
+    "deviceScaleFactor": 3,
+    "isMobile": true,
+    "hasTouch": true,
+    "locale": "zh-TW",
+    "colorScheme": "light",
+    "reducedMotion": "reduce"
+  },
+  "errors": [],
+  "lang": "zh-Hant-TW",
+  "minFontSize": 13,
+  "texts": [
+    {
+      "text": "母乳牛正面・乳房特寫（放大）",
+      "fontSize": 17
+    },
+    {
+      "text": "乳房：小（直徑約身體寬的 20%）",
+      "fontSize": 13
+    },
+    {
+      "text": "荷斯坦",
+      "fontSize": 14
+    },
+    {
+      "text": "娟珊",
+      "fontSize": 14
+    },
+    {
+      "text": "母乳牛正面・乳房特寫（放大）",
+      "fontSize": 17
+    },
+    {
+      "text": "巧克力牛",
+      "fontSize": 14
+    },
+    {
+      "text": "草莓牛",
+      "fontSize": 14
+    },
+    {
+      "text": "牧場上的實際大小",
+      "fontSize": 17
+    },
+    {
+      "text": "牧場上看得到的樣子",
+      "fontSize": 13
+    },
+    {
+      "text": "荷斯坦",
+      "fontSize": 14
+    },
+    {
+      "text": "娟珊",
+      "fontSize": 14
+    },
+    {
+      "text": "巧克力牛",
+      "fontSize": 14
+    },
+    {
+      "text": "草莓牛",
+      "fontSize": 14
+    }
+  ],
+  "outside": [],
+  "clipped": [],
+  "figOverflow": 0,
+  "silNameOverlap": 0,
+  "horizontalScroll": false,
+  "verticalOverflow": false,
+  "view": "closeup-udder"
+}

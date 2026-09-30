@@ -28,8 +28,10 @@ const fig = (i, kk, sil, idp) => {
 };
 const ROWNAME = ['乳牛', '乳牛（稀有）', '耕牛', '肉牛'];
 const rows = ROWS.map((r, ri) => `<div class="rowwrap"><span class="rowtag">${ROWNAME[ri] || ''}</span><div class="row">${r.map((i) => fig(i, k, false, `lu${view}`)).join('')}</div></div>`).join('');
-const ks = Math.min((INNER - 8 * LINE.length) / LINE.reduce((a, e, i) => a + W(i), 0), 90 / maxH);
-const sils = `<div class="row sil">${LINE.map((e, i) => fig(i, ks, true, `si${view}`)).join('')}</div>`;
+// 剪影分兩排（一排 6 頭），名字才不會擠在一起
+const silRows = [LINE.map((e, i) => i).slice(0, 6), LINE.map((e, i) => i).slice(6)];
+const ks = Math.min(...silRows.map((r) => (INNER - 16 * r.length) / r.reduce((a, i) => a + W(i), 0)), 78 / maxH);
+const sils = silRows.map((r) => `<div class="row sil">${r.map((i) => fig(i, ks, true, `si${view}`)).join('')}</div>`).join('');
 const title = view === 'side' ? '側面（牧場上平常走路的樣子，照 9966）' : '正面（停下來、被點到、奶桶滿了，照 9967）';
 
 app.innerHTML = `<div class="panel">

@@ -50,7 +50,7 @@ const maxS = Math.max(...S.small.map((e) => { const b = extent(v, e); return b.y
 const small = S.small.map((e, i) => fig(e, ks, `sm${i}`, e.label, maxS)).join('');
 const rows = S.rows.map((r, ri) => `<section class="sec grow"><div class="sec-head"><span class="sec-title">${r.title}</span></div>${ri === 0 ? `<div class="sec-sub2">${VARIANTS[v].name}</div>` : ''}<div class="row">${r.cows.map((e, i) => fig(e, k, `b${ri}${i}`, undefined, maxH)).join('')}</div></section>`).join('');
 
-app.innerHTML = `<div class="panel">${rows}
+app.innerHTML = `<div class="panel panel-closeup">${rows}
   <section class="sec"><div class="sec-head"><span class="sec-title">${S.smallTitle || '牧場上的實際大小'}</span><span class="sec-sub">${mode === 'udder' ? '牧場上看得到的樣子' : '看一眼分不分得出來'}</span></div><div class="row">${small}</div></section>
 </div>`;
 window.__meta = { view: `closeup-${mode}` };

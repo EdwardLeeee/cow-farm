@@ -34,7 +34,7 @@
 |---|---|
 | `src/data.js` | v0.2 基因與角的規則（`hornsFor`）、12 頭排排站、牧場站位（西門塔爾換成台灣黃牛） |
 | `src/shapes/r11.js` | R11 產生器；`VARIANTS`：`r11`／`udderM`（中）、`udderS`（小）、`udderL`（大） |
-| `src/lineup.html?v=…&view=side｜front` | 12 頭排排站（720×1080），每排左上角標用途 |
+| `src/lineup.html?v=…&view=side｜front` | 12 頭排排站（720×1200），每排左上角標用途；剪影分兩排 |
 | `src/closeup.html?v=…&mode=udder｜v02` | 乳房特寫／新耕牛特寫（720×900） |
 | `harness/capture.mjs`、`harness/compose.mjs` | 出圖與拼圖 |
 | `harness/preview*.mjs`、`bigsheet.mjs`、`darksheet.mjs`、`svg2png.py` | 不開瀏覽器的本機預覽（不進設計稿） |
@@ -56,11 +56,20 @@ systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 node harness
 
 ## 瀏覽器、裝置
 
-同第 10 輪：Chromium（`@playwright/test` 1.62.0），`zh-TW`、light、`reducedMotion: reduce`；牧場主畫面 390×844 DPR 3（安全區 47／34px，疊加層 `.sim-statusbar`、`.sim-home-indicator`）；排排站 720×1080、特寫 720×900，DPR 3；進 git 的單張 DPR 2、總覽 DPR 1.5。
+同第 10 輪：Chromium（`@playwright/test` 1.62.0），`zh-TW`、light、`reducedMotion: reduce`；牧場主畫面 390×844 DPR 3（安全區 47／34px，疊加層 `.sim-statusbar`、`.sim-home-indicator`）；排排站 720×1200、特寫 720×900，DPR 3；進 git 的單張 DPR 2、總覽 DPR 1.5。
 
 ## 量測（`raw/*.json`）
 
-出圖後填。
+| 項目 | 結果 |
+|---|---|
+| 牧場畫面（中、小、大）最小字級、文字被截／出框／意外換行 | 11px、0 |
+| 分頁觸控、安全區、橫向捲動 | 78×59px、避開、無 |
+| 排排站最小字級、名字被截或重疊、直向超出 | 12px、0、無 |
+| 特寫面板最小字級、名字被截或重疊、直向超出 | 13px、0、無 |
+| 小牛／成年荷斯坦身高（側面／正面） | 0.578／0.577 |
+
+- 這一輪新增「直向超出」檢查（`verticalOverflow`）：第一次出圖時剪影第二排被切掉、量測沒抓到，補上後重拍。
+- 以上是瀏覽器模擬的預檢；出圖前 `free -m` available 都在 2.1 GB 以上。
 
 ## 核准版對照表
 

@@ -50,7 +50,7 @@ function mLines(ids, M, withScreen) {
   }
   for (const [name, j] of ids) {
     const lu = M[j];
-    const bad = lu.outside.length + lu.figOverflow + lu.silNameOverlap;
+    const bad = lu.outside.length + lu.figOverflow + lu.silNameOverlap + (lu.verticalOverflow ? 1 : 0);
     const calf = lu.calfRatio ? `、小牛是成牛的 ${Math.round(lu.calfRatio * 100)}%` : '';
     ok(lu.minFontSize >= 11 && bad === 0 && (!lu.calfRatio || (lu.calfRatio >= 0.55 && lu.calfRatio <= 0.6)), `${name}：最小字級 ${lu.minFontSize}px、名字被截或重疊 ${bad} 處${calf}`);
   }
@@ -80,13 +80,13 @@ async function main() {
     for (const j of need) M[j] = JSON.parse(await readFile(join(ROOT, 'raw', `${j}.json`), 'utf8'));
 
     for (const o of ITEM1) {
-      const W = 36 + 410 + 28 + 720 + 24 + 720 + 36, H = 78 + 1080 + 36;
-      await shot(browser, labelPage(W, H, o.file.replace(/\.png$/, ''), `${phone(`${srv.base}/raw/${o.screen}.png`)}${img(o.front, 720, 1080)}${img(o.udder, 720, 900)}`), W, H, 2, join(ROOT, o.file));
+      const W = 36 + 410 + 28 + 720 + 24 + 720 + 36, H = 78 + 1200 + 36;
+      await shot(browser, labelPage(W, H, o.file.replace(/\.png$/, ''), `${phone(`${srv.base}/raw/${o.screen}.png`)}${img(o.front, 720, 1200)}${img(o.udder, 720, 900)}`), W, H, 2, join(ROOT, o.file));
       console.log('ok', o.file);
     }
     {
-      const o = ITEM2, W = 36 + 720 + 24 + 720 + 24 + 720 + 36, H = 78 + 1080 + 36;
-      await shot(browser, labelPage(W, H, o.file.replace(/\.png$/, ''), `${img(o.side, 720, 1080)}${img(o.front, 720, 1080)}${img(o.closeup, 720, 900)}`), W, H, 2, join(ROOT, o.file));
+      const o = ITEM2, W = 36 + 720 + 24 + 720 + 24 + 720 + 36, H = 78 + 1200 + 36;
+      await shot(browser, labelPage(W, H, o.file.replace(/\.png$/, ''), `${img(o.side, 720, 1200)}${img(o.front, 720, 1200)}${img(o.closeup, 720, 900)}`), W, H, 2, join(ROOT, o.file));
       console.log('ok', o.file);
     }
 

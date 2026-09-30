@@ -1,4 +1,4 @@
-// R11 出圖：乳房三種大小的牧場主畫面（390×844、DPR 3）、12 頭排排站（720×1080）、乳房與新耕牛特寫（720×900），DPR 3；0 現況用 round10/raw 的截圖（見 README）；
+// R11 出圖：乳房三種大小的牧場主畫面（390×844、DPR 3）、12 頭排排站（720×1200）、乳房與新耕牛特寫（720×900），DPR 3；0 現況用 round10/raw 的截圖（見 README）；
 // 每個 job 另存量測 JSON。
 // 用法：node harness/capture.mjs [job 名稱片段]
 import { chromium } from '@playwright/test';
@@ -16,14 +16,14 @@ export const DEVICE = {
 };
 export const JOBS = [
   { job: 'r11-r11-mobile', page: 'src/screen.html?v=r11' },
-  { job: 'r11-lineup-side-r11', page: 'src/lineup.html?v=r11&view=side', lineup: true, viewport: { width: 720, height: 1080 } },
-  { job: 'r11-lineup-front-r11', page: 'src/lineup.html?v=r11&view=front', lineup: true, viewport: { width: 720, height: 1080 } },
+  { job: 'r11-lineup-side-r11', page: 'src/lineup.html?v=r11&view=side', lineup: true, viewport: { width: 720, height: 1200 } },
+  { job: 'r11-lineup-front-r11', page: 'src/lineup.html?v=r11&view=front', lineup: true, viewport: { width: 720, height: 1200 } },
   { job: 'r11-closeup-udder-udderM', page: 'src/closeup.html?v=udderM&mode=udder', lineup: true, viewport: { width: 720, height: 900 } },
   { job: 'r11-udderS-mobile', page: 'src/screen.html?v=udderS' },
-  { job: 'r11-lineup-front-udderS', page: 'src/lineup.html?v=udderS&view=front', lineup: true, viewport: { width: 720, height: 1080 } },
+  { job: 'r11-lineup-front-udderS', page: 'src/lineup.html?v=udderS&view=front', lineup: true, viewport: { width: 720, height: 1200 } },
   { job: 'r11-closeup-udder-udderS', page: 'src/closeup.html?v=udderS&mode=udder', lineup: true, viewport: { width: 720, height: 900 } },
   { job: 'r11-udderL-mobile', page: 'src/screen.html?v=udderL' },
-  { job: 'r11-lineup-front-udderL', page: 'src/lineup.html?v=udderL&view=front', lineup: true, viewport: { width: 720, height: 1080 } },
+  { job: 'r11-lineup-front-udderL', page: 'src/lineup.html?v=udderL&view=front', lineup: true, viewport: { width: 720, height: 1200 } },
   { job: 'r11-closeup-udder-udderL', page: 'src/closeup.html?v=udderL&mode=udder', lineup: true, viewport: { width: 720, height: 900 } },
   { job: 'r11-closeup-v02-r11', page: 'src/closeup.html?v=r11&mode=v02', lineup: true, viewport: { width: 720, height: 900 } },
 ];
@@ -45,10 +45,12 @@ function measureLineup() {
   // 剪影的名字彼此不能重疊
   const sn = [...document.querySelectorAll('.sname')].map((e) => { const r = document.createRange(); r.selectNodeContents(e); return r.getBoundingClientRect(); });
   let overlap = 0;
-  for (let i = 1; i < sn.length; i++) if (sn[i].left < sn[i - 1].right - 0.5) overlap++;
+  for (let i = 1; i < sn.length; i++) if (Math.abs(sn[i].top - sn[i - 1].top) < 4 && sn[i].left < sn[i - 1].right - 0.5) overlap++; // 只比同一排
   return {
     lang: document.documentElement.lang, minFontSize: Math.min(...texts.map((t) => t.fontSize)), texts, outside,
     clipped: [], figOverflow, silNameOverlap: overlap, horizontalScroll: document.scrollingElement.scrollWidth > innerWidth,
+    // 直向：內容超出畫面（例如剪影被切掉）
+    verticalOverflow: document.scrollingElement.scrollHeight > innerHeight + 1 || document.querySelector('.panel').scrollHeight > document.querySelector('.panel').clientHeight + 1,
     ...(window.__meta || {}),
   };
 }
@@ -178,7 +180,7 @@ async function run(filter) {
       await writeFile(join(RAW, `${j.job}.json`), JSON.stringify(meta, null, 2));
       if (errors.length || meta.errorOverlay) throw new Error(`${j.job}: ${errors.join(' | ') || 'error overlay'}`);
       results.push(meta);
-      console.log(`ok ${j.job}${j.gallery ? '' : j.lineup ? `  min font ${meta.minFontSize}px, outside ${meta.outside.length}, figOverflow ${meta.figOverflow}, silNameOverlap ${meta.silNameOverlap}, calf ${meta.calfRatio}` : `  min font ${meta.minFontSize}px, clipped ${meta.clipped.length}, outside ${meta.outside.length}, wrapped ${meta.wrapped.length}, tab ${meta.minTab.w}x${meta.minTab.h}, hscroll ${meta.horizontalScroll}, px ${meta.pixelScales.join(',')}`}`);
+      console.log(`ok ${j.job}${j.gallery ? '' : j.lineup ? `  min font ${meta.minFontSize}px, outside ${meta.outside.length}, figOverflow ${meta.figOverflow}, vOverflow ${meta.verticalOverflow}, silNameOverlap ${meta.silNameOverlap}, calf ${meta.calfRatio}` : `  min font ${meta.minFontSize}px, clipped ${meta.clipped.length}, outside ${meta.outside.length}, wrapped ${meta.wrapped.length}, tab ${meta.minTab.w}x${meta.minTab.h}, hscroll ${meta.horizontalScroll}, px ${meta.pixelScales.join(',')}`}`);
       await ctx.close();
     }
   } finally {
