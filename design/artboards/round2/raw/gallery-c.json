@@ -1,0 +1,18 @@
+{
+  "job": "gallery-c",
+  "page": "src/gallery.html?v=c",
+  "browser": "chromium 151.0.7922.34",
+  "device": {
+    "viewport": {
+      "width": 760,
+      "height": 700
+    },
+    "deviceScaleFactor": 2,
+    "isMobile": true,
+    "hasTouch": true,
+    "locale": "zh-TW",
+    "colorScheme": "light",
+    "reducedMotion": "reduce"
+  },
+  "errors": []
+}

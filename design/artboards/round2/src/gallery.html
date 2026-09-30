@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="zh-Hant-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>R2 產生器圖庫</title>
+<style>
+  body { margin: 0; background: #EEF6E6; font-family: "Noto Sans CJK TC", sans-serif; color: #4B3326; }
+  h1 { font-size: 16px; margin: 12px 14px 4px; } p { font-size: 12px; margin: 0 14px 6px; color: #7C6D63; }
+  .g { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; padding: 6px 12px 12px; }
+  .c { background: #FFFBF3; border-radius: 12px; text-align: center; padding: 2px 2px 5px; }
+  .c svg { display: block; margin: 0 auto; }
+  .t { font-size: 11px; line-height: 14px; color: #6B5345; }
+</style></head>
+<body><div id="app"></div>
+<script type="module">
+// 產生器圖庫（只給 ceo 檢查量產變化，不給使用者看）：24 組隨機基因，同一比例
+import { randomGenes } from './plan.js';
+import { drawCow } from './cows.js';
+const v = new URLSearchParams(location.search).get('v') || 'a';
+const NAME = { a: 'A 大頭寶寶', b: 'B 繪本自然', c: 'C 側面輪廓' }[v];
+const T = { dairy: '乳用', petite: '嬌小', beef: '肉用', low: '低矮', round: '圓潤', dual: '兼用', patches: '大塊斑', dots: '小點', solid: '素色', strawberry: '草莓', bud: '角芽', short: '短角', long: '長角', none: '無角' };
+const cells = [];
+for (let i = 0; i < 24; i++) {
+  const g = randomGenes(i + 1);
+  const W = 110, H = 96;
+  const probe = drawCow(v, { genes: g }, { scale: 1 });
+  const b = probe.G ? { x0: probe.bbox.x0 * probe.scale, x1: probe.bbox.x1 * probe.scale, y0: probe.headTop[1] } : { x0: -60, x1: 60, y0: -90 };
+  const k = Math.min(0.62, (W - 8) / (b.x1 - b.x0), (H - 8) / -b.y0);
+  const cow = drawCow(v, { genes: g }, { x: W / 2 - ((b.x0 + b.x1) / 2) * k, y: H - 4, scale: k, id: 'g' + i });
+  const desc = [T[g.build], T[g.pattern], T[g.horns], g.fur === 'fluffy' ? '長毛' : '', g.age === 'calf' ? '小牛' : ''].filter(Boolean).join('・');
+  cells.push(`<div class="c"><svg width="${W}" height="${H}">${cow.svg}</svg><div class="t">#${i + 1} ${desc}</div></div>`);
+}
+document.getElementById('app').innerHTML = `<h1>R2 產生器圖庫｜${NAME}</h1><p>24 組隨機基因（體型、花紋、角、毛質、年齡、顏色都隨機，另加連續微調），同一比例。</p><div class="g">${cells.join('')}</div>`;
+await document.fonts.ready; window.__ready = true;
+</script></body></html>
