@@ -82,14 +82,14 @@ full('S09-04', '品種詳細（還沒發現）', (ctx) => detailPage(ctx, 'golde
 S.push({ id: 'S09-05', name: '24 種全圖（核准外型）', type: 'sheet', viewport: { w: 1320, h: 1400 }, render: () => allSheet() });
 
 // ---------------- S12 排行榜 ----------------
-// 每週排行榜在台灣時間週一 00:00 重新計算（D25），畫面換成手機當地的時間（ceo 2026-10-02）。
+// 每週排行榜在台灣時間週一 00:00 重新計算（D25），畫面換成手機當地的時間（ceo 2026-10-02）。星期用全名 weekdayFull（縮寫 weekday 留給 date.mdw）。
 // 設計稿的假資料：繁中當作在台灣（UTC+8，週一 00:00）、泰文在泰國（UTC+7，週日 23:00）、英文在美國西岸夏令時間（UTC−7，週日 09:00）。
 const MOCK_UTC_OFFSET = { 'zh-Hant': 8, th: 7, en: -7 };
 function weeklyReset() {
   const week = 7 * 1440, utc = 16 * 60; // 台灣週一 00:00 ＝ UTC 週日 16:00（從週日 00:00 起算的分鐘）
   const local = (((utc + (MOCK_UTC_OFFSET[LANG] ?? 8) * 60) % week) + week) % week;
   const hm = local % 1440;
-  return { w: t(`weekday.${Math.floor(local / 1440)}`), time: `${String(Math.floor(hm / 60)).padStart(2, '0')}:${String(hm % 60).padStart(2, '0')}` };
+  return { w: t(`weekdayFull.${Math.floor(local / 1440)}`), time: `${String(Math.floor(hm / 60)).padStart(2, '0')}:${String(hm % 60).padStart(2, '0')}` };
 }
 // 排行榜的種類：key、名稱的 key、單位的 key
 const KINDS = [['networth', 'rankNetworth', 'g.coin'], ['collection', 'rankCollection', 's12.kinds'], ['weekly', 'rankWeekly', 'g.coin']];
