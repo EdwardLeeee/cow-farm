@@ -120,7 +120,17 @@ Map<String, dynamic> sampleStateJson({double coins = 1500, bool penFull = false,
   'stud': {
     'listings': [
       if (bullListed)
-        {'id': 9, 'price': 800, 'type': 'dual', 'tier': 1, 'owner_id': 7, 'owner_name': '晨光草原牧場', 'is_bot': false, 'is_mine': true, 'cow_id': 2},
+        {
+          'id': 9,
+          'price': 800,
+          'type': 'dual',
+          'tier': 1,
+          'owner_id': 7,
+          'owner_name': '晨光草原牧場',
+          'is_bot': false,
+          'is_mine': true,
+          'cow_id': 2,
+        },
     ],
     'income': 1100,
     'prices': [300, 800, 2000, 5000],
@@ -225,7 +235,12 @@ class FakeGameApi implements GameApi {
   @override
   Future<ShipResult> ship(Object cowId) async {
     calls.add('ship:$cowId');
-    return const ShipResult(grade: 'A', gradeProbs: {'A': 0.137323, 'B': 0.492535, 'C': 0.370142}, beefQty: 120, valueEstimate: 1800);
+    return const ShipResult(
+      grade: 'A',
+      gradeProbs: {'A': 0.137323, 'B': 0.492535, 'C': 0.370142},
+      beefQty: 120,
+      valueEstimate: 1800,
+    );
   }
 
   @override
@@ -252,7 +267,11 @@ class FakeGameApi implements GameApi {
   @override
   Future<ShopBuyResult> shopBuy(String grade) async {
     calls.add('shop-buy:$grade');
-    return ShopBuyResult(grade: grade, cow: Cow.fromJson(_cow(6, 'beef', true, 2, stage: 'calf', origin: grade)), cost: 900);
+    return ShopBuyResult(
+      grade: grade,
+      cow: Cow.fromJson(_cow(6, 'beef', true, 2, stage: 'calf', origin: grade)),
+      cost: 900,
+    );
   }
 
   @override
@@ -306,14 +325,40 @@ class FakeGameApi implements GameApi {
 
   /// 借種市場：系統的 300 幣乳牛、別人的 800 幣肉牛。
   List<Map<String, dynamic>> studListings = [
-    {'id': 1, 'price': 300, 'type': 'dairy', 'tier': 0, 'owner_id': null, 'owner_name': '電腦 公營種牛站', 'is_bot': true, 'is_mine': false, 'cow_id': null, 'weight_kg': null},
-    {'id': 5, 'price': 800, 'type': 'beef', 'tier': 1, 'owner_id': 3, 'owner_name': '電腦 北坡牧場', 'is_bot': true, 'is_mine': false, 'cow_id': 12, 'weight_kg': 420.5},
+    {
+      'id': 1,
+      'price': 300,
+      'type': 'dairy',
+      'tier': 0,
+      'owner_id': null,
+      'owner_name': '電腦 公營種牛站',
+      'is_bot': true,
+      'is_mine': false,
+      'cow_id': null,
+      'weight_kg': null,
+    },
+    {
+      'id': 5,
+      'price': 800,
+      'type': 'beef',
+      'tier': 1,
+      'owner_id': 3,
+      'owner_name': '電腦 北坡牧場',
+      'is_bot': true,
+      'is_mine': false,
+      'cow_id': 12,
+      'weight_kg': 420.5,
+    },
   ];
 
   @override
   Future<StudMarket> stud() async {
     calls.add('stud');
-    return StudMarket.fromJson({'prices': [300, 800, 2000, 5000], 'listings': studListings, 'mine': []});
+    return StudMarket.fromJson({
+      'prices': [300, 800, 2000, 5000],
+      'listings': studListings,
+      'mine': [],
+    });
   }
 
   @override
@@ -413,7 +458,13 @@ Future<(GameModel, FakeGameApi, FakePush)> loadedModel({
   final a = api ?? FakeGameApi();
   final p = FakePush(connected: connected);
   final c = clock ?? FakeClock();
-  final m = GameModel(api: a, push: p, tokens: MemoryTokenStore({TokenStore.tokenKey: 'tok'}), now: c.call, uiTick: null);
+  final m = GameModel(
+    api: a,
+    push: p,
+    tokens: MemoryTokenStore({TokenStore.tokenKey: 'tok'}),
+    now: c.call,
+    uiTick: null,
+  );
   await m.refreshState(); // token 還沒設時不會動作
   a.token = 'tok';
   await m.refreshState();

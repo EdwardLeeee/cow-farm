@@ -76,7 +76,8 @@ class _StudViewState extends State<StudView> {
               Text(S.studIncome(fmtInt(s.stud.income)), key: const Key('stud-income')),
             ],
           ),
-          if (!myBulls.any((c) => c.canListAt(now) || c.listed)) const Padding(padding: EdgeInsets.all(8), child: Text(S.studNoBull)),
+          if (!myBulls.any((c) => c.canListAt(now) || c.listed))
+            const Padding(padding: EdgeInsets.all(8), child: Text(S.studNoBull)),
           for (final bull in myBulls)
             if (bull.listed || bull.canListAt(now)) _myBullRow(context, m, s, bull),
           const Divider(height: 24),
@@ -84,7 +85,11 @@ class _StudViewState extends State<StudView> {
           Row(
             children: [
               Expanded(child: Text(S.studMarketTitle, style: theme.textTheme.titleSmall)),
-              TextButton(key: const Key('stud-reload'), onPressed: _loadingMarket ? null : _reload, child: const Text(S.reload)),
+              TextButton(
+                key: const Key('stud-reload'),
+                onPressed: _loadingMarket ? null : _reload,
+                child: const Text(S.reload),
+              ),
             ],
           ),
           if (_market == null)
@@ -117,8 +122,10 @@ class _StudViewState extends State<StudView> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(S.studRow(typeName(l.type), tierName(l.tier), fmtInt(l.price)),
-                                  style: const TextStyle(fontWeight: FontWeight.bold)),
+                              Text(
+                                S.studRow(typeName(l.type), tierName(l.tier), fmtInt(l.price)),
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                              ),
                               Text(
                                 '${S.studOwner(l.ownerName)}${l.weightKg == null ? '' : '　${S.weight(fmtInt(l.weightKg!))}'}',
                                 style: theme.textTheme.bodySmall,
@@ -161,17 +168,28 @@ class _StudViewState extends State<StudView> {
                     BreedOdds(preview: p!, feeText: S.fee(fmtInt(p.fee))),
                   const SizedBox(height: 8),
                   if (s.pen.full) const Text(S.penFull, style: TextStyle(color: Palette.warn)),
-                  if (listing != null && s.coins < listing.price) const Text(S.notEnoughCoins, style: TextStyle(color: Palette.warn)),
+                  if (listing != null && s.coins < listing.price)
+                    const Text(S.notEnoughCoins, style: TextStyle(color: Palette.warn)),
                   ActionButton(
                     key: const Key('stud-borrow'),
                     label: S.borrow(listing == null ? '—' : fmtInt(listing.price)),
                     expand: true,
-                    enabled: listing != null && dam != null && p != null && p.canBreed && s.coins >= listing.price && !s.pen.full,
+                    enabled:
+                        listing != null &&
+                        dam != null &&
+                        p != null &&
+                        p.canBreed &&
+                        s.coins >= listing.price &&
+                        !s.pen.full,
                     onPressed: () async {
                       final r = await m.studBorrow(listing!, dam!);
                       if (!context.mounted) return;
                       final c = r.value?.calf;
-                      showResult(context, r.error, c == null ? S.borrowed : '${S.borrowed} ${S.newCalf(c.key, tierName(c.tier))}');
+                      showResult(
+                        context,
+                        r.error,
+                        c == null ? S.borrowed : '${S.borrowed} ${S.newCalf(c.key, tierName(c.tier))}',
+                      );
                       if (r.ok) {
                         setState(() {
                           _listingKey = null;
@@ -186,7 +204,8 @@ class _StudViewState extends State<StudView> {
               ),
             ),
           ),
-          if (m.lastCalfKey != null && s.cowById(m.lastCalfKey!) != null) CalfCountdown(calf: s.cowById(m.lastCalfKey!)!),
+          if (m.lastCalfKey != null && s.cowById(m.lastCalfKey!) != null)
+            CalfCountdown(calf: s.cowById(m.lastCalfKey!)!),
         ],
       ),
     );

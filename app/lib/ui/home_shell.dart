@@ -65,30 +65,30 @@ class _HomeShellState extends State<HomeShell> {
       child: ScaffoldMessenger(
         key: _messengerKey,
         child: Scaffold(
-        body: SafeArea(
-          child: Column(
-            children: [
-              const TopBar(),
-              Expanded(child: _content(m)),
-            ],
+          body: SafeArea(
+            child: Column(
+              children: [
+                const TopBar(),
+                Expanded(child: _content(m)),
+              ],
+            ),
           ),
-        ),
-        bottomNavigationBar: m.state == null
-            ? null
-            : NavigationBar(
-                selectedIndex: m.tab.index,
-                labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-                height: 64,
-                onDestinationSelected: (i) => m.selectTab(AppTab.values[i]),
-                destinations: [
-                  for (var i = 0; i < HomeShell.labels.length; i++)
-                    NavigationDestination(
-                      key: Key('tab-${AppTab.values[i].name}'),
-                      icon: Icon(HomeShell._icons[i]),
-                      label: HomeShell.labels[i],
-                    ),
-                ],
-              ),
+          bottomNavigationBar: m.state == null
+              ? null
+              : NavigationBar(
+                  selectedIndex: m.tab.index,
+                  labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+                  height: 64,
+                  onDestinationSelected: (i) => m.selectTab(AppTab.values[i]),
+                  destinations: [
+                    for (var i = 0; i < HomeShell.labels.length; i++)
+                      NavigationDestination(
+                        key: Key('tab-${AppTab.values[i].name}'),
+                        icon: Icon(HomeShell._icons[i]),
+                        label: HomeShell.labels[i],
+                      ),
+                  ],
+                ),
         ),
       ),
     );
@@ -141,7 +141,12 @@ class _Records extends StatelessWidget {
       length: 2,
       child: Column(
         children: [
-          TabBar(tabs: [Tab(text: S.subCodex), Tab(text: S.subRank)]),
+          TabBar(
+            tabs: [
+              Tab(text: S.subCodex),
+              Tab(text: S.subRank),
+            ],
+          ),
           Expanded(child: TabBarView(children: [CodexScreen(), LeaderboardScreen()])),
         ],
       ),

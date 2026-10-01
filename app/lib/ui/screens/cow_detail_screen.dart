@@ -40,8 +40,10 @@ class CowDetailScreen extends StatelessWidget {
   }
 }
 
-String _gradeProbsText(Map<String, double> p) =>
-    [for (final g in gradeNames) if (p[g] != null) S.gradeProb(g, fmtPlainPct1(p[g]!))].join('　');
+String _gradeProbsText(Map<String, double> p) => [
+  for (final g in gradeNames)
+    if (p[g] != null) S.gradeProb(g, fmtPlainPct1(p[g]!)),
+].join('　');
 
 class _Body extends StatelessWidget {
   const _Body({required this.cow});
@@ -61,7 +63,10 @@ class _Body extends StatelessWidget {
             CowBlock(cow: cow, size: 72),
             const SizedBox(width: 12),
             Expanded(
-              child: Text('${S.cowTitle(cow.key)}\n${cowSummary(cow)}・${stageName(cow.stage)}', style: theme.textTheme.titleMedium),
+              child: Text(
+                '${S.cowTitle(cow.key)}\n${cowSummary(cow)}・${stageName(cow.stage)}',
+                style: theme.textTheme.titleMedium,
+              ),
             ),
           ],
         ),
@@ -71,7 +76,8 @@ class _Body extends StatelessWidget {
         Text(S.weight(fmtInt(cow.weightKg))),
         if (cow.origin != null) Text(S.origin(S.originName(cow.origin!))),
         if (cow.working) Text(S.workingIn(cow.fieldIndex!), key: const Key('detail-working')),
-        if (cow.listed) Text(listing == null ? S.badgeListed : S.listedAt(fmtInt(listing.price)), key: const Key('detail-listed')),
+        if (cow.listed)
+          Text(listing == null ? S.badgeListed : S.listedAt(fmtInt(listing.price)), key: const Key('detail-listed')),
         if (cow.bred) Text('${S.badgeBred}（${S.breedOnce}）', key: const Key('detail-bred')),
         TickerBuilder(
           builder: (context) {
@@ -83,7 +89,11 @@ class _Body extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         if (cow.shipValue != null && cow.isAdultAt(now))
-          Text(S.shipValue(fmtInt(cow.shipValue!)), key: const Key('detail-ship-value'), style: theme.textTheme.titleSmall),
+          Text(
+            S.shipValue(fmtInt(cow.shipValue!)),
+            key: const Key('detail-ship-value'),
+            style: theme.textTheme.titleSmall,
+          ),
         if (cow.gradeProbs != null && cow.gradeProbs!.isNotEmpty)
           Text('${S.shipGradeTitle}：${_gradeProbsText(cow.gradeProbs!)}', key: const Key('detail-grade-probs')),
         if (cow.working) const Text(S.recallFirst, style: TextStyle(color: Palette.warn)),
@@ -171,7 +181,12 @@ class _Body extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(S.shipConfirmBody(fmtInt(preview?.weightKg ?? cow.weightKg), fmtInt(preview?.expectedValue ?? cow.shipValue ?? 0))),
+            Text(
+              S.shipConfirmBody(
+                fmtInt(preview?.weightKg ?? cow.weightKg),
+                fmtInt(preview?.expectedValue ?? cow.shipValue ?? 0),
+              ),
+            ),
             const SizedBox(height: 8),
             const Text(S.shipGradeTitle, style: TextStyle(fontWeight: FontWeight.bold)),
             if (preview == null)
@@ -223,7 +238,9 @@ class _Body extends StatelessWidget {
         key: const Key('ship-result'),
         title: Text(S.shipResultTitle(res.grade ?? '?')),
         content: Text(S.shipResultBody(fmtNum(res.beefQty ?? 0), fmtInt(res.valueEstimate ?? 0))),
-        actions: [FilledButton(key: const Key('ship-result-ok'), onPressed: () => Navigator.pop(ctx), child: const Text(S.ok))],
+        actions: [
+          FilledButton(key: const Key('ship-result-ok'), onPressed: () => Navigator.pop(ctx), child: const Text(S.ok)),
+        ],
       ),
     );
   }

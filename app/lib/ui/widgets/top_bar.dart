@@ -46,7 +46,10 @@ class TopBar extends StatelessWidget {
                 key: const Key('topbar-offline'),
                 color: Palette.offline,
                 padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 6),
-                child: const Text(S.connecting, style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                child: const Text(
+                  S.connecting,
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
               )
             else
               TickerBuilder(

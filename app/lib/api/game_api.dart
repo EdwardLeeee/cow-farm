@@ -35,6 +35,7 @@ abstract class GameApi {
   Future<Session> createSession();
   Future<GameState> getState();
   Future<Map<String, dynamic>> collect();
+
   /// qty 可以有小數：要全部賣出時送倉庫的 milk_total／beef_total 原值（protocol 1.5）。
   Future<SellQuote> sellQuote(Commodity commodity, double qty);
   Future<SellResult> sell(Commodity commodity, double qty);

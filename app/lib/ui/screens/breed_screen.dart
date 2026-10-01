@@ -21,7 +21,12 @@ class BreedScreen extends StatelessWidget {
       length: 2,
       child: Column(
         children: [
-          TabBar(tabs: [Tab(text: S.subOwnBreed), Tab(text: S.subStud)]),
+          TabBar(
+            tabs: [
+              Tab(text: S.subOwnBreed),
+              Tab(text: S.subStud),
+            ],
+          ),
           Expanded(child: TabBarView(children: [OwnBreedView(), StudView()])),
         ],
       ),
@@ -107,14 +112,23 @@ class BreedOdds extends StatelessWidget {
                 Expanded(child: LinearProgressIndicator(value: p.tierProbs[t].clamp(0.0, 1.0), minHeight: 8)),
                 SizedBox(
                   width: 56,
-                  child: Text('${(p.tierProbs[t] * 100).toStringAsFixed(1)}%', key: Key('prob-$t'), textAlign: TextAlign.end),
+                  child: Text(
+                    '${(p.tierProbs[t] * 100).toStringAsFixed(1)}%',
+                    key: Key('prob-$t'),
+                    textAlign: TextAlign.end,
+                  ),
                 ),
               ],
             ),
           ),
         if (p.typeProbs.isNotEmpty)
           Text(
-            S.typeProbLine([for (final e in p.typeProbs.entries) if (e.value > 0) S.pct(typeName(e.key), fmtPlainPct1(e.value))].join('、')),
+            S.typeProbLine(
+              [
+                for (final e in p.typeProbs.entries)
+                  if (e.value > 0) S.pct(typeName(e.key), fmtPlainPct1(e.value)),
+              ].join('、'),
+            ),
             key: const Key('breed-type-probs'),
           ),
         if (p.bullProb != null) Text(S.bullProbLine(fmtPlainPct1(p.bullProb!))),
@@ -253,7 +267,11 @@ class _OwnBreedViewState extends State<OwnBreedView> {
                     final r = await m.breed(sire!, dam!);
                     if (!context.mounted) return;
                     final c = r.value?.calf;
-                    showResult(context, r.error, c == null ? S.breedDone : '${S.breedDone} ${S.newCalf(c.key, tierName(c.tier))}');
+                    showResult(
+                      context,
+                      r.error,
+                      c == null ? S.breedDone : '${S.breedDone} ${S.newCalf(c.key, tierName(c.tier))}',
+                    );
                     setState(_loader.clear);
                   },
                 ),
@@ -285,11 +303,15 @@ class CalfCountdown extends StatelessWidget {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('${S.newCalf(calf.key, tierName(calf.tier))}　${typeName(calf.type)}・${sexName(calf.bull)}',
-                    style: Theme.of(context).textTheme.titleSmall),
-                Text(calf.adultAt != null && calf.adultAt! > t
-                    ? S.growUp(fmtCountdown(calf.adultAt! - t, m.timeScale))
-                    : S.growUp(S.now)),
+                Text(
+                  '${S.newCalf(calf.key, tierName(calf.tier))}　${typeName(calf.type)}・${sexName(calf.bull)}',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                Text(
+                  calf.adultAt != null && calf.adultAt! > t
+                      ? S.growUp(fmtCountdown(calf.adultAt! - t, m.timeScale))
+                      : S.growUp(S.now),
+                ),
               ],
             );
           },

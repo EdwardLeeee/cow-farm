@@ -32,7 +32,10 @@ String fmtScale(double s) => s == s.roundToDouble() ? s.round().toString() : s.t
 
 /// 遊戲時間（Unix 秒）→ 台灣時間 "9/30 14:05"。
 String fmtGameClock(double unixSeconds) {
-  final t = DateTime.fromMillisecondsSinceEpoch((unixSeconds * 1000).round(), isUtc: true).add(const Duration(hours: 8));
+  final t = DateTime.fromMillisecondsSinceEpoch(
+    (unixSeconds * 1000).round(),
+    isUtc: true,
+  ).add(const Duration(hours: 8));
   String two(int v) => v.toString().padLeft(2, '0');
   return '${t.month}/${t.day} ${two(t.hour)}:${two(t.minute)}';
 }

@@ -126,7 +126,8 @@ class NewsTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final upcoming = item.isUpcomingAt(context.read<GameModel>().gameNow);
-    final tag = (upcoming ? S.upcomingTag : '') +
+    final tag =
+        (upcoming ? S.upcomingTag : '') +
         (item.commodity == null ? S.bothTag : S.commodityTag(commodityName(item.commodity!)));
     final color = item.up == null ? Palette.flat : Palette.change(item.up! ? 1 : -1);
     return ListTile(
@@ -261,7 +262,10 @@ class _SellPanelState extends State<SellPanel> {
                   margin: const EdgeInsets.only(top: 4),
                   padding: const EdgeInsets.all(6),
                   color: Palette.warn.withValues(alpha: 0.12),
-                  child: const Text(S.tooMuch, style: TextStyle(color: Palette.warn, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    S.tooMuch,
+                    style: TextStyle(color: Palette.warn, fontWeight: FontWeight.bold),
+                  ),
                 ),
               const SizedBox(height: 8),
               ActionButton(

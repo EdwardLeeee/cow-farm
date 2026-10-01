@@ -16,7 +16,10 @@ class PriceChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (points.length < 2) {
-      return SizedBox(height: height, child: const Center(child: Text(S.noChart)));
+      return SizedBox(
+        height: height,
+        child: const Center(child: Text(S.noChart)),
+      );
     }
     final lo = points.map((p) => p.price).reduce(min);
     final hi = points.map((p) => p.price).reduce(max);
@@ -31,13 +34,14 @@ class PriceChart extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.end,
-              children: [Text(fmtNum(hi, 2), style: const TextStyle(fontSize: 11)), Text(fmtNum(lo, 2), style: const TextStyle(fontSize: 11))],
+              children: [
+                Text(fmtNum(hi, 2), style: const TextStyle(fontSize: 11)),
+                Text(fmtNum(lo, 2), style: const TextStyle(fontSize: 11)),
+              ],
             ),
           ),
           const SizedBox(width: 4),
-          Expanded(
-            child: CustomPaint(painter: PriceChartPainter(points, lo, hi, color)),
-          ),
+          Expanded(child: CustomPaint(painter: PriceChartPainter(points, lo, hi, color))),
         ],
       ),
     );

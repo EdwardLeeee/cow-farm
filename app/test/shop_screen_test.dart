@@ -4,9 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'fakes.dart';
 
-FilledButton _btn(WidgetTester tester, String key) => tester.widget<FilledButton>(
-  find.descendant(of: find.byKey(Key(key)), matching: find.byType(FilledButton)),
-);
+FilledButton _btn(WidgetTester tester, String key) =>
+    tester.widget<FilledButton>(find.descendant(of: find.byKey(Key(key)), matching: find.byType(FilledButton)));
 
 Future<void> _openShop(WidgetTester tester, GameModel m) async {
   await pumpApp(tester, m);

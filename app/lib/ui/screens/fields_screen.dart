@@ -31,7 +31,10 @@ class FieldsScreen extends StatelessWidget {
               Text(S.fieldCount(count, (_max(up) ?? count)), key: const Key('field-count')),
           ],
         ),
-        Text('${S.riceStock(fmtNum(s.rice.stock))}　${S.riceRate(fmtNum(s.rice.perHour))}', key: const Key('rice-summary')),
+        Text(
+          '${S.riceStock(fmtNum(s.rice.stock))}　${S.riceRate(fmtNum(s.rice.perHour))}',
+          key: const Key('rice-summary'),
+        ),
         const SizedBox(height: 8),
         TickerBuilder(
           builder: (context) {
@@ -109,7 +112,10 @@ class FieldCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   LinearProgressIndicator(value: ratio, minHeight: 10),
                   Text(S.fieldRice(fmtNum(now), fmtInt(cap)), key: Key('field-rice-${field.index}')),
-                  Text(ratio >= 1 ? S.fieldFull : S.fieldRate(fmtNum(field.perHour)), style: Theme.of(context).textTheme.bodySmall),
+                  Text(
+                    ratio >= 1 ? S.fieldFull : S.fieldRate(fmtNum(field.perHour)),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ] else if (field.rice > 0)
                   Text(S.fieldRice(fmtNum(field.rice), '—')),
                 const SizedBox(height: 6),

@@ -5,13 +5,11 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'fakes.dart';
 
-FilledButton _btn(WidgetTester tester, String key) => tester.widget<FilledButton>(
-  find.descendant(of: find.byKey(Key(key)), matching: find.byType(FilledButton)),
-);
+FilledButton _btn(WidgetTester tester, String key) =>
+    tester.widget<FilledButton>(find.descendant(of: find.byKey(Key(key)), matching: find.byType(FilledButton)));
 
-OutlinedButton _outlined(WidgetTester tester, String key) => tester.widget<OutlinedButton>(
-  find.descendant(of: find.byKey(Key(key)), matching: find.byType(OutlinedButton)),
-);
+OutlinedButton _outlined(WidgetTester tester, String key) =>
+    tester.widget<OutlinedButton>(find.descendant(of: find.byKey(Key(key)), matching: find.byType(OutlinedButton)));
 
 Future<void> _openCow(WidgetTester tester, String id) async {
   final card = find.byKey(Key('cow-$id'));
@@ -43,10 +41,16 @@ void main() {
     final (m, _, _) = await loadedModel();
     await pumpApp(tester, m);
     // 母乳牛 #1 產奶；公耕牛 #2 不產奶
-    expect(find.descendant(of: find.byKey(const Key('cow-1')), matching: find.textContaining('產奶 14.0 瓶／時')), findsOneWidget);
+    expect(
+      find.descendant(of: find.byKey(const Key('cow-1')), matching: find.textContaining('產奶 14.0 瓶／時')),
+      findsOneWidget,
+    );
     expect(find.descendant(of: find.byKey(const Key('cow-2')), matching: find.textContaining('不產奶')), findsOneWidget);
     await tester.scrollUntilVisible(find.byKey(const Key('cow-5')), 200);
-    expect(find.descendant(of: find.byKey(const Key('cow-4')), matching: find.textContaining('產稻米 11.0 公斤／時')), findsOneWidget);
+    expect(
+      find.descendant(of: find.byKey(const Key('cow-4')), matching: find.textContaining('產稻米 11.0 公斤／時')),
+      findsOneWidget,
+    );
     expect(find.descendant(of: find.byKey(const Key('cow-4')), matching: find.text(S.badgeWorking)), findsOneWidget);
     expect(find.descendant(of: find.byKey(const Key('cow-5')), matching: find.text(S.badgeBred)), findsOneWidget);
   });

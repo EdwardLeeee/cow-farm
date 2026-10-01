@@ -4,13 +4,11 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'fakes.dart';
 
-FilledButton _btn(WidgetTester tester, String key) => tester.widget<FilledButton>(
-  find.descendant(of: find.byKey(Key(key)), matching: find.byType(FilledButton)),
-);
+FilledButton _btn(WidgetTester tester, String key) =>
+    tester.widget<FilledButton>(find.descendant(of: find.byKey(Key(key)), matching: find.byType(FilledButton)));
 
-OutlinedButton _outlined(WidgetTester tester, String key) => tester.widget<OutlinedButton>(
-  find.descendant(of: find.byKey(Key(key)), matching: find.byType(OutlinedButton)),
-);
+OutlinedButton _outlined(WidgetTester tester, String key) =>
+    tester.widget<OutlinedButton>(find.descendant(of: find.byKey(Key(key)), matching: find.byType(OutlinedButton)));
 
 Future<(GameModel, FakeGameApi)> _open(WidgetTester tester, {FakeClock? clock, FakeGameApi? api}) async {
   final (m, a, _) = await loadedModel(clock: clock, api: api);
