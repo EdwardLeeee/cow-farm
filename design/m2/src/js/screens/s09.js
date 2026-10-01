@@ -2,7 +2,7 @@
 import { frame, btn, seg, icon, fmt, cowSVG, bar, tierChip, useChip, badge, BREEDS } from '../kit.js';
 import { FOUND, RANK, RANCH, compactBig, LONG_NAMES } from '../fixtures.js';
 import { CODEX_ORDER, NEW_IN_M2, TIER_NAME, TRAIT_NAME, USE_NAME, tierOf } from '../../cow/breeds.js';
-import { t, breedName, breedIntro, useName, tierName } from '../i18n.js';
+import { t, LANG, breedName, breedIntro, useName, tierName } from '../i18n.js';
 
 const USES = [['dairy', '乳牛'], ['draft', '耕牛'], ['beef', '肉牛']];
 const MULT = [1.0, 1.3, 1.7, 2.5];
@@ -82,6 +82,15 @@ full('S09-04', '品種詳細（還沒發現）', (ctx) => detailPage(ctx, 'golde
 S.push({ id: 'S09-05', name: '24 種全圖（核准外型）', type: 'sheet', viewport: { w: 1320, h: 1400 }, render: () => allSheet() });
 
 // ---------------- S12 排行榜 ----------------
+// 每週排行榜在台灣時間週一 00:00 重新計算（D25），畫面換成手機當地的時間（ceo 2026-10-02）。
+// 設計稿的假資料：繁中當作在台灣（UTC+8，週一 00:00）、泰文在泰國（UTC+7，週日 23:00）、英文在美國西岸夏令時間（UTC−7，週日 09:00）。
+const MOCK_UTC_OFFSET = { 'zh-Hant': 8, th: 7, en: -7 };
+function weeklyReset() {
+  const week = 7 * 1440, utc = 16 * 60; // 台灣週一 00:00 ＝ UTC 週日 16:00（從週日 00:00 起算的分鐘）
+  const local = (((utc + (MOCK_UTC_OFFSET[LANG] ?? 8) * 60) % week) + week) % week;
+  const hm = local % 1440;
+  return { w: t(`weekday.${Math.floor(local / 1440)}`), time: `${String(Math.floor(hm / 60)).padStart(2, '0')}:${String(hm % 60).padStart(2, '0')}` };
+}
 // 排行榜的種類：key、名稱的 key、單位的 key
 const KINDS = [['networth', 'rankNetworth', 'g.coin'], ['collection', 'rankCollection', 's12.kinds'], ['weekly', 'rankWeekly', 'g.coin']];
 function rankRow(r, unit, me = false) {
@@ -99,7 +108,7 @@ function rankPage(ctx, { kind = 0, me = null, state = '', rows = null, tall = fa
   const content = `<div class="stack">
     ${seg([t('subCodex'), t('subRank')], 1)}
     ${seg(KINDS.map((k) => t(k[1])), kind, { small: true })}
-    <p class="hint">${t(key === 'weekly' ? 's12.weeklyHint' : key === 'networth' ? 's12.networthHint' : 's12.collectionHint', { n: 24 })}${t('s12.pullHint')}</p>
+    <p class="hint">${key === 'weekly' ? t('s12.weeklyHint', weeklyReset()) : t(key === 'networth' ? 's12.networthHint' : 's12.collectionHint', { n: 24 })}${t('s12.pullHint')}</p>
     <article class="card rank-card">${body}</article>
   </div>`;
   const my = `<div class="my-rank"><span class="k">${t('s12.myRank')}</span><b class="num">${state ? '—' : myVal && myVal.rank ? t('s12.rankN', { n: myVal.rank }) : t('notRanked')}</b><span class="grow"></span>${myVal && myVal.value != null && !state ? `<b class="num">${compactBig(myVal.value)}</b><small>${unit}</small>` : ''}</div>`;

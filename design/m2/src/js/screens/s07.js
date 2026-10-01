@@ -3,6 +3,11 @@ import { frame, btn, icon, fmt, cowSVG, dialog } from '../kit.js';
 import { cowById, pct } from '../fixtures.js';
 import { detailPage, GRADE_BG } from './s04.js';
 import { t, cowName } from '../i18n.js';
+// 評級的字（s20.gradeFormat）：{grade} 前後的字用小字，字母用大字。繁中「A 級」，英文、泰文「Grade A」「เกรด A」（ceo 2026-10-02）
+function gradeLabel(g) {
+  const [pre, post] = t('s20.gradeFormat').split('{grade}').map((s) => s.trim());
+  return `${pre ? `<small class="pre">${pre}</small>` : ''}<span class="num">${g}</span>${post ? `<small>${post}</small>` : ''}`;
+}
 
 const cow = cowById(3);
 const baseBtns = () => `<div class="btn-row"><button class="btn pink"><span>${t('pickForBreed')}</span></button><button class="btn danger"><span>${t('ship')}</span></button></div>`;
@@ -43,7 +48,7 @@ function result(ctx, g) {
     <div class="burst g-${g}"></div>
     <div class="result-card card">
       <p class="r-small">${t('s20.title', { cow: cowName('holstein', 3) })}</p>
-      <div class="grade-big" style="background:${GRADE_BG[g]}"><span class="num">${g}</span><small>${t('s20.gradeSuffix')}</small></div>
+      <div class="grade-big" style="background:${GRADE_BG[g]}">${gradeLabel(g)}</div>
       <div class="boxes">${boxes}</div>
       <p class="r-line">${t('s20.kgIn', { kg: `<b class="num">${kg}</b>` })}</p>
       <p class="r-line">${t('s20.sellAll', { v: `<b class="num">${fmt(income(g))}</b>` })}</p>
