@@ -187,8 +187,16 @@ def test_real_server_survives_sigkill(tmp_path):
             == 200
         )
         asyncio.run(_ws_once(s["token"]))  # 連一次 WebSocket：網址帶 token，日誌裡不能出現
-        time.sleep(3)  # 倍率 720：約 36 遊戲分鐘，假玩家做完教學的一部分；開局小公牛已經長大
-        ox = next(x for x in c.get("/v1/state", headers=hd).json()["cows"] if x["bull"])
+        # 等假玩家做完教學的一部分、開局小公牛長大（倍率 720 平常約 3 秒）。用輪詢不用固定睡：機器忙的時候
+        # tick 跑得慢，只是等久一點，不會因此失敗（ceo 2026-10-02）；最多等 30 秒。
+        deadline = time.time() + 30
+        while True:
+            health = c.get("/healthz").json()
+            ox = next(x for x in c.get("/v1/state", headers=hd).json()["cows"] if x["bull"])
+            if health["ticks"] > 20 and health["bot_actions"] > 0 and ox["stage"] != "calf":
+                break
+            assert time.time() < deadline, f"30 秒內伺服器只跑了 {health['ticks']} 個 tick"
+            time.sleep(0.2)
         assert (
             c.post("/v1/field/assign", headers=hd, json={"cow_id": ox["id"], "request_id": new_rid()}).status_code
             == 200
@@ -203,9 +211,9 @@ def test_real_server_survives_sigkill(tmp_path):
         # 價格歷史是記憶體先更新、再寫進資料庫：等下一個 tick 開始（上一個 tick 的寫入一定已經完成），
         # 確定 hist_before 的最後一點已經寫入，再強制關機。沒等的話，最後一點可能還沒寫入，重開後會重算出些微不同的價格。
         t_last = hist_before[-1][0]
-        for _ in range(100):
-            if c.get("/healthz").json()["tick_t"] >= t_last + 60:
-                break
+        deadline = time.time() + 30  # 機器忙的時候等久一點；等不到就明確失敗，不要帶著沒寫完的價格往下測
+        while c.get("/healthz").json()["tick_t"] < t_last + 60:
+            assert time.time() < deadline, "30 秒內沒有等到下一個 tick"
             time.sleep(0.05)
         os.kill(proc.pid, signal.SIGKILL)
         proc.wait(timeout=10)
