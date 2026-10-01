@@ -1,6 +1,6 @@
 // S09 圖鑑（24 格）與 S12 排行榜（紀錄分頁）
 import { frame, btn, seg, icon, fmt, cowSVG, bar, tierChip, useChip, badge, BREEDS } from '../kit.js';
-import { FOUND, RANK, RANCH, compactBig } from '../fixtures.js';
+import { FOUND, RANK, RANCH, compactBig, LONG_NAMES } from '../fixtures.js';
 import { CODEX_ORDER, INTRO, NEW_IN_M2, TIER_NAME, TRAIT_NAME, USE_NAME, tierOf } from '../../cow/breeds.js';
 
 const USES = [['dairy', '乳牛'], ['draft', '耕牛'], ['beef', '肉牛']];
@@ -113,7 +113,7 @@ full12('S12-03', '本週收入', (ctx) => rankPage(ctx, { kind: 2 }));
 part12('S12-04', '自己沒上榜', '.my-rank', (ctx) => rankPage(ctx, { kind: 2, me: { rank: null, value: null } }));
 part12('S12-05', '載入中', '.rank-card', (ctx) => rankPage(ctx, { kind: 0, state: 'loading' }));
 part12('S12-06', '載入失敗', '.rank-card', (ctx) => rankPage(ctx, { kind: 0, state: 'failed' }));
-full12('S12-07', '電腦玩家、名字最長、數字最大（量測用）', (ctx) => rankPage(ctx, { kind: 0, me: { rank: 12, name: RANCH.name, tag: RANCH.tag, level: 14, value: 98765432 }, rows: RANK.networth.map((r, i) => ({ ...r, name: ['彩虹溪谷牧場', '星河花田乳坊', '麥浪森林牧舍', '月牙石橋莊園', '山嵐原野農莊', '楓葉湖邊家園', '露珠竹林田園', '暖陽坡地牧野', '白雲谷地小屋', '青草松林牧園', '微風河畔牛舍', '晨光小丘農場'][i], level: 15 - Math.floor(i / 4), value: 999999999 - i * 12345678, bot: i % 3 === 1 })) }));
+full12('S12-07', '電腦玩家、名字最長（8 個中文字、16 個英文字母）、數字最大（量測用）', (ctx) => rankPage(ctx, { kind: 0, me: { rank: 12, name: RANCH.name, tag: RANCH.tag, level: 14, value: 98765432 }, rows: RANK.networth.map((r, i) => ({ ...r, name: [LONG_NAMES.cjk, LONG_NAMES.latin, '麥浪森林牧舍', '月牙石橋莊園', LONG_NAMES.cjk, '楓葉湖邊家園', LONG_NAMES.latin, '暖陽坡地牧野', '白雲谷地小屋', '青草松林牧園', '微風河畔牛舍', '晨光小丘農場'][i], level: 15 - Math.floor(i / 4), value: 999999999 - i * 12345678, bot: i % 3 === 1 })) }));
 
 export const S09 = { id: 'S09', name: '圖鑑', states: S };
 export const S12 = { id: 'S12', name: '排行榜', states: S2 };

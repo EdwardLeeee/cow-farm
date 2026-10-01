@@ -1,5 +1,5 @@
 // S13 設定（含「備份牧場」：綁定 Apple／Google 帳號，D22）、S14 找回牧場、S15 連線中與斷線、S16 伺服器維護與錯誤
-import { frame, btn, icon, cowSVG, cowFace, toast, fmt, dialog, badge } from '../kit.js';
+import { frame, btn, icon, cowSVG, cowFace, toast, fmt, dialog, badge, sheet } from '../kit.js';
 import { RANCH } from '../fixtures.js';
 import { ranchPage } from './s03.js';
 import { GAME_NAME } from './s01.js';
@@ -28,7 +28,7 @@ const NEW_RANCH = { name: '青草小丘農莊', tag: '#5678', level: 1 };
 function settings(ctx, { backed = false, overlays = '' } = {}) {
   return page(ctx, '設定', `
     ${ranchCard(RANCH)}
-    <article class="card set-group">${row('sound', '音效', `<span class="toggle on"><i></i></span>`)}</article>
+    <article class="card set-group">${row('sound', '音效', `<span class="toggle on"><i></i></span>`)}${row('globe', '語言', `<span class="hint">繁體中文</span>${icon('chevron', 18)}`, 'has-status')}${row('updown', '漲跌顏色', `<span class="ud-sample"><span class="up">▲漲</span><span class="down">▼跌</span></span>${icon('chevron', 18)}`, 'has-status')}</article>
     <article class="card set-group acct">${row('backup', '備份牧場<small>換手機或手機壞了都能找回</small>', `${backed ? ST_OK : ST_NO}${icon('chevron', 18)}`, 'has-status')}${row('trash', '刪除我的牧場', icon('chevron', 18), 'danger')}</article>
     <article class="card set-group">${row('shield', '隱私權政策', ext)}${row('info', '版本', '<span class="hint">1.0.0</span>')}</article>
     <p class="hint" style="text-align:center">${GAME_NAME}　・　所有帳都在伺服器計算</p>`, { overlays });
@@ -91,6 +91,17 @@ p13('S13-13', '解除綁定的確認（唯一綁定的帳號多一句提醒）',
 p13('S13-14', '兩種帳號都綁了：各一列，沒有登入按鈕', '.bk-body', (ctx) => backupPage(ctx, { bound: ['apple', 'google'] }));
 p13('S13-15', '綁定中…（登入視窗關掉後，等伺服器回覆）', '.sso-area', (ctx) => backupPage(ctx, { busy: true }));
 p13('S13-16', 'Android 版：只綁了 Google 時，沒有 Apple 那一列也沒有 Apple 登入按鈕', '.bk-body', (ctx) => backupPage(ctx, { android: true, bound: ['google'] }));
+
+// ---------- 語言、漲跌顏色（D25） ----------
+// 選單用各自的文字寫；第一次打開跟著手機的語言（中文 → 繁中、泰文 → 泰文、其他 → 英文）
+const LANGS = [['繁體中文', 'zh', true], ['English', 'en'], ['ไทย', 'th']];
+f13('S13-17', '語言：繁體中文、English、ไทย', (ctx) => page(ctx, '語言', `
+  <article class="card set-group lang-list">${LANGS.map(([name, k, on]) => `<button class="set-row lang-opt"><span class="set-label ${k}">${name}</span><span class="set-right">${on ? icon('ok', 24) : ''}</span></button>`).join('')}</article>
+  <p class="hint">第一次打開時跟著手機的語言。換語言以後，畫面上的字、牛的名字和新聞都會跟著換；牧場名不會變。</p>`));
+p13('S13-18', '漲跌顏色：漲紅跌綠（繁中預設）或綠漲紅跌（英文、泰文預設）', '.sheet', (ctx) => settings(ctx, { overlays: sheet({ title: '漲跌顏色', body: `<div class="list">
+  <button class="card ud-opt on"><span class="grow"><b>漲紅跌綠</b><span class="hint">台灣的習慣</span></span><span class="ud-sample big"><span class="up">▲ 比平常高 12%</span><span class="down">▼ 比平常低 7%</span></span><span class="pick-check static">${icon('ok', 24)}</span></button>
+  <button class="card ud-opt"><span class="grow"><b>綠漲紅跌</b><span class="hint">國際的習慣</span></span><span class="ud-sample big intl"><span class="up">▲ 比平常高 12%</span><span class="down">▼ 比平常低 7%</span></span></button></div>
+  <p class="hint" style="margin-top:10px">繁體中文預設漲紅跌綠，English、ไทย 預設綠漲紅跌。</p>` }) }));
 
 // ---------------- S14 找回牧場（新手機或重裝後，用綁定的帳號登入） ----------------
 function firstOpen(ctx) {

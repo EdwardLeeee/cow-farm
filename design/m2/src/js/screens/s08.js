@@ -1,6 +1,6 @@
 // S08 配種（自己的公牛 × 自己的母牛）與 S18 借種市場。每頭牛一輩子只能配種一次（公母都一樣，借出去也算）。
 import { frame, btn, seg, badge, tierChip, useChip, icon, fmt, cowSVG, toast, dialog, BREEDS } from '../kit.js';
-import { COWS, cowById, STUD, STUD_INCOME, STUD_LOG, FOUND, RANCH } from '../fixtures.js';
+import { COWS, cowById, STUD, STUD_INCOME, STUD_LOG, FOUND, RANCH, studFee, LONG_NAMES } from '../fixtures.js';
 import { tierOf, TIER_NAME } from '../../cow/breeds.js';
 
 // 可能生出的小牛（配種預覽）：還沒發現的品種顯示剪影和「？？？」（企劃書 4.5）
@@ -87,14 +87,15 @@ function studRow(l, { on = false } = {}) {
   return `<button class="card stud-row${on ? ' on' : ''}">
     <span class="sr-pic">${cowSVG({ breed: l.breed, sex: 'bull', seed: l.seed }, { w: 60, h: 60, pad: 3 })}</span>
     <span class="sr-info"><span class="sr-name">${b.name}<span class="use"> 公</span></span><span class="chips">${useChip(b.use)}${tierChip(tierOf(b))}</span><span class="sr-owner">主人：${l.bot ? `<span class="bot">電腦</span>${l.owner}` : `${l.owner} ${l.tag}`}</span></span>
-    <span class="sr-price">${icon('coin', 22)}<b class="num">${fmt(l.price)}</b></span>
+    <span class="sr-price"><span class="sr-p">${icon('coin', 22)}<b class="num">${fmt(l.price)}</b></span>${l.growing ? '<span class="sr-grow">還在長</span>' : ''}</span>
     ${on ? `<span class="pick-check">${icon('ok', 22)}</span>` : ''}
   </button>`;
 }
 function myBulls({ canList = true, listed = true, none = false } = {}) {
   const inner = none ? `<div class="pick-empty"><b>沒有能上架的公牛</b><span>要成年、沒配過種、不在田裡工作。</span></div>` : `
-    ${canList ? `<div class="mb-row">${cowSVG({ breed: 'jersey', sex: 'bull', seed: 85 }, { w: 56, h: 56, pad: 3 })}<div class="grow"><b>娟珊 #14</b><div class="chips">${tierChip(1)}</div></div>${btn('上架', { small: true, kind: 'primary', ic: 'tag' })}</div>` : ''}
-    ${listed ? `<div class="mb-row">${cowSVG({ breed: 'angus', sex: 'bull', seed: 5 }, { w: 56, h: 56, pad: 3 })}<div class="grow"><b>安格斯 #5</b><div class="chips">${badge('listed', '上架中')}<span class="hint">800 幣</span></div></div>${btn('下架', { small: true })}</div>` : ''}`;
+    ${canList ? `<div class="mb-row">${cowSVG({ breed: 'jersey', sex: 'bull', seed: 85 }, { w: 56, h: 56, pad: 3 })}<div class="grow"><b>娟珊 #14</b><div class="chips">${tierChip(1)}<span class="hint">借種費 <b class="num">${fmt(studFee(205, 1))}</b> 幣</span></div></div>${btn('上架', { small: true, kind: 'primary', ic: 'tag' })}</div>` : ''}
+    ${listed ? `<div class="mb-row">${cowSVG({ breed: 'angus', sex: 'bull', seed: 5 }, { w: 56, h: 56, pad: 3 })}<div class="grow"><b>安格斯 #5</b><div class="chips">${badge('listed', '上架中')}<span class="hint"><b class="num">${fmt(studFee(790, 0))}</b> 幣</span></div></div>${btn('下架', { small: true })}</div>` : ''}
+    <p class="hint mb-note">借種費由系統算：公牛的體重 × 稀有度的每公斤價格，長大會自動漲。</p>`;
   return `<article class="card my-bulls"><div class="card-head"><span class="card-title orange">${icon('tag', 16)}我的公牛出借</span><span class="card-sub">借種收入累計 <b class="num">${fmt(STUD_INCOME)}</b> 幣</span></div>
     ${inner}
     <button class="link-row">${icon('history', 20)}<span>借種紀錄</span>${icon('chevron', 18)}</button></article>`;
@@ -131,10 +132,12 @@ part18('S18-03', '我的公牛：上架中＋下架', '.my-bulls', (ctx) => stud
 full18('S18-04', '借種市場列表', (ctx) => studPage(ctx, { scrollTo: '.market-sec' }));
 part18('S18-05', '市場：載入中、載入失敗、沒有人上架', '#crop', (ctx) => frame(ctx.dev, { tab: 'breed', content: `<div id="crop" class="stack">${['loading', 'failed', 'empty'].map((m) => `<article class="card">${m === 'loading' ? `<div class="oc-empty"><span class="spinner"></span><span>載入中…</span></div>` : m === 'failed' ? `<div class="oc-empty"><span class="err-text">${icon('err', 20)} 載入失敗</span>${btn('重新整理', { small: true, ic: 'refresh' })}</div>` : `<div class="oc-empty"><span>目前沒有別人上架的公牛</span></div>`}</article>`).join('')}</div>` }));
 full18('S18-06', '選了公牛和母牛：機率、費用、借種', (ctx) => studPage(ctx, { sel: 2, dam: 0, outcome: 'ok', scrollTo: '.outcome-card' }));
-part18('S18-07', '還沒選母牛', '#crop', (ctx) => frame(ctx.dev, { tab: 'breed', content: `<div id="crop" class="stack">${outcomeCard('none', { fee: '2,000 幣（付給主人）' }).replace('請選一頭公牛和一頭母牛', '先選一頭要借的公牛，再選自己的母牛')}${btn('借種（2,000 幣）', { kind: 'pink', block: true, ic: 'heart', disabled: true })}</div>` }));
-part18('S18-08', '金幣不夠、牛舍滿了', '#crop', (ctx) => frame(ctx.dev, { tab: 'breed', content: `<div id="crop" class="stack"><p class="warn-text note-line">${icon('warn', 18)}<span>金幣不夠，還差 1,520 幣</span></p><p class="warn-text note-line">${icon('warn', 18)}<span>牛舍滿了，先擴建或出貨，才有位子給小牛</span></p>${btn('借種（2,000 幣）', { kind: 'pink', block: true, ic: 'heart', disabled: true })}</div>` }));
-full18('S18-09', '借種成功：小牛倒數', (ctx) => studPage(ctx, { sel: 2, dam: 0, outcome: 'ok', btnDisabled: true, btnLabel: '已借種', hud: { coins: RANCH.coins - 2000 }, after: calfCard('巧克力牛 #16', 2, '3 小時 58 分', { breed: 'chocolate', seed: 93 }), scrollTo: '.calf-card', overlays: toast('ok', '借種成功！付給主人 2,000 幣') }));
+part18('S18-07', '還沒選母牛', '#crop', (ctx) => frame(ctx.dev, { tab: 'breed', content: `<div id="crop" class="stack">${outcomeCard('none', { fee: '1,820 幣（付給主人）' }).replace('請選一頭公牛和一頭母牛', '先選一頭要借的公牛，再選自己的母牛')}${btn('借種（1,820 幣）', { kind: 'pink', block: true, ic: 'heart', disabled: true })}</div>` }));
+part18('S18-08', '金幣不夠、牛舍滿了', '#crop', (ctx) => frame(ctx.dev, { tab: 'breed', content: `<div id="crop" class="stack"><p class="warn-text note-line">${icon('warn', 18)}<span>金幣不夠，還差 1,520 幣</span></p><p class="warn-text note-line">${icon('warn', 18)}<span>牛舍滿了，先擴建或出貨，才有位子給小牛</span></p>${btn('借種（1,820 幣）', { kind: 'pink', block: true, ic: 'heart', disabled: true })}</div>` }));
+full18('S18-09', '借種成功：小牛倒數', (ctx) => studPage(ctx, { sel: 2, dam: 0, outcome: 'ok', btnDisabled: true, btnLabel: '已借種', hud: { coins: RANCH.coins - 1820 }, after: calfCard('巧克力牛 #16', 2, '3 小時 58 分', { breed: 'chocolate', seed: 93 }), scrollTo: '.calf-card', overlays: toast('ok', '借種成功！付給主人 1,820 幣') }));
 part18('S18-10', '借種失敗：公牛已經被借走', '.dialog', (ctx) => studPage(ctx, { sel: 2, dam: 0, outcome: 'ok', scrollTo: '.outcome-card', overlays: dialog({ title: '借不到了', body: `<p style="text-align:center">這頭公牛剛剛被別人借走，或主人下架了。<br>錢沒有扣。</p>`, buttons: btn('重新整理市場', { kind: 'primary', ic: 'refresh' }) }) }));
+part18('S18-12', '借種費變了：公牛長大，價格跟剛剛看的不一樣', '.dialog', (ctx) => studPage(ctx, { sel: 3, dam: 0, outcome: 'ok', scrollTo: '.outcome-card', overlays: dialog({ title: '借種費變了', body: `<p style="text-align:center">這頭公牛長大了，借種費從 <b class="num">1,050</b> 幣變成 <b class="num">1,090</b> 幣。<br>要用新的價格借嗎？</p>`, buttons: `${btn('取消')}${btn('用新價格借（1,090 幣）', { kind: 'pink' })}` }) }));
+part18('S18-13', '名字最長：8 個中文字、16 個英文字母（量測用）', '.list', (ctx) => frame(ctx.dev, { tab: 'breed', content: `<div class="list">${[{ ...STUD[2], owner: LONG_NAMES.cjk, tag: '#5821' }, { ...STUD[4], owner: LONG_NAMES.latin, tag: '#0907' }, { ...STUD[0], owner: LONG_NAMES.cjk }].map((l) => studRow(l)).join('')}</div>` }));
 full18('S18-11', '借種紀錄', (ctx) => frame(ctx.dev, { tab: 'breed', content: `<div class="stack">
   <div class="page-head"><button class="icon-btn" aria-label="返回">${icon('back', 22)}</button><div class="grow"><h1>借種紀錄</h1><div class="sub">借出收入累計 ${fmt(STUD_INCOME)} 幣</div></div></div>
   <div class="filter"><button class="on">全部</button><button>借出</button><button>借入</button></div>

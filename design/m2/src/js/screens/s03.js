@@ -1,7 +1,7 @@
 // S03 牧場主畫面
 import { frame, btn, bar, toast, badge, tierChip, useChip, sexText, cowRow, icon, fmt, BREEDS } from '../kit.js';
 import { ranchScene, HERD, WIDE } from '../scene.js';
-import { RANCH, COWS, PEN, BUCKET, WAREHOUSE, MARKET, NEWS, sum, cowName, compact } from '../fixtures.js';
+import { RANCH, COWS, PEN, BUCKET, WAREHOUSE, MARKET, NEWS, sum, cowName, compact, vsBase } from '../fixtures.js';
 import { tierOf } from '../../cow/breeds.js';
 
 const L = '#4B3326';
@@ -21,7 +21,8 @@ export function pailLevel(pct, size = 44) {
 function untilFull(b) { const m = Math.ceil(((b.cap - b.qty) / b.perHour) * 60); return m >= 60 ? `${Math.floor(m / 60)} 小時${m % 60 ? ` ${m % 60} 分` : ''}` : `${m} 分`; }
 const oneDec = (v) => (v >= 1000 ? fmt(Math.round(v)) : (Math.round(v * 10) / 10).toFixed(1).replace(/\.0$/, ''));
 const freshOf = (lots) => (lots.length ? lots.reduce((m, l) => (l.fresh < m ? l.fresh : m), 1) : null);
-const chgHTML = (m) => `<span class="r ${m.chg >= 0 ? 'up' : 'down'}">${icon(m.chg >= 0 ? 'up' : 'down', 10)}<span class="num">${Math.abs(m.chg).toFixed(1)}%</span></span>`;
+// 比平常（基本價）高或低幾 %（D24）
+const chgHTML = (m) => { const v = vsBase(m); return v === 0 ? `<span class="r flat">平常</span>` : `<span class="r ${v > 0 ? 'up' : 'down'}">${icon(v > 0 ? 'up' : 'down', 10)}<span class="num">${Math.abs(v)}%</span></span>`; };
 
 export function dock(o = {}) {
   const b = { ...BUCKET, ...(o.bucket || {}) };
@@ -36,10 +37,10 @@ export function dock(o = {}) {
   // 頂端那一列：中間是場景位置指示（場景兩個螢幕寬，滑塊佔一半），右邊是收起／展開
   const panPct = Math.max(0, Math.min(50, ((o.pan || 0) / (WIDE - 390)) * 50));
   const head = `<div class="dock-head"><span class="pan-ind" aria-label="牧場的位置"><i style="left:${panPct}%"></i></span>
-      <button class="dock-toggle" aria-label="${o.collapsed ? '展開奶桶、倉庫、行情' : '收起奶桶、倉庫、行情'}"><span class="dt-pill">${o.collapsed ? '展開' : '收起'}<span class="dt-chev${o.collapsed ? ' up' : ''}">${icon('chevron', 14)}</span></span></button></div>`;
+      <button class="dock-toggle" aria-label="${o.collapsed ? '展開奶桶、倉庫、收購價' : '收起奶桶、倉庫、收購價'}"><span class="dt-pill">${o.collapsed ? '展開' : '收起'}<span class="dt-chev${o.collapsed ? ' up' : ''}">${icon('chevron', 14)}</span></span></button></div>`;
   const collectBtn = btn(o.collectLabel || '收奶', { kind: 'blue', small: true, disabled: o.collectDisabled ?? b.qty <= 0, busy: o.collectBusy });
   if (o.collapsed) {
-    // 收起來：只剩一條奶桶（收奶是最常按的，所以留著）；倉庫、行情藏起來
+    // 收起來：只剩一條奶桶（收奶是最常按的，所以留著）；倉庫、收購價藏起來
     return `<section class="dock collapsed">${head}
     <article class="card bucket-slim${full ? ' is-full' : ''}">
       <span class="bs-icon">${pailLevel(pct, 34)}</span>
@@ -68,7 +69,7 @@ export function dock(o = {}) {
         <div class="mini-line"><span class="ic">${icon('rice', 18)}</span>稻米<span class="num">${compact(rice)}</span><span class="u">公斤</span></div>
       </article>
       <article class="card mini market">
-        <div class="card-head"><span class="card-title green">行情</span><span class="cap">幣／單位</span></div>
+        <div class="card-head"><span class="card-title green">收購價</span><span class="cap">比平常</span></div>
         ${['milk', 'beef', 'rice'].map((k) => `<div class="mini-line"><span class="ic">${icon(k === 'milk' ? 'milk' : k === 'beef' ? 'beef' : 'rice', 18)}</span>${mk[k].name}<span class="num">${mk[k].price}</span>${chgHTML(mk[k])}</div>`).join('')}
       </article>
     </div>
@@ -180,7 +181,14 @@ full('S03-09', '數字最大、牛舍滿（量測用）', (ctx) => ranchPage(ctx
   },
 }));
 
-full('S03-11', '收起來：奶桶、倉庫、行情收成一條（收奶鈕留著）', (ctx) => ranchPage(ctx, { collapsed: true }));
+// D24：大新聞（幅度 ±20% 以上）時跳出一次；按「去市場看看」到市場頁、選好那種商品
+part('S03-15', '大新聞提示：收購價大漲（只跳出一次）', '.big-news', (ctx) => ranchPage(ctx, {
+  dock: { market: { ...MARKET, beef: { ...MARKET.beef, price: 15.0 } } },
+  overlays: `<div class="big-news card"><button class="bn-close" aria-label="關閉">${icon('close', 18)}</button><span class="bn-tag">大新聞</span>
+    <div class="bn-main"><span class="bn-ic">${icon('beef', 34)}</span><div class="grow"><b>烤肉季開跑</b><p>牛肉收購價 <b class="up-text">+25%</b>，現在 15 幣／公斤</p></div></div>
+    ${btn('去市場看看', { kind: 'primary', block: true, ic: 'coin' })}</div>`,
+}));
+full('S03-11', '收起來：奶桶、倉庫、收購價收成一條（收奶鈕留著）', (ctx) => ranchPage(ctx, { collapsed: true }));
 part('S03-12', '收起來的那一條：奶桶滿了、奶桶是 0', '#crop', (ctx) => frame(ctx.dev, { tab: null, hud: false, content: `<div id="crop" class="g-sheet slim-sheet">${dock({ collapsed: true, bucket: { qty: 42 } })}${dock({ collapsed: true, bucket: { qty: 0 } })}</div>` }));
 full('S03-13', '往右滑：牧場的另一邊（池塘、大樹）', (ctx) => ranchPage(ctx, { pan: WIDE - 390 }));
 full('S03-14', '第一次打開牧場：提示可以左右滑動（只出現一次）', (ctx) => ranchPage(ctx, { swipeHint: true }));

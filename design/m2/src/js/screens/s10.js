@@ -83,21 +83,19 @@ full10('S10-05', '升級成功', (ctx) => facilityPage(ctx, {
 }));
 
 // ---------------- S11 升級與解鎖 ----------------
-function levelUp(ctx, { lv, unlock = false }) {
+function levelUp(ctx, { lv }) {
   const confetti = Array.from({ length: 26 }, (_, i) => { const x = (i * 37) % 100, y = (i * 53) % 46, c = ['#FFD45E', '#FF9784', '#A9DBFF', '#BDE8A6', '#FFD0DE'][i % 5], r = (i * 29) % 90; return `<i style="left:${x}%;top:${y}%;background:${c};transform:rotate(${r}deg)"></i>`; }).join('');
-  const body = unlock
-    ? `<p class="lv-sub">K 線與 7 天走勢開放了！</p><div class="unlock-box"><svg viewBox="0 0 200 70" width="200" height="70" aria-hidden="true"><g stroke-width="2">${[[14, 40, 28, 1], [32, 34, 24, 0], [50, 30, 26, 1], [68, 22, 22, 1], [86, 26, 18, 0], [104, 18, 20, 1], [122, 14, 18, 1], [140, 20, 14, 0], [158, 10, 18, 1], [176, 8, 14, 1]].map(([x, y, h, up]) => `<path d="M${x},${y - 6}V${y + h + 6}" stroke="${up ? '#E5484D' : '#1E9A5A'}"/><rect x="${x - 5}" y="${y}" width="10" height="${h}" rx="1.5" fill="${up ? '#E5484D' : '#1E9A5A'}"/>`).join('')}</g></svg><p class="hint">市場的走勢圖可以切成 K 線，也能看 7 天。</p></div>`
-    : `<p class="lv-sub">累積收入到 ${fmt(7500)} 幣了！</p><p class="hint" style="text-align:center">繼續賣牛奶、牛肉、稻米，或出借公牛，等級會往上升。</p>`;
+  const body = `<p class="lv-sub">累積收入到 ${fmt(7500)} 幣了！</p><p class="hint" style="text-align:center">繼續賣牛奶、牛肉、稻米，或出借公牛，等級會往上升。</p>`;
   const card = `<div class="lv-wrap"><div class="confetti">${confetti}</div>
     <section class="lv-card card"><div class="lv-ribbon" data-free>場主升級</div><div class="lv-big"><span>Lv</span><b class="num">${lv}</b></div>${body}
-      <div class="btn-row" style="margin-top:14px;width:100%">${unlock ? `${btn('等一下')}${btn('去看看', { kind: 'primary' })}` : btn('好', { kind: 'primary' })}</div></section></div>`;
+      <div class="btn-row" style="margin-top:14px;width:100%">${btn('好', { kind: 'primary' })}</div></section></div>`;
   return ranchPage(ctx, { hud: { level: lv, xp: 0 }, overlays: `<div class="backdrop"></div>${card}` });
 }
+
 const S11 = [];
 const full11 = (id, name, render, x = {}) => S11.push({ id, name, type: 'full', render, ...x });
 const part11 = (id, name, crop, render, x = {}) => S11.push({ id, name, type: 'part', crop, render, ...x });
 full11('S11-01', '場主升級慶祝', (ctx) => levelUp(ctx, { lv: 5 }));
-full11('S11-02', '升到 Lv3：K 線與 7 天走勢開放', (ctx) => levelUp(ctx, { lv: 3, unlock: true }));
 part11('S11-03', '新手引導提示（第 15 分鐘、第 20 分鐘）', '#crop', (ctx) => frame(ctx.dev, { tab: null, hud: false, content: `<div id="crop" class="stack">
   <div class="coach"><span class="coach-ic">${cowSVG({ breed: 'holstein' }, { w: 56, h: 56 })}</span><div class="grow"><b>牛舍可以擴建了！</b><p>多一格就能多養一頭牛。到「商店 › 設施」擴建牛舍（280 幣）。</p></div><span class="coach-go">${btn('去擴建', { small: true, kind: 'primary' })}</span></div>
   <div class="coach"><span class="coach-ic">${cowSVG({ breed: 'yellow', sex: 'bull', seed: 33 }, { w: 56, h: 56 })}</span><div class="grow"><b>小公牛長大了！</b><p>可以跟母牛配種（自己的免費），也可以派去田裡種稻。</p></div><span class="coach-go">${btn('去配種', { small: true, kind: 'pink' })}</span></div></div>` }));
@@ -119,5 +117,6 @@ full11('S11-05', '升到 Lv2 之後：提醒備份牧場（只出現一次）', 
 }));
 
 export const S10M = { id: 'S10', name: '商店：設施升級', states: S10 };
-export const S11M = { id: 'S11', name: '升級與解鎖', states: S11 };
+// D24：第一版沒有等級解鎖，所以原本的 S11-02（升到 Lv3 解鎖 K 線）拿掉；升級只有慶祝和經驗條
+export const S11M = { id: 'S11', name: '升級慶祝與提示', states: S11 };
 export const S19M = { id: 'S19', name: '商店：抽牛', states: S19 };

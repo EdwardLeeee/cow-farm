@@ -13,7 +13,7 @@ export const COWS = [
   { id: 15, breed: 'holstein', sex: 'cow', age: 'calf', seed: 31, ageText: '18 分', grow: '42 分', origin: 'breed' },
   { id: 2, breed: 'yellow', sex: 'bull', age: 'adult', ageText: '3 天 1 小時', kg: 431, value: 5108, probs: { A: 0.416, B: 0.428, C: 0.156 }, rice: 11, field: 0, origin: 'start' },
   { id: 9, breed: 'highland', sex: 'cow', age: 'adult', ageText: '2 天 9 小時', kg: 377, value: 5832, probs: { A: 0.401, B: 0.439, C: 0.16 }, rice: 14.3, field: 2, origin: 'A' },
-  { id: 5, breed: 'angus', sex: 'bull', age: 'adult', ageText: '2 天 14 小時', kg: 790, value: 9420, probs: { A: 0.448, B: 0.414, C: 0.138 }, listed: 800, origin: 'C' },
+  { id: 5, breed: 'angus', sex: 'bull', age: 'adult', ageText: '2 天 14 小時', kg: 790, value: 9420, probs: { A: 0.448, B: 0.414, C: 0.138 }, listed: 870, origin: 'C' },
   { id: 11, breed: 'wagyu', sex: 'cow', age: 'adult', ageText: '1 天 18 小時', kg: 612, value: 10024, probs: { A: 0.418, B: 0.436, C: 0.146 }, origin: 'A' },
   { id: 8, breed: 'holstein', sex: 'bull', age: 'old', seed: 23, ageText: '7 天 3 小時', kg: 268, value: 2810, probs: { A: 0.262, B: 0.469, C: 0.269 }, bred: true, origin: 'C' },
   { id: 14, breed: 'jersey', sex: 'bull', age: 'adult', seed: 85, ageText: '1 天 6 小時', kg: 205, value: 3240, probs: { A: 0.383, B: 0.446, C: 0.171 }, origin: 'breed' },
@@ -91,6 +91,8 @@ export const MARKET = {
     k1d: candles(RICE_1D, 4, 7), k7d: candles(walk(169, 4.9, 5.35, 37, 0.18), 6, 13), stock: 184,
   },
 };
+// 比平常高或低幾 %（D24：平常＝基本價；四捨五入到整數）
+export const vsBase = (m) => Math.round((m.price / m.base - 1) * 100);
 export const NEWS = [
   { tag: '牛奶', dir: 'up', text: '颱風接近，運輸受阻，牛奶收購價上漲', when: '12 分鐘前' },
   { tag: '牛肉', upcoming: true, dir: 'up', text: '明天中秋烤肉季開跑，牛肉需求看漲', when: '1 小時前' },
@@ -122,23 +124,27 @@ export const SHOP = [
 ];
 export const SHOP_TYPE = [45, 27.5, 27.5];
 
-// 借種市場
+// 借種市場。借種費由系統算（D26，數字暫定）：公牛現在的體重 × 每公斤價格（一般 1.1、優良 2.75、稀有 6.6、傳說 16.5），四捨五入到 10 幣
+export const STUD_RATE = [1.1, 2.75, 6.6, 16.5];
+export const BEST_BULL_KG = { dairy: 275, draft: 495, beef: 880 }; // 公牛的最佳體重（企劃書第 5 節 × 1.1）
+export const studFee = (kg, tier) => Math.round((kg * STUD_RATE[tier]) / 10) * 10;
 export const STUD = [
-  { id: 41, breed: 'holstein', seed: 71, price: 300, owner: '麥浪溪谷牧園', bot: true },
-  { id: 42, breed: 'yellow', seed: 73, price: 300, owner: '露珠坡地小屋', bot: true },
-  { id: 43, breed: 'chocolate', seed: 75, price: 2000, owner: '楓葉花田乳坊', tag: '#5821' },
-  { id: 44, breed: 'highland', seed: 77, price: 800, owner: '星河松林牧舍', tag: '#3310' },
-  { id: 45, breed: 'wagyu', seed: 79, price: 800, owner: '暖陽原野農場', tag: '#0907' },
-  { id: 46, breed: 'angus', seed: 81, price: 300, owner: '白雲竹林農莊', bot: true },
+  { id: 41, breed: 'holstein', seed: 71, kg: 275, price: 300, owner: '麥浪溪谷牧園', bot: true },
+  { id: 42, breed: 'yellow', seed: 73, kg: 495, price: 540, owner: '露珠坡地小屋', bot: true },
+  { id: 43, breed: 'chocolate', seed: 75, kg: 275, price: 1820, owner: '楓葉花田乳坊', tag: '#5821' },
+  { id: 44, breed: 'highland', seed: 77, kg: 380, price: 1050, owner: '星河松林牧舍', tag: '#3310', growing: true },
+  { id: 45, breed: 'wagyu', seed: 79, kg: 880, price: 2420, owner: '暖陽原野農場', tag: '#0907' },
+  { id: 46, breed: 'angus', seed: 81, kg: 880, price: 970, owner: '白雲竹林農莊', bot: true },
 ];
-export const STUD_INCOME = 1600;
-export const STUD_PRICES = [300, 800, 2000, 5000];
+export const STUD_INCOME = 1160;
 export const STUD_LOG = [
-  { dir: 'out', when: '今天 09:12', who: '星河松林牧舍 #3310', cow: '安格斯 #5', price: 800 },
-  { dir: 'in', when: '昨天 21:40', who: '楓葉花田乳坊 #5821', cow: '巧克力牛', price: 2000, calf: '巧克力牛 #14' },
-  { dir: 'out', when: '9 月 29 日 13:05', who: '暖陽原野農場 #0907', cow: '荷斯坦公牛 #8', price: 300 },
+  { dir: 'out', when: '今天 09:12', who: '星河松林牧舍 #3310', cow: '安格斯 #5', price: 870 },
+  { dir: 'in', when: '昨天 21:40', who: '楓葉花田乳坊 #5821', cow: '巧克力牛', price: 1820, calf: '巧克力牛 #14' },
+  { dir: 'out', when: '9 月 29 日 13:05', who: '暖陽原野農場 #0907', cow: '荷斯坦公牛 #8', price: 290 },
   { dir: 'in', when: '9 月 28 日 20:18', who: '電腦 麥浪溪谷牧園', cow: '荷斯坦', price: 300, calf: '荷斯坦 #10' },
 ];
+// 名字最長（量測用；D23：中文最多 8 個字、英文字母最多 16 個）
+export const LONG_NAMES = { cjk: '晨光河畔牧場小屋', latin: 'MorningRiverFarm' };
 
 // 圖鑑：已發現 10 / 24
 export const FOUND = ['holstein', 'fluffyHolstein', 'jersey', 'chocolate', 'strawberry', 'yellow', 'highland', 'buffalo', 'angus', 'wagyu'];

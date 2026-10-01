@@ -60,6 +60,8 @@ export function cowFace(entry, size = 46) {
 // ---------- 頂列、分頁 ----------
 // 金幣：一百萬以上寫成「萬」；窄手機（寬度小於 390）十萬以上就寫成「萬」
 // dot：齒輪上的小點（還沒備份牧場、也還沒打開過「備份牧場」頁；企劃書 4.11）
+// 名字的顯示寬度（D23）：中文等全形字算 2，英文字母、數字、泰文字算 1
+export function nameWidth(s) { return [...s].reduce((n, ch) => n + (/[\u2E80-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF]/.test(ch) ? 2 : 1), 0); }
 export function hud({ ranch = RANCH, coins, level, xp, gear = true, w = 390, dot = false } = {}) {
   const c = coins ?? ranch.coins, lv = level ?? ranch.level, x = xp ?? xpPct(ranch);
   const coinText = compact(c, w < 390 ? 100000 : 1000000);
@@ -67,7 +69,7 @@ export function hud({ ranch = RANCH, coins, level, xp, gear = true, w = 390, dot
     <div class="profile">
       <div class="avatar">${cowFace({ breed: 'holstein' }, 46)}</div>
       <div class="profile-text">
-        <div class="farm-name" data-oneline>${ranch.name}</div>
+        <div class="farm-name${nameWidth(ranch.name) > 12 ? ' long' : ''}" data-oneline>${ranch.name}</div>
         <div class="farm-level"><span class="lv num">Lv ${lv}</span><span class="xp" aria-label="經驗 ${x}%"><i style="width:${x}%"></i></span></div>
       </div>
     </div>

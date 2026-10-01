@@ -74,6 +74,8 @@ function measure() {
   const outside = [];
   shown.forEach((t) => {
     if (t.el.closest('[data-marquee], [data-free]')) return; // 故意超出框的（例如卡片上緣的緞帶）
+    const tcs = getComputedStyle(t.el);
+    if (tcs.textOverflow === 'ellipsis' && tcs.overflowX !== 'visible') { if (t.el.scrollWidth > t.el.clientWidth + 1 && !truncated.includes(t.text)) truncated.push(t.text); return; } // 刻意截成「…」
     const c = t.el.closest(CONT); if (!c) return;
     const cr = c.getBoundingClientRect(), r = t.rect;
     if (r.left < cr.left - 0.5 || r.right > cr.right + 0.5 || r.top < cr.top - 0.5 || r.bottom > cr.bottom + 0.5) outside.push({ text: t.text, container: String(c.className).slice(0, 40) });

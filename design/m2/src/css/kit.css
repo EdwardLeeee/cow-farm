@@ -18,6 +18,8 @@
   display: flex; flex-direction: column; justify-content: center;
 }
 .farm-name { font-size: 15px; font-weight: 900; line-height: 19px; letter-spacing: 0.3px; white-space: nowrap; }
+/* D23：名字最長 8 個中文字或 16 個英文字母；長名字（顯示寬度超過 12）字縮小一點，還放不下就用「…」截短 */
+.farm-name.long { font-size: 13px; letter-spacing: 0; overflow: hidden; text-overflow: ellipsis; }
 .farm-level { display: flex; align-items: center; gap: 5px; margin-top: 2px; }
 .lv { display: inline-flex; flex: none; background: var(--yellow); border: 2px solid var(--ink); border-radius: 8px; padding: 0 5px; font-size: 12px; line-height: 14px; }
 .xp { width: 58px; height: 9px; border: 2px solid var(--ink); border-radius: 6px; background: #FFF4CC; overflow: hidden; flex: none; }

@@ -1,5 +1,6 @@
 // G 全 app 共用元件
 import { frame, hud, tabbar, TABS, btn, badge, tierChip, useChip, toast, icon, cowSVG, bar, fmt } from '../kit.js';
+import { RANCH, LONG_NAMES } from '../fixtures.js';
 
 const S = [];
 const part = (id, name, crop, render, x = {}) => S.push({ id, name, type: 'part', crop, render, ...x });
@@ -9,14 +10,15 @@ part('G-01', '底部分頁列：6 個分頁各自選中', '#crop', (ctx) => shee
 
 part('G-02', '頂列：牧場名、等級、經驗條、金幣、設定', '#crop', (ctx) => sheet(ctx, `<div class="g-hud">${hud()}</div>`));
 
-part('G-03', '頂列：金幣很多（一百萬以上寫「萬」）、等級兩位數、剛開局（量測用）', '#crop', (ctx) => sheet(ctx, [{ coins: 999999, level: 14, xp: 96 }, { coins: 9876543, level: 14, xp: 3 }, { coins: 100, level: 1, xp: 0 }].map((h) => `<div class="g-hud">${hud({ ...h, w: ctx.dev.w })}</div>`).join('')));
+// D23：牧場名玩家自己取，最長 8 個中文字或 16 個英文字母；頂列放不下時字縮小，再放不下就用「…」截短
+part('G-03', '頂列：金幣很多、等級兩位數、剛開局、名字最長（量測用）', '#crop', (ctx) => sheet(ctx, [{ coins: 999999, level: 14, xp: 96 }, { coins: 9876543, level: 14, xp: 3 }, { coins: 100, level: 1, xp: 0 }, { coins: 12480, ranch: { ...RANCH, name: LONG_NAMES.cjk } }, { coins: 12480, ranch: { ...RANCH, name: LONG_NAMES.latin } }].map((h) => `<div class="g-hud">${hud({ ...h, w: ctx.dev.w })}</div>`).join('')));
 
 part('G-04', '操作結果：成功、伺服器拒絕、網路不穩', '#crop', (ctx) => sheet(ctx, `
   <div class="g-toast">${toast('ok', '升級完成：奶桶 42 → 63 瓶')}</div>
   <div class="g-toast">${toast('err', '金幣不夠，還差 1,210 幣')}</div>
   <div class="g-toast">${toast('warn', '網路不穩，請稍後再試')}</div>`));
 
-part('G-05', '伺服器通知：有人借了你的公牛', '#crop', (ctx) => sheet(ctx, `<div class="g-notice"><div class="notice">${icon('coin', 30)}<div class="grow"><b>有人借了你的公牛</b><span>安格斯 #5 借給 星河松林牧舍 #3310，收到 <b class="num">800</b> 幣</span></div></div></div>`));
+part('G-05', '伺服器通知：有人借了你的公牛', '#crop', (ctx) => sheet(ctx, `<div class="g-notice"><div class="notice">${icon('coin', 30)}<div class="grow"><b>有人借了你的公牛</b><span>安格斯 #5 借給 星河松林牧舍 #3310，收到 <b class="num">870</b> 幣</span></div></div></div>`));
 
 part('G-06', '處理中：按下的按鈕轉圈，其他按鈕停用', '#crop', (ctx) => sheet(ctx, `<div class="card g-busy">
   <div class="card-head" style="margin-bottom:10px"><span class="card-title">升級</span><span class="card-sub">送出後等伺服器回覆</span></div>

@@ -1,6 +1,6 @@
 // S04 牛的詳細資料
-import { frame, btn, badge, tierChip, useChip, sexText, icon, fmt, cowSVG, sheet, toast, empty, BREEDS } from '../kit.js';
-import { COWS, cowById, pct } from '../fixtures.js';
+import { frame, btn, badge, tierChip, useChip, sexText, icon, fmt, cowSVG, sheet, toast, empty, BREEDS, TIER_NAME } from '../kit.js';
+import { COWS, cowById, pct, studFee, STUD_RATE, BEST_BULL_KG } from '../fixtures.js';
 import { tierOf } from '../../cow/breeds.js';
 
 export const GRADE_BG = { A: '#FFD45E', B: '#CFE6FF', C: '#FFD9C2' };
@@ -52,17 +52,24 @@ full('S04-01', '成年母乳牛', (ctx) => detailPage(ctx, cowById(3), { buttons
 full('S04-02', '肉牛（估值最高）', (ctx) => detailPage(ctx, cowById(11), { buttons: `<div class="btn-row">${breedBtn(false)}${shipBtn(false)}</div>` }));
 const freeBull = { ...cowById(5), listed: null };
 full('S04-03', '公牛：可以上架借種', (ctx) => detailPage(ctx, freeBull, { buttons: `${btn('上架借種', { kind: 'primary', ic: 'tag', block: true })}<div class="btn-row" style="margin-top:12px">${breedBtn(false)}${shipBtn(false)}</div>` }));
-full('S04-04', '上架借種：選價位', (ctx) => detailPage(ctx, freeBull, {
+// D26：借種費由系統算（公牛現在的體重 × 每公斤價格，四捨五入到 10 幣），主人只決定要不要上架
+export function feeBox(kg, tier, best) {
+  const fee = studFee(kg, tier);
+  return `<div class="fee-box"><div class="fee-top"><span class="k">借種費</span><b class="num">${fmt(fee)}</b><span class="u">幣</span></div>
+    <p class="fee-how">${TIER_NAME[tier]}（每公斤 ${STUD_RATE[tier]} 幣）× ${fmt(kg)} 公斤${kg < best ? '，長大後會再漲' : '，已經長到最壯'}</p></div>`;
+}
+const FEE5 = studFee(freeBull.kg, 0);
+full('S04-04', '上架借種：借種費由系統算', (ctx) => detailPage(ctx, freeBull, {
   buttons: `${btn('上架借種', { kind: 'primary', ic: 'tag', block: true })}<div class="btn-row" style="margin-top:12px">${breedBtn(false)}${shipBtn(false)}</div>`,
   overlays: sheet({
     title: '安格斯 #5 上架借種',
-    body: `<p class="hint">別人付這個價錢借你的公牛配種；錢給你，小牛歸對方。借出去就算這頭公牛這輩子的那一次配種。</p>
-      <div class="price-grid">${[300, 800, 2000, 5000].map((p) => `<button class="price-opt${p === 800 ? ' on' : ''}">${icon('coin', 22)}<span class="num">${fmt(p)}</span><span class="u">幣</span></button>`).join('')}</div>
-      <div class="btn-row" style="margin-top:14px">${btn('取消')}${btn('上架（800 幣）', { kind: 'primary' })}</div>`,
+    body: `${feeBox(freeBull.kg, 0, BEST_BULL_KG.beef)}
+      <p class="hint" style="margin-top:10px">別人付這個錢借你的公牛配種；錢給你，小牛歸對方。借出去就算這頭公牛這輩子的那一次配種。</p>
+      <div class="btn-row" style="margin-top:14px">${btn('取消')}${btn(`上架（${fmt(FEE5)} 幣）`, { kind: 'primary' })}</div>`,
   }),
 }));
 full('S04-05', '公牛上架中', (ctx) => detailPage(ctx, cowById(5), {
-  note: '上架借種中（800 幣），先下架才能出貨或配種',
+  note: `上架借種中（${fmt(FEE5)} 幣，跟著體重自動漲），先下架才能出貨或配種`,
   buttons: `${btn('下架', { ic: 'tag', block: true })}<div class="btn-row" style="margin-top:12px">${breedBtn(true)}${shipBtn(true)}</div>`,
 }));
 const idleOx = { ...cowById(2), field: null };
