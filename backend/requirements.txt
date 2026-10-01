@@ -3,7 +3,7 @@ fastapi==0.141.1
 starlette==1.7.0
 pydantic==2.13.5
 uvicorn==0.54.0
-websockets==16.1.1
+websockets==17.1
 asyncpg==0.31.0
 # 測試
 httpx==0.28.1
