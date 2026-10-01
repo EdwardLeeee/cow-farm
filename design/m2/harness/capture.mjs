@@ -70,7 +70,7 @@ function measure() {
     }
   });
   // 超出所屬的框
-  const CONT = '.card, .btn, .badge, .tier, .toast, .dialog, .sheet, .tab, .seg button, .coins, .profile-text, .bubble, .ticker, .pen-pill, .notice, .filter button, .w-item, .gift, .cow-pop, .kv .cell, .chip-box';
+  const CONT = '.sso, .card, .btn, .badge, .tier, .toast, .dialog, .sheet, .tab, .seg button, .coins, .profile-text, .bubble, .ticker, .pen-pill, .notice, .filter button, .w-item, .gift, .cow-pop, .kv .cell, .chip-box';
   const outside = [];
   shown.forEach((t) => {
     if (t.el.closest('[data-marquee], [data-free]')) return; // 故意超出框的（例如卡片上緣的緞帶）
@@ -194,7 +194,7 @@ async function run(filter, widths) {
           await page.screenshot({ path: `${base}.png`, fullPage: !!s.tall });
         }
         const m = await page.evaluate(measure).catch((e) => ({ error: String(e) }));
-        const meta = { id: s.id, name: s.name, screen: s.screen, screenName: s.screenName, type: s.type, tall: !!s.tall, width: w, errors, ...m };
+        const meta = { id: s.id, name: s.name, note: s.note || '', screen: s.screen, screenName: s.screenName, type: s.type, tall: !!s.tall, width: w, errors, ...m };
         await writeFile(`${base}.json`, JSON.stringify(meta, null, 1));
         page.off('pageerror', onErr); page.off('console', onCon);
         const issues = ['clipped', 'outside', 'wrapped', 'overlaps', 'smallTargets', 'unsafe'].map((k) => (meta[k] || []).length);

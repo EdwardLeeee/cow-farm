@@ -105,6 +105,19 @@ part11('S11-04', '頂列經驗條：快升級、剛升級', '#crop', (ctx) => fr
   <div class="g-hud">${hud({ level: 4, xp: 96, w: ctx.dev.w })}</div><div class="g-hud">${hud({ level: 5, xp: 0, w: ctx.dev.w })}</div>
   <p class="hint">經驗條＝這一級的累積收入進度（賣出＋借種收入）。Lv4 要 3,500 幣，Lv5 要 7,500 幣。</p></div>` }));
 
+// 升到 Lv2 的慶祝卡關掉以後出現一次（D22；企劃書 4.11）。這時候還沒備份、也沒打開過備份頁，所以頂列的齒輪上有小點。
+full11('S11-05', '升到 Lv2 之後：提醒備份牧場（只出現一次）', (ctx) => ranchPage(ctx, {
+  herd: [{ id: 1, breed: 'holstein', x: 96, y: 420, facing: 'right', depth: 1, milk: true }, { id: 2, breed: 'yellow', sex: 'bull', x: 268, y: 436, facing: 'left', depth: 1 }],
+  pen: { used: 2, slots: 3 },
+  hud: { level: 2, xp: 12, coins: 660, dot: true },
+  dock: { bucket: { qty: 9.8, cap: 28, perHour: 14 }, milkLots: [{ qty: 18, tier: 0, fresh: 1 }], cap: 150, beef: 0, rice: 22 },
+  overlays: dialog({
+    title: '把牧場備份起來',
+    body: `<div class="bk-pic">${cowSVG({ breed: 'holstein' }, { w: 110, h: 110 })}</div><p style="text-align:center">換手機或手機壞了都找得回來。</p>`,
+    buttons: `${btn('之後再說')}${btn('現在備份', { kind: 'primary' })}`,
+  }),
+}));
+
 export const S10M = { id: 'S10', name: '商店：設施升級', states: S10 };
 export const S11M = { id: 'S11', name: '升級與解鎖', states: S11 };
 export const S19M = { id: 'S19', name: '商店：抽牛', states: S19 };

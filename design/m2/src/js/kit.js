@@ -59,7 +59,8 @@ export function cowFace(entry, size = 46) {
 
 // ---------- 頂列、分頁 ----------
 // 金幣：一百萬以上寫成「萬」；窄手機（寬度小於 390）十萬以上就寫成「萬」
-export function hud({ ranch = RANCH, coins, level, xp, gear = true, w = 390 } = {}) {
+// dot：齒輪上的小點（還沒備份牧場、也還沒打開過「備份牧場」頁；企劃書 4.11）
+export function hud({ ranch = RANCH, coins, level, xp, gear = true, w = 390, dot = false } = {}) {
   const c = coins ?? ranch.coins, lv = level ?? ranch.level, x = xp ?? xpPct(ranch);
   const coinText = compact(c, w < 390 ? 100000 : 1000000);
   return `<header class="hud">
@@ -71,7 +72,7 @@ export function hud({ ranch = RANCH, coins, level, xp, gear = true, w = 390 } = 
       </div>
     </div>
     <div class="coins"><span class="coin-icon">${icon('coin', 34)}</span><span class="num num-coins">${coinText}</span></div>
-    ${gear ? `<button class="gear" aria-label="設定">${icon('gear', 24)}</button>` : ''}
+    ${gear ? (dot ? `<button class="gear has-dot" aria-label="設定（還沒備份牧場）">${icon('gear', 24)}<i class="gear-dot"></i></button>` : `<button class="gear" aria-label="設定">${icon('gear', 24)}</button>`) : ''}
   </header>`;
 }
 export const TABS = [

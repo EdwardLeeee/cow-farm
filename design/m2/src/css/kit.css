@@ -235,3 +235,7 @@
   .coin-icon svg { width: 30px; height: 30px; }
   .coin-icon { left: -16px; }
 }
+
+/* 齒輪上的小點：還沒備份牧場、也還沒打開過「備份牧場」頁（選用，hud({ dot: true })） */
+.gear.has-dot { position: relative; }
+.gear-dot { position: absolute; right: -3px; top: -3px; width: 14px; height: 14px; border-radius: 50%; background: #FF6B5E; border: 2.5px solid var(--ink); }

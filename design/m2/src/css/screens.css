@@ -421,7 +421,7 @@
 .coach p { font-size: 13px; font-weight: 700; line-height: 19px; color: var(--ink-2); margin-top: 2px; }
 .coach-go { flex: none; }
 
-/* ================= S13 設定、S14 移轉碼、S15、S16 ================= */
+/* ================= S13 設定、S14 找回牧場、S15、S16 ================= */
 .me-card { display: flex; align-items: center; gap: 10px; padding: 8px 12px; }
 .me-card b { display: block; font-size: 16px; line-height: 21px; }
 .avatar.sm { width: 46px; height: 46px; box-shadow: 0 2px 0 var(--ink); }
@@ -532,3 +532,30 @@
 .cut-say { z-index: 4; line-height: 22px; font-size: 16px; font-weight: 900; background: #FFFFFF; border: 3px solid var(--ink); border-radius: 16px; box-shadow: 0 3px 0 var(--ink); padding: 4px 12px; white-space: nowrap; opacity: 0; transform-origin: 0 100%; }
 .cut-puffs i { position: absolute; left: 0; top: 0; width: 28px; height: 28px; border-radius: 50%; background: #FFFFFF; border: 3px solid var(--ink); opacity: 0; }
 .cut-flash { position: absolute; inset: 0; background: #FFFFFF; opacity: 0; z-index: 10; }
+
+/* ================= 備份牧場、找回牧場（D22：綁定 Apple／Google 帳號） ================= */
+/* 登入按鈕照官方樣式，不套我們的按鈕樣式：Apple 黑底白字、Google 白底細外框；兩顆一樣大。
+   標誌不自己畫：.sso-mark 是標誌位置的虛線佔位方塊，實作時用 Apple／Google 官方的按鈕。 */
+.sso-area { display: flex; flex-direction: column; gap: 10px; }
+.sso-group { display: flex; flex-direction: column; gap: 12px; }
+.sso { width: 100%; min-height: 48px; border-radius: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 17px; font-weight: 700; line-height: 22px; white-space: nowrap; }
+.sso.apple { background: #000000; color: #FFFFFF; }
+.sso.google { background: #FFFFFF; color: #1F1F1F; border: 1px solid #747775; }
+.sso-mark { flex: none; width: 20px; height: 20px; border-radius: 4px; border: 1.5px dashed currentColor; opacity: 0.75; }
+.sso-privacy { text-align: center; }
+.sso-busy { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 108px; font-size: 16px; font-weight: 900; }
+.set-row.has-status .set-right { gap: 4px; }
+.me-card .badge { flex: none; }
+.bk-body { display: flex; flex-direction: column; gap: 12px; }
+.bk-lead { font-size: 16px; font-weight: 700; line-height: 24px; padding: 0 2px; }
+.bind-list { padding: 2px 12px; }
+.bind-row { display: flex; align-items: center; gap: 10px; min-height: 62px; border-top: 2px dashed var(--line-soft); }
+.bind-row:first-child { border-top: 0; }
+.other-ranch { display: flex; align-items: center; gap: 10px; background: #FFFFFF; border: 2px solid var(--line-soft); border-radius: 16px; padding: 8px 10px; margin-bottom: 10px; }
+.other-ranch b { display: block; font-size: 16px; line-height: 21px; }
+.dlg-stack { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+.note-line.danger-line { background: #FFF0EE; border-color: #F2A59E; align-items: flex-start; }
+.rec-hero { text-align: center; }
+.rec-lead { font-size: 17px; font-weight: 900; line-height: 24px; margin-top: 6px; }
+.no-ranch .btn-row { margin-top: 2px; }
+.bk-pic { display: flex; justify-content: center; line-height: 0; margin-bottom: 4px; }

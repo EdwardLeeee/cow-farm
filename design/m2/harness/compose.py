@@ -10,6 +10,7 @@ RAW, OUT, MEAS = os.path.join(ROOT, 'raw'), os.path.join(ROOT, 'boards'), os.pat
 FONT = '/usr/share/fonts/opentype/noto/NotoSansCJK-{}.ttc'
 def font(size, w='Bold'): return ImageFont.truetype(FONT.format(w), size, index=3)
 INK, MUTED, BG, RED = (75, 51, 38), (138, 111, 96), (255, 249, 239), (229, 72, 77)
+NOTE = (194, 84, 27)  # 註解的字（給看圖的人，不是畫面的一部分）
 DEVNAME = {430: '430 寬（大手機，例 iPhone 14 Pro Max）', 390: '390 寬（一般手機，例 iPhone 14）'}
 SCREEN_ORDER = ['G'] + [f'S{i:02d}' for i in range(1, 21)]
 
@@ -72,10 +73,15 @@ def header(draw, x, y, title, sub, tags=(), maxw=None):
 def board_full(m, img, screen_dir):
     pad, head = 32, 110
     ph = rounded(img, 60)
+    # 有註解的狀態：標題列下面多一到兩行「註：…」
+    notes = wrap_text(ImageDraw.Draw(Image.new('RGB', (10, 10))), '註：' + m['note'], font(20), ph.width) if m.get('note') else []
+    if notes: head += 4 + 30 * len(notes)
     W, H = ph.width + pad * 2, head + ph.height + pad
     im = Image.new('RGB', (W, H), BG); d = ImageDraw.Draw(im)
     tags = ['長頁'] if m.get('tall') else []
     header(d, pad, 20, f"M2-{m['id']}  {m['name']}", f"{m['screen']} {m['screenName']}　·　{DEVNAME[m['width']]}", tags, maxw=ph.width)
+    for j, line in enumerate(notes):
+        d.text((pad, 104 + 30 * j), line, font=font(20), fill=NOTE)
     im.paste(ph, (pad, head), ph)
     d.rounded_rectangle([pad - 3, head - 3, pad + ph.width + 2, head + ph.height + 2], 62, outline=INK, width=4)
     name = f"M2-{m['id']}-{safe(m['screenName'])}-{safe(m['name'])}-{m['width']}.png"
@@ -94,20 +100,22 @@ def sheet_parts(screen, sname, parts, w, screen_dir):
     ncol = 2 if colw <= 900 and len(tiles) > 1 else 1
     # 每格的標題太長就換行（一行 34 高），不讓它超出欄寬
     tmp = ImageDraw.Draw(Image.new('RGB', (10, 10)))
-    tiles = [(m, img, wrap_text(tmp, cap, font(26), colw)) for m, img, cap in tiles]
+    tiles = [(m, img, wrap_text(tmp, cap, font(26), colw), wrap_text(tmp, '註：' + m['note'], font(20), colw) if m.get('note') else []) for m, img, cap in tiles]
     cols = [[] for _ in range(ncol)]; hs = [0] * ncol
     for t in tiles:
-        i = hs.index(min(hs)); cols[i].append(t); hs[i] += 60 + 34 * (len(t[2]) - 1) + t[1].height + gap
+        i = hs.index(min(hs)); cols[i].append(t); hs[i] += 60 + 34 * (len(t[2]) - 1) + 28 * len(t[3]) + t[1].height + gap
     W = pad * 2 + ncol * colw + (ncol - 1) * gap
     H = head + max(hs) + pad
     im = Image.new('RGB', (W, H), BG); d = ImageDraw.Draw(im)
     header(d, pad, 20, f"M2-{screen}  局部狀態表", f"{screen} {sname}　·　{DEVNAME[w]}　·　只差一小塊的狀態並排在一起", ['局部'])
     for ci, col in enumerate(cols):
         x, y = pad + ci * (colw + gap), head
-        for m, img, cap in col:
+        for m, img, cap, nt in col:
             for j, line in enumerate(cap):
                 d.text((x, y + 8 + 34 * j), line, font=font(26), fill=INK)
-            y += 50 + 34 * (len(cap) - 1)
+            for j, line in enumerate(nt):
+                d.text((x, y + 10 + 34 * len(cap) + 28 * j), line, font=font(20), fill=NOTE)
+            y += 50 + 34 * (len(cap) - 1) + 28 * len(nt)
             im.paste(img, (x, y))
             d.rectangle([x - 2, y - 2, x + img.width + 1, y + img.height + 1], outline=(200, 184, 168), width=2)
             y += img.height + gap

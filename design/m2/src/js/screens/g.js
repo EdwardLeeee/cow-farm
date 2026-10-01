@@ -37,4 +37,6 @@ part('G-08', '小牛長大倒數卡（配種、借種共用）', '#crop', (ctx) 
 part('G-09', '下拉重新整理', '#crop', (ctx) => sheet(ctx, `<div class="g-pull"><div class="pull-ind"><span class="spinner"></span>重新整理中…</div>
   <div class="card" style="opacity:.9"><div class="row" style="gap:8px">${cowSVG({ breed: 'chocolate', sex: 'bull', seed: 75 }, { w: 56, h: 56 })}<div><b>巧克力牛 公</b><div class="hint">稀有・2,000 幣</div></div></div></div></div>`));
 
+part('G-10', '頂列齒輪的小點：還沒備份牧場、也還沒打開過「備份牧場」頁', '#crop', (ctx) => sheet(ctx, `<div class="g-hud">${hud({ dot: true, w: ctx.dev.w })}</div>`));
+
 export default { id: 'G', name: '共用元件', states: S };
