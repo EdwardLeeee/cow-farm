@@ -122,7 +122,7 @@ export const CODEX_ORDER = [
 ];
 export const NEW_IN_M2 = CODEX_ORDER.slice().filter((k) => !['holstein', 'jersey', 'chocolate', 'strawberry', 'yellow', 'highland', 'buffalo', 'angus', 'wagyu', 'charolais'].includes(k));
 
-// 一句話介紹（初稿，交 ceo 審；企劃書 4.5：M2 由 ceo 與 cow-ui 一起寫）
+// 一句話介紹（ceo 2026-10-01 審過：牛奶照稀有度叫、圖鑑介紹不提牛肉、近黑的毛寫炭灰黑）
 export const INTRO = {
   holstein: '黑白花斑的招牌乳牛，個子高、產奶穩定。',
   fluffyHolstein: '荷斯坦多了一身蓬蓬長毛和瀏海，冬天最不怕冷。',
@@ -130,8 +130,8 @@ export const INTRO = {
   glossBlack: '黑亮的毛上點綴白斑，站在太陽底下會反光。',
   cottonCream: '奶油色的蓬毛像一團棉花，看起來軟綿綿。',
   velvetBlack: '一身亮黑長毛，像穿了一件絨毛大衣。',
-  chocolate: '咖啡色的毛配奶油色斑，頭頂一球奶油，產巧克力牛奶。',
-  strawberry: '奶油白底配草莓紅斑，頭頂一片綠葉，產草莓牛奶。',
+  chocolate: '咖啡色的毛配奶油色斑，頭頂一球奶油，看起來像一杯巧克力牛奶。',
+  strawberry: '奶油白底配草莓紅斑，頭頂一片綠葉，像一顆會走路的草莓。',
   yellow: '黃褐色、肩上一個圓圓的小肩峰，田裡最可靠的幫手。',
   highland: '薑黃色長毛蓋住眼睛，頭上一對長長的角。',
   milkTea: '淡淡的奶茶色，肩峰圓圓的，脾氣很溫和。',
@@ -141,13 +141,13 @@ export const INTRO = {
   honey: '金黃色的亮毛，像淋了一層蜂蜜。',
   goldenEar: '金黃色的身上有稻穗紋，頭頂一小束稻穗，耕田的產量特別多。',
   angus: '炭灰黑的壯碩肉牛，沒有角。',
-  galloway: '黑色長捲毛又厚又暖，沒有角。',
+  galloway: '炭灰黑的長捲毛又厚又暖，沒有角。',
   charolais: '奶油白的大個子，肌肉結實。',
   wagyu: '黑亮的毛帶一道光澤，頭上一對短角。',
   whiteFleece: '奶油白的長捲毛，遠看像一朵雲。',
   fluffyWagyu: '和牛的長毛版本，毛又亮又蓬，一樣有短角。',
   whiteWagyu: '奶油白的毛帶著光澤，頭上一對短角。',
-  starry: '深藍色的毛上有白色星星，牛肉叫「星空牛肉」。',
+  starry: '深藍色的毛上有白色星星，是最難遇到的肉牛。',
 };
 
 export function tierOf(b) { return Object.keys(b.traits || {}).filter((k) => b.traits[k]).length; }

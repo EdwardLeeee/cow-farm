@@ -129,7 +129,7 @@ full('S03-06', '點一頭牛：轉正面、跳出小名片', (ctx) => {
   const c = COWS.find((x) => x.id === 12);
   return ranchPage(ctx, {
     herd: HERD.map((h) => (h.id === 12 ? { ...h, pose: 'front' } : h)),
-    pop: { id: 12, html: `<div class="name">${cowName(c)}</div><div class="chips" style="margin-top:4px">${useChip('dairy')}<span class="use">母</span>${tierChip(3)}</div><div class="meta">產草莓牛奶 14 瓶／時</div>${btn('看詳細', { small: true, block: true, kind: 'primary' })}` },
+    pop: { id: 12, html: `<div class="name">${cowName(c)}</div><div class="chips" style="margin-top:4px">${useChip('dairy')}<span class="use">母</span>${tierChip(3)}</div><div class="meta">產傳說牛奶 14 瓶／時</div>${btn('看詳細', { small: true, block: true, kind: 'primary' })}` },
   });
 });
 
