@@ -3,6 +3,7 @@ import { icon, tabIcon } from './icons.js';
 import { drawCow, SIL_DEFS } from '../cow/render.js';
 import { BREEDS, USE_NAME, TIER_NAME, tierOf } from '../cow/breeds.js';
 import { RANCH, xpPct, fmt, compact } from './fixtures.js';
+import { t, tierName, useName, sexName, cowName } from './i18n.js';
 
 // ---------- 裝置 ----------
 export const DEVICES = {
@@ -70,20 +71,21 @@ export function hud({ ranch = RANCH, coins, level, xp, gear = true, w = 390, dot
       <div class="avatar">${cowFace({ breed: 'holstein' }, 46)}</div>
       <div class="profile-text">
         <div class="farm-name${nameWidth(ranch.name) > 12 ? ' long' : ''}" data-oneline>${ranch.name}</div>
-        <div class="farm-level"><span class="lv num">Lv ${lv}</span><span class="xp" aria-label="經驗 ${x}%"><i style="width:${x}%"></i></span></div>
+        <div class="farm-level"><span class="lv num">${t('level', { lv })}</span><span class="xp" aria-label="${t('hud.xp', { pct: x })}"><i style="width:${x}%"></i></span></div>
       </div>
     </div>
     <div class="coins"><span class="coin-icon">${icon('coin', 34)}</span><span class="num num-coins">${coinText}</span></div>
-    ${gear ? (dot ? `<button class="gear has-dot" aria-label="設定（還沒備份牧場）">${icon('gear', 24)}<i class="gear-dot"></i></button>` : `<button class="gear" aria-label="設定">${icon('gear', 24)}</button>`) : ''}
+    ${gear ? (dot ? `<button class="gear has-dot" aria-label="${t('hud.settingsNotBacked')}">${icon('gear', 24)}<i class="gear-dot"></i></button>` : `<button class="gear" aria-label="${t('hud.settings')}">${icon('gear', 24)}</button>`) : ''}
   </header>`;
 }
+// 分頁：label 用 strings.dart 的 key（tabRanch…tabRecords）
 export const TABS = [
-  { key: 'ranch', label: '牧場' }, { key: 'market', label: '市場' }, { key: 'fields', label: '田地' },
-  { key: 'breed', label: '配種' }, { key: 'shop', label: '商店' }, { key: 'records', label: '紀錄' },
+  { key: 'ranch', lk: 'tabRanch' }, { key: 'market', lk: 'tabMarket' }, { key: 'fields', lk: 'tabFields' },
+  { key: 'breed', lk: 'tabBreed' }, { key: 'shop', lk: 'tabShop' }, { key: 'records', lk: 'tabRecords' },
 ];
 export function tabbar(active) {
-  return `<nav class="tabbar">${TABS.map((t) => `<button class="tab${t.key === active ? ' active' : ''}" ${t.key === active ? 'aria-current="page"' : ''}>
-    <span class="tab-icon">${tabIcon(t.key, t.key === active)}</span><span class="tab-label">${t.label}</span></button>`).join('')}</nav>`;
+  return `<nav class="tabbar">${TABS.map((tb) => `<button class="tab${tb.key === active ? ' active' : ''}" ${tb.key === active ? 'aria-current="page"' : ''}>
+    <span class="tab-icon">${tabIcon(tb.key, tb.key === active)}</span><span class="tab-label">${t(tb.lk)}</span></button>`).join('')}</nav>`;
 }
 export function seg(items, on, { small = false, cls = '' } = {}) {
   return `<div class="seg${small ? ' small' : ''} ${cls}">${items.map((it, i) => {
@@ -103,7 +105,7 @@ export function frame(dev, o = {}) {
     ${o.content !== undefined ? `<main class="content${o.contentCls ? ' ' + o.contentCls : ''}">${o.content}</main>` : ''}
     ${o.body || ''}
     ${hasHud ? hud({ ...(typeof o.hud === 'object' ? o.hud : {}), w: dev.w }) : ''}
-    ${o.offline ? `<div class="hud-offline">${icon('offline', 20)}<span>連線中…</span></div>` : ''}
+    ${o.offline ? `<div class="hud-offline">${icon('offline', 20)}<span>${t('connecting')}</span></div>` : ''}
     ${hasTab ? tabbar(o.tab) : ''}
     <div class="overlays">${o.overlays || ''}</div>
     ${chrome(dev, { dark: !!o.dark })}
@@ -117,12 +119,12 @@ export function btn(label, { kind = '', small = false, block = false, disabled =
   return `<button class="${c}"${disabled || busy ? ' disabled' : ''}>${inner}</button>`;
 }
 export const badge = (kind, text) => `<span class="badge ${kind}">${text}</span>`;
-export const tierChip = (t) => `<span class="tier tier-${t}">${t === 3 ? icon('sparkle', 12) : ''}${TIER_NAME[t]}</span>`;
+export const tierChip = (n) => `<span class="tier tier-${n}">${n === 3 ? icon('sparkle', 12) : ''}${tierName(n)}</span>`;
 export function useChip(use) {
   const ic = use === 'dairy' ? icon('milk', 16) : use === 'draft' ? icon('rice', 16) : icon('beef', 16);
-  return `<span class="use">${ic}${USE_NAME[use]}</span>`;
+  return `<span class="use">${ic}${useName(use)}</span>`;
 }
-export const sexText = (sex) => (sex === 'bull' ? '公' : '母');
+export const sexText = (sex) => sexName(sex);
 export function bar(p, { color = '', thick = false, label = '' } = {}) {
   const v = Math.max(0, Math.min(100, p));
   return `<div class="bar ${color}${thick ? ' thick' : ''}${v >= 100 ? ' full' : ''}"${label ? ` aria-label="${label}"` : ''}><i style="width:${v}%"></i></div>`;
@@ -144,7 +146,7 @@ export function cowRow(c, { right = '', meta = '', chips = '', dim = false, pic 
   const b = BREEDS[c.breed];
   return `<article class="card cow-row${dim ? ' dim' : ''} ${cls}">
     ${pic ? `<div class="pic">${cowSVG({ breed: c.breed, sex: c.sex, age: c.age === 'old' ? 'adult' : c.age, seed: c.seed }, { w: 60, h: 60, pad: 3 })}</div>` : ''}
-    <div class="info"><div class="name">${b.name} #${c.id}</div>${chips ? `<div class="chips" style="margin-top:3px">${chips}</div>` : ''}${meta ? `<div class="meta">${meta}</div>` : ''}${extra}</div>
+    <div class="info"><div class="name">${cowName(c.breed, c.id)}</div>${chips ? `<div class="chips" style="margin-top:3px">${chips}</div>` : ''}${meta ? `<div class="meta">${meta}</div>` : ''}${extra}</div>
     ${right ? `<div class="right">${right}</div>` : ''}
   </article>`;
 }

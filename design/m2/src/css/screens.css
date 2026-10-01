@@ -98,7 +98,7 @@
 .loading-row { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 16px; font-weight: 900; }
 .splash-ver { position: absolute; left: 0; right: 0; bottom: calc(var(--safe-bottom) + 12px); text-align: center; font-size: 12px; font-weight: 700; color: #3F7A3A; }
 
-/* ================= S02 轉輪取名 ================= */
+/* ================= S02 自己取名（D23） ================= */
 .namer { display: flex; flex-direction: column; gap: 14px; padding-top: 6px; }
 .namer-head { display: flex; align-items: center; gap: 6px; }
 .namer-head h1 { margin: 0; font-size: 22px; font-weight: 900; line-height: 28px; }

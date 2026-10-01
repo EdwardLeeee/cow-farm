@@ -1,8 +1,9 @@
 // S01 啟動與載入
 import { frame, btn, cowSVG, icon } from '../kit.js';
+import { t } from '../i18n.js';
 
-// 遊戲名先用暫名「牛市牧場」，做成單一文字，正式名稱定案後只換這一個字串
-export const GAME_NAME = '牛市牧場';
+// 遊戲名先用暫名「牛市牧場」（D21），沿用 strings.dart 的 appTitle，正式名稱定案後只換這一個字串
+export const GAME_NAME = t('appTitle');
 const VERSION = '1.0.0';
 
 // 草地上的草叢和小花（R1-A 場景的畫法）
@@ -25,7 +26,7 @@ function splash(ctx, inner) {
     <div class="splash-ground"></div>
     ${deco(dev)}
     <div class="splash-box">${inner}</div>
-    <div class="splash-ver">版本 ${VERSION}</div>
+    <div class="splash-ver">${t('s01.version', { v: VERSION })}</div>
   </div>`;
   return frame(dev, { tab: null, hud: false, body });
 }
@@ -34,11 +35,11 @@ const S = [];
 const full = (id, name, render, x = {}) => S.push({ id, name, type: 'full', render, ...x });
 
 full('S01-01', '啟動畫面', (ctx) => splash(ctx, ''));
-full('S01-02', '載入中', (ctx) => splash(ctx, `<div class="loading-row"><span class="spinner"></span><span>正在載入牧場…</span></div>`));
-full('S01-03', '第一次打開：建立牧場中', (ctx) => splash(ctx, `<div class="loading-row"><span class="spinner"></span><span>正在幫你準備新牧場…</span></div><p class="hint" style="text-align:center;margin-top:6px">第一次打開要幾秒鐘</p>`));
+full('S01-02', '載入中', (ctx) => splash(ctx, `<div class="loading-row"><span class="spinner"></span><span>${t('loadingFarm')}</span></div>`));
+full('S01-03', '第一次打開：建立牧場中', (ctx) => splash(ctx, `<div class="loading-row"><span class="spinner"></span><span>${t('s01.creating')}</span></div><p class="hint" style="text-align:center;margin-top:6px">${t('s01.firstTime')}</p>`));
 full('S01-04', '載入失敗', (ctx) => splash(ctx, `<div class="card" style="text-align:center">
-  <div class="row" style="justify-content:center;gap:6px">${icon('offline', 22)}<b style="font-size:16px">連不上伺服器</b></div>
-  <p class="hint" style="margin-top:6px">請確認網路後重試。<br>每 5 秒也會自動再試一次。</p>
-  <div style="margin-top:12px">${btn('重試', { kind: 'primary', block: true, ic: 'refresh' })}</div></div>`));
+  <div class="row" style="justify-content:center;gap:6px">${icon('offline', 22)}<b style="font-size:16px">${t('s01.failTitle')}</b></div>
+  <p class="hint" style="margin-top:6px">${t('s01.failCheck')}<br>${t('s01.failAuto', { n: 5 })}</p>
+  <div style="margin-top:12px">${btn(t('retry'), { kind: 'primary', block: true, ic: 'refresh' })}</div></div>`));
 
 export default { id: 'S01', name: '啟動與載入', states: S };
