@@ -244,7 +244,9 @@
   - 主題同時設 fontWeight 和 `FontVariation.weight`。
   - 授權：兩個字型都是 SIL Open Font License 1.1。條件 2 原文：「each copy contains the above copyright notice and this license」。用 `LicenseRegistry.addLicense` 放進 app 的第三方授權頁（ceo 2026-10-02 要求）。
   - Noto Sans TC 的保留名稱是「Source」。如果改用子集（子集算 Modified Version），檔名和字型名不能用「Source」；「Noto Sans TC」不受影響。
-- **第 3a 步開工第一件事要先確認**：asset transformer 在 `flutter test` 也會跑（測試讀到的是 `.vec` 還是原始 SVG）。截圖管線和每個畫面的 widget test 都會用到牛的圖。
+- **已確認 asset transformer 在 `flutter test` 也會跑**（`spike/test/transformer_test.dart`）：
+  - `rootBundle` 讀到的是編好的 `.vec`（17,105 bytes；原始 SVG 45,774 bytes），`AssetBytesLoader` 解得開。
+  - 所以截圖管線和每個畫面的 widget test 讀到的牛，跟 app 裡的一樣。
 
 ## 6. 建議與分階段
 
@@ -264,7 +266,7 @@
    3. 圖示：`icons.js` 的 54 個，每個一個 SVG。
    4. 動畫用的零件：出貨卡車的車身、車輪、擋板（A-03），星星亮光（`scene.js` 的 sparkle）。其他飛的東西用第 3 項的圖示。
 3. **cow-app 接著做**：
-   - 第 3a 步：先確認 asset transformer 在 `flutter test` 會跑，再接字型和主題。
+   - 第 3a 步：字型和主題（字型等 ceo 定）。
    - 牛的圖到了以後，才做有牛的畫面和第 5 步的場景。
    - 驗收：每個畫面的截圖跟設計稿並排，牛的部分照第 1 節的量法再比一次。
 4. **M4**：照第 2 節的驗收條件，在 iPhone 量 fps 和記憶體。牛的圖在 Impeller（iPhone 的繪圖引擎）上，用同一套比對工具再跑一次。
@@ -305,6 +307,8 @@ node docs/research/cow-render/mathcheck.mjs $S/mathcheck.json 200000
 # 8. 字型大小（會下載字型）、可變字型的粗細
 python3 docs/research/cow-render/fonts.py $S/fonts
 (cd docs/research/cow-render/spike && flutter test test/font_test.dart --dart-define=FONT_DIR=$S/fonts --dart-define=OUT_DIR=$S/font-out)
+# 9. asset transformer 在 flutter test 會不會跑（spike/assets/test_cow.svg 是 export.mjs 匯出的荷斯坦）
+(cd docs/research/cow-render/spike && flutter test test/transformer_test.dart)
 ```
 
 ### 版本

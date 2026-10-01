@@ -17,3 +17,11 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   vector_graphics_compiler: ^1.1.0
+
+flutter:
+  assets:
+    # 確認建置時的 asset transformer 在 flutter test 也會跑（test/transformer_test.dart）
+    - path: assets/test_cow.svg
+      transformers:
+        - package: vector_graphics_compiler
+          args: ['--no-optimize-masks', '--no-optimize-clips', '--no-optimize-overdraw']
