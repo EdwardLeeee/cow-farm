@@ -1,0 +1,105 @@
+{
+ "subset_chars": 5963,
+ "big5_level1_and_symbols": 5805,
+ "string_table_han": 642,
+ "string_table_han_outside_big5_level1": [],
+ "fonts": {
+  "NotoSansTC-Regular.otf": {
+   "version": "Version 2.004;hotconv 1.0.118;makeotfexe 2.5.65603",
+   "outlines": "CFF",
+   "axes": null,
+   "full": {
+    "mb": 5.42,
+    "deflate_mb": 4.67
+   },
+   "subset": {
+    "mb": 1.59,
+    "deflate_mb": 1.38
+   }
+  },
+  "NotoSansTC-Bold.otf": {
+   "version": "Version 2.004;hotconv 1.0.118;makeotfexe 2.5.65603",
+   "outlines": "CFF",
+   "axes": null,
+   "full": {
+    "mb": 5.57,
+    "deflate_mb": 4.84
+   },
+   "subset": {
+    "mb": 1.62,
+    "deflate_mb": 1.42
+   }
+  },
+  "NotoSansTC-Black.otf": {
+   "version": "Version 2.004;hotconv 1.0.118;makeotfexe 2.5.65603",
+   "outlines": "CFF",
+   "axes": null,
+   "full": {
+    "mb": 5.79,
+    "deflate_mb": 4.94
+   },
+   "subset": {
+    "mb": 1.71,
+    "deflate_mb": 1.47
+   }
+  },
+  "NotoSansTC-VF.otf": {
+   "version": "Version 2.004;hotconv 1.0.118;makeotfexe 2.5.65603",
+   "outlines": "CFF2",
+   "axes": [
+    [
+     "wght",
+     100.0,
+     900.0
+    ]
+   ],
+   "full": {
+    "mb": 9.65,
+    "deflate_mb": 6.54
+   },
+   "subset": {
+    "mb": 2.67,
+    "deflate_mb": 1.87
+   }
+  },
+  "NotoSansTC[wght].ttf": {
+   "version": "Version 2.004-H2;hotconv 1.0.118;makeotfexe 2.5.65603",
+   "outlines": "glyf",
+   "axes": [
+    [
+     "wght",
+     100.0,
+     900.0
+    ]
+   ],
+   "full": {
+    "mb": 11.39,
+    "deflate_mb": 7.24
+   },
+   "subset": {
+    "mb": 3.16,
+    "deflate_mb": 2.08
+   }
+  },
+  "NotoSansThai[wdth,wght].ttf": {
+   "version": "Version 2.002",
+   "outlines": "glyf",
+   "axes": [
+    [
+     "wght",
+     100.0,
+     900.0
+    ],
+    [
+     "wdth",
+     62.5,
+     100.0
+    ]
+   ],
+   "full": {
+    "mb": 0.21,
+    "deflate_mb": 0.13
+   }
+  }
+ }
+}

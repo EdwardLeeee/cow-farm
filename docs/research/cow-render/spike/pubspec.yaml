@@ -1,0 +1,19 @@
+name: cow_render_spike
+description: "牛怎麼畫的實測（docs/research/2026-10-cow-rendering.md）：flutter_svg 畫產生器的 SVG、轉成點陣圖的時間與大小。丟棄式，不出貨。"
+publish_to: 'none'
+version: 0.0.1
+
+environment:
+  sdk: ^3.13.4
+  flutter: 3.47.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_svg: ^2.0.0
+  vector_graphics: ^1.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  vector_graphics_compiler: ^1.1.0
