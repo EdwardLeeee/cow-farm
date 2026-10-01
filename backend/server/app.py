@@ -505,6 +505,11 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
             "mine": [V.listing_view(g, l, p.pid, now) for l in g.stud.owner_listings(p.pid)],
         }
 
+    @app.get("/v1/stud/log")
+    async def stud_log(p: Player = Depends(current)):
+        """借種紀錄（S18-11；協定 4.6 節）。"""
+        return await server.stud_log_view(p)
+
     @app.get("/v1/stud/preview")
     async def stud_preview(listing_id: int = Query(...), dam: int = Query(...), p: Player = Depends(current)):
         now = server.clock.now()

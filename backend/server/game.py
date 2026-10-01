@@ -727,6 +727,9 @@ class Game:
                 "price": price,
                 "cow_id": lst.cow_id,
                 "g": lst.g,
+                "t": now,
+                "calf_id": calf.cid,
+                "calf_g": calf.g,
             }
         )
         return {"calf": calf, "price": int(round(price)), "listing": lst, "dam": dam}
