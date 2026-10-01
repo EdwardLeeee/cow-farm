@@ -1,12 +1,14 @@
 """把遊戲狀態變成 API 回應的 JSON（欄位說明在 docs/protocol.md）。只讀，不改任何狀態。
 
-時間欄位一律是遊戲時間的 Unix 秒數（數字，可有小數）。app 照台灣時間 UTC+8 顯示。
+- 時間欄位一律是遊戲時間的 Unix 秒數（數字，可有小數）；名字以 _real 結尾的是現實時間。
+- 協定 v2：不送給玩家看的文字（D25）。名字、新聞都送代碼，app 用字串表依語言顯示。
 """
 
 from __future__ import annotations
 
 import math
-from typing import Dict, List, Optional
+import time
+from typing import Dict, List, Optional, Tuple
 
 from cowecon.farm import (
     OX,
@@ -26,14 +28,11 @@ from cowecon.farm import (
     rice_factor,
     wh_cap,
 )
-from cowecon.params import HOUR
+from cowecon.params import HEADLINES, HOUR
 
 from .game import TYPE_WIRE, Game, Player, level_threshold, ship_value
-from .names import display_name
+from .names import name_words, station_words
 
-NPC_STUD_NAME = "電腦 公營種牛站"  # 電腦假玩家（系統）上架的公牛：錢不給任何人
-
-TIER_NAMES = ("一般", "優良", "稀有", "傳說")
 GRADE_NAMES = ("A", "B", "C")
 
 
@@ -72,15 +71,11 @@ def cow_view(game: Game, p: Player, c: Cow, now: float) -> dict:
     return {
         "id": c.cid,
         "type": TYPE_WIRE[c.ctype],
-        "type_name": fp.type_names[c.ctype],
         "bull": c.bull,
         "tier": c.tier,
-        "tier_name": TIER_NAMES[c.tier],
         "stage": cow_stage(p, c, now),
         "born_at": c.born_at,
         "adult_at": c.adult_at,
-        "ready_at": c.ready_at,
-        "breed_ready": c.can_breed_now(now),
         "age_h": r2((now - c.born_at) / HOUR),
         "milk_per_h": r2(cow_milk_rate(fp, c, now)),
         "milk_frac": r2(milk_frac(fp, c.adult_age_h(now))) if adult and (is_milker(c) or c.ctype == OX) else 0.0,
@@ -254,9 +249,29 @@ def rice_view(p: Player, now: float) -> dict:
 
 def shop_view(game: Game, p: Player) -> dict:
     fp = p.farm.fp
+    return {"grades": [{"grade": g, "price": ci(fp.shop_grade_price[i])} for i, g in enumerate(fp.shop_grade_names)]}
+
+
+def ranch_ref(p: Player) -> dict:
+    """協定 1.6 節的「牧場」：真人送自己取的名字，電腦送三組詞的編號（app 依玩家的語言組）。"""
+    words = name_words(p.name) if p.is_bot else None
     return {
-        "calf_price": {w: ci(fp.shop_grade_price[-1]) for w in TYPE_WIRE},  # v0.1 欄位：v0.2 起是最便宜（C 級）的價格
-        "grades": [{"grade": g, "price": ci(fp.shop_grade_price[i])} for i, g in enumerate(fp.shop_grade_names)],
+        "player_id": p.pid,
+        "name": p.name if words is None else None,
+        "name_words": words,
+        "is_bot": p.is_bot,
+        "level": p.level(),
+    }
+
+
+def station_ref(game: Game, listing_id: int) -> dict:
+    """公營種牛站（電腦系統上架、沒有主人）：沒有 player_id（所以沒有 #編號）和等級。"""
+    return {
+        "player_id": None,
+        "name": None,
+        "name_words": station_words(game.seed, listing_id),
+        "is_bot": True,
+        "level": None,
     }
 
 
@@ -268,12 +283,8 @@ def listing_view(game: Game, lst, me: Optional[int], now: float) -> dict:
         "id": lst.lid,
         "price": ci(lst.price),
         "type": TYPE_WIRE[lst.ctype],
-        "type_name": fp.type_names[lst.ctype],
         "tier": lst.tier,
-        "tier_name": TIER_NAMES[lst.tier],
-        "owner_id": lst.owner,
-        "owner_name": display_name(owner.name, owner.is_bot) if owner is not None else NPC_STUD_NAME,
-        "is_bot": owner.is_bot if owner is not None else True,
+        "owner": ranch_ref(owner) if owner is not None else station_ref(game, lst.lid),
         "is_mine": lst.owner is not None and lst.owner == me,
         "cow_id": lst.cow_id if lst.owner is not None else None,
         "listed_at": lst.listed_at,
@@ -286,9 +297,7 @@ def codex_view(p: Player) -> List[dict]:
 
 
 def time_fields(clock, now: float) -> dict:
-    import time as _time
-
-    return {"server_time": now, "real_time": _time.time(), "time_scale": clock.scale}
+    return {"server_time": now, "real_time": time.time(), "time_scale": clock.scale}
 
 
 def state_view(game: Game, p: Player, now: float, clock) -> dict:
@@ -311,7 +320,6 @@ def state_view(game: Game, p: Player, now: float, clock) -> dict:
         "pen": pen_view(p, now),
         "upgrades": upgrades_view(p, now),
         "shop": shop_view(game, p),
-        "breed": {"first_free": False},
         "codex": codex_view(p),
         # v0.2
         "fields": fields_view(p, now),
@@ -343,11 +351,31 @@ def quote_view(game: Game, cid: str, hist, now: float) -> dict:
     return {"price": r6(m.price), **change_24h(hist, m.price, now), "ma24": r6(m.moving_average())}
 
 
+def _news_codes() -> Dict[Tuple[str, str], str]:
+    """(HEADLINES 的 key, 標題) → 新聞代碼 `<商品>_<up|down>.<序號>`（app 查字串表 news.<代碼>，序號從 1 開始）。"""
+    out = {}
+    for key, titles in HEADLINES.items():
+        commodity, sign = key[:-1], key[-1]
+        for i, title in enumerate(titles):
+            out[(key, title)] = f"{commodity}_{'up' if sign == '+' else 'down'}.{i + 1}"
+    return out
+
+
+_NEWS_CODES = _news_codes()
+
+
+def news_code(ev) -> Optional[str]:
+    """引擎挑標題的方式（cowecon.market）：單一商品用那個商品、三種一起用 all，再看利多利空。
+    用標題反查代碼，不改引擎的事件和 news 表。測試注入的事件（不在 HEADLINES）回傳 None。"""
+    key = (ev.targets[0] if len(ev.targets) == 1 else "all") + ("+" if ev.factor > 1.0 else "-")
+    return _NEWS_CODES.get((key, ev.headline))
+
+
 def news_item(ev, now: float) -> dict:
     if len(ev.targets) == 1:
         commodity = ev.targets[0]
     else:
-        commodity = None  # 兩種商品都受影響
+        commodity = None  # 不只一種商品
     if now < ev.start_at:
         state = "upcoming"
     elif now < ev.end_at:
@@ -356,7 +384,9 @@ def news_item(ev, now: float) -> dict:
         state = "ended"
     return {
         "id": ev.eid,
-        "title": ev.headline,
+        "code": news_code(ev),
+        "params": {},  # 目前的標題都沒有佔位符
+        "pct": round(ev.factor - 1.0, 4),  # 全幅時讓價格變多少（+0.18 = 漲 18%）
         "commodity": commodity,
         "targets": list(ev.targets),
         "direction": "up" if ev.factor > 1.0 else "down",

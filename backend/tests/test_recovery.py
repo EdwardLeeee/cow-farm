@@ -57,7 +57,7 @@ def play_hour(h: Harness, tok: str, hour: int) -> None:
         h.post("/v1/field/recall", tok, {"cow_id": ox["id"], "request_id": new_rid()})
         h.post("/v1/upgrade", tok, {"kind": "pen", "request_id": new_rid()})
         cow = next(c for c in cows if not c["bull"])
-        npc = next(x for x in h.get("/v1/stud", tok).json()["listings"] if x["owner_id"] is None)
+        npc = next(x for x in h.get("/v1/stud", tok).json()["listings"] if x["owner"]["player_id"] is None)
         h.post("/v1/stud/borrow", tok, {"listing_id": npc["id"], "dam": cow["id"], "request_id": new_rid()})
         h.post("/v1/stud/list", tok, {"cow_id": ox["id"], "price": 800, "request_id": new_rid()})
     if hour == 5:
@@ -161,10 +161,7 @@ def stable(st: dict) -> dict:
         "level_progress": st["level_progress"],
         "codex": st["codex"],
         "cows": [
-            {
-                k: c[k]
-                for k in ("id", "type", "bull", "tier", "born_at", "adult_at", "ready_at", "bred", "field", "listed")
-            }
+            {k: c[k] for k in ("id", "type", "bull", "tier", "born_at", "adult_at", "bred", "field", "listed")}
             for c in st["cows"]
         ],
         "rice_lots": [(l["qty"], l["harvested_at"]) for l in st["warehouse"]["rice_lots"]],

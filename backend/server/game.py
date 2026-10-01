@@ -474,9 +474,6 @@ class Game:
             )
         return out
 
-    def buy_calf(self, pid: int, *args, **kw):
-        raise GameError("gone", "v0.2 起商店只能選 A／B／C 等級：請改用 POST /v1/shop/buy", 410)
-
     # ---- 配種（自己的公母，免費，一輩子一次） ----
     def _breed_blockers(self, p: Player, c: Cow, now: float) -> List[dict]:
         out = []
@@ -518,9 +515,6 @@ class Game:
         return {
             "sire": sire.cid,
             "dam": dam.cid,
-            "fee": 0,
-            "normal_fee": 0,
-            "first_free": False,
             **self._probs(sire.g, dam.g),
             "can_breed": not blockers,
             "blockers": blockers,
@@ -537,7 +531,7 @@ class Game:
         if calf is None:
             raise GameError("rejected", "現在不能配種", 409)
         p.add_codex(calf)
-        return {"calf": calf, "fee": 0, "sire": sire, "dam": dam}
+        return {"calf": calf, "sire": sire, "dam": dam}
 
     # ---- 田地 ----
     def _field_index(self, p: Player, field) -> int:
