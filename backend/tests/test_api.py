@@ -16,8 +16,16 @@ from starlette.websockets import WebSocketDisconnect
 from conftest import T0, Harness, new_rid
 from cowecon import DEFAULT
 from cowecon.farm import (
-    Cow, beef_grade_probs, cow_type, draw_beef_grade, offspring_distribution, shop_draw, shop_grade_distribution,
-    shop_grade_tier_probs, tier_distribution, tier_of,
+    Cow,
+    beef_grade_probs,
+    cow_type,
+    draw_beef_grade,
+    offspring_distribution,
+    shop_draw,
+    shop_grade_distribution,
+    shop_grade_tier_probs,
+    tier_distribution,
+    tier_of,
 )
 from server.game import TYPE_WIRE, Game, GameError
 
@@ -76,12 +84,29 @@ def test_session_and_state_fields(h):
     assert s["created"] is True and s["token"] and isinstance(s["player_id"], int)
     assert s["ranch_name"] and len(s["ranch_name"]) >= 6
     st = state(h, s["token"])
-    for k in ("server_time", "real_time", "time_scale", "coins", "level", "cows", "bucket", "warehouse", "pen", "upgrades",
-              "shop", "codex", "fields", "rice", "stud"):
+    for k in (
+        "server_time",
+        "real_time",
+        "time_scale",
+        "coins",
+        "level",
+        "cows",
+        "bucket",
+        "warehouse",
+        "pen",
+        "upgrades",
+        "shop",
+        "codex",
+        "fields",
+        "rice",
+        "stud",
+    ):
         assert k in st, k
     assert st["coins"] == OB.start_coins and isinstance(st["coins"], int)
     assert st["shop"]["calf_price"] == {w: int(FP.shop_grade_price[-1]) for w in TYPE_WIRE}
-    assert st["shop"]["grades"] == [{"grade": g, "price": int(FP.shop_grade_price[i])} for i, g in enumerate(FP.shop_grade_names)]
+    assert st["shop"]["grades"] == [
+        {"grade": g, "price": int(FP.shop_grade_price[i])} for i, g in enumerate(FP.shop_grade_names)
+    ]
     assert st["bucket"]["per_hour"] == pytest.approx(FP.milk_per_h[0] * OB.newbie_boost_mult)  # 乳牛 × 新手期加倍
     assert st["pen"]["next_open_at"] == st["server_time"] + OB.first_expand_unlock_s
     assert len(st["fields"]) == FP.field_start and st["fields"][0]["cow_id"] is None
@@ -91,8 +116,25 @@ def test_session_and_state_fields(h):
     cows = {c["id"]: c for c in st["cows"]}
     assert len(cows) == 2
     for c in cows.values():
-        for k in ("id", "type", "bull", "tier", "stage", "adult_at", "ready_at", "milk_per_h", "weight_kg", "ship_value",
-                  "bred", "working", "field", "listed", "can_breed", "can_ship", "grade_probs"):
+        for k in (
+            "id",
+            "type",
+            "bull",
+            "tier",
+            "stage",
+            "adult_at",
+            "ready_at",
+            "milk_per_h",
+            "weight_kg",
+            "ship_value",
+            "bred",
+            "working",
+            "field",
+            "listed",
+            "can_breed",
+            "can_ship",
+            "grade_probs",
+        ):
             assert k in c, k
         assert c["bred"] is False and c["working"] is False and c["listed"] is None
     calf = next(c for c in cows.values() if c["bull"])
@@ -130,7 +172,9 @@ def test_buy_calf_is_gone(h):
 def test_collect_quote_sell(h):
     tok = h.session()["token"]
     body = h.post("/v1/collect", tok, {"request_id": new_rid()}).json()
-    assert body["collected"] == pytest.approx(OB.start_bucket) and body["warehouse"]["milk_total"] == pytest.approx(OB.start_bucket)
+    assert body["collected"] == pytest.approx(OB.start_bucket) and body["warehouse"]["milk_total"] == pytest.approx(
+        OB.start_bucket
+    )
     assert body["bucket"]["qty"] == 0 and body["state"]["coins"] == OB.start_coins
     q = h.post("/v1/sell/quote", tok, {"commodity": "milk", "qty": OB.start_bucket}).json()
     assert q["qty"] == OB.start_bucket and q["total"] > 0 and q["avg_price"] < q["market_price"]
@@ -148,7 +192,11 @@ def test_partial_sell_leaves_rest(h):
     h.post("/v1/collect", tok, {"request_id": new_rid()})
     h.post("/v1/sell", tok, {"commodity": "milk", "qty": 7.5, "request_id": new_rid()})
     assert state(h, tok)["warehouse"]["milk_total"] == pytest.approx(OB.start_bucket - 7.5)
-    e = err(h.post("/v1/sell", tok, {"commodity": "milk", "qty": OB.start_bucket, "request_id": new_rid()}), 409, "not_enough_stock")
+    e = err(
+        h.post("/v1/sell", tok, {"commodity": "milk", "qty": OB.start_bucket, "request_id": new_rid()}),
+        409,
+        "not_enough_stock",
+    )
     assert e["detail"]["have"] == pytest.approx(OB.start_bucket - 7.5)
 
 
@@ -224,7 +272,11 @@ def test_cow_not_found(h):
     err(h.get("/v1/breed/preview", tok, sire=2, dam=999), 404, "cow_not_found")
     err(h.get("/v1/ship/preview", tok, cow_id=999), 404, "cow_not_found")
     err(h.post("/v1/field/assign", tok, {"cow_id": 999, "request_id": new_rid()}), 404, "cow_not_found")
-    err(h.post("/v1/stud/list", tok, {"cow_id": 999, "price": FP.stud_prices[0], "request_id": new_rid()}), 404, "cow_not_found")
+    err(
+        h.post("/v1/stud/list", tok, {"cow_id": 999, "price": FP.stud_prices[0], "request_id": new_rid()}),
+        404,
+        "cow_not_found",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -238,7 +290,9 @@ def test_shop_probabilities_match_engine(h):
         assert g["price"] == int(FP.shop_grade_price[gi])
         assert g["tier_probs"] == pytest.approx(shop_grade_tier_probs(FP, gi), abs=1e-15)
         dist = shop_grade_distribution(FP, gi)
-        assert {(TYPE_WIRE.index(r["type"]), r["bull"], r["traits"]): r["p"] for r in g["distribution"]} == pytest.approx(dist, abs=1e-15)
+        assert {
+            (TYPE_WIRE.index(r["type"]), r["bull"], r["traits"]): r["p"] for r in g["distribution"]
+        } == pytest.approx(dist, abs=1e-15)
         assert sum(r["p"] for r in g["distribution"]) == pytest.approx(1.0)
         assert g["type_probs"] == pytest.approx({TYPE_WIRE[t]: p for t, p in enumerate(FP.shop_type_probs)})
         assert g["bull_prob"] == pytest.approx(FP.shop_bull_prob)
@@ -251,7 +305,9 @@ def test_shop_buy_uses_engine_draw(h):
     for grade in ("A", "B", "C", "A", "C"):
         g, bull = shop_draw(FP, grade, next_rng(h, p.pid))
         r = h.post("/v1/shop/buy", tok, {"grade": grade, "request_id": new_rid()}).json()
-        assert r["cow"]["type"] == TYPE_WIRE[cow_type(g)] and r["cow"]["bull"] == bull and r["cow"]["tier"] == tier_of(g)
+        assert (
+            r["cow"]["type"] == TYPE_WIRE[cow_type(g)] and r["cow"]["bull"] == bull and r["cow"]["tier"] == tier_of(g)
+        )
         assert r["cost"] == int(FP.shop_grade_price[FP.shop_grade_names.index(grade)]) and r["cow"]["origin"] == grade
 
 
@@ -269,7 +325,11 @@ def test_shop_sampling_matches_probabilities():
             tiers[c.tier] += 1
             types[c.ctype] += 1
             bulls += c.bull
-        for obs, prob in list(zip(tiers, shop_grade_tier_probs(FP, grade))) + list(zip(types, FP.shop_type_probs)) + [(bulls, FP.shop_bull_prob)]:
+        for obs, prob in (
+            list(zip(tiers, shop_grade_tier_probs(FP, grade)))
+            + list(zip(types, FP.shop_type_probs))
+            + [(bulls, FP.shop_bull_prob)]
+        ):
             sd = (n * prob * (1 - prob)) ** 0.5
             assert abs(obs - n * prob) <= 4.5 * sd + 1, (grade, obs, n * prob)
 
@@ -343,7 +403,9 @@ def test_breed_once_and_free(h):
     bull = next(c for c in st["cows"] if c["bull"])
     cow = next(c for c in st["cows"] if not c["bull"])
     err(h.post("/v1/breed", tok, {"sire": cow["id"], "dam": bull["id"], "request_id": new_rid()}), 400, "invalid_pair")
-    e = err(h.post("/v1/breed", tok, {"sire": bull["id"], "dam": cow["id"], "request_id": new_rid()}), 409, "cow_not_adult")
+    e = err(
+        h.post("/v1/breed", tok, {"sire": bull["id"], "dam": cow["id"], "request_id": new_rid()}), 409, "cow_not_adult"
+    )
     assert e["detail"]["until"] == bull["adult_at"]
     h.advance(OB.starter_calf_remaining_s)
     give(h, tok, coins=10_000)
@@ -366,9 +428,15 @@ def test_breed_once_and_free(h):
     assert b["sire"]["bred"] and b["dam"]["bred"]
     assert b["sire"]["ready_at"] == bull["ready_at"]  # v0.2 沒有冷卻
     # 一輩子一次：公母都不能再配、公牛也不能上架
-    e = err(h.post("/v1/breed", tok, {"sire": bull["id"], "dam": cow["id"], "request_id": new_rid()}), 409, "already_bred")
+    e = err(
+        h.post("/v1/breed", tok, {"sire": bull["id"], "dam": cow["id"], "request_id": new_rid()}), 409, "already_bred"
+    )
     assert e["detail"]["cow_id"] in (bull["id"], cow["id"])
-    err(h.post("/v1/stud/list", tok, {"cow_id": bull["id"], "price": FP.stud_prices[0], "request_id": new_rid()}), 409, "already_bred")
+    err(
+        h.post("/v1/stud/list", tok, {"cow_id": bull["id"], "price": FP.stud_prices[0], "request_id": new_rid()}),
+        409,
+        "already_bred",
+    )
     pv2 = h.get("/v1/breed/preview", tok, sire=bull["id"], dam=cow["id"]).json()
     assert not pv2["can_breed"] and "already_bred" in {x["code"] for x in pv2["blockers"]}
     cows = {c["id"]: c for c in state(h, tok)["cows"]}
@@ -401,9 +469,15 @@ def test_field_flow(h):
     assert grown == pytest.approx(p.farm.field_preview(h.clock.now())[0], abs=1e-6) and grown > 0
     assert st["rice"]["per_hour"] > 0 and st["fields"][0]["capacity"] > 0
     hv = h.post("/v1/field/harvest", tok, {"request_id": new_rid()}).json()
-    assert hv["harvested"] == pytest.approx(grown, abs=1e-6) and hv["warehouse"]["rice_total"] == pytest.approx(grown, abs=1e-6)
+    assert hv["harvested"] == pytest.approx(grown, abs=1e-6) and hv["warehouse"]["rice_total"] == pytest.approx(
+        grown, abs=1e-6
+    )
     s = h.post("/v1/sell", tok, {"commodity": "rice", "qty": grown / 2, "request_id": new_rid()}).json()
-    assert s["commodity"] == "rice" and s["total"] > 0 and s["warehouse"]["rice_total"] == pytest.approx(grown / 2, abs=1e-6)
+    assert (
+        s["commodity"] == "rice"
+        and s["total"] > 0
+        and s["warehouse"]["rice_total"] == pytest.approx(grown / 2, abs=1e-6)
+    )
     rc = h.post("/v1/field/recall", tok, {"cow_id": ox["id"], "request_id": new_rid()}).json()
     assert rc["fields"][0]["cow_id"] is None
     err(h.post("/v1/field/recall", tok, {"cow_id": ox["id"], "request_id": new_rid()}), 409, "cow_not_in_field")
@@ -412,8 +486,14 @@ def test_field_flow(h):
     cost = p.farm.next_field_cost()
     ex = h.post("/v1/field/expand", tok, {"request_id": new_rid()}).json()
     assert ex["cost"] == int(round(cost)) and len(ex["fields"]) == FP.field_start + 1
-    err(h.post("/v1/field/assign", tok, {"cow_id": ox["id"], "field": 99, "request_id": new_rid()}), 404, "field_not_found")
-    assert h.post("/v1/field/assign", tok, {"cow_id": ox["id"], "field": 1, "request_id": new_rid()}).json()["field"] == 1
+    err(
+        h.post("/v1/field/assign", tok, {"cow_id": ox["id"], "field": 99, "request_id": new_rid()}),
+        404,
+        "field_not_found",
+    )
+    assert (
+        h.post("/v1/field/assign", tok, {"cow_id": ox["id"], "field": 1, "request_id": new_rid()}).json()["field"] == 1
+    )
     assert h.post("/v1/upgrade", tok, {"kind": "field", "request_id": new_rid()}).status_code == 200  # upgrade 也能開田
 
 
@@ -433,17 +513,33 @@ def test_stud_borrow_pays_owner_and_calf_goes_to_borrower(h):
     err(h.post("/v1/ship", a, {"cow_id": bull["id"], "request_id": new_rid()}), 409, "cow_listed")
     # 主人不能借自己的
     own_cow = next(c for c in sa["cows"] if not c["bull"])
-    err(h.post("/v1/stud/borrow", a, {"listing_id": lst["id"], "dam": own_cow["id"], "request_id": new_rid()}), 409, "own_listing")
+    err(
+        h.post("/v1/stud/borrow", a, {"listing_id": lst["id"], "dam": own_cow["id"], "request_id": new_rid()}),
+        409,
+        "own_listing",
+    )
     # 借的人：錢與空格
     dam = next(c for c in sb["cows"] if not c["bull"])
-    err(h.post("/v1/stud/borrow", b, {"listing_id": lst["id"], "dam": dam["id"], "request_id": new_rid()}), 409, "pen_full")
+    err(
+        h.post("/v1/stud/borrow", b, {"listing_id": lst["id"], "dam": dam["id"], "request_id": new_rid()}),
+        409,
+        "pen_full",
+    )
     give(h, b, coins=price - 1, slots=5)
-    err(h.post("/v1/stud/borrow", b, {"listing_id": lst["id"], "dam": dam["id"], "request_id": new_rid()}), 409, "not_enough_coins")
+    err(
+        h.post("/v1/stud/borrow", b, {"listing_id": lst["id"], "dam": dam["id"], "request_id": new_rid()}),
+        409,
+        "not_enough_coins",
+    )
     give(h, b, coins=price + 1000)
     pv = h.get("/v1/stud/preview", b, listing_id=lst["id"], dam=dam["id"]).json()
     pa = h.server.game.players[sa["player_id"]]
     assert pv["can_borrow"] and pv["price"] == price
-    assert pv["tier_probs"] == pytest.approx(tier_distribution(pa.farm.cow_by_id(bull["id"]).g, h.server.game.players[sb["player_id"]].farm.cow_by_id(dam["id"]).g))
+    assert pv["tier_probs"] == pytest.approx(
+        tier_distribution(
+            pa.farm.cow_by_id(bull["id"]).g, h.server.game.players[sb["player_id"]].farm.cow_by_id(dam["id"]).g
+        )
+    )
     a_coins, b_cows = state(h, a)["coins"], len(state(h, b)["cows"])
     rid = new_rid()
     r1 = h.post("/v1/stud/borrow", b, {"listing_id": lst["id"], "dam": dam["id"], "request_id": rid})
@@ -458,9 +554,14 @@ def test_stud_borrow_pays_owner_and_calf_goes_to_borrower(h):
     bull_after = next(c for c in state(h, a)["cows"] if c["id"] == bull["id"])
     assert bull_after["bred"] and bull_after["listed"] is None  # 公牛的一次用掉、自動下架
     assert lst["id"] not in {x["id"] for x in h.get("/v1/stud", b).json()["listings"]}
-    err(h.post("/v1/stud/borrow", b, {"listing_id": lst["id"], "dam": dam["id"], "request_id": new_rid()}), 404, "listing_not_found")
+    err(
+        h.post("/v1/stud/borrow", b, {"listing_id": lst["id"], "dam": dam["id"], "request_id": new_rid()}),
+        404,
+        "listing_not_found",
+    )
     # 主人牧場在同一個交易裡存進資料庫
     import json as _json
+
     row = h.client.portal.call(_count, h, "SELECT state FROM farms WHERE player_id=$1", sa["player_id"])
     row = _json.loads(row) if isinstance(row, str) else row
     assert int(round(row["farm"]["coins"])) == a_coins + price
@@ -471,10 +572,18 @@ def test_stud_unlist_and_npc_listings(h):
     h.advance(OB.starter_calf_remaining_s)
     sa = state(h, a)
     bull = next(c for c in sa["cows"] if c["bull"])
-    lst = h.post("/v1/stud/list", a, {"cow_id": bull["id"], "price": FP.stud_prices[0], "request_id": new_rid()}).json()["listing"]
-    err(h.post("/v1/stud/list", a, {"cow_id": bull["id"], "price": FP.stud_prices[0], "request_id": new_rid()}), 409, "cow_listed")
+    lst = h.post(
+        "/v1/stud/list", a, {"cow_id": bull["id"], "price": FP.stud_prices[0], "request_id": new_rid()}
+    ).json()["listing"]
+    err(
+        h.post("/v1/stud/list", a, {"cow_id": bull["id"], "price": FP.stud_prices[0], "request_id": new_rid()}),
+        409,
+        "cow_listed",
+    )
     u = h.post("/v1/stud/unlist", a, {"listing_id": lst["id"], "request_id": new_rid()}).json()
-    assert u["listing_id"] == lst["id"] and next(c for c in u["state"]["cows"] if c["id"] == bull["id"])["listed"] is None
+    assert (
+        u["listing_id"] == lst["id"] and next(c for c in u["state"]["cows"] if c["id"] == bull["id"])["listed"] is None
+    )
     err(h.post("/v1/stud/unlist", a, {"listing_id": lst["id"], "request_id": new_rid()}), 404, "listing_not_found")
     # 電腦（系統）上架：錢不給任何人，借走後會補上
     market = h.get("/v1/stud", a).json()
@@ -546,15 +655,27 @@ def test_websocket_stud_notice_to_owner(h):
     b = h.session()["token"]
     h.advance(OB.starter_calf_remaining_s)
     bull = next(c for c in state(h, a)["cows"] if c["bull"])
-    lst = h.post("/v1/stud/list", a, {"cow_id": bull["id"], "price": FP.stud_prices[0], "request_id": new_rid()}).json()["listing"]
+    lst = h.post(
+        "/v1/stud/list", a, {"cow_id": bull["id"], "price": FP.stud_prices[0], "request_id": new_rid()}
+    ).json()["listing"]
     give(h, b, coins=10_000, slots=5)
     dam = next(c for c in state(h, b)["cows"] if not c["bull"])
     with h.client.websocket_connect(f"/v1/ws?token={a}") as ws:
         ws.receive_json()
         ws.receive_json()
-        assert h.post("/v1/stud/borrow", b, {"listing_id": lst["id"], "dam": dam["id"], "request_id": new_rid()}).status_code == 200
+        assert (
+            h.post(
+                "/v1/stud/borrow", b, {"listing_id": lst["id"], "dam": dam["id"], "request_id": new_rid()}
+            ).status_code
+            == 200
+        )
         n = ws.receive_json()
-        assert n["type"] == "stud" and n["event"] == "borrowed" and n["listing_id"] == lst["id"] and n["price"] == int(FP.stud_prices[0])
+        assert (
+            n["type"] == "stud"
+            and n["event"] == "borrowed"
+            and n["listing_id"] == lst["id"]
+            and n["price"] == int(FP.stud_prices[0])
+        )
 
 
 def test_news_pushed_over_websocket(h):
@@ -623,9 +744,15 @@ def test_game_error_does_not_mutate():
     game = Game(DEFAULT, "nomut", T0)
     p = game.create_player(T0, "x")
     before = p.state_dict()
-    for fn in (lambda: game.shop_buy(p.pid, "A", T0), lambda: game.ship(p.pid, 2, T0), lambda: game.breed(p.pid, 2, 1, T0),
-               lambda: game.field_assign(p.pid, 1, None, T0), lambda: game.upgrade(p.pid, "field", T0),
-               lambda: game.stud_list(p.pid, 2, FP.stud_prices[0], T0), lambda: game.sell(p.pid, "rice", 1, T0)):
+    for fn in (
+        lambda: game.shop_buy(p.pid, "A", T0),
+        lambda: game.ship(p.pid, 2, T0),
+        lambda: game.breed(p.pid, 2, 1, T0),
+        lambda: game.field_assign(p.pid, 1, None, T0),
+        lambda: game.upgrade(p.pid, "field", T0),
+        lambda: game.stud_list(p.pid, 2, FP.stud_prices[0], T0),
+        lambda: game.sell(p.pid, "rice", 1, T0),
+    ):
         with pytest.raises(GameError):
             fn()
     assert p.state_dict() == before

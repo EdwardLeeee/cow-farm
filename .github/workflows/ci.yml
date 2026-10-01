@@ -46,8 +46,9 @@ jobs:
       # 檢查工具釘版本，本機和 CI 的結果才會一樣。
       - run: pip install -r backend/requirements.txt ruff==0.15.2 shellcheck-py==0.11.0.1 pip-audit
       # 整個 repo 的 Python；不檢查的範圍與原因寫在 ruff.toml。
-      # ruff format 還沒加：54 個檔案還沒排版，cow-back 開工的第一個 PR 一次排好再加進來。
       - run: ruff check .
+      # 排版只檢查 backend/（行寬 120，設定在 ruff.toml）。
+      - run: ruff format --check backend
       # 所有進 git 的 shell 腳本，新的腳本不用改這份清單也會被檢查。
       - run: |
           shellcheck --version

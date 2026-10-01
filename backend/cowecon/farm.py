@@ -186,9 +186,31 @@ class Cow:
     """bred：這輩子配過種了沒（公母一樣，借出去也算）。field：在第幾塊田工作（−1 = 沒有）。
     listed：上架借種的編號（None = 沒有）。origin：來源（start、A/B/C 商店等級、breed、stud），分析用。"""
 
-    __slots__ = ("cid", "g", "bull", "born_at", "adult_at", "ready_at", "tier", "ctype", "bred", "field", "listed", "origin")
+    __slots__ = (
+        "cid",
+        "g",
+        "bull",
+        "born_at",
+        "adult_at",
+        "ready_at",
+        "tier",
+        "ctype",
+        "bred",
+        "field",
+        "listed",
+        "origin",
+    )
 
-    def __init__(self, cid: int, g: int, bull: bool, born_at: float, fp: FarmParams, adult_at: Optional[float] = None, origin: str = ""):
+    def __init__(
+        self,
+        cid: int,
+        g: int,
+        bull: bool,
+        born_at: float,
+        fp: FarmParams,
+        adult_at: Optional[float] = None,
+        origin: str = "",
+    ):
         self.cid = cid
         self.g = g
         self.bull = bull
@@ -217,8 +239,16 @@ class Cow:
 
     def to_dict(self) -> dict:
         return {
-            "id": self.cid, "g": self.g, "bull": self.bull, "born_at": self.born_at, "adult_at": self.adult_at,
-            "ready_at": self.ready_at, "bred": self.bred, "field": self.field, "listed": self.listed, "origin": self.origin,
+            "id": self.cid,
+            "g": self.g,
+            "bull": self.bull,
+            "born_at": self.born_at,
+            "adult_at": self.adult_at,
+            "ready_at": self.ready_at,
+            "bred": self.bred,
+            "field": self.field,
+            "listed": self.listed,
+            "origin": self.origin,
         }
 
     @classmethod
@@ -395,7 +425,7 @@ def freshness(fp: FarmParams, age_h: float, level: int = 0) -> float:
 # ---- 成本 ----
 def pen_cost(fp: FarmParams, expansions_done: int) -> float:
     """第 expansions_done+1 次擴建的價格（第一次擴建另用 OnboardingParams.first_expand_cost）。"""
-    return round(fp.pen_cost_base * fp.pen_cost_growth ** expansions_done)
+    return round(fp.pen_cost_base * fp.pen_cost_growth**expansions_done)
 
 
 def field_cost(fp: FarmParams, n_fields: int) -> Optional[float]:
@@ -406,19 +436,19 @@ def field_cost(fp: FarmParams, n_fields: int) -> Optional[float]:
 
 
 def bucket_cap(fp: FarmParams, level: int) -> float:
-    return fp.bucket_start_cap * fp.bucket_cap_growth ** level
+    return fp.bucket_start_cap * fp.bucket_cap_growth**level
 
 
 def bucket_cost(fp: FarmParams, level: int) -> float:
-    return round(fp.bucket_cost_base * fp.bucket_cost_growth ** level)
+    return round(fp.bucket_cost_base * fp.bucket_cost_growth**level)
 
 
 def wh_cap(fp: FarmParams, level: int) -> float:
-    return fp.wh_start_cap * fp.wh_cap_growth ** level
+    return fp.wh_start_cap * fp.wh_cap_growth**level
 
 
 def wh_cost(fp: FarmParams, level: int) -> float:
-    return round(fp.wh_cost_base * fp.wh_cost_growth ** level)
+    return round(fp.wh_cost_base * fp.wh_cost_growth**level)
 
 
 def fresh_cost(fp: FarmParams, level: int) -> Optional[float]:
@@ -536,9 +566,28 @@ class Farm:
     """一位玩家的牧場。伺服器每個 API 動作對應一個方法；方法失敗回傳 False/None，不丟例外。"""
 
     __slots__ = (
-        "p", "fp", "coins", "cows", "slots", "expansions", "bucket_level", "wh_level", "fresh_level",
-        "bucket", "bucket_t", "lots", "created_at", "impact", "_next_cid", "first_breed_used", "log", "n_sales",
-        "beef_lots", "fields", "rice_lots", "track",
+        "p",
+        "fp",
+        "coins",
+        "cows",
+        "slots",
+        "expansions",
+        "bucket_level",
+        "wh_level",
+        "fresh_level",
+        "bucket",
+        "bucket_t",
+        "lots",
+        "created_at",
+        "impact",
+        "_next_cid",
+        "first_breed_used",
+        "log",
+        "n_sales",
+        "beef_lots",
+        "fields",
+        "rice_lots",
+        "track",
     )
 
     def __init__(self, params: EconomyParams, now: float, rng: random.Random):
@@ -564,8 +613,24 @@ class Farm:
         self.log: Optional[list] = None  # 模擬時設成 list 就會記錄每筆收支
         self.track: Optional[dict] = None  # 模擬時設成 dict 就會記錄每頭牛的產出（不存檔）
 
-        cow = Cow(self._new_id(), shop_genotype(fp, ob.starter_cow_type, rng), False, now - fp.tier_growth_h[0] * HOUR, fp, adult_at=now, origin="start")
-        calf = Cow(self._new_id(), shop_genotype(fp, ob.starter_calf_type, rng), True, now, fp, adult_at=now + ob.starter_calf_remaining_s, origin="start")
+        cow = Cow(
+            self._new_id(),
+            shop_genotype(fp, ob.starter_cow_type, rng),
+            False,
+            now - fp.tier_growth_h[0] * HOUR,
+            fp,
+            adult_at=now,
+            origin="start",
+        )
+        calf = Cow(
+            self._new_id(),
+            shop_genotype(fp, ob.starter_calf_type, rng),
+            True,
+            now,
+            fp,
+            adult_at=now + ob.starter_calf_remaining_s,
+            origin="start",
+        )
         self.cows = [cow, calf]
         self.bucket = [0.0, 0.0, 0.0, 0.0]
         self.bucket[cow.tier] = float(ob.start_bucket)
@@ -908,7 +973,9 @@ class Farm:
         """出貨一頭成年牛，當場評級並賣掉。"""
         return self.ship_many([cow], market, now, rng)
 
-    def ship_many(self, cows: Sequence[Cow], market: Market, now: float, rng: Optional[random.Random] = None) -> Optional[SaleResult]:
+    def ship_many(
+        self, cows: Sequence[Cow], market: Market, now: float, rng: Optional[random.Random] = None
+    ) -> Optional[SaleResult]:
         """一次出貨多頭（同一筆單，滑價一起算）。每頭依序評級。"""
         cows = [c for c in cows if self.can_ship(c, now)]
         if not cows:
@@ -1004,8 +1071,13 @@ class Farm:
     def can_breed(self, sire: Cow, dam: Cow, now: float) -> bool:
         """自己的公牛配自己的母牛：兩頭都成年、這輩子沒配過、不在田裡或上架中，牛舍有空格。"""
         return (
-            sire.bull and not dam.bull and sire in self.cows and dam in self.cows
-            and sire.can_breed_now(now) and dam.can_breed_now(now) and self.free_slots() > 0
+            sire.bull
+            and not dam.bull
+            and sire in self.cows
+            and dam in self.cows
+            and sire.can_breed_now(now)
+            and dam.can_breed_now(now)
+            and self.free_slots() > 0
         )
 
     def breed_cost(self, sire: Cow, dam: Cow) -> float:
@@ -1157,7 +1229,11 @@ class Farm:
         f.lots = [Lot.from_dict(x) for x in d["lots"]]
         f.beef_lots = [BeefLot.from_dict(x) for x in d.get("beef_lots", [])]
         f.rice_lots = [RiceLot.from_dict(x) for x in d.get("rice_lots", [])]
-        f.fields = [Field.from_dict(x) for x in d["fields"]] if "fields" in d else [Field(d["bucket_t"]) for _ in range(fp.field_start)]
+        f.fields = (
+            [Field.from_dict(x) for x in d["fields"]]
+            if "fields" in d
+            else [Field(d["bucket_t"]) for _ in range(fp.field_start)]
+        )
         f.created_at = d["created_at"]
         f.impact = {k: ImpactState.from_dict(v) for k, v in d["impact"].items()}
         for cid in params.commodity_ids:
@@ -1190,7 +1266,14 @@ class StudListing:
         self.listed_at = listed_at
 
     def to_dict(self) -> dict:
-        return {"id": self.lid, "owner": self.owner, "cow_id": self.cow_id, "g": self.g, "price": self.price, "listed_at": self.listed_at}
+        return {
+            "id": self.lid,
+            "owner": self.owner,
+            "cow_id": self.cow_id,
+            "g": self.g,
+            "price": self.price,
+            "listed_at": self.listed_at,
+        }
 
     @classmethod
     def from_dict(cls, d: dict) -> "StudListing":
@@ -1267,11 +1350,19 @@ class StudMarket:
         return [l for l in self.listings.values() if l.owner == owner]
 
     # ---- 借種 ----
-    def can_borrow(self, lid: int, borrower: Farm, borrower_id, dam: Cow, now: float, owner_farm: Optional[Farm] = None) -> bool:
+    def can_borrow(
+        self, lid: int, borrower: Farm, borrower_id, dam: Cow, now: float, owner_farm: Optional[Farm] = None
+    ) -> bool:
         lst = self.listings.get(lid)
         if lst is None or lst.owner == borrower_id and lst.owner is not None:
             return False
-        if not (dam in borrower.cows and not dam.bull and dam.can_breed_now(now) and borrower.free_slots() > 0 and borrower.coins >= lst.price):
+        if not (
+            dam in borrower.cows
+            and not dam.bull
+            and dam.can_breed_now(now)
+            and borrower.free_slots() > 0
+            and borrower.coins >= lst.price
+        ):
             return False
         if lst.owner is not None:
             if owner_farm is None:
@@ -1281,7 +1372,16 @@ class StudMarket:
                 return False
         return True
 
-    def borrow(self, lid: int, borrower: Farm, borrower_id, dam: Cow, now: float, rng: random.Random, owner_farm: Optional[Farm] = None) -> Optional[Cow]:
+    def borrow(
+        self,
+        lid: int,
+        borrower: Farm,
+        borrower_id,
+        dam: Cow,
+        now: float,
+        rng: random.Random,
+        owner_farm: Optional[Farm] = None,
+    ) -> Optional[Cow]:
         """借種配種，回傳小牛（放在借的人牧場）。失敗回傳 None，狀態不變。"""
         if not self.can_borrow(lid, borrower, borrower_id, dam, now, owner_farm):
             return None
@@ -1316,7 +1416,11 @@ class StudMarket:
 
     # ---- 存檔 ----
     def to_dict(self) -> dict:
-        return {"next_id": self._next_id, "npc_type": self._npc_type, "listings": [l.to_dict() for l in self.listings.values()]}
+        return {
+            "next_id": self._next_id,
+            "npc_type": self._npc_type,
+            "listings": [l.to_dict() for l in self.listings.values()],
+        }
 
     @classmethod
     def from_dict(cls, params: EconomyParams, d: dict) -> "StudMarket":

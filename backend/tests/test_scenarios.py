@@ -41,9 +41,23 @@ from server import bots as MB
 RESEARCH = Path(__file__).resolve().parents[2] / "docs" / "research" / "economy"
 GOALS = RESEARCH / "out" / "goals.json"
 CIDS = ("milk", "beef", "rice")
-TUNABLES = ("VALUE_TABLE", "PROFILES", "BUCKET_TARGET_H", "DAIRY_SHIP_FRAC", "RARE_KEEP_FRAC", "PEAK_H", "BULL_WAIT_MAX_H",
-            "HOLD_THR", "HOLD_FRESH_SELL", "HOLD_WH_TARGET_H", "HOLD_MIN_COWS", "STUD_PRICE_BY_TIER", "STUD_RELIST_H",
-            "PANIC_SHIP_AGE_H", "SHOP_CHOICE_SCALE")
+TUNABLES = (
+    "VALUE_TABLE",
+    "PROFILES",
+    "BUCKET_TARGET_H",
+    "DAIRY_SHIP_FRAC",
+    "RARE_KEEP_FRAC",
+    "PEAK_H",
+    "BULL_WAIT_MAX_H",
+    "HOLD_THR",
+    "HOLD_FRESH_SELL",
+    "HOLD_WH_TARGET_H",
+    "HOLD_MIN_COWS",
+    "STUD_PRICE_BY_TIER",
+    "STUD_RELIST_H",
+    "PANIC_SHIP_AGE_H",
+    "SHOP_CHOICE_SCALE",
+)
 
 
 @lru_cache(maxsize=None)
@@ -83,7 +97,9 @@ def test_price_band(players):
             assert st["inside_soft_band"] >= 0.95, (players, s, cid, st)
             cp = w.params.commodity(cid)
             assert cp.hard_lo - 1e-9 <= st["min"] and st["max"] <= cp.hard_hi + 1e-9  # 硬邊界
-    print(f"\n{players} 人：價格在 0.6–1.7 倍的時間（各 seed 最低）" + "、".join(f"{c} {v:.2%}" for c, v in worst.items()))
+    print(
+        f"\n{players} 人：價格在 0.6–1.7 倍的時間（各 seed 最低）" + "、".join(f"{c} {v:.2%}" for c, v in worst.items())
+    )
 
 
 @pytest.mark.parametrize("players", [10, 100])
@@ -98,7 +114,9 @@ def test_strategy_income(players):
         assert ratio <= 1.5, (players, wk + 1, means)
     tot = {k: statistics.fmean(p[k]["total"] for p in per) for k in keys}
     f_over_d = tot["F"] / tot["D"]
-    print(f"\n{players} 人：每週最高÷最低最大 {worst:.3f}；28 天合計最高 {max(tot, key=tot.get)}；耕田派÷乳牛派 {f_over_d:.3f}")
+    print(
+        f"\n{players} 人：每週最高÷最低最大 {worst:.3f}；28 天合計最高 {max(tot, key=tot.get)}；耕田派÷乳牛派 {f_over_d:.3f}"
+    )
     assert 0.85 <= f_over_d <= 1.15, tot
 
 
@@ -119,9 +137,12 @@ def test_stud_shop_grades_100():
     grades = {g: sum(H.stud_stats(w)["grades"][g] for w in ws) for g in ("A", "B", "C")}
     n_shop = sum(shop.values())
     per_day = borrows / (len(ws) * 100 * 30)
-    print(f"\n100 人：借種每人每天 {per_day:.2f} 筆、出借公牛派借種收入占 {share:.1%}；商店份額 "
-          + "、".join(f"{g} {v / n_shop:.0%}" for g, v in shop.items())
-          + "；出貨評級 " + "、".join(f"{g} {v / sum(grades.values()):.0%}" for g, v in grades.items()))
+    print(
+        f"\n100 人：借種每人每天 {per_day:.2f} 筆、出借公牛派借種收入占 {share:.1%}；商店份額 "
+        + "、".join(f"{g} {v / n_shop:.0%}" for g, v in shop.items())
+        + "；出貨評級 "
+        + "、".join(f"{g} {v / sum(grades.values()):.0%}" for g, v in grades.items())
+    )
     assert borrows > 0
     assert share < 0.2  # 出借收入不失控（筆記：約 3%）
     assert all(v / n_shop >= 0.05 for v in shop.values()), shop  # 三級都有人買
@@ -141,13 +162,24 @@ def test_whale_dump():
     hold = run("whale", 100, 1, mode="hold", cows=100)
     dump = run("whale", 100, 1, mode="dump", cows=100)
     batch = run("whale", 100, 1, mode="batch", cows=100)
-    bound = max(single_dump_bound(hold.params), 1 - math.exp(-hold.params.beef.pressure_down_per_h * hold.params.beef.player_cap_frac * hold.params.beef.player_cap_window_s / 3600.0))
+    bound = max(
+        single_dump_bound(hold.params),
+        1
+        - math.exp(
+            -hold.params.beef.pressure_down_per_h
+            * hold.params.beef.player_cap_frac
+            * hold.params.beef.player_cap_window_s
+            / 3600.0
+        ),
+    )
     lines = []
     for cid in ("milk", "beef"):
         g = H.gap_stats(dump, hold, cid, H.DUMP_H, direct_h=2.0)
         assert g["max_drop_direct"] <= bound + 1e-9, (cid, g, bound)
         td, tb = H.whale_totals(dump)[cid], H.whale_totals(batch)[cid]
-        lines.append(f"{cid}：2 小時內最多低 {g['max_drop_direct']:.3%}（上限 {bound:.2%}），滑價 倒 {td['slip']:.1%}／分批 {tb['slip']:.1%}")
+        lines.append(
+            f"{cid}：2 小時內最多低 {g['max_drop_direct']:.3%}（上限 {bound:.2%}），滑價 倒 {td['slip']:.1%}／分批 {tb['slip']:.1%}"
+        )
         if cid == "milk":
             assert td["slip"] > tb["slip"], (td, tb)  # 一次倒出比分批吃虧
     print("\n100 人＋大戶 100 頭：" + "；".join(lines))
@@ -173,12 +205,12 @@ def test_low_online_day():
     d0 = H.LOW_DAY * 1440
     out = []
     for cid in CIDS:
-        r = [a / b for a, b in zip(low.rec[cid][d0:d0 + 1440], ref.rec[cid][d0:d0 + 1440])]
+        r = [a / b for a, b in zip(low.rec[cid][d0 : d0 + 1440], ref.rec[cid][d0 : d0 + 1440])]
         mean = statistics.fmean(r)
         out.append(f"{cid} {mean:.3f}")
         assert 0.95 <= mean <= 1.05, (cid, mean)
-    on_low = statistics.fmean(low.rec["online"][d0:d0 + 1440])
-    on_ref = statistics.fmean(ref.rec["online"][d0:d0 + 1440])
+    on_low = statistics.fmean(low.rec["online"][d0 : d0 + 1440])
+    on_ref = statistics.fmean(ref.rec["online"][d0 : d0 + 1440])
     assert on_low < 0.4 * on_ref
     print(f"\n人少的一天（100 人）：在線 {on_ref:.1f}→{on_low:.1f}，人少÷平常 " + "、".join(out))
 
@@ -223,7 +255,11 @@ def test_bot_tunables_match_research():
 @pytest.mark.parametrize("which", ["base_10_s1", "whale_100_dump", "panic_100"])
 def test_identical_to_research_sim(which):
     World, SB = research()
-    sc = {"base_10_s1": H.base(10, 1), "whale_100_dump": H.whale(100, "dump", 100, 1), "panic_100": H.panic(100, True, 1)}[which]
+    sc = {
+        "base_10_s1": H.base(10, 1),
+        "whale_100_dump": H.whale(100, "dump", 100, 1),
+        "panic_100": H.panic(100, True, 1),
+    }[which]
     ref = World(sc, sc["seed"])
     ref.run()
     with research_tunables(SB):
@@ -233,7 +269,9 @@ def test_identical_to_research_sim(which):
     assert [b.farm.coins for b in ref.bots] == [b.farm.coins for b in mine.bots]
     assert [list(b.ledger.amount) for b in ref.bots] == [list(b.ledger.amount) for b in mine.bots]
     assert [list(b.ledger.qty) for b in ref.bots] == [list(b.ledger.qty) for b in mine.bots]
-    assert [(len(b.farm.cows), b.farm.slots, len(b.farm.fields)) for b in ref.bots] == [(len(b.farm.cows), b.farm.slots, len(b.farm.fields)) for b in mine.bots]
+    assert [(len(b.farm.cows), b.farm.slots, len(b.farm.fields)) for b in ref.bots] == [
+        (len(b.farm.cows), b.farm.slots, len(b.farm.fields)) for b in mine.bots
+    ]
     assert ref.stud.to_dict() == mine.game.stud.to_dict()
 
 
@@ -248,11 +286,16 @@ def test_numbers_match_research_note():
     with research_tunables(SB):
         row = g["a_price"]["10"]
         for cid in CIDS:
-            inside = min(H.price_stats(ratios(H.ServiceWorld(H.base(10, s), s).run(), cid))["inside_soft_band"] for s in SEEDS[10])
+            inside = min(
+                H.price_stats(ratios(H.ServiceWorld(H.base(10, s), s).run(), cid))["inside_soft_band"]
+                for s in SEEDS[10]
+            )
             assert inside == pytest.approx(row[cid]["inside_min"], abs=1e-12), cid
 
 
-@pytest.mark.skipif(os.environ.get("COWFARM_SCENARIO_1000") != "1", reason="1,000 人 30 天約 1 分鐘；設 COWFARM_SCENARIO_1000=1 才跑")
+@pytest.mark.skipif(
+    os.environ.get("COWFARM_SCENARIO_1000") != "1", reason="1,000 人 30 天約 1 分鐘；設 COWFARM_SCENARIO_1000=1 才跑"
+)
 def test_goals_1000_players():
     w = H.ServiceWorld(H.base(1000, 1), 1).run()
     for cid in CIDS:

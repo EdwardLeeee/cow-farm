@@ -1,5 +1,7 @@
 # 整個 repo 的 Python 都檢查；不檢查的範圍與原因寫在這裡，新檔案不用改清單也會被檢查。
 target-version = "py310"
+# 行寬 120（ceo 2026-10-02）：給 ruff format 用；lint 的預設規則沒有 E501，只影響排版。
+line-length = 120
 extend-exclude = [
   # 設計稿的產圖工具（Playwright 截圖、拼圖）：不出貨，由 cow-ui 在本機用。
   "design",

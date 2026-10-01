@@ -198,8 +198,18 @@ class GameServer:
         else:
             await self._restore(data)
         await self._ensure_bots()
-        log.info("cowecon %s 參數指紋 %s（和 docs/research/economy/out/goals.json 的 params_fingerprint 相同，才是模擬驗證過的那一份參數）", ENGINE_VERSION, self.fingerprint)
-        log.info("遊戲時間 %.0f、倍率 %s、玩家 %d（假玩家 %d）", self.clock.now(), self.clock.scale, len(self.game.players), len(self.bots.bots))
+        log.info(
+            "cowecon %s 參數指紋 %s（和 docs/research/economy/out/goals.json 的 params_fingerprint 相同，才是模擬驗證過的那一份參數）",
+            ENGINE_VERSION,
+            self.fingerprint,
+        )
+        log.info(
+            "遊戲時間 %.0f、倍率 %s、玩家 %d（假玩家 %d）",
+            self.clock.now(),
+            self.clock.scale,
+            len(self.game.players),
+            len(self.bots.bots),
+        )
         if self.cfg.run_loops:
             self.tasks.append(asyncio.create_task(self._tick_loop(), name="tick"))
             self.tasks.append(asyncio.create_task(self._push_loop(), name="push"))
@@ -244,11 +254,24 @@ class GameServer:
         self.game.stud.npc_refill(t0, self.game.npc_rng())  # 電腦假玩家先上架幾頭公牛，借種市場不會是空的
         if self.clock is None:
             self.clock = GameClock(t0, self.cfg.time_scale)
-        world = {"seed": seed, "game_start": t0, "created_real": time.time(), "fingerprint": self.fingerprint, "engine": ENGINE_VERSION}
+        world = {
+            "seed": seed,
+            "game_start": t0,
+            "created_real": time.time(),
+            "fingerprint": self.fingerprint,
+            "engine": ENGINE_VERSION,
+        }
         prices = {cid: m.price for cid, m in self.game.ex.markets.items()}
         await self.store.init_world(
-            {"world": world, "exchange": self._ex_meta(), "clock": self._clock_meta(), "stud": self.game.stud.to_dict()},
-            self._market_snaps(), t0, prices,
+            {
+                "world": world,
+                "exchange": self._ex_meta(),
+                "clock": self._clock_meta(),
+                "stud": self.game.stud.to_dict(),
+            },
+            self._market_snaps(),
+            t0,
+            prices,
         )
         for cid, p in prices.items():
             self.history[cid] = deque([(t0, p)])
@@ -271,14 +294,25 @@ class GameServer:
         ex_d = dict(meta["exchange"])
         ex_d["markets"] = data["markets"]
         ex_t = ex_d["t"]
-        hist = {cid: await self.store.price_history(cid, ex_t - DEFAULT.commodity(cid).ma_window_s) for cid in data["markets"]}
+        hist = {
+            cid: await self.store.price_history(cid, ex_t - DEFAULT.commodity(cid).ma_window_s)
+            for cid in data["markets"]
+        }
         ex = Exchange.from_dict(DEFAULT, ex_d, hist)
         stud = StudMarket.from_dict(DEFAULT, meta["stud"]) if "stud" in meta else StudMarket(DEFAULT)
         self.game = Game(DEFAULT, world["seed"], exchange=ex, stud=stud)
         for r in data["players"]:
-            p = Player.from_state(DEFAULT, r["id"], r["ranch_name"], r["is_bot"], r["created_game_t"], r["state"],
-                                  token_hash=bytes(r["token_sha256"]) if r["token_sha256"] is not None else None,
-                                  version=r["version"], game_t=r["game_t"])
+            p = Player.from_state(
+                DEFAULT,
+                r["id"],
+                r["ranch_name"],
+                r["is_bot"],
+                r["created_game_t"],
+                r["state"],
+                token_hash=bytes(r["token_sha256"]) if r["token_sha256"] is not None else None,
+                version=r["version"],
+                game_t=r["game_t"],
+            )
             self.game.add_player(p)
             if p.token_hash is not None:
                 self.tokens[p.token_hash] = p.pid
@@ -296,13 +330,27 @@ class GameServer:
         for r in data["news"]:
             ev = next((e for e in ex.events if e.eid == r["id"]), None)
             if ev is None:  # 已經結束的新聞：只剩列表要顯示的欄位
-                ev = MarketEvent.from_state({"id": r["id"], "targets": list(r["targets"]), "factor": r["factor"], "announce_at": r["announce_at"],
-                                             "start_at": r["start_at"], "ramp_s": 0.0, "half_life_s": 1.0, "end_at": r["end_at"],
-                                             "headline": r["headline"], "rare": r["rare"]})
+                ev = MarketEvent.from_state(
+                    {
+                        "id": r["id"],
+                        "targets": list(r["targets"]),
+                        "factor": r["factor"],
+                        "announce_at": r["announce_at"],
+                        "start_at": r["start_at"],
+                        "ramp_s": 0.0,
+                        "half_life_s": 1.0,
+                        "end_at": r["end_at"],
+                        "headline": r["headline"],
+                        "rare": r["rare"],
+                    }
+                )
             self.news_log[r["id"]] = ev
             self.news_seen.add(r["id"])
         # 遊戲時間：從上次存下的時間接著走（關機期間暫停）
-        resume = max([ex_t, meta.get("clock", {}).get("game_t", ex_t), data["max_trade_t"] or ex_t] + [p.game_t for p in self.game.players.values()])
+        resume = max(
+            [ex_t, meta.get("clock", {}).get("game_t", ex_t), data["max_trade_t"] or ex_t]
+            + [p.game_t for p in self.game.players.values()]
+        )
         if self.clock is None:
             self.clock = GameClock(resume, self.cfg.time_scale)
         self.bots = ServerBots(self)
@@ -330,8 +378,16 @@ class GameServer:
             joined = now + r.uniform(0.0, BOT_JOIN_SPREAD_S)
             name = random_ranch_name(r)
             p = game.create_player(joined, name, is_bot=True, pid=pid)
-            p.bot = {"strategy": order[i], "joined_at": joined, "per_day": r.randint(4, 8), "shift_min": r.uniform(-60.0, 60.0),
-                     "taste": r.uniform(0.0, 0.3), "returns": [], "extra": [], "last_t": None}
+            p.bot = {
+                "strategy": order[i],
+                "joined_at": joined,
+                "per_day": r.randint(4, 8),
+                "shift_min": r.uniform(-60.0, 60.0),
+                "taste": r.uniform(0.0, 0.3),
+                "returns": [],
+                "extra": [],
+                "last_t": None,
+            }
             await self.store.create_player(pid, None, name, True, joined, p.state_dict())
             p.version = 1
             self.bots.attach(p)
@@ -367,9 +423,15 @@ class GameServer:
         return self.game.players[pid]
 
     # ------------------------------------------------------------------ 動作
-    async def run_action(self, pid: int, fn: Callable[[float], Any], request_id: Optional[str] = None,
-                         endpoint: Optional[str] = None, respond: Optional[Callable[[Any, float], dict]] = None,
-                         now: Optional[float] = None) -> Any:
+    async def run_action(
+        self,
+        pid: int,
+        fn: Callable[[float], Any],
+        request_id: Optional[str] = None,
+        endpoint: Optional[str] = None,
+        respond: Optional[Callable[[Any, float], dict]] = None,
+        now: Optional[float] = None,
+    ) -> Any:
         """執行一個會改狀態的動作並存檔。fn(now) 是同步的服務層呼叫。
 
         所有動作排成一列（write_lock）：借種會同時改借的人和公牛主人兩座牧場，排成一列才不會兩個動作
@@ -409,9 +471,16 @@ class GameServer:
                 q = game.players[opid]
                 others.append((opid, q.state_dict(), q.version, max(t, q.game_t)))
             try:
-                await self.store.commit_action(pid, p.state_dict(), p.version, max(t, p.game_t), trades,
-                                               (request_id, endpoint, response) if request_id is not None else None,
-                                               others=others, stud=game.stud.to_dict() if game.stud_dirty else None)
+                await self.store.commit_action(
+                    pid,
+                    p.state_dict(),
+                    p.version,
+                    max(t, p.game_t),
+                    trades,
+                    (request_id, endpoint, response) if request_id is not None else None,
+                    others=others,
+                    stud=game.stud.to_dict() if game.stud_dirty else None,
+                )
             except Exception:
                 self._undo(pid, backup, stud_backup, trades, seq0)
                 self.stats["errors"] += 1
@@ -451,8 +520,14 @@ class GameServer:
         owner = ev.get("owner")
         if owner is None:
             return
-        msg = {"type": "stud", "event": "borrowed", **V.time_fields(self.clock, self.clock.now()),
-               "listing_id": ev["listing_id"], "cow_id": ev["cow_id"], "price": int(round(ev["price"]))}
+        msg = {
+            "type": "stud",
+            "event": "borrowed",
+            **V.time_fields(self.clock, self.clock.now()),
+            "listing_id": ev["listing_id"],
+            "cow_id": ev["cow_id"],
+            "price": int(round(ev["price"])),
+        }
         text = json.dumps(msg, ensure_ascii=False)
         for ws, wpid in list(self.ws.items()):
             if wpid == owner:
@@ -585,8 +660,14 @@ class GameServer:
         span, step = self.HISTORY_RANGES[rng]
         now = self.clock.now()
         pts = [x for x in self.history[commodity] if x[0] >= now - span]
-        return {**V.time_fields(self.clock, now), "commodity": commodity, "range": rng, "step_s": step,
-                "points": V.downsample(pts, step), "ma24": V.r6(self.game.ex.markets[commodity].moving_average())}
+        return {
+            **V.time_fields(self.clock, now),
+            "commodity": commodity,
+            "range": rng,
+            "step_s": step,
+            "points": V.downsample(pts, step),
+            "ma24": V.r6(self.game.ex.markets[commodity].moving_average()),
+        }
 
     def leaderboard(self, kind: str, me: Player, top: int = 50) -> dict:
         now = self.clock.now()
@@ -610,8 +691,15 @@ class GameServer:
 
         def entry(rank, score, pid):
             p = players[pid]
-            return {"rank": rank, "player_id": pid, "name": display_name(p.name, p.is_bot), "ranch_name": p.name,
-                    "score": round(score) if kind != "collection" else int(score), "is_bot": p.is_bot, "is_me": pid == me.pid}
+            return {
+                "rank": rank,
+                "player_id": pid,
+                "name": display_name(p.name, p.is_bot),
+                "ranch_name": p.name,
+                "score": round(score) if kind != "collection" else int(score),
+                "is_bot": p.is_bot,
+                "is_me": pid == me.pid,
+            }
 
         entries = [entry(i + 1, s, pid) for i, (s, pid) in enumerate(rows[:top])]
         mine = next((entry(i + 1, s, pid) for i, (s, pid) in enumerate(rows) if pid == me.pid), None)
@@ -619,9 +707,14 @@ class GameServer:
 
     def health(self) -> dict:
         return {
-            "ok": True, "server_time": self.clock.now(), "time_scale": self.clock.scale, "tick_t": self.game.ex.t,
+            "ok": True,
+            "server_time": self.clock.now(),
+            "time_scale": self.clock.scale,
+            "tick_t": self.game.ex.t,
             "players": sum(1 for p in self.game.players.values() if not p.is_bot),
             "bots": sum(1 for p in self.game.players.values() if p.is_bot),
-            "ws": len(self.ws), "fingerprint": self.fingerprint, **self.stats,
+            "ws": len(self.ws),
+            "fingerprint": self.fingerprint,
+            **self.stats,
             "prices": {cid: m.price for cid, m in self.game.ex.markets.items()},
         }

@@ -133,7 +133,14 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
         finally:
             await server.stop()
 
-    app = FastAPI(title="cow-farm M1", version="1", lifespan=lifespan, docs_url="/v1/docs", openapi_url="/v1/openapi.json", redoc_url=None)
+    app = FastAPI(
+        title="cow-farm M1",
+        version="1",
+        lifespan=lifespan,
+        docs_url="/v1/docs",
+        openapi_url="/v1/openapi.json",
+        redoc_url=None,
+    )
     app.state.server = server
     # 區網試玩：token 放在 Authorization header（不用 cookie），所以開放所有來源；flutter run -d web-server 用別的埠也能連
     app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -149,7 +156,9 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
         for e in exc.errors():
             loc = [str(x) for x in e.get("loc", ()) if x not in ("body", "query")]
             fields.append(".".join(loc) or "body")
-        return _err(400, "bad_request", "請求格式不對：" + "、".join(sorted(set(fields))), {"fields": sorted(set(fields))})
+        return _err(
+            400, "bad_request", "請求格式不對：" + "、".join(sorted(set(fields))), {"fields": sorted(set(fields))}
+        )
 
     @app.exception_handler(StarletteHTTPException)
     async def _http(request: Request, exc: StarletteHTTPException):
@@ -193,10 +202,20 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
 
         def respond(res, now):
             st = state_of(p, now)
-            return {**base(now), "collected": V.r6(res["collected"]), "spoiled": V.r6(res["spoiled"]), "warehouse_full": res["warehouse_full"],
-                    "coins": st["coins"], "bucket": st["bucket"], "warehouse": st["warehouse"], "state": st}
+            return {
+                **base(now),
+                "collected": V.r6(res["collected"]),
+                "spoiled": V.r6(res["spoiled"]),
+                "warehouse_full": res["warehouse_full"],
+                "coins": st["coins"],
+                "bucket": st["bucket"],
+                "warehouse": st["warehouse"],
+                "state": st,
+            }
 
-        return await server.run_action(p.pid, lambda now: g.collect(p.pid, now), _rid(req.request_id), "collect", respond)
+        return await server.run_action(
+            p.pid, lambda now: g.collect(p.pid, now), _rid(req.request_id), "collect", respond
+        )
 
     @app.post("/v1/sell/quote")
     async def sell_quote(req: QuoteReq, p: Player = Depends(current)):
@@ -212,10 +231,19 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
             st = state_of(p, now)
             m = g.ex.markets[req.commodity]
             f = g.players[p.pid].farm
-            return {**base(now), **_sale_fields(res), "price_after": V.r6(m.price), "next_unit_price": V.r6(V.next_unit_price(m, f.impact[req.commodity], now)),
-                    "coins": st["coins"], "warehouse": st["warehouse"], "state": st}
+            return {
+                **base(now),
+                **_sale_fields(res),
+                "price_after": V.r6(m.price),
+                "next_unit_price": V.r6(V.next_unit_price(m, f.impact[req.commodity], now)),
+                "coins": st["coins"],
+                "warehouse": st["warehouse"],
+                "state": st,
+            }
 
-        return await server.run_action(p.pid, lambda now: g.sell(p.pid, req.commodity, req.qty, now), _rid(req.request_id), "sell", respond)
+        return await server.run_action(
+            p.pid, lambda now: g.sell(p.pid, req.commodity, req.qty, now), _rid(req.request_id), "sell", respond
+        )
 
     @app.post("/v1/ship")
     async def ship(req: ShipReq, p: Player = Depends(current)):
@@ -227,13 +255,28 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
             f = g.players[p.pid].farm
             est = g.ex.markets["beef"].quote(f.impact["beef"], [(lot.qty, f.beef_lot_mult(lot, now))], now)
             grade = V.GRADE_NAMES[lot.grade] if 0 <= lot.grade < 3 else None
-            return {**base(now), "cow_id": res["cow_id"], "grade": grade, "grade_probs": V.grade_dict(res["grade_probs"]),
-                    "beef": {"qty": V.r6(lot.qty), "tier": lot.tier, "shipped_at": lot.t, "grade": grade,
-                             "grade_mult": f.fp.beef_grade_mult[lot.grade] if grade else None,
-                             "quality": round(lot.mult / f.fp.tier_mult[lot.tier], 4), "value_estimate": round(est.proceeds)},
-                    "coins": st["coins"], "warehouse": st["warehouse"], "state": st}
+            return {
+                **base(now),
+                "cow_id": res["cow_id"],
+                "grade": grade,
+                "grade_probs": V.grade_dict(res["grade_probs"]),
+                "beef": {
+                    "qty": V.r6(lot.qty),
+                    "tier": lot.tier,
+                    "shipped_at": lot.t,
+                    "grade": grade,
+                    "grade_mult": f.fp.beef_grade_mult[lot.grade] if grade else None,
+                    "quality": round(lot.mult / f.fp.tier_mult[lot.tier], 4),
+                    "value_estimate": round(est.proceeds),
+                },
+                "coins": st["coins"],
+                "warehouse": st["warehouse"],
+                "state": st,
+            }
 
-        return await server.run_action(p.pid, lambda now: g.ship(p.pid, req.cow_id, now), _rid(req.request_id), "ship", respond)
+        return await server.run_action(
+            p.pid, lambda now: g.ship(p.pid, req.cow_id, now), _rid(req.request_id), "ship", respond
+        )
 
     @app.post("/v1/buy_calf")
     async def buy_calf(p: Player = Depends(current)):
@@ -245,7 +288,12 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
     async def shop(p: Player = Depends(current)):
         now = server.clock.now()
         pl = server.game.players[p.pid]
-        return {**base(now), "coins": int(round(pl.farm.coins)), "free_slots": pl.farm.free_slots(), "grades": server.game.shop_info()}
+        return {
+            **base(now),
+            "coins": int(round(pl.farm.coins)),
+            "free_slots": pl.farm.free_slots(),
+            "grades": server.game.shop_info(),
+        }
 
     @app.post("/v1/shop/buy")
     async def shop_buy(req: ShopBuyReq, p: Player = Depends(current)):
@@ -255,10 +303,19 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
             pl = g.players[p.pid]
             st = state_of(p, now)
             gi = pl.farm.fp.shop_grade_names.index(req.grade)
-            return {**base(now), "grade": req.grade, "cow": V.cow_view(g, pl, cow, now), "cost": int(round(pl.farm.fp.shop_grade_price[gi])),
-                    "coins": st["coins"], "pen": st["pen"], "state": st}
+            return {
+                **base(now),
+                "grade": req.grade,
+                "cow": V.cow_view(g, pl, cow, now),
+                "cost": int(round(pl.farm.fp.shop_grade_price[gi])),
+                "coins": st["coins"],
+                "pen": st["pen"],
+                "state": st,
+            }
 
-        return await server.run_action(p.pid, lambda now: g.shop_buy(p.pid, req.grade, now), _rid(req.request_id), "shop_buy", respond)
+        return await server.run_action(
+            p.pid, lambda now: g.shop_buy(p.pid, req.grade, now), _rid(req.request_id), "shop_buy", respond
+        )
 
     # ---- v0.2：出貨前看評級機率 ----
     @app.get("/v1/ship/preview")
@@ -276,11 +333,22 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
         from cowecon.farm import beef_grade_probs, beef_weight
 
         probs = beef_grade_probs(fp, c, now)
-        by_grade = {gn: round(ship_value(g, pl, c, now, fp.beef_grade_mult[i] * fp.tier_mult[c.tier])) for i, gn in enumerate(V.GRADE_NAMES)}
-        return {**base(now), "cow_id": c.cid, "weight_kg": V.r2(beef_weight(fp, c, now)), "tier": c.tier,
-                "grade_probs": V.grade_dict(probs), "grade_mult": dict(zip(V.GRADE_NAMES, fp.beef_grade_mult)),
-                "value_by_grade": by_grade, "expected_value": round(ship_value(g, pl, c, now)),
-                "can_ship": not blockers, "blockers": blockers}
+        by_grade = {
+            gn: round(ship_value(g, pl, c, now, fp.beef_grade_mult[i] * fp.tier_mult[c.tier]))
+            for i, gn in enumerate(V.GRADE_NAMES)
+        }
+        return {
+            **base(now),
+            "cow_id": c.cid,
+            "weight_kg": V.r2(beef_weight(fp, c, now)),
+            "tier": c.tier,
+            "grade_probs": V.grade_dict(probs),
+            "grade_mult": dict(zip(V.GRADE_NAMES, fp.beef_grade_mult)),
+            "value_by_grade": by_grade,
+            "expected_value": round(ship_value(g, pl, c, now)),
+            "can_ship": not blockers,
+            "blockers": blockers,
+        }
 
     @app.get("/v1/breed/preview")
     async def breed_preview(sire: int = Query(...), dam: int = Query(...), p: Player = Depends(current)):
@@ -294,12 +362,19 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
         def respond(res, now):
             pl = g.players[p.pid]
             st = state_of(p, now)
-            return {**base(now), "calf": V.cow_view(g, pl, res["calf"], now), "fee": res["fee"],
-                    "sire": {"id": res["sire"].cid, "ready_at": res["sire"].ready_at, "bred": res["sire"].bred},
-                    "dam": {"id": res["dam"].cid, "ready_at": res["dam"].ready_at, "bred": res["dam"].bred},
-                    "coins": st["coins"], "state": st}
+            return {
+                **base(now),
+                "calf": V.cow_view(g, pl, res["calf"], now),
+                "fee": res["fee"],
+                "sire": {"id": res["sire"].cid, "ready_at": res["sire"].ready_at, "bred": res["sire"].bred},
+                "dam": {"id": res["dam"].cid, "ready_at": res["dam"].ready_at, "bred": res["dam"].bred},
+                "coins": st["coins"],
+                "state": st,
+            }
 
-        return await server.run_action(p.pid, lambda now: g.breed(p.pid, req.sire, req.dam, now), _rid(req.request_id), "breed", respond)
+        return await server.run_action(
+            p.pid, lambda now: g.breed(p.pid, req.sire, req.dam, now), _rid(req.request_id), "breed", respond
+        )
 
     @app.post("/v1/upgrade")
     async def upgrade(req: UpgradeReq, p: Player = Depends(current)):
@@ -307,9 +382,19 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
 
         def respond(res, now):
             st = state_of(p, now)
-            return {**base(now), "kind": res["kind"], "cost": res["cost"], "coins": st["coins"], "upgrades": st["upgrades"], "pen": st["pen"], "state": st}
+            return {
+                **base(now),
+                "kind": res["kind"],
+                "cost": res["cost"],
+                "coins": st["coins"],
+                "upgrades": st["upgrades"],
+                "pen": st["pen"],
+                "state": st,
+            }
 
-        return await server.run_action(p.pid, lambda now: g.upgrade(p.pid, req.kind, now), _rid(req.request_id), "upgrade", respond)
+        return await server.run_action(
+            p.pid, lambda now: g.upgrade(p.pid, req.kind, now), _rid(req.request_id), "upgrade", respond
+        )
 
     # ---- 行情與排行榜 ----
     @app.get("/v1/market")
@@ -317,11 +402,17 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
         return server.market_view()
 
     @app.get("/v1/market/history")
-    async def market_history(commodity: Literal["milk", "beef", "rice"] = Query(...), range: Literal["1h", "1d", "7d"] = Query("1d"), p: Player = Depends(current)):
+    async def market_history(
+        commodity: Literal["milk", "beef", "rice"] = Query(...),
+        range: Literal["1h", "1d", "7d"] = Query("1d"),
+        p: Player = Depends(current),
+    ):
         return server.market_history(commodity, range)
 
     @app.get("/v1/leaderboard")
-    async def leaderboard(kind: Literal["networth", "collection", "weekly"] = Query("networth"), p: Player = Depends(current)):
+    async def leaderboard(
+        kind: Literal["networth", "collection", "weekly"] = Query("networth"), p: Player = Depends(current)
+    ):
         return server.leaderboard(kind, p)
 
     # ---- v0.2：田地 ----
@@ -333,7 +424,13 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
             st = state_of(p, now)
             return {**base(now), **res, "fields": st["fields"], "rice": st["rice"], "coins": st["coins"], "state": st}
 
-        return await server.run_action(p.pid, lambda now: g.field_assign(p.pid, req.cow_id, req.field, now), _rid(req.request_id), "field_assign", respond)
+        return await server.run_action(
+            p.pid,
+            lambda now: g.field_assign(p.pid, req.cow_id, req.field, now),
+            _rid(req.request_id),
+            "field_assign",
+            respond,
+        )
 
     @app.post("/v1/field/recall")
     async def field_recall(req: CowActionReq, p: Player = Depends(current)):
@@ -343,7 +440,9 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
             st = state_of(p, now)
             return {**base(now), **res, "fields": st["fields"], "rice": st["rice"], "coins": st["coins"], "state": st}
 
-        return await server.run_action(p.pid, lambda now: g.field_recall(p.pid, req.cow_id, now), _rid(req.request_id), "field_recall", respond)
+        return await server.run_action(
+            p.pid, lambda now: g.field_recall(p.pid, req.cow_id, now), _rid(req.request_id), "field_recall", respond
+        )
 
     @app.post("/v1/field/harvest")
     async def field_harvest(req: ActionReq, p: Player = Depends(current)):
@@ -351,10 +450,19 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
 
         def respond(res, now):
             st = state_of(p, now)
-            return {**base(now), "harvested": V.r6(res["harvested"]), "fields": st["fields"], "rice": st["rice"],
-                    "warehouse": st["warehouse"], "coins": st["coins"], "state": st}
+            return {
+                **base(now),
+                "harvested": V.r6(res["harvested"]),
+                "fields": st["fields"],
+                "rice": st["rice"],
+                "warehouse": st["warehouse"],
+                "coins": st["coins"],
+                "state": st,
+            }
 
-        return await server.run_action(p.pid, lambda now: g.harvest(p.pid, now), _rid(req.request_id), "field_harvest", respond)
+        return await server.run_action(
+            p.pid, lambda now: g.harvest(p.pid, now), _rid(req.request_id), "field_harvest", respond
+        )
 
     @app.post("/v1/field/expand")
     async def field_expand(req: ActionReq, p: Player = Depends(current)):
@@ -362,10 +470,19 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
 
         def respond(res, now):
             st = state_of(p, now)
-            return {**base(now), "kind": "field", "cost": res["cost"], "fields": st["fields"], "upgrades": st["upgrades"],
-                    "coins": st["coins"], "state": st}
+            return {
+                **base(now),
+                "kind": "field",
+                "cost": res["cost"],
+                "fields": st["fields"],
+                "upgrades": st["upgrades"],
+                "coins": st["coins"],
+                "state": st,
+            }
 
-        return await server.run_action(p.pid, lambda now: g.upgrade(p.pid, "field", now), _rid(req.request_id), "field_expand", respond)
+        return await server.run_action(
+            p.pid, lambda now: g.upgrade(p.pid, "field", now), _rid(req.request_id), "field_expand", respond
+        )
 
     # ---- v0.2：借種市場 ----
     @app.get("/v1/stud")
@@ -373,9 +490,12 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
         g = server.game
         now = server.clock.now()
         rows = sorted(g.stud.listings.values(), key=lambda l: (l.price, l.lid))
-        return {**base(now), "prices": [int(round(x)) for x in g.params.farm.stud_prices],
-                "listings": [V.listing_view(g, l, p.pid, now) for l in rows],
-                "mine": [V.listing_view(g, l, p.pid, now) for l in g.stud.owner_listings(p.pid)]}
+        return {
+            **base(now),
+            "prices": [int(round(x)) for x in g.params.farm.stud_prices],
+            "listings": [V.listing_view(g, l, p.pid, now) for l in rows],
+            "mine": [V.listing_view(g, l, p.pid, now) for l in g.stud.owner_listings(p.pid)],
+        }
 
     @app.get("/v1/stud/preview")
     async def stud_preview(listing_id: int = Query(...), dam: int = Query(...), p: Player = Depends(current)):
@@ -388,9 +508,20 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
 
         def respond(res, now):
             st = state_of(p, now)
-            return {**base(now), "listing": V.listing_view(g, res["listing"], p.pid, now), "coins": st["coins"], "state": st}
+            return {
+                **base(now),
+                "listing": V.listing_view(g, res["listing"], p.pid, now),
+                "coins": st["coins"],
+                "state": st,
+            }
 
-        return await server.run_action(p.pid, lambda now: g.stud_list(p.pid, req.cow_id, req.price, now), _rid(req.request_id), "stud_list", respond)
+        return await server.run_action(
+            p.pid,
+            lambda now: g.stud_list(p.pid, req.cow_id, req.price, now),
+            _rid(req.request_id),
+            "stud_list",
+            respond,
+        )
 
     @app.post("/v1/stud/unlist")
     async def stud_unlist(req: StudUnlistReq, p: Player = Depends(current)):
@@ -400,7 +531,9 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
             st = state_of(p, now)
             return {**base(now), **res, "coins": st["coins"], "state": st}
 
-        return await server.run_action(p.pid, lambda now: g.stud_unlist(p.pid, req.listing_id), _rid(req.request_id), "stud_unlist", respond)
+        return await server.run_action(
+            p.pid, lambda now: g.stud_unlist(p.pid, req.listing_id), _rid(req.request_id), "stud_unlist", respond
+        )
 
     @app.post("/v1/stud/borrow")
     async def stud_borrow(req: StudBorrowReq, p: Player = Depends(current)):
@@ -410,10 +543,23 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
             pl = g.players[p.pid]
             st = state_of(p, now)
             lst = res["listing"]
-            return {**base(now), "calf": V.cow_view(g, pl, res["calf"], now), "price": res["price"], "listing_id": lst.lid,
-                    "dam": {"id": res["dam"].cid, "bred": res["dam"].bred}, "coins": st["coins"], "state": st}
+            return {
+                **base(now),
+                "calf": V.cow_view(g, pl, res["calf"], now),
+                "price": res["price"],
+                "listing_id": lst.lid,
+                "dam": {"id": res["dam"].cid, "bred": res["dam"].bred},
+                "coins": st["coins"],
+                "state": st,
+            }
 
-        return await server.run_action(p.pid, lambda now: g.stud_borrow(p.pid, req.listing_id, req.dam, now), _rid(req.request_id), "stud_borrow", respond)
+        return await server.run_action(
+            p.pid,
+            lambda now: g.stud_borrow(p.pid, req.listing_id, req.dam, now),
+            _rid(req.request_id),
+            "stud_borrow",
+            respond,
+        )
 
     # ---- 即時推播 ----
     @app.websocket("/v1/ws")
@@ -422,18 +568,22 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
         tok = token
         for sp in offered:
             if sp.startswith("cowfarm.token."):
-                tok = sp[len("cowfarm.token."):]
+                tok = sp[len("cowfarm.token.") :]
         await websocket.accept(subprotocol="cowfarm.v1" if "cowfarm.v1" in offered else None)
         try:
             p = server.auth(tok)
         except GameError as e:
-            await websocket.send_text(json.dumps({"type": "error", "error": {"code": e.code, "message": e.message}}, ensure_ascii=False))
+            await websocket.send_text(
+                json.dumps({"type": "error", "error": {"code": e.code, "message": e.message}}, ensure_ascii=False)
+            )
             await websocket.close(code=4401, reason="unauthorized")
             return
         server.ws[websocket] = p.pid
         try:
             now = server.clock.now()
-            await websocket.send_text(json.dumps({"type": "hello", **base(now), "player_id": p.pid, "protocol": 1}, ensure_ascii=False))
+            await websocket.send_text(
+                json.dumps({"type": "hello", **base(now), "player_id": p.pid, "protocol": 1}, ensure_ascii=False)
+            )
             await websocket.send_text(json.dumps(server.market_message(), ensure_ascii=False))
             while True:
                 await websocket.receive_text()  # 用戶端送什麼都忽略；只用來知道連線還在

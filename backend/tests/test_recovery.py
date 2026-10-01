@@ -41,7 +41,9 @@ def play_hour(h: Harness, tok: str, hour: int) -> None:
     st = h.get("/v1/state", tok).json()
     if st["warehouse"]["milk_total"] > 0:
         frac = 1.0 if hour % 2 else 0.5
-        h.post("/v1/sell", tok, {"commodity": "milk", "qty": st["warehouse"]["milk_total"] * frac, "request_id": new_rid()})
+        h.post(
+            "/v1/sell", tok, {"commodity": "milk", "qty": st["warehouse"]["milk_total"] * frac, "request_id": new_rid()}
+        )
     cows = st["cows"]
     ox = next((c for c in cows if c["bull"] and c["type"] == "dual"), None)
     if hour == 0 and ox is not None:
@@ -125,10 +127,20 @@ PORT = 18787
 
 
 def start_server(dsn: str, log):
-    env = dict(os.environ, COWFARM_PG_DSN=dsn, COWFARM_TIME_SCALE="720", COWFARM_BOTS="4", COWFARM_PORT=str(PORT),
-               COWFARM_HOST="127.0.0.1", COWFARM_SEED="proc", PYTHONUNBUFFERED="1")
+    env = dict(
+        os.environ,
+        COWFARM_PG_DSN=dsn,
+        COWFARM_TIME_SCALE="720",
+        COWFARM_BOTS="4",
+        COWFARM_PORT=str(PORT),
+        COWFARM_HOST="127.0.0.1",
+        COWFARM_SEED="proc",
+        PYTHONUNBUFFERED="1",
+    )
     env.pop("COWFARM_WEB_DIR", None)
-    proc = subprocess.Popen([sys.executable, "-m", "server"], cwd=BACKEND, env=env, stdout=log, stderr=subprocess.STDOUT)
+    proc = subprocess.Popen(
+        [sys.executable, "-m", "server"], cwd=BACKEND, env=env, stdout=log, stderr=subprocess.STDOUT
+    )
     for _ in range(100):
         try:
             if httpx.get(f"http://127.0.0.1:{PORT}/healthz", timeout=1).status_code == 200:
@@ -145,8 +157,16 @@ def start_server(dsn: str, log):
 def stable(st: dict) -> dict:
     """不會隨時間變的部分（奶桶、新鮮度、估值會隨遊戲時間變）。"""
     return {
-        "coins": st["coins"], "level_progress": st["level_progress"], "codex": st["codex"],
-        "cows": [{k: c[k] for k in ("id", "type", "bull", "tier", "born_at", "adult_at", "ready_at", "bred", "field", "listed")} for c in st["cows"]],
+        "coins": st["coins"],
+        "level_progress": st["level_progress"],
+        "codex": st["codex"],
+        "cows": [
+            {
+                k: c[k]
+                for k in ("id", "type", "bull", "tier", "born_at", "adult_at", "ready_at", "bred", "field", "listed")
+            }
+            for c in st["cows"]
+        ],
         "rice_lots": [(l["qty"], l["harvested_at"]) for l in st["warehouse"]["rice_lots"]],
         "milk_lots": [(l["qty"], l["tier"], l["collected_at"]) for l in st["warehouse"]["milk_lots"]],
         "beef_lots": [(l["qty"], l["tier"], l["shipped_at"]) for l in st["warehouse"]["beef_lots"]],
@@ -165,14 +185,22 @@ def test_real_server_survives_sigkill(tmp_path):
         s = c.post("/v1/session").json()
         hd = {"Authorization": f"Bearer {s['token']}"}
         assert c.post("/v1/collect", headers=hd, json={"request_id": new_rid()}).status_code == 200
-        assert c.post("/v1/sell", headers=hd, json={"commodity": "milk", "qty": 12, "request_id": new_rid()}).status_code == 200
+        assert (
+            c.post("/v1/sell", headers=hd, json={"commodity": "milk", "qty": 12, "request_id": new_rid()}).status_code
+            == 200
+        )
         asyncio.run(_ws_once(s["token"]))  # 連一次 WebSocket：網址帶 token，日誌裡不能出現
         time.sleep(3)  # 倍率 720：約 36 遊戲分鐘，假玩家做完教學的一部分；開局小公牛已經長大
         ox = next(x for x in c.get("/v1/state", headers=hd).json()["cows"] if x["bull"])
-        assert c.post("/v1/field/assign", headers=hd, json={"cow_id": ox["id"], "request_id": new_rid()}).status_code == 200
+        assert (
+            c.post("/v1/field/assign", headers=hd, json={"cow_id": ox["id"], "request_id": new_rid()}).status_code
+            == 200
+        )
         before = c.get("/v1/state", headers=hd).json()
         assert any(x["working"] for x in before["cows"])
-        hist_before = c.get("/v1/market/history", headers=hd, params={"commodity": "milk", "range": "1h"}).json()["points"]
+        hist_before = c.get("/v1/market/history", headers=hd, params={"commodity": "milk", "range": "1h"}).json()[
+            "points"
+        ]
         health_before = c.get("/healthz").json()
         assert health_before["ticks"] > 20 and health_before["bot_actions"] > 0
         # 價格歷史是記憶體先更新、再寫進資料庫：等下一個 tick 開始（上一個 tick 的寫入一定已經完成），
@@ -189,8 +217,10 @@ def test_real_server_survives_sigkill(tmp_path):
         after = c.get("/v1/state", headers=hd).json()  # 同一個 token
         assert stable(after) == stable(before)
         assert after["server_time"] >= before["server_time"]
-        hist_after = c.get("/v1/market/history", headers=hd, params={"commodity": "milk", "range": "1h"}).json()["points"]
-        assert [p for p in hist_after if p[0] <= t_last][-len(hist_before):] == hist_before  # 價格歷史都還在
+        hist_after = c.get("/v1/market/history", headers=hd, params={"commodity": "milk", "range": "1h"}).json()[
+            "points"
+        ]
+        assert [p for p in hist_after if p[0] <= t_last][-len(hist_before) :] == hist_before  # 價格歷史都還在
         health_after = c.get("/healthz").json()
         assert health_after["tick_t"] >= health_before["tick_t"]
         assert health_after["bots"] == 4 and health_after["players"] == 1
