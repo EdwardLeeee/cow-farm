@@ -45,6 +45,11 @@ class ActionReq(_Req):
     request_id: str
 
 
+class SessionReq(_Req):
+    ranch_name: Any  # 字串；在 runtime 檢查（協定 2.2 節）
+    request_id: Optional[str] = None  # 選填：網路逾時重送時不會多建一個牧場
+
+
 class QuoteReq(_Req):
     commodity: Literal["milk", "beef", "rice"]
     qty: Any  # 數字；在服務層嚴格檢查（不接受字串或 true/false）
@@ -187,10 +192,19 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
 
     # ---- 帳號 ----
     @app.post("/v1/session")
-    async def session():
-        token, p = await server.create_session()
+    async def session(req: SessionReq):
+        """建立牧場：取好名字才建立（協定 2.1 節）。"""
+        rid = _rid(req.request_id) if req.request_id is not None else None
+        token, p, created = await server.create_session(req.ranch_name, rid)
         now = server.clock.now()
-        return {**base(now), "token": token, "player_id": p.pid, "ranch_name": p.name, "created": True}
+        return {
+            **base(now),
+            "token": token,
+            "player_id": p.pid,
+            "ranch_name": p.name,
+            "created": created,
+            "state": state_of(p, now),
+        }
 
     @app.get("/v1/state")
     async def state(p: Player = Depends(current)):

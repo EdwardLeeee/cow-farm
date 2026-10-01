@@ -137,8 +137,9 @@ class Harness:
             while self.client.portal.call(self.server.tick_once) is not None:
                 pass
 
-    def session(self) -> dict:
-        r = self.client.post("/v1/session")
+    def session(self, ranch_name: str = "小花的快樂牧場", **extra) -> dict:
+        """建立牧場（協定 2.1 節：取好名字才建立）。名字不必唯一。"""
+        r = self.client.post("/v1/session", json={"ranch_name": ranch_name, **extra})
         assert r.status_code == 200, r.text
         return r.json()
 
