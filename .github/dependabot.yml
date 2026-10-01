@@ -1,0 +1,26 @@
+version: 2
+# 每個套件生態系一組；minor 和 patch 併成一個 PR，必要檢查全綠後由 dependabot-auto-merge.yml 自動合併，major 留給人看。
+# 不設 npm：design/m2 的 Playwright 是設計稿的產圖工具，不出貨；它的版本跟本機 ~/.cache/ms-playwright 的
+# 瀏覽器綁在一起（@playwright/test 1.62.0 對 chromium 1234），自動升級會讓 cow-ui 出不了圖。
+updates:
+  - package-ecosystem: pip
+    directory: /backend
+    schedule:
+      interval: weekly
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: pub
+    directory: /app
+    schedule:
+      interval: weekly
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]

@@ -17,7 +17,6 @@ from __future__ import annotations
 import argparse
 import csv
 import json
-import os
 import sys
 import time
 from multiprocessing import Pool
@@ -28,7 +27,7 @@ if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 import sim  # noqa: E402,F401  （把 backend/ 加進 sys.path；cowecon 在 backend/cowecon/）
 
-from cowecon.params import DAY, HOUR  # noqa: E402
+from cowecon.params import HOUR  # noqa: E402
 from sim import scenarios as S  # noqa: E402
 
 RUNS = HERE / "out" / "runs"

@@ -19,9 +19,19 @@ session 照進度分批開，名稱用 `cow-<角色>`。
 | cow-app | `app/` | M3 |
 | cow-release | `.github/workflows/`、簽章、商店資料 | M4 |
 
-除了 ceo 以外，每個角色都在自己的 worktree（`~/Desktop/cow-farm-worktrees/<角色>`）開分支，開 PR 給 ceo 讀過 diff 再合併，不直接推 main。必要的自動檢查在 M3 補上，做法照 connect4。
+每個角色都在自己的 worktree（`~/Desktop/cow-farm-worktrees/<角色>`）開分支，開 PR 給 ceo 讀過 diff 再合併，不直接推 main。ceo 在 `~/Desktop/cow-farm` 開分支，一樣走 PR。
 
 記憶體安全：這台電腦 2026-09-30 因記憶體耗盡當機過。開 Playwright、headless Chrome、大型建置或長時間模擬之前，先看 `free -m`（available 少於 2000 MB 就等），指令用 `systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0` 包起來，一次只跑一個。
+
+## CI
+
+- main 有分支保護：必要檢查 `backend`、`app` 全綠才能合併，只能 squash，管理員也不能略過（`.github/workflows/ci.yml`）。
+  - `backend`：ruff、shellcheck、pip-audit、經濟引擎單元測試、伺服器 pytest（含 PostgreSQL 17）。
+  - `app`：flutter analyze、flutter test。
+- 本機只跑和改動相關的單一測試檔；完整測試、lint、建置交給 CI。PR 回報以 CI 結果為準，CI 紅燈才在本機重現那一項。
+- 只留在本機做的：需要私人金鑰的 dry-run、實機驗收、對照設計稿的比對。
+- 排版檢查還沒加：cow-back 開工的第一個 PR 用 ruff format 排好 `backend/`，cow-app 的第一個 PR 用 dart format 排好 `app/`，各自把檢查加進 CI。
+- Dependabot 的 minor、patch 更新在必要檢查全綠後自動合併；major 由 ceo 看。
 
 ## 規則
 
