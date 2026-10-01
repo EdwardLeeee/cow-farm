@@ -20,7 +20,7 @@ dependencies:
   # request_id 用 UUID v4。
   uuid: ^4.5.1
   # 登入 token：手機存 Keychain／Keystore（T1：不用 shared_preferences）。
-  flutter_secure_storage: ^10.0.0
+  flutter_secure_storage: ^11.2.0
   # 網頁版把 token 存在瀏覽器 localStorage（區網 http 不是安全環境，無法用 WebCrypto）。
   web: ^1.1.0
 
