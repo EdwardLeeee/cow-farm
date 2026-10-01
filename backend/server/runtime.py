@@ -63,6 +63,18 @@ NAME_MESSAGES = {  # invalid_name 的 message（只供除錯；app 依 detail.re
 WORLD_FORMAT = 4
 
 
+def resume_game_time(saved: float, clock_meta: Optional[dict], scale: float, now_real: float) -> float:
+    """重啟後從哪個遊戲時間接著走。
+
+    - 倍率 1（正式版）：照真實時間走，伺服器關著的那段也算（ceo 2026-10-02）：上次存下的遊戲時間 +
+      從那時到現在的現實秒數。clock 的 meta 每個 tick 和正常關機時都會存（含 real_t）。
+    - 其他倍率（試玩）：關機期間暫停，從 saved（最後一個 tick、動作或關機時的遊戲時間）接著走。
+    """
+    if scale == 1.0 and clock_meta and "real_t" in clock_meta and "game_t" in clock_meta:
+        return max(saved, clock_meta["game_t"] + max(0.0, now_real - clock_meta["real_t"]))
+    return saved
+
+
 def token_hash(token: str) -> bytes:
     return hashlib.sha256(token.encode()).digest()
 
@@ -75,6 +87,7 @@ class ServerBots:
     """
 
     npc_rng = None  # ctx：電腦假玩家補借種上架的亂數，None = 服務層預設（由上架編號導出）
+    skip_until = 0.0  # 這之前的動作不做（倍率 1 重啟後：關機的那段不補做，見 resume_game_time）
 
     def __init__(self, server: "GameServer"):
         self.server = server
@@ -159,7 +172,7 @@ class ServerBots:
         while self.heap and self.heap[0][0] < t_end:
             t_ev, pid, _, kind = heapq.heappop(self.heap)
             b = self.bots.get(pid)
-            if b is None:
+            if b is None or t_ev < self.skip_until:
                 continue
 
             def fn(_now, b=b, pid=pid, t_ev=t_ev, kind=kind):
@@ -378,11 +391,12 @@ class GameServer:
                 )
             self.news_log[r["id"]] = ev
             self.news_seen.add(r["id"])
-        # 遊戲時間：從上次存下的時間接著走（關機期間暫停）
-        resume = max(
+        # 遊戲時間：試玩倍率從上次存下的時間接著走（關機期間暫停）；倍率 1 照真實時間走，關機那段也算
+        saved = max(
             [ex_t, meta.get("clock", {}).get("game_t", ex_t), data["max_trade_t"] or ex_t]
             + [p.game_t for p in self.game.players.values()]
         )
+        resume = resume_game_time(saved, meta.get("clock"), self.cfg.time_scale, time.time())
         if self.clock is None:
             self.clock = GameClock(resume, self.cfg.time_scale)
         self.bots = ServerBots(self)
@@ -390,7 +404,16 @@ class GameServer:
         for p in self.game.players.values():
             if p.is_bot and p.bot:
                 self.bots.attach(p)
-        log.info("從資料庫回復：市場 t=%.0f、之後的成交 %d 筆、接續遊戲時間 %.0f", ex_t, n_pending, resume)
+        if resume > saved:  # 關機的那段：市場照樣補跑 tick、奶桶照樣累積，假玩家不補做那段的動作
+            self.bots.skip_until = resume
+        log.info(
+            "從資料庫回復：市場 t=%.0f、之後的成交 %d 筆、接續遊戲時間 %.0f（關機期間 %.0f 秒%s）",
+            ex_t,
+            n_pending,
+            resume,
+            resume - saved,
+            "照算" if resume > saved else "暫停",
+        )
 
     async def _ensure_bots(self) -> None:
         have = [p for p in self.game.players.values() if p.is_bot]
