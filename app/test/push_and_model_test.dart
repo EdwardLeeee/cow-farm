@@ -217,7 +217,13 @@ void main() {
       expect(stud.fee, 800);
       expect(stud.canBreed, isFalse);
       expect(stud.typeProbs[CowType.dual], 0.5);
-      final push = PushMessage.fromJson({'type': 'stud', 'event': 'borrowed', 'listing_id': 4, 'cow_id': 2, 'price': 800});
+      final push = PushMessage.fromJson({
+        'type': 'stud',
+        'event': 'borrowed',
+        'listing_id': 4,
+        'cow_id': 2,
+        'price': 800,
+      });
       expect(push, isA<StudPush>());
       expect((push as StudPush).price, 800);
     });
@@ -232,13 +238,17 @@ void main() {
         ],
         'bucket': {'amount': 3, 'capacity': 10, 'rate_per_h': 2},
         'warehouse': {
-          'milk': [{'qty': 4}],
+          'milk': [
+            {'qty': 4},
+          ],
           'beef': [],
           'capacity': 50,
         },
         'pen': {'slots': 2, 'used': 1, 'next_cost': 280, 'next_open_at': 500},
         'upgrades': {'bucket': 200, 'fresh': null},
-        'codex': {'dairy': [0, 3]},
+        'codex': {
+          'dairy': [0, 3],
+        },
         'calf_price': 900,
       });
       expect(s.cows.single.type, CowType.dual);
@@ -265,7 +275,15 @@ void main() {
       expect(mp.quotes[Commodity.beef]!.price, 12.3);
       expect(PushMessage.fromJson({'type': 'hello'}), isNull);
       // 伺服器的新聞推播是攤平的
-      final news = PushMessage.fromJson({'type': 'news', 'id': 7, 'title': '烤肉季開跑', 'commodity': 'beef', 'direction': 'up', 'time': 9, 'state': 'upcoming'});
+      final news = PushMessage.fromJson({
+        'type': 'news',
+        'id': 7,
+        'title': '烤肉季開跑',
+        'commodity': 'beef',
+        'direction': 'up',
+        'time': 9,
+        'state': 'upcoming',
+      });
       expect(news, isA<NewsPush>());
       final item = (news as NewsPush).item;
       expect(item.id, '7');

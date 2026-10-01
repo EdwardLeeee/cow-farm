@@ -75,7 +75,13 @@ class _ShopScreenState extends State<ShopScreen> {
 
 /// 一個等級：價格、各項機率、購買按鈕。
 class _GradeCard extends StatelessWidget {
-  const _GradeCard({required this.grade, required this.price, required this.odds, required this.loading, required this.state});
+  const _GradeCard({
+    required this.grade,
+    required this.price,
+    required this.odds,
+    required this.loading,
+    required this.state,
+  });
   final String grade;
   final double? price;
   final ShopGrade? odds;
@@ -171,7 +177,9 @@ class _GradeCard extends StatelessWidget {
             Expanded(child: Text(S.drawnBody(typeName(cow.type), sexName(cow.bull), tierName(cow.tier), cow.key))),
           ],
         ),
-        actions: [FilledButton(key: const Key('drawn-ok'), onPressed: () => Navigator.pop(ctx), child: const Text(S.ok))],
+        actions: [
+          FilledButton(key: const Key('drawn-ok'), onPressed: () => Navigator.pop(ctx), child: const Text(S.ok)),
+        ],
       ),
     );
   }

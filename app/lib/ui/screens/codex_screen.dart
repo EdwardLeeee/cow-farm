@@ -25,7 +25,9 @@ class CodexScreen extends StatelessWidget {
           children: [
             const SizedBox(width: 44),
             for (var t = 0; t < 4; t++)
-              Expanded(child: Center(child: Text(tierName(t), style: theme.textTheme.bodySmall))),
+              Expanded(
+                child: Center(child: Text(tierName(t), style: theme.textTheme.bodySmall)),
+              ),
           ],
         ),
         for (final type in CowType.values)

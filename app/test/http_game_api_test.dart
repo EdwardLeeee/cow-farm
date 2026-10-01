@@ -49,7 +49,11 @@ void main() {
     final client = MockClient((req) async {
       n++;
       return http.Response.bytes(
-        utf8.encode(jsonEncode({'error': {'code': 'not_enough_coins', 'message': '金幣不夠'}})),
+        utf8.encode(
+          jsonEncode({
+            'error': {'code': 'not_enough_coins', 'message': '金幣不夠'},
+          }),
+        ),
         400,
         headers: {'content-type': 'application/json; charset=utf-8'},
       );
@@ -57,7 +61,11 @@ void main() {
     final api = HttpGameApi(base: base, client: client, sleep: noSleep)..token = 'tok';
     await expectLater(
       api.shopBuy('A'),
-      throwsA(isA<ApiException>().having((e) => e.code, 'code', 'not_enough_coins').having((e) => e.message, 'message', '金幣不夠')),
+      throwsA(
+        isA<ApiException>()
+            .having((e) => e.code, 'code', 'not_enough_coins')
+            .having((e) => e.message, 'message', '金幣不夠'),
+      ),
     );
     expect(n, 1);
   });
@@ -92,7 +100,15 @@ void main() {
     late Uri url;
     final client = MockClient((req) async {
       url = req.url;
-      return http.Response(jsonEncode({'points': [[1, 2.5], [2, 3.0]]}), 200);
+      return http.Response(
+        jsonEncode({
+          'points': [
+            [1, 2.5],
+            [2, 3.0],
+          ],
+        }),
+        200,
+      );
     });
     final api = HttpGameApi(base: base, client: client, sleep: noSleep)..token = 'tok';
     final pts = await api.marketHistory(Commodity.milk, '7d');

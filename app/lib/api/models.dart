@@ -82,12 +82,18 @@ const gradeNames = ['A', 'B', 'C'];
 
 Map<String, double> _gradeMap(Object? v) {
   final j = _m(v);
-  return {for (final g in gradeNames) if (j[g] is num) g: (j[g] as num).toDouble()};
+  return {
+    for (final g in gradeNames)
+      if (j[g] is num) g: (j[g] as num).toDouble(),
+  };
 }
 
 Map<CowType, double> _typeProbs(Object? v) {
   final j = _m(v);
-  return {for (final t in CowType.values) if (j[t.wire] is num) t: (j[t.wire] as num).toDouble()};
+  return {
+    for (final t in CowType.values)
+      if (j[t.wire] is num) t: (j[t.wire] as num).toDouble(),
+  };
 }
 
 List<double> _tierProbs(Object? raw) {
@@ -428,6 +434,7 @@ class GameState {
   final Pen pen;
   final Map<UpgradeKind, UpgradeInfo> upgrades;
   final Set<CodexKey> codex;
+
   /// 商店小牛價格（依用途）；沒給就是 null，畫面不擋錢不夠。
   final Map<CowType, double> calfPrices;
   final String? ranchName;
@@ -463,15 +470,15 @@ class GameState {
         if (ups.containsKey(k.wire)) k: UpgradeInfo.fromJson(ups[k.wire]),
     };
     // 擴建的費用與開放時間也可能只寫在 pen 裡。
-    upgrades.putIfAbsent(
-      UpgradeKind.pen,
-      () => UpgradeInfo(cost: pen.nextCost, openAt: pen.nextOpenAt),
-    );
+    upgrades.putIfAbsent(UpgradeKind.pen, () => UpgradeInfo(cost: pen.nextCost, openAt: pen.nextOpenAt));
     final shop = _m(j['shop']);
     final rawPrice = _pick(shop, ['calf_price']) ?? j['calf_price'];
     final calfPrices = <CowType, double>{
       for (final t in CowType.values)
-        if (rawPrice is num) t: rawPrice.toDouble() else if (rawPrice is Map && rawPrice[t.wire] is num) t: (rawPrice[t.wire] as num).toDouble(),
+        if (rawPrice is num)
+          t: rawPrice.toDouble()
+        else if (rawPrice is Map && rawPrice[t.wire] is num)
+          t: (rawPrice[t.wire] as num).toDouble(),
     };
     return GameState(
       serverTime: st,
@@ -547,7 +554,13 @@ class GradePrice {
 
 /// `GET /v1/shop` 的一個等級：價格與精確機率（伺服器算，app 不寫死）。
 class ShopGrade {
-  const ShopGrade({required this.grade, required this.price, required this.tierProbs, required this.typeProbs, required this.bullProb});
+  const ShopGrade({
+    required this.grade,
+    required this.price,
+    required this.tierProbs,
+    required this.typeProbs,
+    required this.bullProb,
+  });
   final String grade;
   final double price;
   final List<double> tierProbs;
@@ -763,12 +776,19 @@ class PricePoint {
     return null;
   }
 
-  static List<PricePoint> listFrom(Object? v) =>
-      _l(v).map(PricePoint.fromJson).whereType<PricePoint>().toList();
+  static List<PricePoint> listFrom(Object? v) => _l(v).map(PricePoint.fromJson).whereType<PricePoint>().toList();
 }
 
 class NewsItem {
-  const NewsItem({required this.id, required this.title, this.commodity, this.up, this.time, this.upcoming = false, this.startAt});
+  const NewsItem({
+    required this.id,
+    required this.title,
+    this.commodity,
+    this.up,
+    this.time,
+    this.upcoming = false,
+    this.startAt,
+  });
   final bool upcoming; // 伺服器給的狀態：預告，還沒開始影響價格
   final double? startAt; // 開始影響價格的遊戲時間
 
@@ -786,9 +806,7 @@ class NewsItem {
       id: '${_pick(j, ['id']) ?? _pick(j, ['time', 't']) ?? j.hashCode}',
       title: '${_pick(j, ['title', 'headline']) ?? ''}',
       commodity: Commodity.tryParse(_pick(j, ['commodity', 'target'])),
-      up: dir == null
-          ? null
-          : (dir is num ? dir > 0 : (dir == 'up' || dir == '+' || dir == true)),
+      up: dir == null ? null : (dir is num ? dir > 0 : (dir == 'up' || dir == '+' || dir == true)),
       time: _dn(_pick(j, ['time', 't', 'announce_at', 'start_at'])),
       upcoming: j['state'] == 'upcoming',
       startAt: _dn(j['start_at']),
@@ -803,13 +821,16 @@ class MarketInfo {
   final List<NewsItem> news;
   final double? serverTime;
 
-  MarketInfo copyWith({Map<Commodity, Quote>? quotes, Map<Commodity, List<PricePoint>>? recent, List<NewsItem>? news}) =>
-      MarketInfo(
-        quotes: quotes ?? this.quotes,
-        recent: recent ?? this.recent,
-        news: news ?? this.news,
-        serverTime: serverTime,
-      );
+  MarketInfo copyWith({
+    Map<Commodity, Quote>? quotes,
+    Map<Commodity, List<PricePoint>>? recent,
+    List<NewsItem>? news,
+  }) => MarketInfo(
+    quotes: quotes ?? this.quotes,
+    recent: recent ?? this.recent,
+    news: news ?? this.news,
+    serverTime: serverTime,
+  );
 
   factory MarketInfo.fromJson(Map<String, dynamic> j) {
     final quotes = <Commodity, Quote>{};
@@ -830,7 +851,13 @@ class MarketInfo {
 }
 
 class SellQuote {
-  const SellQuote({required this.qty, required this.avgPrice, required this.total, required this.marketPrice, this.serverWarn});
+  const SellQuote({
+    required this.qty,
+    required this.avgPrice,
+    required this.total,
+    required this.marketPrice,
+    this.serverWarn,
+  });
   final double qty;
   final double avgPrice;
   final double total;
@@ -905,7 +932,9 @@ class BreedResult {
 
   factory BreedResult.fromJson(Map<String, dynamic> j) {
     final c = _pick(j, ['calf', 'cow']);
-    return BreedResult(calf: c is Map ? Cow.fromJson(c.cast<String, dynamic>(), serverTime: _d(j['server_time'])) : null);
+    return BreedResult(
+      calf: c is Map ? Cow.fromJson(c.cast<String, dynamic>(), serverTime: _d(j['server_time'])) : null,
+    );
   }
 }
 
@@ -971,7 +1000,12 @@ sealed class PushMessage {
         final n = j['news'] is Map ? _m(j['news']) : j;
         return NewsPush(NewsItem.fromJson(n));
       case 'stud':
-        return StudPush(event: '${j['event'] ?? ''}', listingId: j['listing_id'], cowId: j['cow_id'], price: _d(j['price']));
+        return StudPush(
+          event: '${j['event'] ?? ''}',
+          listingId: j['listing_id'],
+          cowId: j['cow_id'],
+          price: _d(j['price']),
+        );
       default:
         return null;
     }

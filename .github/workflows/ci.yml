@@ -76,7 +76,10 @@ jobs:
       - run: flutter --version
       - run: flutter pub get
         working-directory: app
-      # dart format 還沒加：36 個檔案還沒排版，cow-app 開工的第一個 PR 一次排好再加進來。
+      # 排版：行寬寫在 app/analysis_options.yaml（120）。沒排好就失敗；本機在 app/ 跑 `dart format lib test` 排好再推。
+      # 要在 pub get 之後跑：analysis_options.yaml 的 include 要先解析得到，不然 dart format 讀不到行寬、退回 80。
+      - run: dart format --output=none --set-exit-if-changed lib test
+        working-directory: app
       - run: flutter analyze
         working-directory: app
       - run: flutter test

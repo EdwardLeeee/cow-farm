@@ -60,7 +60,10 @@ class BucketCard extends StatelessWidget {
                 const SizedBox(height: 6),
                 LinearProgressIndicator(key: const Key('bucket-bar'), value: ratio, minHeight: 14),
                 const SizedBox(height: 4),
-                Text(ratio >= 1 ? S.bucketFull : S.bucketRate(fmtNum(b.perHour)), style: Theme.of(context).textTheme.bodySmall),
+                Text(
+                  ratio >= 1 ? S.bucketFull : S.bucketRate(fmtNum(b.perHour)),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
                 const SizedBox(height: 8),
                 ActionButton(
                   key: const Key('collect'),
@@ -98,7 +101,10 @@ class WarehouseCard extends StatelessWidget {
           children: [
             Text(S.warehouseTitle, style: Theme.of(context).textTheme.titleSmall),
             const SizedBox(height: 4),
-            Text(S.warehouseMilk(fmtNum(w.milkTotal), fmtInt(w.capacity), w.milkLots.length), key: const Key('wh-milk')),
+            Text(
+              S.warehouseMilk(fmtNum(w.milkTotal), fmtInt(w.capacity), w.milkLots.length),
+              key: const Key('wh-milk'),
+            ),
             if (fresh != null) Text(S.warehouseFresh(fmtPlainPct(fresh)), style: Theme.of(context).textTheme.bodySmall),
             Text(S.warehouseBeef(fmtNum(w.beefTotal), w.beefLots.length), key: const Key('wh-beef')),
             Text(S.warehouseRice(fmtNum(w.riceTotal), w.riceLots.length), key: const Key('wh-rice')),
@@ -170,7 +176,11 @@ class CowBlock extends StatelessWidget {
         border: Border(bottom: BorderSide(color: Palette.tiers[cow.tier], width: 8)),
       ),
       alignment: Alignment.center,
-      child: Text('${typeName(cow.type)}\n${sexName(cow.bull)}', textAlign: TextAlign.center, style: const TextStyle(fontSize: 11)),
+      child: Text(
+        '${typeName(cow.type)}\n${sexName(cow.bull)}',
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 11),
+      ),
     );
   }
 }
@@ -183,11 +193,7 @@ String cowOutput(Cow c) {
 }
 
 /// 牛的狀態標籤：已配種、工作中、上架中。
-List<String> cowBadges(Cow c) => [
-  if (c.bred) S.badgeBred,
-  if (c.working) S.badgeWorking,
-  if (c.listed) S.badgeListed,
-];
+List<String> cowBadges(Cow c) => [if (c.bred) S.badgeBred, if (c.working) S.badgeWorking, if (c.listed) S.badgeListed];
 
 /// 小標籤（色塊＋文字）。
 class StatusBadge extends StatelessWidget {

@@ -70,8 +70,7 @@ class S {
   static const shipNotAdult = '小牛還不能出貨';
   static String shipValue(String v) => '出貨估值 約 $v 幣';
   static const shipConfirmTitle = '確定出貨？';
-  static String shipConfirmBody(String kg, String value) =>
-      '這頭牛會變成約 $kg 公斤牛肉放進倉庫，以目前行情估值約 $value 幣。實際價格以賣出時的成交為準。';
+  static String shipConfirmBody(String kg, String value) => '這頭牛會變成約 $kg 公斤牛肉放進倉庫，以目前行情估值約 $value 幣。實際價格以賣出時的成交為準。';
   static const cancel = '取消';
   static const confirm = '確定';
   static String shipped(String id) => '牛 #$id 已出貨，牛肉放進倉庫了';
@@ -109,8 +108,7 @@ class S {
   static const quoting = '試算中…';
   static const tooMuch = '一次賣太多，均價會變差';
   static String sellConfirm(String qty, String unit) => '確認賣出 $qty $unit';
-  static String sold(String qty, String unit, String avg, String total) =>
-      '賣出 $qty $unit，均價 $avg，共 $total 幣';
+  static String sold(String qty, String unit, String avg, String total) => '賣出 $qty $unit，均價 $avg，共 $total 幣';
   static String commodityTag(String name) => '【$name】';
   static const bothTag = '【全部】';
   static const upcomingTag = '【預告】';

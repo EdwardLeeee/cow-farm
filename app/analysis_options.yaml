@@ -16,6 +16,10 @@ analyzer:
     - ios/**
     - web/**
 
+# dart format 的行寬：120，跟 backend 的 ruff 一致（ceo 2026-10-02）。CI 的 app job 會檢查排版。
+formatter:
+  page_width: 120
+
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`

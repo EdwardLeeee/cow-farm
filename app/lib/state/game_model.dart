@@ -361,7 +361,8 @@ class GameModel extends ChangeNotifier {
   Future<ActionResult<Map<String, dynamic>>> fieldHarvest() => _act(api.fieldHarvest);
   Future<ActionResult<Map<String, dynamic>>> fieldExpand() => _act(api.fieldExpand);
 
-  Future<ActionResult<Map<String, dynamic>>> studList(Cow bull, double price) => _act(() => api.studList(bull.id, price));
+  Future<ActionResult<Map<String, dynamic>>> studList(Cow bull, double price) =>
+      _act(() => api.studList(bull.id, price));
   Future<ActionResult<Map<String, dynamic>>> studUnlist(Object listingId) => _act(() => api.studUnlist(listingId));
 
   Future<ActionResult<BreedResult>> studBorrow(StudListing listing, Cow dam) async {

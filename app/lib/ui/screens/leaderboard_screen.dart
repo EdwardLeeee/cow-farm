@@ -16,7 +16,13 @@ class LeaderboardScreen extends StatelessWidget {
       length: 3,
       child: Column(
         children: [
-          TabBar(tabs: [Tab(text: S.rankNetworth), Tab(text: S.rankCollection), Tab(text: S.rankWeekly)]),
+          TabBar(
+            tabs: [
+              Tab(text: S.rankNetworth),
+              Tab(text: S.rankCollection),
+              Tab(text: S.rankWeekly),
+            ],
+          ),
           Expanded(
             child: TabBarView(
               children: [
@@ -70,7 +76,9 @@ class _RankListState extends State<RankList> {
         }
         final lb = snap.data;
         if (lb == null) {
-          return Center(child: TextButton(onPressed: _reload, child: const Text('${S.loadFailed}，${S.retry}')));
+          return Center(
+            child: TextButton(onPressed: _reload, child: const Text('${S.loadFailed}，${S.retry}')),
+          );
         }
         final me = lb.me ?? lb.entries.where((e) => e.isMe).firstOrNull;
         return Column(

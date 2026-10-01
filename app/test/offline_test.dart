@@ -4,9 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'fakes.dart';
 
-FilledButton _btn(WidgetTester tester, String key) => tester.widget<FilledButton>(
-  find.descendant(of: find.byKey(Key(key)), matching: find.byType(FilledButton)),
-);
+FilledButton _btn(WidgetTester tester, String key) =>
+    tester.widget<FilledButton>(find.descendant(of: find.byKey(Key(key)), matching: find.byType(FilledButton)));
 
 void main() {
   testWidgets('斷線：頂列顯示「連線中…」，所有按鈕停用；連回來恢復', (tester) async {
