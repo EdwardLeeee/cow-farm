@@ -236,7 +236,6 @@ def fig_shop(goals) -> None:
     style_axes(ax1)
     grades = ("A", "B", "C")
     xs = range(3)
-    vals = [sh["pops"]["1000"]["value"][g]["mean"] for g in grades]
     prices = [sh["grades"][g]["price"] for g in grades]
     surplus = [sh["surplus"][g] for g in grades]
     w = 0.22

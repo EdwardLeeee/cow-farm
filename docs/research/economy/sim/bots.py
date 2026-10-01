@@ -24,7 +24,7 @@ from cowecon.farm import (
     BEEF, DAIRY, OX, Cow, Farm, beef_storage_factor, cow_milk_rate, freshness, is_milker, milk_frac, rice_factor,
     shop_grade_distribution,
 )
-from cowecon.params import DAY, HOUR, MINUTE, EconomyParams
+from cowecon.params import HOUR, MINUTE, EconomyParams
 
 STRATEGIES = ("D", "B", "F", "C", "T", "L", "W")
 STRATEGY_NAMES = {"D": "乳牛派", "B": "肉牛派", "F": "耕田派", "C": "配種收集派", "T": "抓時機派", "L": "出借公牛派", "W": "大戶"}

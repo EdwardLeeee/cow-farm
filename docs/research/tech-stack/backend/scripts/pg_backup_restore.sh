@@ -45,5 +45,8 @@ else
 fi
 
 echo "== 4. 主機 pg_dump（$(pg_dump --version)）直接連 17 版伺服器"
-PGPASSWORD="$(cat "$RUN/pg.pw")" pg_dump -h 127.0.0.1 -p "$PORT" -U postgres -Fc cowfarm >/dev/null 2>"$BK/host_pgdump_err.txt" \
-  && echo "（意外成功）" || { echo "失敗訊息："; cat "$BK/host_pgdump_err.txt"; }
+if PGPASSWORD="$(cat "$RUN/pg.pw")" pg_dump -h 127.0.0.1 -p "$PORT" -U postgres -Fc cowfarm >/dev/null 2>"$BK/host_pgdump_err.txt"; then
+  echo "（意外成功）"
+else
+  echo "失敗訊息："; cat "$BK/host_pgdump_err.txt"
+fi
