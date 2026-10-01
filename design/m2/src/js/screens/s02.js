@@ -52,10 +52,15 @@ full('S02-02', '取好名字：歡迎卡與開局的牛', (ctx) => page(ctx, {
 }));
 full('S02-03', '打字中（系統鍵盤開著）', (ctx) => page(ctx, { value: '小花的快樂', kb: true }), { note: KB_NOTE });
 full('S02-04', '按了「幫我想一個」：從詞庫填一個，可以再改', (ctx) => page(ctx, { value: '晨光河畔牧場', filled: true }));
-part('S02-05', '名字不能用的提示：太短、太長、表情符號', '#crop', (ctx) => frame(ctx.dev, { tab: null, hud: false, content: `<div id="crop" class="g-sheet name-errs">${[
+// 不能用的字（協定 2.2 的 bad_char：控制字元、雙向控制字元、私用區…）：例子用私用區 U+F8FF（iPhone 顯示成 Apple 標誌、Android 是方塊），
+// 設計稿畫成方塊（不畫標誌）；字數照真的字串算
+const BAD_CHAR = '\uF8FF';
+const showName = (v) => v.replace(BAD_CHAR, '<i class="tofu" aria-hidden="true"></i>');
+part('S02-05', '名字不能用的提示：太短、太長、表情符號、不能用的字', '#crop', (ctx) => frame(ctx.dev, { tab: null, hud: false, content: `<div id="crop" class="g-sheet name-errs">${[
   ['A', t('s02.errShort')],
   ['晨光河畔牧場的小木屋', t('s02.errLong')],
   ['小花牧場🐮', t('s02.errEmoji')],
-].map(([v, e]) => `<div class="card name-card"><div class="input name-input err filled"><span class="nv">${v}</span></div><div class="name-meta"><span class="err-text">${e}</span><span class="num name-count${nameWidth(v) > 16 ? ' over' : ''}">${nameWidth(v)} / 16</span></div></div>`).join('')}</div>` }));
+  [`小花牧場${BAD_CHAR}`, t('s02.errChar')],
+].map(([v, e]) => `<div class="card name-card"><div class="input name-input err filled"><span class="nv">${showName(v)}</span></div><div class="name-meta"><span class="err-text">${e}</span><span class="num name-count${nameWidth(v) > 16 ? ' over' : ''}">${nameWidth(v)} / 16</span></div></div>`).join('')}</div>` }));
 
 export default { id: 'S02', name: '自己取名', states: S };

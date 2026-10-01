@@ -142,14 +142,24 @@ full18('S18-09', '借種成功：小牛倒數', (ctx) => studPage(ctx, { sel: 2,
 part18('S18-10', '借種失敗：公牛已經被借走', '.dialog', (ctx) => studPage(ctx, { sel: 2, dam: 0, outcome: 'ok', scrollTo: '.outcome-card', overlays: dialog({ title: t('s18.goneTitle'), body: `<p style="text-align:center">${tb('s18.goneBody')}</p>`, buttons: btn(t('s18.reloadMarket'), { kind: 'primary', ic: 'refresh' }) }) }));
 part18('S18-12', '借種費變了：公牛長大，價格跟剛剛看的不一樣', '.dialog', (ctx) => studPage(ctx, { sel: 3, dam: 0, outcome: 'ok', scrollTo: '.outcome-card', overlays: dialog({ title: t('s18.feeChangedTitle'), body: `<p style="text-align:center">${tb('s18.feeChangedBody', { old: `<b class="num">${fmt(1050)}</b>`, now: `<b class="num">${fmt(1090)}</b>` })}</p>`, buttons: `${btn(t('cancel'))}${btn(t('s18.borrowNew', { price: fmt(1090) }), { kind: 'pink' })}` }) }));
 part18('S18-13', '名字最長：8 個中文字、16 個英文字母（量測用）', '.list', (ctx) => frame(ctx.dev, { tab: 'breed', content: `<div class="list">${[{ ...STUD[2], owner: LONG_NAMES.cjk, tag: '#5821' }, { ...STUD[4], owner: LONG_NAMES.latin, tag: '#0907' }, { ...STUD[0], owner: LONG_NAMES.cjk }].map((l) => studRow(l)).join('')}</div>` }));
+// 對方的牧場刪除了：借出、借入各一列（量長度用；借種費照 D26：娟珊公牛 233 公斤 × 2.75、夏洛來 440 公斤 × 2.75）
+part18('S18-14', '借種紀錄：對方的牧場刪除了（名字顯示「已刪除的牧場」）', '.list', (ctx) => frame(ctx.dev, { tab: 'breed', content: `<div class="list">${[
+  { dir: 'out', when: { m: 9, d: 27, time: '18:30' }, gone: true, cow: { breed: 'jersey', id: 9, bull: true }, price: 640 },
+  { dir: 'in', when: { m: 9, d: 26, time: '07:45' }, gone: true, cow: { breed: 'charolais' }, price: 1210, calf: { breed: 'charolais', id: 7 } },
+].map(logRow).join('')}</div>` }));
 full18('S18-11', '借種紀錄', (ctx) => frame(ctx.dev, { tab: 'breed', content: `<div class="stack">
   <div class="page-head"><button class="icon-btn" aria-label="${t('back')}">${icon('back', 22)}</button><div class="grow"><h1>${t('s18.logTitle')}</h1><div class="sub">${t('s18.logIncome', { v: fmt(STUD_INCOME) })}</div></div></div>
   <div class="filter"><button class="on">${t('g.all')}</button><button>${t('s18.out')}</button><button>${t('s18.in')}</button></div>
-  <div class="list">${STUD_LOG.map((r) => `<article class="card log-row"><span class="log-dir ${r.dir}">${t(r.dir === 'out' ? 's18.out' : 's18.in')}</span>
-    <div class="grow"><b>${t(r.dir === 'out' ? 's18.lentTo' : 's18.borrowedFrom', { cow: logCow(r.cow), ranch: r.bot ? `${t('botPrefix')} ${r.who}` : r.who })}</b><div class="hint">${dateText(r.when)}${r.calf ? t('g.sep') + t('s18.calfBorn', { cow: logCow(r.calf) }) : ''}</div></div>
-    <span class="log-amt ${r.dir}">${t('costCoins', { v: `<b class="num">${r.dir === 'out' ? '+' : '−'}${fmt(r.price)}</b>` })}</span></article>`).join('')}</div>
+  <div class="list">${STUD_LOG.map(logRow).join('')}</div>
   <p class="hint" style="text-align:center">${t('s18.logKeep', { n: 30 })}</p></div>` }));
 
+// 借種紀錄的一列。gone：對方的牧場刪除了，紀錄照樣保留，對方的名字顯示「已刪除的牧場」（ceo 2026-10-02）
+function logRow(r) {
+  const ranch = r.gone ? t('s18.deletedRanch') : r.bot ? `${t('botPrefix')} ${r.who}` : r.who;
+  return `<article class="card log-row"><span class="log-dir ${r.dir}">${t(r.dir === 'out' ? 's18.out' : 's18.in')}</span>
+    <div class="grow"><b>${t(r.dir === 'out' ? 's18.lentTo' : 's18.borrowedFrom', { cow: logCow(r.cow), ranch })}</b><div class="hint">${dateText(r.when)}${r.calf ? t('g.sep') + t('s18.calfBorn', { cow: logCow(r.calf) }) : ''}</div></div>
+    <span class="log-amt ${r.dir}">${t('costCoins', { v: `<b class="num">${r.dir === 'out' ? '+' : '−'}${fmt(r.price)}</b>` })}</span></article>`;
+}
 // 借種紀錄裡的牛：品種（公牛加「公牛」）＋編號（借入的公牛沒有編號）
 function logCow(c) {
   const name = c.bull ? t('s18.bullName', { breed: breedName(c.breed) }) : breedName(c.breed);
