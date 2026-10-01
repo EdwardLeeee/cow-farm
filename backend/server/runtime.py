@@ -49,6 +49,8 @@ MAX_TICKS_PER_COMMIT = 120
 SESSION_REPLAY_S = 600.0  # 建立牧場的 request_id 在多久（現實秒數）內重送算同一次（協定 2.1 節）
 STUD_LOG_KEEP_DAYS = 30  # 借種紀錄保留幾個遊戲天（協定 4.6 節；s18.logKeep）
 STUD_LOG_LIMIT = 200  # 一次最多回幾筆
+ADMIN_CHANNEL = "cowfarm_admin"  # 營運腳本改了設定就 NOTIFY 這個頻道（payload 是改了什麼，例 maintenance）
+MAINT_RELOAD_S = 30.0  # 沒收到通知時，每隔多久（現實秒數）自己再讀一次維護設定（備援）
 NAME_MESSAGES = {  # invalid_name 的 message（只供除錯；app 依 detail.reason 查字串表 s02.err*）
     "too_short": "名字太短",
     "too_long": "名字太長",
@@ -203,6 +205,10 @@ class GameServer:
         self.stats = {"ticks": 0, "bot_actions": 0, "errors": 0, "tick_lag_s": 0.0, "started_real": time.time()}
         self._lb_cache: Dict[str, Tuple[float, list]] = {}
         self.fingerprint = DEFAULT.fingerprint()
+        # 維護（協定第 6 節）：meta 的 maintenance = {"starts_at_real", "ends_at_real"}（現實時間），scripts/maint.py 寫
+        self.maintenance: Optional[dict] = None
+        self._maint_closed = False  # 這次維護開始時已經關過所有 WebSocket
+        self._maint_checked = 0.0
 
     # ------------------------------------------------------------------ 啟動
     async def start(self) -> None:
@@ -213,6 +219,9 @@ class GameServer:
         else:
             await self._restore(data)
         await self._ensure_bots()
+        self.maintenance = data["meta"].get("maintenance")
+        self._maint_checked = time.time()
+        await self.store.listen(ADMIN_CHANNEL, self._on_admin_notify)
         log.info(
             "cowecon %s 參數指紋 %s（和 docs/research/economy/out/goals.json 的 params_fingerprint 相同，才是模擬驗證過的那一份參數）",
             ENGINE_VERSION,
@@ -730,11 +739,68 @@ class GameServer:
         while True:
             try:
                 await asyncio.sleep(self.cfg.ws_push_s)
+                if time.time() - self._maint_checked > MAINT_RELOAD_S:
+                    await self.reload_maintenance()
+                await self.maintenance_tick()
                 await self.broadcast(self.market_message())
             except asyncio.CancelledError:
                 raise
             except Exception:  # noqa: BLE001
                 log.exception("推播失敗")
+
+    # ------------------------------------------------------------------ 維護
+    def _on_admin_notify(self, _conn, _pid, _channel, payload) -> None:
+        if payload == "maintenance":
+            asyncio.ensure_future(self.reload_maintenance())
+
+    def maintenance_view(self) -> Optional[dict]:
+        """協定 6.1 節的 maintenance 物件；沒有安排維護是 None。開始時間到了就算維護中，直到腳本結束它
+        （過了預計結束時間也一樣，營運要延長就改時間）。"""
+        m = self.maintenance
+        if not m:
+            return None
+        return {
+            "starts_at_real": m["starts_at_real"],
+            "ends_at_real": m["ends_at_real"],
+            "active": time.time() >= m["starts_at_real"],
+        }
+
+    def maintenance_message(self) -> dict:
+        return {
+            "type": "maintenance",
+            **V.time_fields(self.clock, self.clock.now()),
+            "maintenance": self.maintenance_view(),
+        }
+
+    async def reload_maintenance(self) -> None:
+        """重讀維護設定；有變（預告、改時間、取消）就推給所有連線，已經開始就關掉連線。"""
+        value = await self.store.get_meta("maintenance")
+        self._maint_checked = time.time()
+        if value != self.maintenance:
+            self.maintenance = value
+            log.info("維護設定：%s", value)
+            view = self.maintenance_view()
+            if view is None or not view["active"]:  # 已經開始的由 maintenance_tick 推一次再關連線
+                await self.broadcast(self.maintenance_message())
+        await self.maintenance_tick()
+
+    async def maintenance_tick(self) -> None:
+        """維護開始的那一刻：推 maintenance 訊息後用 4503 關掉所有 WebSocket（之後新的連線一連上就關）。"""
+        view = self.maintenance_view()
+        if view is None or not view["active"]:
+            self._maint_closed = False
+            return
+        if self._maint_closed:
+            return
+        self._maint_closed = True
+        text = json.dumps(self.maintenance_message(), ensure_ascii=False)
+        for ws in list(self.ws):
+            try:
+                await ws.send_text(text)
+                await ws.close(code=4503, reason="maintenance")
+            except Exception:  # noqa: BLE001
+                pass
+            self.ws.pop(ws, None)
 
     # ------------------------------------------------------------------ 查詢
     def market_view(self) -> dict:

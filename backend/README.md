@@ -22,6 +22,8 @@ v0.1 的資料庫不相容，見「從舊資料庫升級」。
 | `server/data/ranch_words.json` | 電腦牧場名的詞庫（3 組 × 12 詞）。協定只送編號，app 用字串表 `namegen.*` 組；繁中跟字串表一樣（i18ncheck 會檢查）。 |
 | `scripts/pg.sh` | PostgreSQL 容器（rootless podman）的啟停、備份、清掉資料庫重來（`resetdb`）。 |
 | `scripts/serve.sh` | 在背景啟動／停止伺服器。 |
+| `scripts/maint.py` | 安排、查詢、結束伺服器維護（寫資料庫並通知執行中的伺服器）。 |
+| `scripts/gen_name_tables.py` | 從 Unicode 13.0 的 emoji-data.txt 產生牧場名用的 emoji 區間表。 |
 | `tests/` | pytest：存檔回復、經濟情境、協定、重啟回復。 |
 
 ## 1. 安裝（第一次）
@@ -121,6 +123,22 @@ scripts/serve.sh start 144       # 建立新世界（30 位假玩家、公營種
 玩家的 token 會失效：app 收到 `401 unauthorized` 時顯示 S15-03，玩家重新開牧場（協定 2.1 節）。
 想留一份舊資料的話，清掉前先 `scripts/pg.sh dump cowfarm-old.dump`。
 
+### 維護（協定第 6 節）
+
+```bash
+.venv/bin/python scripts/maint.py schedule "2026-10-03 03:00" +1h   # 預告：台灣時間 03:00 開始，預計 1 小時
+.venv/bin/python scripts/maint.py schedule now +30m                  # 馬上開始
+.venv/bin/python scripts/maint.py status
+.venv/bin/python scripts/maint.py end                                # 結束維護（或取消預告）
+```
+
+- 腳本直接寫資料庫的 `meta`（`maintenance`），再 NOTIFY `cowfarm_admin`；執行中的伺服器馬上生效，另外每 30 秒自己讀一次。
+  不經過 API，所以不用另一套管理用的認證：能連資料庫的人才能改。資料庫照伺服器的設定（`COWFARM_PG_DSN` 或 `pg.env`）。
+- 預告時照常玩，app 從 `/v1/status`、`/v1/state`、WebSocket 的 `maintenance` 拿到時間。開始以後，除了 `/v1/status` 都回 503，
+  WebSocket 先送 `maintenance` 再用 4503 關閉。過了預計結束時間還沒 `end` 就照樣維護中。
+- 伺服器整個停掉（部署）的那幾分鐘沒有程式能回 503：M4 由反向代理（Caddy／nginx）在後端連不上時回一份同形狀的 503 JSON
+  （`{"error": {"code": "maintenance", "message": "伺服器維護中", "detail": {"ends_at_real": …}}}`），跟部署一起做。
+
 ### 原型規則（試玩後再定）
 
 - **出貨後的牛肉放在倉庫**，之後再用賣出賣掉（規格如此；經濟引擎原本是出貨即賣出）。倉庫裡的牛肉 24 遊戲小時內價值不變，之後 96 小時降到 6 成，之後維持 6 成；不佔牛奶倉庫的容量，不設上限。ceo 2026-09-30 核准為原型規則，冷凍庫容量與牛肉新鮮度的正式數字等使用者試玩後再定。
@@ -150,7 +168,7 @@ systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 .venv/bin/py
 | `test_scenarios.py` | v0.2 經濟情境在服務層重跑並達到筆記的目標；和研究模擬逐數字相同（見下） | 否 |
 | `test_ranchname.py` | 牧場名規則：寬度跟設計稿 `namewidth.js` 逐字相同、跟 Unicode 13.0 一致、emoji 與不能用的字元、測試向量檔 | 否 |
 | `test_views.py` | 協定 v2 的代碼對照：24 品種代號跟設計稿 `breeds.js` 一致、新聞代碼跟字串表 `news.*` 一致、電腦牧場名的詞庫編號組得回原名、公營種牛站的名字固定 | 否 |
-| `test_api.py` | 協定欄位、request_id 防重送（含抽牛、出貨、借種）、錢不夠、牛不存在、還沒長大、牛舍滿、格式錯誤、WebSocket 與 4401；v0.2：抽牛機率與引擎一致（含抽樣）、評級機率與抽法、配種一次、借種付款與小牛歸屬、田地流程、舊資料庫拒絕啟動；協定 v2：牧場物件、新聞代碼、24 品種圖鑑、舊存檔格式拒絕啟動、建立牧場的名字檢查與 request_id 重送、借種費（D26）與 price_changed、借種紀錄 | 是 |
+| `test_api.py` | 協定欄位、request_id 防重送（含抽牛、出貨、借種）、錢不夠、牛不存在、還沒長大、牛舍滿、格式錯誤、WebSocket 與 4401；v0.2：抽牛機率與引擎一致（含抽樣）、評級機率與抽法、配種一次、借種付款與小牛歸屬、田地流程、舊資料庫拒絕啟動；協定 v2：牧場物件、新聞代碼、24 品種圖鑑、舊存檔格式拒絕啟動、建立牧場的名字檢查與 request_id 重送、借種費（D26）與 price_changed、借種紀錄、維護（503、4503、腳本通知伺服器） | 是 |
 | `test_recovery.py` | 當機回復逐數字相同（含借種市場、田地）；「跑一半當機再跑」＝「一路跑到底」；真的伺服器程序 SIGKILL 後重開 | 是 |
 
 經濟代理還在調 `cowecon/params.py` 的數值：測試裡的期望值都由引擎算，不寫死數字。

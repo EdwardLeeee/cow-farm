@@ -1,7 +1,8 @@
 """PostgreSQL 存取（asyncpg）。
 
 表（原型可以簡化，但重啟一定要能回復）
-- meta：世界設定（亂數種子、開服時間、參數指紋、引擎版本）、遊戲時鐘、交易所的新聞產生器與進行中的事件、
+- meta：世界設定（亂數種子、開服時間、參數指紋、引擎版本）、遊戲時鐘、維護時間（maintenance，scripts/maint.py 寫）、
+  交易所的新聞產生器與進行中的事件、
   借種市場（StudMarket.to_dict()，v0.2；全服一份，和改到它的動作同一個交易寫入）。
 - players：id、token 的 SHA-256、牧場名、是不是假玩家、建立時間。
 - farms：player_id、狀態 JSONB（cowecon Farm.to_dict() 加上圖鑑、累積收入、假玩家排程）、版本號（樂觀鎖）。
@@ -128,6 +129,7 @@ class Store:
         self.dsn = dsn
         self.pool_size = pool_size
         self.pool: Optional[asyncpg.Pool] = None
+        self._listen_conn: Optional[asyncpg.Connection] = None
 
     async def start(self) -> None:
         async def init(conn):
@@ -143,9 +145,22 @@ class Store:
             await conn.execute(SCHEMA)
 
     async def close(self) -> None:
+        if self._listen_conn is not None:
+            await self._listen_conn.close()
+            self._listen_conn = None
         if self.pool is not None:
             await self.pool.close()
             self.pool = None
+
+    async def listen(self, channel: str, callback) -> None:
+        """LISTEN 一個頻道（營運腳本改了設定就 NOTIFY，伺服器馬上知道）。用一條自己的連線，不佔連線池。
+        callback(connection, pid, channel, payload) 在事件迴圈裡呼叫。"""
+        self._listen_conn = await asyncpg.connect(self.dsn)
+        await self._listen_conn.add_listener(channel, callback)
+
+    async def get_meta(self, key: str) -> Any:
+        async with self.pool.acquire() as conn:
+            return await conn.fetchval("SELECT value FROM meta WHERE key=$1", key)
 
     # ---- 讀 ----
     async def load(self) -> Dict[str, Any]:
