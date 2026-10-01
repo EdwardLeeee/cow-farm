@@ -384,7 +384,9 @@ def assign_fields(b: Bot, now: float) -> None:
 
 
 def lending(b: Bot, now: float) -> None:
-    """L：沒配過的成年公牛都上架（D26：借種費依體重自動算，不選價位）；上架一天沒人借、又太老就下架（之後出貨）。"""
+    """L：沒配過的公牛長到最壯（借種費最高，D26）才上架；上架一天沒人借、又太老就下架（之後出貨）。
+    一成年就上架的話，小公牛只有 30 幾公斤、借種費 40 幣上下，借的人最划算，借種市場會被便宜的小公牛占滿
+    （ceo 2026-10-02 看完整模擬後決定）。"""
     g = b.game
     f = b.farm
     sm = g.stud
@@ -395,7 +397,7 @@ def lending(b: Bot, now: float) -> None:
         if c is None or c.adult_age_h(now) >= BULL_WAIT_MAX_H:
             g.stud_unlist(b.pid, lst.lid)
     for c in list(f.cows):
-        if c.bull and sm.can_list(f, c, now) and c.adult_age_h(now) < BULL_WAIT_MAX_H:
+        if c.bull and sm.can_list(f, c, now) and f.fp.peak_age_h[c.ctype] <= c.adult_age_h(now) < BULL_WAIT_MAX_H:
             _try(g.stud_list, b.pid, c.cid, now)
 
 
