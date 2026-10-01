@@ -34,6 +34,8 @@
 | `lib/util/ranch_name.dart` | 牧場名的規則（D23；協定 2.2 節）：去掉前後空白、emoji 和不能用的字、顯示寬度 2–16，跟伺服器一樣 |
 | `lib/util/name_tables.g.dart` | 由 `tool/gen_name_tables.py` 用伺服器的 `backend/server/ranchname.py` 逐字產生（要 Python 3.10，Unicode 13.0），不要手改 |
 | `lib/ui/` | 頂列、各分頁畫面（`screens/`）、共用元件（`widgets/`） |
+| `lib/theme/` | 設計參數（顏色、尺寸、圓角、實心下陰影、文字樣式），照 M2 設計稿的 `base.css`、`kit.css`；`app_theme.dart` 是頁面底色、字型和字型授權 |
+| `assets/fonts/` | 內建字型（T3）：Noto Sans TC 可變字型完整版（google/fonts 2.004-H2）、Noto Sans Thai 可變字型（2.002）、兩份 OFL 授權 |
 | `test/` | widget test 與單元測試，全部用 `test/fakes.dart` 的假資料層 |
 
 ## 規則怎麼落實

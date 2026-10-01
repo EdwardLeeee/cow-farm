@@ -7,10 +7,12 @@ import 'app.dart';
 import 'config.dart';
 import 'state/game_model.dart';
 import 'storage/token_store.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  registerFontLicenses();
   final base = resolveApiBase();
   final model = GameModel(
     api: HttpGameApi(base: base),
