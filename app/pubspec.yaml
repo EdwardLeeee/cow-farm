@@ -31,3 +31,16 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    # 內建字型的授權全文（OFL 1.1），放進第三方授權頁（theme/app_theme.dart 的 registerFontLicenses）。
+    - assets/fonts/OFL-NotoSansTC.txt
+    - assets/fonts/OFL-NotoSansThai.txt
+  # 字型（T3，ceo 2026-10-02）：Noto Sans TC 可變字型完整版（google/fonts，2.004-H2），泰文接 Noto Sans Thai 可變字型（2.002）。
+  # 一個檔包含所有粗細（100–900），粗細用 theme/tokens.dart 的 AppText 設。
+  fonts:
+    - family: NotoSansTC
+      fonts:
+        - asset: assets/fonts/NotoSansTC-VF.ttf
+    - family: NotoSansThai
+      fonts:
+        - asset: assets/fonts/NotoSansThai-VF.ttf

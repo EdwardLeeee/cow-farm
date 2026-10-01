@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'l10n/strings.dart';
 import 'state/game_model.dart';
+import 'theme/app_theme.dart';
 import 'ui/home_shell.dart';
 
 /// app 根元件。GameModel 由外面傳入，測試可以換成假資料層。
@@ -18,7 +19,7 @@ class CowFarmApp extends StatelessWidget {
         title: S.appTitle,
         debugShowCheckedModeBanner: false,
         locale: const Locale('zh', 'TW'),
-        theme: ThemeData(colorSchemeSeed: const Color(0xFF6D8B3A), useMaterial3: true),
+        theme: appTheme(),
         home: const HomeShell(),
       ),
     );
