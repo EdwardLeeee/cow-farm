@@ -31,6 +31,8 @@
 | `lib/api/push.dart` | WebSocket 推播與斷線重連（指數退避加隨機等待 full jitter：第 n 次等 random(0, min(5, 0.5×2^n)) 秒） |
 | `lib/storage/` | token 存放：手機用 `flutter_secure_storage`，網頁版用瀏覽器 localStorage |
 | `lib/state/game_model.dart` | 狀態（ChangeNotifier＋provider），奶桶與遊戲時間的平滑推算 |
+| `lib/util/ranch_name.dart` | 牧場名的規則（D23；協定 2.2 節）：去掉前後空白、emoji 和不能用的字、顯示寬度 2–16，跟伺服器一樣 |
+| `lib/util/name_tables.g.dart` | 由 `tool/gen_name_tables.py` 用伺服器的 `backend/server/ranchname.py` 逐字產生（要 Python 3.10，Unicode 13.0），不要手改 |
 | `lib/ui/` | 頂列、各分頁畫面（`screens/`）、共用元件（`widgets/`） |
 | `test/` | widget test 與單元測試，全部用 `test/fakes.dart` 的假資料層 |
 
