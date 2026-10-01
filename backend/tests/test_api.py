@@ -716,6 +716,71 @@ def test_stud_fee_follows_weight_and_price_changed(h):
     assert next(c for c in sa2["cows"] if c["id"] == bull["id"])["stud_fee"] is None  # 配過種就沒有借種費
 
 
+def test_stud_log(h):
+    """借種紀錄（S18-11；協定 4.6 節）：借出、借入各一筆，跟借種同一個交易寫入；對方是牧場物件（含公營種牛站）；
+    重送不會多記；超過保留期限的刪掉。"""
+    a = h.session("主人牧場")["token"]
+    b = h.session("借方牧場")["token"]
+    h.advance(OB.starter_calf_remaining_s)
+    sa, sb = state(h, a), state(h, b)
+    bull = next(c for c in sa["cows"] if c["bull"])
+    lst = h.post("/v1/stud/list", a, {"cow_id": bull["id"], "request_id": new_rid()}).json()["listing"]
+    give(h, b, coins=100_000, slots=10)
+    dam = next(c for c in sb["cows"] if not c["bull"])
+    body = {"listing_id": lst["id"], "dam": dam["id"], "price": lst["fee"]["price"], "request_id": new_rid()}
+    r = h.post("/v1/stud/borrow", b, body).json()
+    assert h.post("/v1/stud/borrow", b, body).json() == r  # 重送：回第一次的結果，不會多記一筆
+
+    def ref(tok):
+        st = state(h, tok)
+        return {
+            "player_id": st["player_id"],
+            "name": st["ranch_name"],
+            "name_words": None,
+            "is_bot": False,
+            "level": st["level"],
+        }
+
+    la = h.get("/v1/stud/log", a).json()
+    assert la["keep_days"] == 30 and la["income_total"] == r["price"]
+    assert la["entries"] == [
+        {
+            "kind": "out",
+            "t": r["server_time"],
+            "price": r["price"],
+            "bull": {"id": bull["id"], "breed": bull["breed"]},
+            "calf": None,
+            "ranch": ref(b),
+        }
+    ]
+    lb = h.get("/v1/stud/log", b).json()
+    assert lb["income_total"] == 0
+    assert lb["entries"] == [
+        {
+            "kind": "in",
+            "t": r["server_time"],
+            "price": r["price"],
+            "bull": {"id": None, "breed": bull["breed"]},
+            "calf": {"id": r["calf"]["id"], "breed": r["calf"]["breed"]},
+            "ranch": ref(a),
+        }
+    ]
+    # 向公營種牛站借：對方是公營種牛站的牧場物件（沒有 player_id）
+    npc = next(x for x in h.get("/v1/stud", a).json()["listings"] if x["owner"]["player_id"] is None)
+    cow_a = next(c for c in sa["cows"] if not c["bull"])
+    give(h, a, coins=100_000, slots=10)
+    body2 = {"listing_id": npc["id"], "dam": cow_a["id"], "price": npc["fee"]["price"], "request_id": new_rid()}
+    assert h.post("/v1/stud/borrow", a, body2).status_code == 200
+    la = h.get("/v1/stud/log", a).json()
+    assert [e["kind"] for e in la["entries"]] == ["in", "out"]  # 新的在前
+    e = la["entries"][0]
+    assert e["ranch"] == npc["owner"] and e["bull"] == {"id": None, "breed": npc["breed"]}
+    assert e["price"] == npc["fee"]["price"] and la["income_total"] == r["price"]  # 借入不算收入
+    # 超過保留期限的刪掉（伺服器每 60 個 tick 清一次；這裡直接叫）
+    h.client.portal.call(h.server.store.prune, 0.0, 7, h.clock.now() + 1)
+    assert h.get("/v1/stud/log", a).json()["entries"] == [] and h.get("/v1/stud/log", b).json()["entries"] == []
+
+
 def test_stud_unlist_and_npc_listings(h):
     a = h.session()["token"]
     h.advance(OB.starter_calf_remaining_s)

@@ -24,12 +24,12 @@
 | 11 | 建立牧場 | 伺服器從詞庫隨機取名 | 玩家自己取：`POST /v1/session {ranch_name}`，取好名字才建立（D23） | 5，已做 |
 | 12 | 電腦牧場名 | 中文字串 | 三組詞的編號 `name_words`，app 照 `namegen.pattern` 用玩家的語言組 | 3，已做（PR 5 起伺服器直接存編號，協定不變） |
 | 13 | 借種費 | 主人從 300／800／2,000／5,000 選 | 系統依公牛現在的體重和稀有度算（D26）；借種要帶預覽看到的價格，變了回 `price_changed` | 6，已做 |
-| 14 | 借種紀錄 | 沒有 | `GET /v1/stud/log` | 7 |
+| 14 | 借種紀錄 | 沒有 | `GET /v1/stud/log` | 7，已做 |
 | 15 | 維護 | 沒有 | `GET /v1/status`、`maintenance` 物件、503 `maintenance`、WS 4503 | 8 |
 | 16 | 帳號 | 只有訪客 token | 綁定、解除、找回、換回、刪除牧場（D22）；舊手機收到 `signed_in_elsewhere` | 9 |
 | 17 | 遊戲時間 | 伺服器關著時暫停 | 倍率 1（正式版）照真實時間走，關機那段也算；試玩倍率照舊暫停 | 10 |
 
-PR 3–6 已做；PR 7–10 還沒做（2026-10-02）。每個 PR 合併時更新這張表的「PR」欄。
+PR 3–7 已做；PR 8–10 還沒做（2026-10-02）。每個 PR 合併時更新這張表的「PR」欄。
 
 **存檔不相容**：PR 4 起存檔格式改變，舊的世界（v0.2）伺服器會拒絕啟動。原型階段直接清掉資料庫重來（`backend/README.md`）。
 
@@ -804,7 +804,7 @@ v2 拿掉 `price`（看 `fee.price`）、`type_name`、`tier_name`、`owner_id`�
 |---|---|
 | `keep_days` | 只保留最近幾天（遊戲時間）的紀錄（`s18.logKeep` 的 `{n}`），目前 30 |
 | `income_total` | 借出收入累計（幣，全部時間，= `state.stud.income`；`s18.logIncome`） |
-| `entries[]` | 新的在前 |
+| `entries[]` | 新的在前，最多 200 筆 |
 | `kind` | `out` 借出（別人借了我的公牛，`s18.lentTo`「{cow} 借給 {ranch}」）、`in` 借入（我借別人的公牛，`s18.borrowedFrom`「{cow} 借自 {ranch}」） |
 | `t`、`price` | 時間、價錢（借出是收到的，借入是付出的） |
 | `bull` | 公牛：`breed`；`id` 只在借出時有（自己牧場的牛編號，可能已經出貨），借入時 null |
@@ -989,3 +989,4 @@ app 啟動時先打這個（還沒有 token 也能打），再決定要不要顯
 - 2026-10-02：PR 4 做完第 0 節 9、10 項：`cows[].breed`、24 品種圖鑑 `codex[] {breed, found_at}`、借種上架和 WS `stud` 的 `breed`、商店機率表的 `breed`。存檔格式升到 3，v0.2 的世界拒絕啟動。
 - 2026-10-02：PR 5 做完第 0 節 11 項：`POST /v1/session {ranch_name, request_id}`、牧場名規則、測試向量 `name_cases.json`；電腦牧場改存詞庫編號。更正 2.2 節的例子：★ ♪ ♥ 在 Extended_Pictographic 裡，算 emoji（之前誤寫 ♪ 可以用）。
 - 2026-10-02：PR 6 做完第 0 節 13 項（D26）：借種費依公牛現在的體重和稀有度現算（`fee`、`cows[].stud_fee`），`/v1/stud/list` 不收 `price`，`/v1/stud/borrow` 要帶 `price`、變了回 409 `price_changed`；拿掉 `stud.prices`、上架清單的 `price`、`weight_kg`。存檔格式升到 4。
+- 2026-10-02：PR 7 做完第 0 節 14 項：`GET /v1/stud/log`（借出、借入，保留 30 遊戲天，最多 200 筆）；紀錄跟借種在同一個交易寫入。

@@ -12,6 +12,7 @@
 - news：出現過的新聞事件。
 - processed_requests：request_id → 第一次的回應，防止重送時重複成交。
 - session_requests：建立牧場的 request_id → 牧場（協定 2.1 節：10 分鐘內重送回同一個牧場、發新 token）。
+- stud_log：借種紀錄（協定 4.6 節），跟借種在同一個交易寫入；保留 30 遊戲天。牧場刪除時對方欄位變 NULL。
 """
 
 from __future__ import annotations
@@ -81,6 +82,22 @@ CREATE TABLE IF NOT EXISTS news (
     end_at double precision NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now()
 );
+CREATE TABLE IF NOT EXISTS stud_log (
+    id bigserial PRIMARY KEY,
+    t double precision NOT NULL,
+    lender_id bigint REFERENCES players(id) ON DELETE SET NULL,
+    station boolean NOT NULL,
+    borrower_id bigint REFERENCES players(id) ON DELETE SET NULL,
+    listing_id bigint NOT NULL,
+    bull_cow_id bigint,
+    bull_breed text NOT NULL,
+    calf_id bigint NOT NULL,
+    calf_breed text NOT NULL,
+    price bigint NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS stud_log_lender_t ON stud_log (lender_id, t);
+CREATE INDEX IF NOT EXISTS stud_log_borrower_t ON stud_log (borrower_id, t);
 CREATE TABLE IF NOT EXISTS session_requests (
     request_id uuid PRIMARY KEY,
     player_id bigint NOT NULL REFERENCES players(id) ON DELETE CASCADE,
@@ -268,9 +285,10 @@ class Store:
         request: Optional[Tuple[str, str, Any]] = None,
         others: Sequence[Tuple[int, dict, int, float]] = (),
         stud: Optional[dict] = None,
+        stud_log: Sequence[dict] = (),
     ) -> None:
         """一個動作的結果，同一個交易：牧場狀態（樂觀鎖）、被動到的別的牧場（借種的主人）、借種市場、
-        成交紀錄、request_id 與回應。"""
+        成交紀錄、借種紀錄、request_id 與回應。"""
         async with self.pool.acquire() as conn:
             async with conn.transaction():
                 for p_id, p_state, p_version, p_t in [(pid, state, version, game_t), *others]:
@@ -307,6 +325,26 @@ class Store:
                                 tr["contrib"],
                             )
                             for tr in trades
+                        ],
+                    )
+                if stud_log:
+                    await conn.executemany(
+                        "INSERT INTO stud_log(t, lender_id, station, borrower_id, listing_id, bull_cow_id, bull_breed, "
+                        "calf_id, calf_breed, price) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+                        [
+                            (
+                                r["t"],
+                                r["lender_id"],
+                                r["station"],
+                                r["borrower_id"],
+                                r["listing_id"],
+                                r["bull_cow_id"],
+                                r["bull_breed"],
+                                r["calf_id"],
+                                r["calf_breed"],
+                                r["price"],
+                            )
+                            for r in stud_log
                         ],
                     )
                 if request is not None:
@@ -359,14 +397,28 @@ class Store:
                         n["end_at"],
                     )
 
+    async def stud_log_for(self, pid: int, since_t: float, limit: int) -> List[asyncpg.Record]:
+        """這位玩家借出或借入的紀錄（遊戲時間 since_t 之後），新的在前。"""
+        async with self.pool.acquire() as conn:
+            return await conn.fetch(
+                "SELECT * FROM stud_log WHERE (lender_id=$1 OR borrower_id=$1) AND t >= $2 ORDER BY t DESC, id DESC LIMIT $3",
+                pid,
+                since_t,
+                limit,
+            )
+
     async def set_token(self, pid: int, token_hash: bytes) -> None:
         """換登入憑證（舊的立刻失效）。"""
         async with self.pool.acquire() as conn:
             await conn.execute("UPDATE players SET token_sha256=$2 WHERE id=$1", pid, token_hash)
 
-    async def prune(self, price_before: float, requests_older_than_days: int = 7) -> None:
+    async def prune(
+        self, price_before: float, requests_older_than_days: int = 7, stud_log_before: Optional[float] = None
+    ) -> None:
         async with self.pool.acquire() as conn:
             await conn.execute("DELETE FROM price_history WHERE t < $1", price_before)
+            if stud_log_before is not None:
+                await conn.execute("DELETE FROM stud_log WHERE t < $1", stud_log_before)
             await conn.execute(
                 "DELETE FROM processed_requests WHERE created_at < now() - make_interval(days => $1)",
                 requests_older_than_days,

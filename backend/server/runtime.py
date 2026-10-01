@@ -47,6 +47,8 @@ PRICE_PRUNE_S = 8 * DAY  # 資料庫的價格留幾天
 BOT_JOIN_SPREAD_S = 1 * HOUR  # 假玩家在開服後 1 遊戲小時內陸續加入
 MAX_TICKS_PER_COMMIT = 120
 SESSION_REPLAY_S = 600.0  # 建立牧場的 request_id 在多久（現實秒數）內重送算同一次（協定 2.1 節）
+STUD_LOG_KEEP_DAYS = 30  # 借種紀錄保留幾個遊戲天（協定 4.6 節；s18.logKeep）
+STUD_LOG_LIMIT = 200  # 一次最多回幾筆
 NAME_MESSAGES = {  # invalid_name 的 message（只供除錯；app 依 detail.reason 查字串表 s02.err*）
     "too_short": "名字太短",
     "too_long": "名字太長",
@@ -529,6 +531,7 @@ class GameServer:
                     (request_id, endpoint, response) if request_id is not None else None,
                     others=others,
                     stud=game.stud.to_dict() if game.stud_dirty else None,
+                    stud_log=[self._stud_log_row(ev) for ev in game.stud_events],
                 )
             except Exception:
                 self._undo(pid, backup, stud_backup, trades, seq0)
@@ -563,6 +566,56 @@ class GameServer:
         game.trade_seq = seq0
         game.begin()
         # （假玩家的 Bot 物件用 property 讀牧場與借種市場，會自動指到還原後的物件）
+
+    @staticmethod
+    def _stud_log_row(ev: dict) -> dict:
+        """一次借種 → 借種紀錄的一列（跟借種同一個交易寫入）。公營種牛站：lender_id NULL、station true。"""
+        station = ev["owner"] is None
+        return {
+            "t": ev["t"],
+            "lender_id": ev["owner"],
+            "station": station,
+            "borrower_id": ev["borrower"],
+            "listing_id": ev["listing_id"],
+            "bull_cow_id": None if station else ev["cow_id"],
+            "bull_breed": breed_of_genes(ev["g"]),
+            "calf_id": ev["calf_id"],
+            "calf_breed": breed_of_genes(ev["calf_g"]),
+            "price": int(round(ev["price"])),
+        }
+
+    async def stud_log_view(self, me: Player) -> dict:
+        """GET /v1/stud/log（協定 4.6 節）：借出與借入，新的在前；對方牧場刪除了是 null。"""
+        now = self.clock.now()
+        rows = await self.store.stud_log_for(me.pid, now - STUD_LOG_KEEP_DAYS * DAY, STUD_LOG_LIMIT)
+        players = self.game.players
+        entries = []
+        for r in rows:
+            out = not r["station"] and r["lender_id"] == me.pid
+            if out:
+                other = players.get(r["borrower_id"]) if r["borrower_id"] is not None else None
+                ranch = V.ranch_ref(other) if other is not None else None
+            elif r["station"]:
+                ranch = V.station_ref(self.game, r["listing_id"])
+            else:
+                other = players.get(r["lender_id"]) if r["lender_id"] is not None else None
+                ranch = V.ranch_ref(other) if other is not None else None
+            entries.append(
+                {
+                    "kind": "out" if out else "in",
+                    "t": r["t"],
+                    "price": r["price"],
+                    "bull": {"id": r["bull_cow_id"] if out else None, "breed": r["bull_breed"]},
+                    "calf": None if out else {"id": r["calf_id"], "breed": r["calf_breed"]},
+                    "ranch": ranch,
+                }
+            )
+        return {
+            **V.time_fields(self.clock, now),
+            "keep_days": STUD_LOG_KEEP_DAYS,
+            "income_total": int(round(me.stud_income)),
+            "entries": entries,
+        }
 
     async def _notify_stud(self, ev: dict) -> None:
         """有人借了你的公牛：推播給主人（在線的話）。"""
@@ -634,7 +687,7 @@ class GameServer:
             ev = self.news_log[n["id"]]
             await self.broadcast({"type": "news", **V.news_item(ev, self.clock.now())})
         if self.stats["ticks"] % 60 == 0:
-            await self.store.prune(t_last - PRICE_PRUNE_S)
+            await self.store.prune(t_last - PRICE_PRUNE_S, stud_log_before=t_last - STUD_LOG_KEEP_DAYS * DAY)
         return [d[0] for d in done]
 
     async def _tick_loop(self) -> None:
