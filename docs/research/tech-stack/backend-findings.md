@@ -248,7 +248,7 @@ PostgreSQL：
 - iOS 存取層級：`*_this_device` 類選項「Items with this attribute do not migrate to a new device.」
 - Android Auto Backup：「To back up user credentials and authentication tokens, don't store them in shared preferences or a file.」https://developer.android.com/identity/data/autobackup
 
-**建議**：token 放 flutter_secure_storage。iOS 用 `first_unlock_this_device`（開機後解鎖過一次，背景也能讀；而且不會隨備份搬到新手機）；Android 依 README 在備份規則排除它的 sharedprefs。這樣「換手機」在兩個平台都一律走移轉碼，行為一致，也不會有兩支手機拿著同一個 token。若使用者希望 iPhone 換機時自動帶過去，可改用 `first_unlock`，但這是從「`*_this_device` 不會遷移」反推的，要實機驗證。**未能讀到原文**：刪除 app 後 iOS Keychain 的資料是否留存（影響「刪掉重裝是不是同一個牧場」），M1 要用真機驗證。
+**建議**：token 放 flutter_secure_storage。iOS 用 `first_unlock_this_device`（開機後解鎖過一次，背景也能讀；而且不會隨備份搬到新手機）；Android 依 README 在備份規則排除它的 sharedprefs。這樣「換手機」在兩個平台都一律走移轉碼，行為一致，也不會有兩支手機拿著同一個 token。（2026-10-01 D22：移轉碼改成綁定 Apple／Google 帳號，換手機一律走「找回我的牧場」；token 的存法不變。）若使用者希望 iPhone 換機時自動帶過去，可改用 `first_unlock`，但這是從「`*_this_device` 不會遷移」反推的，要實機驗證。**未能讀到原文**：刪除 app 後 iOS Keychain 的資料是否留存（影響「刪掉重裝是不是同一個牧場」），M1 要用真機驗證。
 
 ## 6. M1 原型 app 怎麼連到開發機
 

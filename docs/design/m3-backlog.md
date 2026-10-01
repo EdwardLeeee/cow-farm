@@ -15,7 +15,7 @@
 |---|---|---|
 | 轉輪挑牧場名 | S02 | 伺服器給三組詞庫，玩家可以「重轉」，按「就叫這個」確認。確認後名字後面加 `#1234` 編號：詞庫組合只有 12³ ＝ 1,728 種，一定會撞名。仍然只能從詞庫挑（Apple 1.2） |
 | 24 格圖鑑 | S09 | `codex` 從「用途 × 稀有度」12 格改成 24 個品種（breed id）；`/v1/state` 的牛也帶 breed id 和「品種名 #編號」 |
-| 移轉碼、刪除牧場 | S13、S14 | 發移轉碼、用移轉碼搬家、舊手機 token 失效、刪除牧場；另做網頁刪除入口（Apple 5.1.1(v)、Google Play 規定）。移轉碼照設計稿是 8 個字，顯示成 XXXX-XXXX，不用 0/O、1/I 這類容易看錯的字 |
+| 備份與找回牧場、刪除牧場 | S13、S14 | D22、企劃書 4.11：綁定與解除綁定 Apple、Google 帳號；用帳號找回牧場並發新 token，舊手機的 token 失效；帳號已經綁了另一個牧場時，回傳那個牧場的名字和等級，玩家確認後換回並刪除現在的牧場；驗證 Apple 與 Google 的登入憑證，只存帳號識別碼，不拿 email；刪除牧場或解除綁定時撤銷 Apple 登入（要保管一把 Apple 金鑰，照 secrets-custody）；刪除牧場；網頁刪除入口（Apple 5.1.1(v)、Google Play 規定） |
 | 維護 | S16 | 維護前公告、維護中的回應 |
 | 借種紀錄 | S18 | 誰借了我的公牛、什麼時候、收了多少 |
 | K 線、全服成交量 | S06 | 走勢資料加開高低收與成交量 |
@@ -37,11 +37,20 @@
 - 倒數一律用真實時間；正式版倍率是 1。
 - 處理 `design/m2/measure/summary.md` 列的 320 寬 6 個小問題（設計稿只量測、不送核准）。
 - 遊戲名稱只放在一個字串，先用暫名「牛市牧場」（D21）。
+- 備份與找回牧場（D22）：
+  - 接 `sign_in_with_apple` 與 `google_sign_in`。iPhone 兩顆按鈕一樣大，用官方規定的按鈕樣式；Android 只有 Google。
+  - Google 登入只要求最少的資料，不拿 email。開工前查 Google 官方文件確認做法。
+  - token 照 `docs/research/tech-stack/backend-findings.md` 的建議存：iOS 用 `first_unlock_this_device`；Android 把 `flutter_secure_storage` 用的檔案排除在自動備份之外。
+  - 加分項（先評估，不一定做）：Android 的 Block Store 可以讓 token 跟著系統的換機流程搬到新手機。
 
 ## 共同
 
 - GitHub 必要檢查照 connect4 的做法補上（AGENTS.md）。
 - 開工前先問使用者主機和網域，附每月費用。
+- Apple 登入與 Google 登入的後台設定（D22），M4 跟 TestFlight 一起做，ceo 寫步驟給使用者：
+  - Apple Developer：App ID 開「Sign in with Apple」，建一把金鑰給伺服器撤銷登入用。
+  - Google Cloud：建登入用的用戶端（iOS、Android、伺服器）。做之前查官方文件：設定要不要經過 Google 審核。
+  - Google 登入先在 Android 模擬器驗；使用者沒有 Android 手機，上架前的實機驗收另外安排。
 
 ## 不在第一版（試玩後，企劃書 v0.3 再決定）
 
