@@ -433,8 +433,8 @@
 | `field_occupied` | S17 | 這塊田已經有牛了 |
 | `field_not_found` | S17 | 找不到這塊田，請重新整理 |
 | `listing_not_found`、`listing_gone` | S18 | 這頭公牛已經被借走或下架了 |
-| `max_level` | S10、S17 | 已經是最高級了（沿用 `S.maxed`） |
-| `not_yet_available` | S10 | 還沒開放（沿用 `S.opensIn`） |
+| `max_level` | S10、S17 | 已經是最高級了（`err.max_level`；`S.maxed`「已滿級」留給按鈕） |
+| `not_yet_available` | S10 | 還沒開放，3 分後再來（`err.not_yet_available`；`S.opensIn`「3 分後開放」留給按鈕） |
 | `internal`（500） | 任何操作 | 伺服器出了點問題，請稍後再試 |
 | 網路失敗（重試 3 次） | 任何操作 | 網路不穩，請稍後再試（沿用 `S.networkError`） |
 | `unauthorized`、WS 4401 | 任何時候 | 見 S15-03 |

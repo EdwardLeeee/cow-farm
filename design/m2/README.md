@@ -121,6 +121,7 @@
 - 玩家取的牧場名、電腦牧場的名字是資料，不在字串表裡。
 - 看別的語言：網址加 `&lang=en` 或 `&lang=th`。缺的 key 用繁中顯示，記在 `window.__i18n.missing()`，量測報告會列出來。泰文的字型是 Noto Sans Thai（接在中文字型後面：英文字母、數字跟繁中一樣）。
 - 數字縮寫：繁中用「萬」「億」；英文、泰文用 K、M（`Intl.NumberFormat` 的 compact）。
+- 給 cow-app 的 strings.dart 對照表、錯誤碼文案、「幫我想一個」的取名詞庫（`namegen.*`）、電腦牧場名的做法：`i18n/README.md`。
 
 ## 重新出圖
 
