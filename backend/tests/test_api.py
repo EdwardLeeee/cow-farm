@@ -25,6 +25,7 @@ from cowecon.farm import (
     shop_draw,
     shop_grade_distribution,
     shop_grade_tier_probs,
+    stud_fee,
     tier_distribution,
     tier_of,
 )
@@ -75,6 +76,13 @@ def give(h, tok, coins=None, slots=None):
     return p
 
 
+def expected_fee(h, pid, cow_id):
+    """借種費的期望值（協定 1.6 節）：用引擎的公式算（D26），不寫死數字。"""
+    c = h.server.game.players[pid].farm.cow_by_id(cow_id)
+    price, kg, at_max = stud_fee(FP, c.ctype, c.tier, c.adult_at, h.clock.now())
+    return {"price": int(price), "per_kg": FP.stud_fee_per_kg[c.tier], "kg": round(kg, 2), "at_max": at_max}
+
+
 def next_rng(h, pid):
     """服務層下一次會用的亂數（白箱：由伺服器種子、玩家、計數導出）。"""
     p = h.server.game.players[pid]
@@ -119,7 +127,7 @@ def test_session_and_state_fields(h):
     assert len(st["fields"]) == FP.field_start and st["fields"][0]["cow_id"] is None
     assert st["upgrades"]["field"]["cost"] == int(round(h.server.game.players[s["player_id"]].farm.next_field_cost()))
     assert st["rice"] == {"in_fields": 0.0, "stock": 0.0, "per_hour": 0.0}
-    assert st["stud"]["prices"] == [int(x) for x in FP.stud_prices] and st["stud"]["listings"] == []
+    assert set(st["stud"]) == {"listings", "income"} and st["stud"]["listings"] == []  # D26：不再選價位
     cows = {c["id"]: c for c in st["cows"]}
     assert len(cows) == 2
     for c in cows.values():
@@ -213,7 +221,14 @@ def test_unauthorized_and_validation_errors(h):
     err(h.post("/v1/sell", tok, {"commodity": "milk", "qty": -1, "request_id": new_rid()}), 400, "bad_request")
     err(h.post("/v1/sell", tok, {"commodity": "gold", "qty": 1, "request_id": new_rid()}), 400, "bad_request")
     err(h.post("/v1/ship", tok, {"cow_id": "1", "request_id": new_rid()}), 400, "bad_request")
-    err(h.post("/v1/stud/list", tok, {"cow_id": 2, "price": 123, "request_id": new_rid()}), 400, "bad_request")
+    e = err(h.post("/v1/stud/borrow", tok, {"listing_id": 1, "dam": 1, "request_id": new_rid()}), 400, "bad_request")
+    assert e["detail"]["fields"] == ["price"]  # 借種要帶預覽看到的借種費（D26）
+    e = err(
+        h.post("/v1/stud/borrow", tok, {"listing_id": 1, "dam": 1, "price": None, "request_id": new_rid()}),
+        400,
+        "bad_request",
+    )
+    assert e["detail"]["fields"] == ["price"]
     err(h.client.get("/v1/nope"), 404, "not_found")
 
 
@@ -330,7 +345,7 @@ def test_cow_not_found(h):
     err(h.get("/v1/ship/preview", tok, cow_id=999), 404, "cow_not_found")
     err(h.post("/v1/field/assign", tok, {"cow_id": 999, "request_id": new_rid()}), 404, "cow_not_found")
     err(
-        h.post("/v1/stud/list", tok, {"cow_id": 999, "price": FP.stud_prices[0], "request_id": new_rid()}),
+        h.post("/v1/stud/list", tok, {"cow_id": 999, "request_id": new_rid()}),
         404,
         "cow_not_found",
     )
@@ -510,7 +525,7 @@ def test_breed_once_and_free(h):
     )
     assert e["detail"]["cow_id"] in (bull["id"], cow["id"])
     err(
-        h.post("/v1/stud/list", tok, {"cow_id": bull["id"], "price": FP.stud_prices[0], "request_id": new_rid()}),
+        h.post("/v1/stud/list", tok, {"cow_id": bull["id"], "request_id": new_rid()}),
         409,
         "already_bred",
     )
@@ -583,9 +598,11 @@ def test_stud_borrow_pays_owner_and_calf_goes_to_borrower(h):
     h.advance(OB.starter_calf_remaining_s)
     sa, sb = state(h, a), state(h, b)
     bull = next(c for c in sa["cows"] if c["bull"])
-    price = int(FP.stud_prices[1])
-    lst = h.post("/v1/stud/list", a, {"cow_id": bull["id"], "price": price, "request_id": new_rid()}).json()["listing"]
-    assert lst["is_mine"] and lst["price"] == price and lst["breed"] == bull["breed"]
+    lst = h.post("/v1/stud/list", a, {"cow_id": bull["id"], "request_id": new_rid()}).json()["listing"]
+    price = lst["fee"]["price"]  # D26：系統依公牛現在的體重和稀有度算
+    assert (
+        lst["is_mine"] and lst["fee"] == expected_fee(h, sa["player_id"], bull["id"]) and lst["breed"] == bull["breed"]
+    )
     assert lst["owner"] == {  # 協定 1.6 節的牧場物件；真人送自己的名字
         "player_id": sa["player_id"],
         "name": sa["ranch_name"],
@@ -599,27 +616,35 @@ def test_stud_borrow_pays_owner_and_calf_goes_to_borrower(h):
     # 主人不能借自己的
     own_cow = next(c for c in sa["cows"] if not c["bull"])
     err(
-        h.post("/v1/stud/borrow", a, {"listing_id": lst["id"], "dam": own_cow["id"], "request_id": new_rid()}),
+        h.post(
+            "/v1/stud/borrow",
+            a,
+            {"listing_id": lst["id"], "dam": own_cow["id"], "price": price, "request_id": new_rid()},
+        ),
         409,
         "own_listing",
     )
     # 借的人：錢與空格
     dam = next(c for c in sb["cows"] if not c["bull"])
     err(
-        h.post("/v1/stud/borrow", b, {"listing_id": lst["id"], "dam": dam["id"], "request_id": new_rid()}),
+        h.post(
+            "/v1/stud/borrow", b, {"listing_id": lst["id"], "dam": dam["id"], "price": price, "request_id": new_rid()}
+        ),
         409,
         "pen_full",
     )
     give(h, b, coins=price - 1, slots=5)
     err(
-        h.post("/v1/stud/borrow", b, {"listing_id": lst["id"], "dam": dam["id"], "request_id": new_rid()}),
+        h.post(
+            "/v1/stud/borrow", b, {"listing_id": lst["id"], "dam": dam["id"], "price": price, "request_id": new_rid()}
+        ),
         409,
         "not_enough_coins",
     )
     give(h, b, coins=price + 1000)
     pv = h.get("/v1/stud/preview", b, listing_id=lst["id"], dam=dam["id"]).json()
     pa = h.server.game.players[sa["player_id"]]
-    assert pv["can_borrow"] and pv["price"] == price
+    assert pv["can_borrow"] and pv["fee"]["price"] == price and "price" not in pv
     assert pv["tier_probs"] == pytest.approx(
         tier_distribution(
             pa.farm.cow_by_id(bull["id"]).g, h.server.game.players[sb["player_id"]].farm.cow_by_id(dam["id"]).g
@@ -627,9 +652,9 @@ def test_stud_borrow_pays_owner_and_calf_goes_to_borrower(h):
     )
     a_coins, b_cows = state(h, a)["coins"], len(state(h, b)["cows"])
     rid = new_rid()
-    r1 = h.post("/v1/stud/borrow", b, {"listing_id": lst["id"], "dam": dam["id"], "request_id": rid})
+    r1 = h.post("/v1/stud/borrow", b, {"listing_id": lst["id"], "dam": dam["id"], "price": price, "request_id": rid})
     assert r1.status_code == 200, r1.text
-    r2 = h.post("/v1/stud/borrow", b, {"listing_id": lst["id"], "dam": dam["id"], "request_id": rid})
+    r2 = h.post("/v1/stud/borrow", b, {"listing_id": lst["id"], "dam": dam["id"], "price": price, "request_id": rid})
     assert r1.json() == r2.json()  # 重送：同一個結果、只付一次
     body = r1.json()
     assert body["price"] == price and body["coins"] == 1000 and body["calf"]["origin"] == "stud" and body["dam"]["bred"]
@@ -640,7 +665,9 @@ def test_stud_borrow_pays_owner_and_calf_goes_to_borrower(h):
     assert bull_after["bred"] and bull_after["listed"] is None  # 公牛的一次用掉、自動下架
     assert lst["id"] not in {x["id"] for x in h.get("/v1/stud", b).json()["listings"]}
     err(
-        h.post("/v1/stud/borrow", b, {"listing_id": lst["id"], "dam": dam["id"], "request_id": new_rid()}),
+        h.post(
+            "/v1/stud/borrow", b, {"listing_id": lst["id"], "dam": dam["id"], "price": price, "request_id": new_rid()}
+        ),
         404,
         "listing_not_found",
     )
@@ -652,19 +679,50 @@ def test_stud_borrow_pays_owner_and_calf_goes_to_borrower(h):
     assert int(round(row["farm"]["coins"])) == a_coins + price
 
 
+def test_stud_fee_follows_weight_and_price_changed(h):
+    """D26：借種費 = 公牛現在的體重 × 每公斤價格，跟著長大自動漲；借種時跟預覽的不同就回 409 price_changed，什麼都不扣。"""
+    a = h.session()["token"]
+    b = h.session()["token"]
+    h.advance(OB.starter_calf_remaining_s)
+    sa = state(h, a)
+    bull = next(c for c in sa["cows"] if c["bull"])
+    cow = next(c for c in sa["cows"] if not c["bull"])
+    assert bull["stud_fee"] == expected_fee(h, sa["player_id"], bull["id"]) and not bull["stud_fee"]["at_max"]
+    assert bull["stud_fee"]["kg"] == pytest.approx(bull["weight_kg"], abs=0.01)  # 跟出貨的體重同一個算法
+    assert cow["stud_fee"] is None  # 母牛沒有
+    lst = h.post("/v1/stud/list", a, {"cow_id": bull["id"], "request_id": new_rid()}).json()["listing"]
+    give(h, b, coins=100_000, slots=5)
+    dam = next(c for c in state(h, b)["cows"] if not c["bull"])
+    old = h.get("/v1/stud/preview", b, listing_id=lst["id"], dam=dam["id"]).json()["fee"]["price"]
+    new = old
+    for _ in range(100):  # 公牛長大到借種費變了
+        h.advance(600, tick=False)
+        new = expected_fee(h, sa["player_id"], bull["id"])["price"]
+        if new != old:
+            break
+    assert new > old
+    listed = next(x for x in h.get("/v1/stud", b).json()["listings"] if x["id"] == lst["id"])
+    assert listed["fee"]["price"] == new  # 上架清單也是現算的
+    coins_b = state(h, b)["coins"]
+    body = {"listing_id": lst["id"], "dam": dam["id"], "price": old, "request_id": new_rid()}
+    e = err(h.post("/v1/stud/borrow", b, body), 409, "price_changed")
+    assert e["detail"] == {"price": new, "expected": old}
+    assert state(h, b)["coins"] == coins_b and len(state(h, b)["cows"]) == 2  # 什麼都沒扣、沒有小牛
+    r = h.post("/v1/stud/borrow", b, {**body, "price": new, "request_id": new_rid()})
+    assert r.status_code == 200, r.text
+    assert r.json()["price"] == new and state(h, b)["coins"] == coins_b - new
+    sa2 = state(h, a)
+    assert sa2["stud"]["income"] == new
+    assert next(c for c in sa2["cows"] if c["id"] == bull["id"])["stud_fee"] is None  # 配過種就沒有借種費
+
+
 def test_stud_unlist_and_npc_listings(h):
     a = h.session()["token"]
     h.advance(OB.starter_calf_remaining_s)
     sa = state(h, a)
     bull = next(c for c in sa["cows"] if c["bull"])
-    lst = h.post(
-        "/v1/stud/list", a, {"cow_id": bull["id"], "price": FP.stud_prices[0], "request_id": new_rid()}
-    ).json()["listing"]
-    err(
-        h.post("/v1/stud/list", a, {"cow_id": bull["id"], "price": FP.stud_prices[0], "request_id": new_rid()}),
-        409,
-        "cow_listed",
-    )
+    lst = h.post("/v1/stud/list", a, {"cow_id": bull["id"], "request_id": new_rid()}).json()["listing"]
+    err(h.post("/v1/stud/list", a, {"cow_id": bull["id"], "request_id": new_rid()}), 409, "cow_listed")
     u = h.post("/v1/stud/unlist", a, {"listing_id": lst["id"], "request_id": new_rid()}).json()
     assert (
         u["listing_id"] == lst["id"] and next(c for c in u["state"]["cows"] if c["id"] == bull["id"])["listed"] is None
@@ -673,7 +731,19 @@ def test_stud_unlist_and_npc_listings(h):
     # 公營種牛站（電腦系統上架）：錢不給任何人，借走後會補上
     market = h.get("/v1/stud", a).json()
     npc = [x for x in market["listings"] if x["owner"]["player_id"] is None]
-    assert len(npc) >= FP.npc_stud_listings and all(x["price"] == int(FP.npc_stud_price) for x in npc)
+    assert len(npc) >= FP.npc_stud_listings
+    now = h.clock.now()
+    for x in npc:  # 公營種牛站：用那種用途公牛的最佳體重算（一般公牛：乳牛 300、耕牛 540、肉牛 970）
+        lst_e = h.server.game.stud.listings[x["id"]]
+        price, kg, _ = stud_fee(FP, lst_e.ctype, lst_e.tier, None, now)
+        assert x["fee"] == {
+            "price": int(price),
+            "per_kg": FP.stud_fee_per_kg[x["tier"]],
+            "kg": round(kg, 2),
+            "at_max": True,
+        }
+        if x["tier"] == 0:
+            assert x["fee"]["price"] == {"dairy": 300, "dual": 540, "beef": 970}[x["type"]]
     for x in npc:  # 沒有 #編號和等級；名字是詞庫編號，由上架編號決定
         o = x["owner"]
         assert o["is_bot"] and o["name"] is None and o["level"] is None and x["cow_id"] is None
@@ -682,8 +752,11 @@ def test_stud_unlist_and_npc_listings(h):
         )
     give(h, a, coins=10_000, slots=5)
     dam = next(c for c in sa["cows"] if not c["bull"])
-    r = h.post("/v1/stud/borrow", a, {"listing_id": npc[0]["id"], "dam": dam["id"], "request_id": new_rid()}).json()
-    assert r["price"] == int(FP.npc_stud_price) and r["coins"] == 10_000 - int(FP.npc_stud_price)
+    p0 = npc[0]["fee"]["price"]
+    r = h.post(
+        "/v1/stud/borrow", a, {"listing_id": npc[0]["id"], "dam": dam["id"], "price": p0, "request_id": new_rid()}
+    ).json()
+    assert r["price"] == p0 and r["coins"] == 10_000 - p0
     after = [x for x in h.get("/v1/stud", a).json()["listings"] if x["owner"]["player_id"] is None]
     assert len(after) >= FP.npc_stud_listings and npc[0]["id"] not in {x["id"] for x in after}
 
@@ -775,9 +848,7 @@ def test_websocket_stud_notice_to_owner(h):
     b = h.session()["token"]
     h.advance(OB.starter_calf_remaining_s)
     bull = next(c for c in state(h, a)["cows"] if c["bull"])
-    lst = h.post(
-        "/v1/stud/list", a, {"cow_id": bull["id"], "price": FP.stud_prices[0], "request_id": new_rid()}
-    ).json()["listing"]
+    lst = h.post("/v1/stud/list", a, {"cow_id": bull["id"], "request_id": new_rid()}).json()["listing"]
     give(h, b, coins=10_000, slots=5)
     dam = next(c for c in state(h, b)["cows"] if not c["bull"])
     with h.client.websocket_connect(f"/v1/ws?token={a}") as ws:
@@ -785,7 +856,9 @@ def test_websocket_stud_notice_to_owner(h):
         ws.receive_json()
         assert (
             h.post(
-                "/v1/stud/borrow", b, {"listing_id": lst["id"], "dam": dam["id"], "request_id": new_rid()}
+                "/v1/stud/borrow",
+                b,
+                {"listing_id": lst["id"], "dam": dam["id"], "price": lst["fee"]["price"], "request_id": new_rid()},
             ).status_code
             == 200
         )
@@ -794,7 +867,7 @@ def test_websocket_stud_notice_to_owner(h):
             n["type"] == "stud"
             and n["event"] == "borrowed"
             and n["listing_id"] == lst["id"]
-            and n["price"] == int(FP.stud_prices[0])
+            and n["price"] == lst["fee"]["price"]
         )
         sb = state(h, b)  # 借方是協定 1.6 節的牧場物件（G-05「{cow} 借給 {ranch}」）
         assert n["cow"] == {"id": bull["id"], "breed": bull["breed"]} and "cow_id" not in n
@@ -923,7 +996,7 @@ def test_game_error_does_not_mutate():
         lambda: game.breed(p.pid, 2, 1, T0),
         lambda: game.field_assign(p.pid, 1, None, T0),
         lambda: game.upgrade(p.pid, "field", T0),
-        lambda: game.stud_list(p.pid, 2, FP.stud_prices[0], T0),
+        lambda: game.stud_list(p.pid, 2, T0),
         lambda: game.sell(p.pid, "rice", 1, T0),
     ):
         with pytest.raises(GameError):

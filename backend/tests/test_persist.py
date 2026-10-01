@@ -162,7 +162,7 @@ class Driver:
             elif a < 0.88:
                 bulls = [c for c in f.cows if c.bull and self.stud.can_list(f, c, t)]
                 if bulls:
-                    self._ok("list", self.stud.list_bull(f, i, bulls[0], self.rng.choice(DEFAULT.farm.stud_prices), t))
+                    self._ok("list", self.stud.list_bull(f, i, bulls[0], t))
                 dams = [c for c in f.cows if not c.bull and c.can_breed_now(t)]
                 lst = [l for l in self.stud.listings.values() if l.owner != i]
                 if dams and lst:

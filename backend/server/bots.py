@@ -68,7 +68,6 @@ HOLD_THR = 1.0  # T：價格 ≥ 24 小時均價 × 這個倍數才賣
 HOLD_FRESH_SELL = 0.97  # T：新鮮度（牛奶、稻米、牛肉）掉到這以下就賣
 HOLD_WH_TARGET_H = 14.0
 HOLD_MIN_COWS = 12  # T：牛群少於這個數量時照 D 經營
-STUD_PRICE_BY_TIER = (0, 1, 2, 3)  # L：稀有度 → stud_prices 的第幾檔
 STUD_RELIST_H = 24.0  # L：上架多久沒人借就降一檔
 PANIC_SHIP_AGE_H = 48.0
 TUTORIAL_S = 30 * MINUTE
@@ -349,10 +348,10 @@ def breeding_pass(b: Bot, ctx, now: float) -> None:
         if own is None or b.strategy == "C":
             for t in range(3):
                 for tier in range(4):
-                    lst = sm.cheapest(t, tier, exclude_owner=b.pid)
-                    if lst is None or lst.price > f.coins:
+                    lst = sm.cheapest(t, tier, now, exclude_owner=b.pid)
+                    if lst is None or sm.price(lst, now) > f.coins:
                         continue
-                    gain = offspring_value(b.prof, fp, lst.g, dam.g, bonus) - lst.price
+                    gain = offspring_value(b.prof, fp, lst.g, dam.g, bonus) - sm.price(lst, now)
                     if gain > best_gain:
                         best, best_gain = lst, gain
         use_own = own is not None and (best is None or own_val >= best_gain)
@@ -385,27 +384,19 @@ def assign_fields(b: Bot, now: float) -> None:
 
 
 def lending(b: Bot, now: float) -> None:
-    """L：沒配過的成年公牛都上架；一天沒人借就降一檔；最便宜也沒人借、又太老就下架（之後出貨）。"""
+    """L：沒配過的成年公牛都上架（D26：借種費依體重自動算，不選價位）；上架一天沒人借、又太老就下架（之後出貨）。"""
     g = b.game
     f = b.farm
-    fp = f.fp
     sm = g.stud
-    prices = fp.stud_prices
     for lst in list(sm.owner_listings(b.pid)):
         if now - lst.listed_at < STUD_RELIST_H * HOUR:
             continue
         c = f.cow_by_id(lst.cow_id)
-        g.stud_unlist(b.pid, lst.lid)
-        if c is None:
-            continue
-        i = prices.index(lst.price)
-        if i > 0:
-            _try(g.stud_list, b.pid, c.cid, prices[i - 1], now)
-        elif c.adult_age_h(now) < BULL_WAIT_MAX_H:
-            _try(g.stud_list, b.pid, c.cid, prices[0], now)
+        if c is None or c.adult_age_h(now) >= BULL_WAIT_MAX_H:
+            g.stud_unlist(b.pid, lst.lid)
     for c in list(f.cows):
         if c.bull and sm.can_list(f, c, now) and c.adult_age_h(now) < BULL_WAIT_MAX_H:
-            _try(g.stud_list, b.pid, c.cid, prices[STUD_PRICE_BY_TIER[c.tier]], now)
+            _try(g.stud_list, b.pid, c.cid, now)
 
 
 def hold_sell(b: Bot, ctx, now: float) -> None:

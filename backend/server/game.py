@@ -601,12 +601,15 @@ class Game:
             raise GameError("listing_not_found", "這筆借種已經不在了（被借走或下架）", 404, {"listing_id": lid})
         return lst
 
-    def stud_list(self, pid: int, cow_id, price, now: float) -> dict:
+    def stud_fee(self, lst, now: float) -> dict:
+        """借種費（協定 1.6 節）：這一刻依公牛的體重和稀有度算（D26）。"""
+        price, kg, at_max = self.stud.fee(lst, now)
+        return stud_fee_view(self.params.farm, lst.tier, price, kg, at_max)
+
+    def stud_list(self, pid: int, cow_id, now: float) -> dict:
+        """上架：主人只決定要不要上架，借種費由系統算（D26）。"""
         p = self.player(pid)
         c = self._cow(p, cow_id)
-        prices = p.farm.fp.stud_prices
-        if isinstance(price, bool) or not isinstance(price, (int, float)) or float(price) not in prices:
-            raise GameError("bad_request", "price 只能是 " + "、".join(str(int(x)) for x in prices), 400)
         if not c.bull:
             raise GameError("not_a_bull", "只有公牛能上架借種", 409, {"cow_id": c.cid})
         if not c.is_adult(now):
@@ -614,7 +617,7 @@ class Game:
         if c.bred:
             raise GameError("already_bred", "這頭公牛這輩子已經配過種", 409, {"cow_id": c.cid})
         self._check_free(c, "上架")
-        lst = self.stud.list_bull(p.farm, pid, c, float(price), now)
+        lst = self.stud.list_bull(p.farm, pid, c, now)
         if lst is None:
             raise GameError("rejected", "現在不能上架", 409)
         self.stud_dirty = True
@@ -636,12 +639,13 @@ class Game:
         out += self._breed_blockers(p, dam, now)
         if p.farm.free_slots() <= 0:
             out.append({"code": "pen_full", "message": "牛舍滿了，小牛沒地方放"})
-        if p.farm.coins < lst.price:
+        price = self.stud.price(lst, now)
+        if p.farm.coins < price:
             out.append(
                 {
                     "code": "not_enough_coins",
                     "message": "金幣不夠",
-                    "need": int(round(lst.price)),
+                    "need": int(round(price)),
                     "have": int(round(p.farm.coins)),
                 }
             )
@@ -662,7 +666,7 @@ class Game:
         return {
             "listing_id": lst.lid,
             "dam": dam.cid,
-            "price": int(round(lst.price)),
+            "fee": self.stud_fee(lst, now),
             **self._probs(lst.g, dam.g),
             "can_borrow": not blockers,
             "blockers": blockers,
@@ -676,12 +680,26 @@ class Game:
         now: float,
         rng: Optional[random.Random] = None,
         npc_rng: Optional[random.Random] = None,
+        expected_price=None,
     ) -> dict:
+        """借種，用這一刻的借種費。expected_price = 玩家預覽時看到的價格（API 一定帶；電腦假玩家不帶）：
+        跟現在的不一樣就回 409 price_changed，什麼都不扣（S18-12）。"""
         p = self.player(pid)
         lst = self._listing(lid)
         dam = self._cow(p, dam_id, "dam")
         if dam.bull:
             raise GameError("invalid_pair", "借種要用自己的母牛（dam）", 400)
+        price = self.stud.price(lst, now)
+        if expected_price is not None:
+            if isinstance(expected_price, bool) or not isinstance(expected_price, (int, float)):
+                raise GameError("bad_request", "price 要是整數（預覽時看到的借種費）", 400, {"fields": ["price"]})
+            if expected_price != price:
+                raise GameError(
+                    "price_changed",
+                    "借種費變了",
+                    409,
+                    {"price": int(round(price)), "expected": expected_price},
+                )
         blockers = self._borrow_blockers(p, lst, dam, now)
         if blockers:
             b = blockers[0]
@@ -691,7 +709,6 @@ class Game:
         owner = self.players.get(lst.owner) if lst.owner is not None else None
         if owner is not None:
             self._touch(owner.pid)
-        price = lst.price
         calf = self.stud.borrow(lst.lid, p.farm, pid, dam, now, self._rng(p, rng), owner.farm if owner else None)
         if calf is None:  # 上面已經檢查過，理論上不會發生
             raise GameError("rejected", "現在不能借種", 409)
@@ -765,6 +782,11 @@ def _sale_dict(commodity: str, res) -> dict:
         "market_price": res.price,
         "counted": res.counted,
     }
+
+
+def stud_fee_view(fp, tier: int, price: float, kg: float, at_max: bool) -> dict:
+    """協定 1.6 節的借種費物件。"""
+    return {"price": int(round(price)), "per_kg": fp.stud_fee_per_kg[tier], "kg": round(kg, 2), "at_max": at_max}
 
 
 def ship_value(game: Game, p: Player, cow: Cow, now: float, mult: Optional[float] = None) -> float:

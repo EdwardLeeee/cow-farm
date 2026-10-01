@@ -54,8 +54,9 @@ NAME_MESSAGES = {  # invalid_name 的 message（只供除錯；app 依 detail.re
     "bad_char": "名字裡有不能用的字",
 }
 # 伺服器的存檔格式（跟經濟引擎的版本分開算）。不一樣就拒絕啟動，原型階段不做搬移（ceo 2026-10-02）。
-# 2：v0.2（沒有這個欄位的舊世界）；3：協定 v2 的 24 品種圖鑑（品種代號 → 第一次發現的時間）。
-WORLD_FORMAT = 3
+# 2：v0.2（沒有這個欄位的舊世界）；3：協定 v2 的 24 品種圖鑑（品種代號 → 第一次發現的時間）；
+# 4：借種費依體重自動算（D26：借種上架改存公牛長大的時間，不存價位）。
+WORLD_FORMAT = 4
 
 
 def token_hash(token: str) -> bytes:
@@ -305,7 +306,7 @@ class GameServer:
         fmt = world.get("format", 2)
         if fmt != WORLD_FORMAT:
             raise RuntimeError(
-                f"資料庫裡的世界是存檔格式 {fmt}，這版伺服器是格式 {WORLD_FORMAT}（協定 v2 的 24 品種圖鑑），不相容。"
+                f"資料庫裡的世界是存檔格式 {fmt}，這版伺服器是格式 {WORLD_FORMAT}，不相容。"
                 "原型階段不做搬移：請清掉資料庫重建新世界（backend/README.md「從舊資料庫升級」），"
                 "或用 COWFARM_PG_DSN 指到另一個空的資料庫。"
             )

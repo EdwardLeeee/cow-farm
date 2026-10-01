@@ -96,7 +96,7 @@ COWFARM_RUN_DIR=/tmp/cowfarm-v02 COWFARM_PORT=8789 COWFARM_PG_DSN="$DSN" scripts
 COWFARM_RUN_DIR=/tmp/cowfarm-v02 COWFARM_PORT=8789 scripts/serve.sh stop
 ```
 
-啟動時日誌會印 `cowecon 參數指紋 c07566a5d81d7eec`：和經濟研究筆記相同，代表用的是模擬驗證過的那一份參數。
+啟動時日誌會印 `cowecon 參數指紋`：跟 `docs/research/economy/out/goals.json` 的 `params_fingerprint` 相同，代表用的是模擬驗證過的那一份參數。改了 `cowecon/params.py`（例如 D26 的借種費）之後會不同，要等 ceo 重跑經濟模擬。
 
 ### 遊戲時間與重啟
 
