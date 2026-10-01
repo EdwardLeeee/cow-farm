@@ -26,11 +26,11 @@ session 照進度分批開，名稱用 `cow-<角色>`。
 ## CI
 
 - main 有分支保護：必要檢查 `backend`、`app` 全綠才能合併，只能 squash，管理員也不能略過（`.github/workflows/ci.yml`）。
-  - `backend`：ruff、shellcheck、pip-audit、經濟引擎單元測試、伺服器 pytest（含 PostgreSQL 17）。
-  - `app`：flutter analyze、flutter test。
+  - `backend`：ruff check、ruff format（只檢查 `backend/`）、shellcheck、pip-audit、經濟引擎單元測試、伺服器 pytest（含 PostgreSQL 17）。
+  - `app`：dart format、flutter analyze、flutter test。
 - 本機只跑和改動相關的單一測試檔；完整測試、lint、建置交給 CI。PR 回報以 CI 結果為準，CI 紅燈才在本機重現那一項。
 - 只留在本機做的：需要私人金鑰的 dry-run、實機驗收、對照設計稿的比對。
-- 排版檢查還沒加：cow-back 開工的第一個 PR 用 ruff format 排好 `backend/`，cow-app 的第一個 PR 用 dart format 排好 `app/`，各自把檢查加進 CI。
+- 排版：行寬都是 120（`ruff.toml`、`app/analysis_options.yaml`）。推之前在本機排好：`backend/` 用 `ruff format`，`app/` 用 `dart format lib test`（要在 `flutter pub get` 之後跑，不然讀不到行寬）。
 - Dependabot 的 minor、patch 更新在必要檢查全綠後自動合併；major 由 ceo 看。
 
 ## 規則
