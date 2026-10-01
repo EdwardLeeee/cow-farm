@@ -1,14 +1,19 @@
 // M2 動畫出圖：每個動畫依 t 截圖。GIF 用的影格（DPR 1、每秒 15 格）、分鏡的關鍵影格（DPR 2）、減少動態的前後兩張（DPR 2）。
-// 用法：node harness/anim.mjs [A-01,A-02…]；之後跑 python3 harness/compose_anim.py 做 GIF、分鏡圖、減少動態圖。
+// 用法：node harness/anim.mjs [A-01,A-02…] [語言]；之後跑 python3 harness/compose_anim.py 做 GIF、分鏡圖、減少動態圖。
+// 語言是 en 或 th 時只拍分鏡的關鍵影格（存到 raw/<語言>/anim/），並在最後一格跑 capture.mjs 的量測（不做 GIF，不送核准，D25）。
 // 記憶體：跑之前先看 free -m（available ≥ 2000 MB），用 systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 包起來。
 import { chromium } from '@playwright/test';
 import { mkdir, writeFile, rm } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { startServer } from './server.mjs';
+import { measure } from './capture.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const OUT = join(ROOT, 'raw', 'anim');
+const LANG = process.argv[3] || 'zh-Hant';
+const OUT = LANG === 'zh-Hant' ? join(ROOT, 'raw', 'anim') : join(ROOT, 'raw', LANG, 'anim');
+const LQ = LANG === 'zh-Hant' ? '' : `&lang=${LANG}`;
+const LOCALE = { 'zh-Hant': 'zh-TW', en: 'en-US', th: 'th-TH' }[LANG] || 'zh-TW';
 const FPS = 15;
 // 減少動態：前後兩張（t0／tEnd 是動畫本身的第一格、最後一格；其他是狀態的頁面 ID）
 const REDUCED = {
@@ -32,13 +37,13 @@ async function run(filter) {
       await rm(dir, { recursive: true, force: true });
       await mkdir(dir, { recursive: true });
       // GIF 預設 DPR 1；動畫自己可以指定 gifDpr（例如 A-03 用 2，畫面比較細）
-      for (const [dpr, what] of [[a.gifDpr || 1, 'gif'], [2, 'keys']]) {
-        const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: dpr, isMobile: true, hasTouch: true, locale: 'zh-TW', colorScheme: 'light' });
+      for (const [dpr, what] of (LANG === 'zh-Hant' ? [[a.gifDpr || 1, 'gif'], [2, 'keys']] : [[2, 'keys']])) {
+        const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: dpr, isMobile: true, hasTouch: true, locale: LOCALE, colorScheme: 'light' });
         const page = await ctx.newPage();
         const errors = [];
         page.on('pageerror', (e) => errors.push(String(e)));
         page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
-        await page.goto(`${srv.base}/src/index.html?anim=${a.id}&w=390`, { waitUntil: 'load' });
+        await page.goto(`${srv.base}/src/index.html?anim=${a.id}&w=390${LQ}`, { waitUntil: 'load' });
         await page.waitForFunction(() => window.__ready === true, null, { timeout: 20000 });
         if (what === 'gif') {
           // 循環的動畫：最後一格就是第一格，不重複拍
@@ -51,6 +56,15 @@ async function run(filter) {
           for (let i = 0; i < a.keys.length; i++) {
             await page.evaluate((t) => window.__frame(t), a.keys[i][0]);
             await page.screenshot({ path: join(dir, `k${i}.png`) });
+          }
+          // 英文、泰文：量最後一個關鍵影格（動畫停住的樣子），不拍減少動態
+          if (LANG !== 'zh-Hant') {
+            const m = await page.evaluate(measure, []).catch((e) => ({ error: String(e) }));
+            await writeFile(join(dir, 'meta.json'), JSON.stringify({ id: a.id, name: a.name, uiLang: LANG, keys: a.keys, errors, ...m }, null, 1));
+            const n = ['clipped', 'outside', 'wrapped', 'overlaps'].map((k) => (m[k] || []).length);
+            console.log(`${n.some((x) => x) || errors.length ? '!!' : 'ok'} ${a.id} ${LANG}  缺字串${(m.i18nMissing || []).length}  截${n[0]} 出框${n[1]} 換行${n[2]} 疊${n[3]}${errors.length ? ' 錯誤:' + errors.join('|') : ''}`);
+            await ctx.close();
+            continue;
           }
           const [r0, r1] = REDUCED[a.id];
           for (const [j, r] of [[0, r0], [1, r1]]) {

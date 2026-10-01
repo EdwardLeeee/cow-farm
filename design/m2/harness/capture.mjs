@@ -31,8 +31,8 @@ function glossaryTerms() {
 }
 const DEV = { 430: [430, 932, 3], 390: [390, 844, 3], 360: [360, 800, 1], 320: [320, 568, 1] };
 
-// ---- 在頁面裡量 ----
-function measure(terms = []) {
+// ---- 在頁面裡量 ----（anim.mjs 量英文、泰文的動畫最後一格也用這個）
+export function measure(terms = []) {
   const phone = document.querySelector('.phone');
   const inSim = (el) => !!el.closest('.sim-statusbar, .sim-home-indicator, .fold-line');
   const vis = (el) => {
@@ -279,6 +279,6 @@ const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.arg
 if (isMain) {
   const filter = process.argv[2] && process.argv[2] !== 'all' ? process.argv[2] : '';
   const widths = (process.argv[3] || '430,390,360,320').split(',').map(Number);
-  const watchdog = setTimeout(() => { console.error('capture timeout (20 分)'); process.exit(2); }, 20 * 60 * 1000);
+  const watchdog = setTimeout(() => { console.error('capture timeout (45 分)'); process.exit(2); }, 45 * 60 * 1000); // 全部 × 四種寬度大約 25 分
   run(filter, widths).then(() => clearTimeout(watchdog)).catch((e) => { console.error(e); process.exit(1); });
 }
