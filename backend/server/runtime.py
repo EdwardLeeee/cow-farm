@@ -32,8 +32,8 @@ from . import bots as B
 from . import views as V
 from .clock import GameClock
 from .config import Config
-from .game import Game, GameError, Player
-from .names import display_name, random_ranch_name
+from .game import Game, GameError, Player, week_id, week_start
+from .names import random_ranch_name
 from .population import TUTORIAL_S, day_sessions_with, local_midnight_utc
 from .store import Store
 
@@ -520,13 +520,15 @@ class GameServer:
         owner = ev.get("owner")
         if owner is None:
             return
+        borrower = self.game.players.get(ev["borrower"])
         msg = {
             "type": "stud",
             "event": "borrowed",
             **V.time_fields(self.clock, self.clock.now()),
             "listing_id": ev["listing_id"],
-            "cow_id": ev["cow_id"],
+            "cow": {"id": ev["cow_id"]},
             "price": int(round(ev["price"])),
+            "borrower": V.ranch_ref(borrower) if borrower is not None else None,
         }
         text = json.dumps(msg, ensure_ascii=False)
         for ws, wpid in list(self.ws.items()):
@@ -638,13 +640,11 @@ class GameServer:
         out = {**V.time_fields(self.clock, now), "tick_t": self.game.ex.t, "next_tick_at": self.game.ex.t + TICK_S}
         for cid in self.game.cids:
             m = self.game.ex.markets[cid]
-            day = [x for x in self.history[cid] if x[0] >= now - 24 * HOUR]
+            # D24：市場畫面沒有走勢圖，不送 history（要看走勢用 /v1/market/history）；單位的字在 app 的字串表
             out[cid] = {
                 **V.quote_view(self.game, cid, self.history[cid], now),
                 "base_price": m.cp.base_price,
                 "ratio": V.r6(m.ratio()),
-                "unit": m.cp.unit,
-                "history": V.downsample(day, 5 * MINUTE),
             }
         out["news"] = self.news_list(now)
         return out
@@ -690,20 +690,23 @@ class GameServer:
         players = self.game.players
 
         def entry(rank, score, pid):
-            p = players[pid]
             return {
                 "rank": rank,
-                "player_id": pid,
-                "name": display_name(p.name, p.is_bot),
-                "ranch_name": p.name,
+                "ranch": V.ranch_ref(players[pid]),  # 協定 1.6 節；每列的等級是 ranch.level
                 "score": round(score) if kind != "collection" else int(score),
-                "is_bot": p.is_bot,
                 "is_me": pid == me.pid,
             }
 
         entries = [entry(i + 1, s, pid) for i, (s, pid) in enumerate(rows[:top])]
         mine = next((entry(i + 1, s, pid) for i, (s, pid) in enumerate(rows) if pid == me.pid), None)
-        return {**V.time_fields(self.clock, now), "kind": kind, "total": len(rows), "entries": entries, "me": mine}
+        out = {**V.time_fields(self.clock, now), "kind": kind, "total": len(rows), "entries": entries, "me": mine}
+        if kind == "weekly":
+            # 週一 00:00（台灣時間，遊戲時間）重算；換算成現實時間給 app 依手機時區顯示（照現在的倍率換算）
+            wid = week_id(now)
+            scale = self.clock.scale
+            out["week_started_at_real"] = out["real_time"] - (now - week_start(wid)) / scale
+            out["next_reset_at_real"] = out["real_time"] + (week_start(wid + 1) - now) / scale
+        return out
 
     def health(self) -> dict:
         return {

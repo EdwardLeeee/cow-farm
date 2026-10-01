@@ -27,7 +27,9 @@ from cowecon.farm import (
     tier_distribution,
     tier_of,
 )
-from server.game import TYPE_WIRE, Game, GameError
+from cowecon.params import HEADLINES
+from server.game import TYPE_WIRE, Game, GameError, week_id, week_start
+from server.names import load_words, station_words
 
 FP = DEFAULT.farm
 OB = DEFAULT.onboarding
@@ -103,7 +105,7 @@ def test_session_and_state_fields(h):
     ):
         assert k in st, k
     assert st["coins"] == OB.start_coins and isinstance(st["coins"], int)
-    assert st["shop"]["calf_price"] == {w: int(FP.shop_grade_price[-1]) for w in TYPE_WIRE}
+    assert "breed" not in st and set(st["shop"]) == {"grades"}  # 協定 v2 拿掉 v0.1 的相容欄位
     assert st["shop"]["grades"] == [
         {"grade": g, "price": int(FP.shop_grade_price[i])} for i, g in enumerate(FP.shop_grade_names)
     ]
@@ -123,7 +125,6 @@ def test_session_and_state_fields(h):
             "tier",
             "stage",
             "adult_at",
-            "ready_at",
             "milk_per_h",
             "weight_kg",
             "ship_value",
@@ -136,6 +137,8 @@ def test_session_and_state_fields(h):
             "grade_probs",
         ):
             assert k in c, k
+        for k in ("type_name", "tier_name", "ready_at", "breed_ready"):  # 協定 v2：不送中文、拿掉 v0.1 欄位
+            assert k not in c, k
         assert c["bred"] is False and c["working"] is False and c["listed"] is None
     calf = next(c for c in cows.values() if c["bull"])
     assert calf["stage"] == "calf" and calf["type"] == TYPE_WIRE[OB.starter_calf_type]
@@ -161,9 +164,10 @@ def test_unauthorized_and_validation_errors(h):
     err(h.client.get("/v1/nope"), 404, "not_found")
 
 
-def test_buy_calf_is_gone(h):
+def test_buy_calf_removed(h):
+    """協定 v2 拿掉 v1 的 /v1/buy_calf（v1 回 410 gone）：現在跟不存在的網址一樣。"""
     tok = h.session()["token"]
-    err(h.post("/v1/buy_calf", tok, {"type": "dairy", "bull": False, "request_id": new_rid()}), 410, "gone")
+    err(h.post("/v1/buy_calf", tok, {"type": "dairy", "bull": False, "request_id": new_rid()}), 404, "not_found")
 
 
 # ---------------------------------------------------------------------------
@@ -413,7 +417,7 @@ def test_breed_once_and_free(h):
     pv = h.get("/v1/breed/preview", tok, sire=bull["id"], dam=cow["id"]).json()
     p = h.server.game.players[st["player_id"]]
     sire_g, dam_g = p.farm.cow_by_id(bull["id"]).g, p.farm.cow_by_id(cow["id"]).g
-    assert pv["can_breed"] and pv["fee"] == 0
+    assert pv["can_breed"] and not {"fee", "normal_fee", "first_free"} & set(pv)  # 自己配免費，v2 拿掉費用欄位
     assert pv["tier_probs"] == pytest.approx(tier_distribution(sire_g, dam_g))
     types = [0.0, 0.0, 0.0]
     for (t, _m), pr in offspring_distribution(sire_g, dam_g).items():
@@ -423,10 +427,10 @@ def test_breed_once_and_free(h):
     r = h.post("/v1/breed", tok, {"sire": bull["id"], "dam": cow["id"], "request_id": new_rid()})
     assert r.status_code == 200, r.text
     b = r.json()
-    assert b["fee"] == 0 and b["coins"] == coins0  # 自己配免費
+    assert "fee" not in b and b["coins"] == coins0  # 自己配免費
     assert b["calf"]["stage"] == "calf" and b["calf"]["adult_at"] > b["server_time"] and b["calf"]["origin"] == "breed"
     assert b["sire"]["bred"] and b["dam"]["bred"]
-    assert b["sire"]["ready_at"] == bull["ready_at"]  # v0.2 沒有冷卻
+    assert set(b["sire"]) == set(b["dam"]) == {"id", "bred"}  # v0.2 沒有冷卻，v2 拿掉 ready_at
     # 一輩子一次：公母都不能再配、公牛也不能上架
     e = err(
         h.post("/v1/breed", tok, {"sire": bull["id"], "dam": cow["id"], "request_id": new_rid()}), 409, "already_bred"
@@ -451,7 +455,7 @@ def test_field_flow(h):
     st = state(h, tok)
     ox = next(c for c in st["cows"] if c["bull"])  # 開局的小公牛是耕牛
     cow = next(c for c in st["cows"] if not c["bull"])
-    assert ox["type"] == "dual" and ox["type_name"] == FP.type_names[1]
+    assert ox["type"] == "dual" and "type_name" not in ox
     err(h.post("/v1/field/assign", tok, {"cow_id": ox["id"], "request_id": new_rid()}), 409, "cow_not_adult")
     err(h.post("/v1/field/assign", tok, {"cow_id": cow["id"], "request_id": new_rid()}), 409, "not_an_ox")
     h.advance(OB.starter_calf_remaining_s)
@@ -508,7 +512,15 @@ def test_stud_borrow_pays_owner_and_calf_goes_to_borrower(h):
     bull = next(c for c in sa["cows"] if c["bull"])
     price = int(FP.stud_prices[1])
     lst = h.post("/v1/stud/list", a, {"cow_id": bull["id"], "price": price, "request_id": new_rid()}).json()["listing"]
-    assert lst["is_mine"] and lst["price"] == price and lst["owner_id"] == sa["player_id"]
+    assert lst["is_mine"] and lst["price"] == price
+    assert lst["owner"] == {  # 協定 1.6 節的牧場物件；真人送自己的名字
+        "player_id": sa["player_id"],
+        "name": sa["ranch_name"],
+        "name_words": None,
+        "is_bot": False,
+        "level": sa["level"],
+    }
+    assert not {"owner_id", "owner_name", "is_bot", "type_name", "tier_name"} & set(lst)
     assert next(c for c in state(h, a)["cows"] if c["id"] == bull["id"])["listed"] == lst["id"]
     err(h.post("/v1/ship", a, {"cow_id": bull["id"], "request_id": new_rid()}), 409, "cow_listed")
     # 主人不能借自己的
@@ -585,31 +597,43 @@ def test_stud_unlist_and_npc_listings(h):
         u["listing_id"] == lst["id"] and next(c for c in u["state"]["cows"] if c["id"] == bull["id"])["listed"] is None
     )
     err(h.post("/v1/stud/unlist", a, {"listing_id": lst["id"], "request_id": new_rid()}), 404, "listing_not_found")
-    # 電腦（系統）上架：錢不給任何人，借走後會補上
+    # 公營種牛站（電腦系統上架）：錢不給任何人，借走後會補上
     market = h.get("/v1/stud", a).json()
-    npc = [x for x in market["listings"] if x["owner_id"] is None]
-    assert len(npc) >= FP.npc_stud_listings and all(x["price"] == int(FP.npc_stud_price) and x["is_bot"] for x in npc)
+    npc = [x for x in market["listings"] if x["owner"]["player_id"] is None]
+    assert len(npc) >= FP.npc_stud_listings and all(x["price"] == int(FP.npc_stud_price) for x in npc)
+    for x in npc:  # 沒有 #編號和等級；名字是詞庫編號，由上架編號決定
+        o = x["owner"]
+        assert o["is_bot"] and o["name"] is None and o["level"] is None and x["cow_id"] is None
+        assert o["name_words"] == station_words(h.server.game.seed, x["id"]) and all(
+            0 <= w < 12 for w in o["name_words"]
+        )
     give(h, a, coins=10_000, slots=5)
     dam = next(c for c in sa["cows"] if not c["bull"])
     r = h.post("/v1/stud/borrow", a, {"listing_id": npc[0]["id"], "dam": dam["id"], "request_id": new_rid()}).json()
     assert r["price"] == int(FP.npc_stud_price) and r["coins"] == 10_000 - int(FP.npc_stud_price)
-    after = [x for x in h.get("/v1/stud", a).json()["listings"] if x["owner_id"] is None]
+    after = [x for x in h.get("/v1/stud", a).json()["listings"] if x["owner"]["player_id"] is None]
     assert len(after) >= FP.npc_stud_listings and npc[0]["id"] not in {x["id"] for x in after}
 
 
 # ---------------------------------------------------------------------------
 # 行情、排行榜、WebSocket、網頁版
 # ---------------------------------------------------------------------------
-def test_market_history_and_news(h):
+def test_market_and_history(h):
     tok = h.session()["token"]
     h.advance(3 * 3600)
     m = h.get("/v1/market", tok).json()
     for cid in DEFAULT.commodity_ids:
         q = m[cid]
-        for k in ("price", "change_24h", "ma24", "history", "base_price"):
-            assert k in q
+        assert set(q) == {
+            "price",
+            "change_24h",
+            "change_24h_pct",
+            "ma24",
+            "base_price",
+            "ratio",
+        }  # v2：沒有 history、unit
         assert q["base_price"] == DEFAULT.commodity(cid).base_price
-        assert len(q["history"]) >= 30 and q["history"][-1][0] <= m["server_time"]
+        assert q["ratio"] == pytest.approx(q["price"] / q["base_price"], abs=1e-5)
     assert m["tick_t"] == m["server_time"]
     for rng, step in (("1h", 60), ("1d", 300), ("7d", 1800)):
         r = h.get("/v1/market/history", tok, commodity="rice", range=rng).json()
@@ -617,25 +641,48 @@ def test_market_history_and_news(h):
     err(h.get("/v1/market/history", tok, commodity="gold", range="1h"), 400, "bad_request")
 
 
-def test_leaderboard_marks_bots(h):
+def test_leaderboard_ranch_and_level(h):
+    """每列是協定 1.6 節的牧場物件（含等級）；電腦牧場送詞庫編號，組回去就是伺服器存的名字。"""
     tok = h.session()["token"]
+    st = state(h, tok)
     h.advance(3600)
+    words = load_words()
     for kind in ("networth", "collection", "weekly"):
         lb = h.get("/v1/leaderboard", tok, kind=kind).json()
         assert lb["kind"] == kind and lb["total"] == 4
-        bots = [e for e in lb["entries"] if e["is_bot"]]
-        assert len(bots) == 3 and all(e["name"].startswith("電腦") for e in bots)
+        assert all(set(e) == {"rank", "ranch", "score", "is_me"} for e in lb["entries"])
+        bots = [e["ranch"] for e in lb["entries"] if e["ranch"]["is_bot"]]
+        assert len(bots) == 3
+        for r in bots:
+            p = h.server.game.players[r["player_id"]]
+            assert r["name"] is None and r["level"] == p.level()
+            assert "".join(words[g][i] for g, i in zip(("first", "second", "third"), r["name_words"])) == p.name
         assert [e["rank"] for e in lb["entries"]] == [1, 2, 3, 4]
         me = lb["me"]
-        assert me["is_me"] and not me["is_bot"] and not me["name"].startswith("電腦")
+        assert me["is_me"] and me["ranch"] == {
+            "player_id": st["player_id"],
+            "name": st["ranch_name"],
+            "name_words": None,
+            "is_bot": False,
+            "level": st["level"],
+        }
         assert sum(e["is_me"] for e in lb["entries"]) == 1
+        if kind == "weekly":  # 下次重算的現實時間（app 依手機時區顯示「每週一 00:00 重新計算」）
+            assert lb["week_started_at_real"] <= lb["real_time"] < lb["next_reset_at_real"]
+            span = (lb["next_reset_at_real"] - lb["week_started_at_real"]) * lb["time_scale"]
+            assert span == pytest.approx(7 * 86400)
+            assert week_start(week_id(lb["server_time"]) + 1) - lb["server_time"] == pytest.approx(
+                (lb["next_reset_at_real"] - lb["real_time"]) * lb["time_scale"]
+            )
+        else:
+            assert "next_reset_at_real" not in lb
 
 
 def test_websocket_push_and_auth(h):
     tok = h.session()["token"]
     with h.client.websocket_connect(f"/v1/ws?token={tok}") as ws:
         hello = ws.receive_json()
-        assert hello["type"] == "hello" and hello["protocol"] == 1
+        assert hello["type"] == "hello" and hello["protocol"] == 2
         m = ws.receive_json()
         assert m["type"] == "market" and "server_time" in m
         for cid in DEFAULT.commodity_ids:
@@ -676,6 +723,15 @@ def test_websocket_stud_notice_to_owner(h):
             and n["listing_id"] == lst["id"]
             and n["price"] == int(FP.stud_prices[0])
         )
+        sb = state(h, b)  # 借方是協定 1.6 節的牧場物件（G-05「{cow} 借給 {ranch}」）
+        assert n["cow"] == {"id": bull["id"]} and "cow_id" not in n
+        assert n["borrower"] == {
+            "player_id": sb["player_id"],
+            "name": sb["ranch_name"],
+            "name_words": None,
+            "is_bot": False,
+            "level": sb["level"],
+        }
 
 
 def test_news_pushed_over_websocket(h):
@@ -688,9 +744,30 @@ def test_news_pushed_over_websocket(h):
         n = ws.receive_json()
         while n["type"] != "news":
             n = ws.receive_json()
-        for k in ("id", "title", "commodity", "targets", "direction", "time", "start_at", "end_at", "state"):
+        for k in (
+            "id",
+            "code",
+            "params",
+            "pct",
+            "commodity",
+            "targets",
+            "direction",
+            "big",
+            "time",
+            "start_at",
+            "end_at",
+        ):
             assert k in n
+        assert "title" not in n  # v2：送代碼，app 查字串表 news.<code>
         assert n["direction"] in ("up", "down") and set(n["targets"]) <= set(DEFAULT.commodity_ids)
+        # 代碼對回引擎挑的標題；幅度 = factor − 1，正負跟利多利空一致
+        ev = h.server.news_log[n["id"]]
+        key, idx = n["code"].split(".")
+        commodity, direction = key.rsplit("_", 1)
+        assert direction == n["direction"] and n["params"] == {}
+        assert HEADLINES[commodity + ("+" if direction == "up" else "-")][int(idx) - 1] == ev.headline
+        assert commodity == (n["commodity"] or "all")
+        assert n["pct"] == pytest.approx(ev.factor - 1.0, abs=1e-4) and (n["pct"] > 0) == (direction == "up")
     ids = {x["id"] for x in h.get("/v1/market", tok).json()["news"]}
     assert n["id"] in ids
 

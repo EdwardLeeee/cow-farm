@@ -1,8 +1,9 @@
-"""HTTP 與 WebSocket 端點（協定 v1，文件在 docs/protocol.md）。
+"""HTTP 與 WebSocket 端點（協定 v2，文件在 docs/protocol.md；路徑維持 /v1）。
 
 - 全部 JSON；除了 POST /v1/session 以外都要 Authorization: Bearer <token>。
 - 會改狀態的請求都帶 request_id（UUID）；同一位玩家同一個 request_id 重送，回第一次的回應。
-- 錯誤一律 {"error": {"code": "...", "message": "<繁中>"}}，HTTP 4xx（伺服器錯誤 500）。
+- 錯誤一律 {"error": {"code": "...", "message": "<繁中>"}}，HTTP 4xx（伺服器錯誤 500）。app 依 code 查字串表，
+  message 只供除錯。
 - COWFARM_WEB_DIR 指向 Flutter 網頁版的輸出（app/build/web）時，在 / 提供網頁；資料夾不存在就略過。
 """
 
@@ -134,8 +135,8 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
             await server.stop()
 
     app = FastAPI(
-        title="cow-farm M1",
-        version="1",
+        title="cow-farm",
+        version="2",
         lifespan=lifespan,
         docs_url="/v1/docs",
         openapi_url="/v1/openapi.json",
@@ -278,12 +279,7 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
             p.pid, lambda now: g.ship(p.pid, req.cow_id, now), _rid(req.request_id), "ship", respond
         )
 
-    @app.post("/v1/buy_calf")
-    async def buy_calf(p: Player = Depends(current)):
-        # v0.2 起不能選用途與公母（企劃書 4.0）：一律回 410，請改用 /v1/shop/buy
-        server.game.buy_calf(p.pid)
-
-    # ---- v0.2：商店（等級抽牛） ----
+    # ---- 商店（等級抽牛）。v1 的 /v1/buy_calf 在協定 v2 拿掉了（打它是 404 not_found） ----
     @app.get("/v1/shop")
     async def shop(p: Player = Depends(current)):
         now = server.clock.now()
@@ -365,9 +361,8 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
             return {
                 **base(now),
                 "calf": V.cow_view(g, pl, res["calf"], now),
-                "fee": res["fee"],
-                "sire": {"id": res["sire"].cid, "ready_at": res["sire"].ready_at, "bred": res["sire"].bred},
-                "dam": {"id": res["dam"].cid, "ready_at": res["dam"].ready_at, "bred": res["dam"].bred},
+                "sire": {"id": res["sire"].cid, "bred": res["sire"].bred},
+                "dam": {"id": res["dam"].cid, "bred": res["dam"].bred},
                 "coins": st["coins"],
                 "state": st,
             }
@@ -582,7 +577,7 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
         try:
             now = server.clock.now()
             await websocket.send_text(
-                json.dumps({"type": "hello", **base(now), "player_id": p.pid, "protocol": 1}, ensure_ascii=False)
+                json.dumps({"type": "hello", **base(now), "player_id": p.pid, "protocol": 2}, ensure_ascii=False)
             )
             await websocket.send_text(json.dumps(server.market_message(), ensure_ascii=False))
             while True:

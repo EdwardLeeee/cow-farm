@@ -14,7 +14,7 @@ v0.1 的資料庫不相容，見「從舊資料庫升級」。
 | `server/runtime.py` | 遊戲時鐘、市場 tick、假玩家排程、存檔與 request_id 防重送、WebSocket 推播、重啟回復。 |
 | `server/app.py` | HTTP／WebSocket 端點、錯誤格式、網頁版靜態檔。 |
 | `server/store.py` | PostgreSQL 表與存取。 |
-| `server/data/ranch_words.json` | 牧場名詞庫（3 組 × 12 詞）。 |
+| `server/data/ranch_words.json` | 電腦牧場名的詞庫（3 組 × 12 詞）。協定只送編號，app 用字串表 `namegen.*` 組；繁中跟字串表一樣（i18ncheck 會檢查）。 |
 | `scripts/pg.sh` | PostgreSQL 容器（rootless podman）的啟停、備份、清掉資料庫重來（`resetdb`）。 |
 | `scripts/serve.sh` | 在背景啟動／停止伺服器。 |
 | `tests/` | pytest：存檔回復、經濟情境、協定、重啟回復。 |
@@ -141,6 +141,7 @@ systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 .venv/bin/py
 |---|---|---|
 | `test_persist.py` | cowecon 各類別（含田地、稻米、借種市場）存檔回復；同一個 seed「跑一半存檔、回復、再跑」＝「一路跑到底」（每個數字） | 否 |
 | `test_scenarios.py` | v0.2 經濟情境在服務層重跑並達到筆記的目標；和研究模擬逐數字相同（見下） | 否 |
+| `test_views.py` | 協定 v2 的代碼對照：新聞代碼跟字串表 `news.*` 一致、電腦牧場名的詞庫編號組得回原名、公營種牛站的名字固定 | 否 |
 | `test_api.py` | 協定欄位、request_id 防重送（含抽牛、出貨、借種）、錢不夠、牛不存在、還沒長大、牛舍滿、格式錯誤、WebSocket 與 4401；v0.2：抽牛機率與引擎一致（含抽樣）、評級機率與抽法、配種一次、借種付款與小牛歸屬、田地流程、舊資料庫拒絕啟動 | 是 |
 | `test_recovery.py` | 當機回復逐數字相同（含借種市場、田地）；「跑一半當機再跑」＝「一路跑到底」；真的伺服器程序 SIGKILL 後重開 | 是 |
 
