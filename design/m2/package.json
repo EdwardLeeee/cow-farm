@@ -1,0 +1,14 @@
+{
+  "name": "cow-farm-m2-design",
+  "private": true,
+  "version": "0.0.0",
+  "description": "M2 完整設計稿：S01–S20 全狀態、共用元件、動畫、圖鑑 24 種（獨立 HTML mockup 與出圖腳本）",
+  "type": "module",
+  "scripts": {
+    "capture": "node harness/capture.mjs",
+    "cowcheck": "node harness/cowcheck.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.0"
+  }
+}

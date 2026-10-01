@@ -1,0 +1,103 @@
+/* M2 設計稿：手機外框、安全區、示意狀態列、版面骨架。外觀照 R1-A「圓潤Q版」（第 1 輪使用者選定）。 */
+:root {
+  --ink: #4B3326;
+  --ink-2: #8A6F60;          /* 次要文字 */
+  --ink-3: #B29C8E;          /* 停用文字 */
+  --paper: #FFFBF3;          /* 卡片底 */
+  --cream: #FFF3DC;          /* 頁面底 */
+  --line-soft: #EADCC8;      /* 卡片內分隔線 */
+  --yellow: #FFD45E;         /* 主要按鈕、等級、金幣 */
+  --blue: #A9DBFF;           /* 牛奶、奶桶 */
+  --blue-2: #6FBDF0;
+  --green: #BDE8A6;          /* 田地、稻米、成功 */
+  --green-2: #7CC76A;
+  --pink: #FFD0DE;           /* 配種 */
+  --coral: #FF9784;          /* 牧場、提醒 */
+  --orange: #FFC98A;         /* 上架、警告 */
+  --red-soft: #FFB4AC;       /* 錯誤、刪除 */
+  --up: #E5484D;             /* 漲（台灣慣例漲紅） */
+  --down: #1E9A5A;           /* 跌 */
+  --disabled-bg: #EFE8DF;
+  --disabled-line: #CDBFB3;
+  --backdrop: rgba(46, 29, 20, 0.46);
+  --safe-top: 47px;
+  --safe-bottom: 34px;
+  --hud-h: 52px;
+  --tab-h: 62px;
+  --W: 390px;
+  --H: 844px;
+  --font-ui: "Noto Sans CJK TC", "Noto Sans TC", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; background: #FFFFFF; }
+body { font-family: var(--font-ui); color: var(--ink); -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+button { font: inherit; color: inherit; border: 0; background: none; padding: 0; margin: 0; cursor: pointer; }
+p { margin: 0; }
+.num { font-weight: 900; letter-spacing: 0.2px; font-variant-numeric: tabular-nums; }
+.nowrap { white-space: nowrap; }
+.row { display: flex; align-items: center; }
+.col { display: flex; flex-direction: column; }
+.grow { flex: 1; min-width: 0; }
+.muted { color: var(--ink-2); }
+
+.phone { position: relative; width: var(--W); height: var(--H); overflow: hidden; background: var(--cream); }
+.phone.tall { overflow: visible; display: flow-root; }
+
+/* 頁面底：暖米色，上方一條淡淡的天空色 */
+.page-bg { position: absolute; inset: 0; background: linear-gradient(180deg, #CDEBFF 0, #E9F6FF calc(var(--safe-top) + 64px), var(--cream) calc(var(--safe-top) + 150px)); }
+
+/* 內容區：頂列下面到分頁列上面 */
+.content {
+  position: absolute; left: 0; right: 0; top: calc(var(--safe-top) + var(--hud-h) + 12px);
+  bottom: calc(var(--safe-bottom) + var(--tab-h)); overflow: hidden; padding: 4px 12px 16px;
+}
+.no-tab .content { bottom: var(--safe-bottom); }
+.no-hud .content { top: var(--safe-top); }
+.phone.tall .content { position: relative; top: auto; bottom: auto; margin-top: calc(var(--safe-top) + var(--hud-h) + 12px); padding-bottom: calc(var(--safe-bottom) + var(--tab-h) + 16px); overflow: visible; }
+.stack > * + * { margin-top: 12px; }
+
+/* 場景（牧場、田地）：填滿整個畫面，UI 疊在上面 */
+.scene { position: absolute; left: 0; top: 0; width: var(--W); height: var(--H); overflow: hidden; }
+.scene > svg { display: block; }
+.overlays { position: absolute; inset: 0; pointer-events: none; }
+
+/* ---- 示意疊加層：狀態列、Home 指示條 ---- */
+.sim-statusbar {
+  position: absolute; left: 0; right: 0; top: 0; height: var(--safe-top); z-index: 100; pointer-events: none;
+  display: flex; align-items: center; justify-content: space-between; padding: 4px 22px 0 34px;
+  font: 600 16px/1 var(--font-ui); color: #111114; letter-spacing: 0.2px;
+}
+.sim-statusbar .sb-time { width: 54px; text-align: center; }
+.sim-statusbar .sb-icons { display: flex; align-items: center; gap: 6px; }
+.sim-statusbar.notch::before {
+  content: ""; position: absolute; left: 50%; top: 0; width: 158px; height: 31px; transform: translateX(-50%);
+  background: #0C0C10; border-radius: 0 0 19px 19px;
+}
+.sim-statusbar.island { padding: 6px 30px 0 44px; }
+.sim-statusbar.island::before {
+  content: ""; position: absolute; left: 50%; top: 11px; width: 126px; height: 37px; transform: translateX(-50%);
+  background: #0C0C10; border-radius: 19px;
+}
+.sim-statusbar.android { padding: 0 16px; font-size: 13px; }
+.sim-statusbar.android::before {
+  content: ""; position: absolute; left: 50%; top: 7px; width: 13px; height: 13px; transform: translateX(-50%);
+  background: #0C0C10; border-radius: 50%;
+}
+.sim-statusbar.classic { padding: 0 8px; font-size: 12px; justify-content: space-between; }
+.sim-statusbar.dark { color: #FFFFFF; }
+.sim-home-indicator {
+  position: absolute; left: 50%; bottom: 8px; width: 134px; height: 5px; margin-left: -67px; border-radius: 3px;
+  background: #121216; z-index: 100; pointer-events: none;
+}
+.sim-home-indicator.android { width: 108px; height: 4px; margin-left: -54px; bottom: 10px; }
+.sim-home-indicator.dark { background: #FFFFFF; }
+.phone.tall .sim-home-indicator { display: none; }
+
+/* 長頁：畫面高度那條線（第一個畫面看得到的範圍） */
+.fold-line {
+  position: absolute; left: 0; right: 0; height: 0; border-top: 2px dashed #E5484D; z-index: 120; pointer-events: none;
+}
+.fold-line span {
+  position: absolute; right: 6px; top: -22px; font: 700 12px/18px var(--font-ui); color: #FFFFFF; background: #E5484D;
+  padding: 0 6px; border-radius: 6px;
+}

@@ -40,3 +40,6 @@ docs/research/economy/out/runs/*.csv
 design/artboards/round[3-9]*/raw/*.png
 design/artboards/round[1-9][0-9]*/raw/*.png
 .pytest_cache/
+
+# M2 設計稿：DPR 3 原始截圖與量測 JSON 不進 git，靠 design/m2/harness 重產
+design/m2/raw/
