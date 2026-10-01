@@ -33,6 +33,9 @@ from .store import Store
 
 log = logging.getLogger("cowfarm")
 
+PROTOCOL_VERSION = 2  # docs/protocol.md（路徑維持 /v1）
+MAINT_OPEN_PATHS = ("/v1/status", "/v1/docs", "/v1/openapi.json")  # 維護中也能打的
+
 
 # ---------------------------------------------------------------------------
 # 請求格式（多的欄位忽略，方便日後只加不改）
@@ -148,6 +151,18 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
         redoc_url=None,
     )
     app.state.server = server
+
+    # 維護中（協定第 6 節）：除了 /v1/status 和 API 文件，/v1/* 都回 503 maintenance。
+    # 要在 CORS 之前註冊：後註冊的在外層，這樣 503 也帶 CORS 標頭。
+    @app.middleware("http")
+    async def _maintenance_gate(request: Request, call_next):
+        path = request.url.path
+        if path.startswith("/v1/") and path not in MAINT_OPEN_PATHS:
+            m = server.maintenance_view()
+            if m is not None and m["active"]:
+                return _err(503, "maintenance", "伺服器維護中", {"ends_at_real": m["ends_at_real"]})
+        return await call_next(request)
+
     # 區網試玩：token 放在 Authorization header（不用 cookie），所以開放所有來源；flutter run -d web-server 用別的埠也能連
     app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
@@ -185,10 +200,19 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
         return server.auth(token)
 
     def state_of(p: Player, now: float) -> dict:
-        return V.state_view(server.game, server.game.players[p.pid], now, server.clock)
+        st = V.state_view(server.game, server.game.players[p.pid], now, server.clock)
+        st["maintenance"] = server.maintenance_view()  # 維護預告（協定 6.1 節）；沒有是 null
+        return st
 
     def base(now: float) -> dict:
         return V.time_fields(server.clock, now)
+
+    # ---- 狀態（不用 token；維護中也能打） ----
+    @app.get("/v1/status")
+    async def status():
+        """app 啟動時先打：協定版本與維護預告（協定 6.1 節）。"""
+        now = server.clock.now()
+        return {**base(now), "protocol": PROTOCOL_VERSION, "maintenance": server.maintenance_view()}
 
     # ---- 帳號 ----
     @app.post("/v1/session")
@@ -585,6 +609,11 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
             if sp.startswith("cowfarm.token."):
                 tok = sp[len("cowfarm.token.") :]
         await websocket.accept(subprotocol="cowfarm.v1" if "cowfarm.v1" in offered else None)
+        m = server.maintenance_view()
+        if m is not None and m["active"]:  # 維護中：告訴 app 再關掉，app 不要重連（協定 6.2 節）
+            await websocket.send_text(json.dumps(server.maintenance_message(), ensure_ascii=False))
+            await websocket.close(code=4503, reason="maintenance")
+            return
         try:
             p = server.auth(tok)
         except GameError as e:
@@ -597,7 +626,9 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
         try:
             now = server.clock.now()
             await websocket.send_text(
-                json.dumps({"type": "hello", **base(now), "player_id": p.pid, "protocol": 2}, ensure_ascii=False)
+                json.dumps(
+                    {"type": "hello", **base(now), "player_id": p.pid, "protocol": PROTOCOL_VERSION}, ensure_ascii=False
+                )
             )
             await websocket.send_text(json.dumps(server.market_message(), ensure_ascii=False))
             while True:

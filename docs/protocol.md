@@ -25,11 +25,11 @@
 | 12 | 電腦牧場名 | 中文字串 | 三組詞的編號 `name_words`，app 照 `namegen.pattern` 用玩家的語言組 | 3，已做（PR 5 起伺服器直接存編號，協定不變） |
 | 13 | 借種費 | 主人從 300／800／2,000／5,000 選 | 系統依公牛現在的體重和稀有度算（D26）；借種要帶預覽看到的價格，變了回 `price_changed` | 6，已做 |
 | 14 | 借種紀錄 | 沒有 | `GET /v1/stud/log` | 7，已做 |
-| 15 | 維護 | 沒有 | `GET /v1/status`、`maintenance` 物件、503 `maintenance`、WS 4503 | 8 |
+| 15 | 維護 | 沒有 | `GET /v1/status`、`maintenance` 物件、503 `maintenance`、WS 4503 | 8，已做 |
 | 16 | 帳號 | 只有訪客 token | 綁定、解除、找回、換回、刪除牧場（D22）；舊手機收到 `signed_in_elsewhere` | 9 |
 | 17 | 遊戲時間 | 伺服器關著時暫停 | 倍率 1（正式版）照真實時間走，關機那段也算；試玩倍率照舊暫停 | 10 |
 
-PR 3–7 已做；PR 8–10 還沒做（2026-10-02）。每個 PR 合併時更新這張表的「PR」欄。
+PR 3–8 已做；PR 9、10 還沒做（2026-10-02）。每個 PR 合併時更新這張表的「PR」欄。
 
 **存檔不相容**：PR 4 起存檔格式改變，舊的世界（v0.2）伺服器會拒絕啟動。原型階段直接清掉資料庫重來（`backend/README.md`）。
 
@@ -917,13 +917,14 @@ app 啟動時先打這個（還沒有 token 也能打），再決定要不要顯
 |---|---|
 | `starts_at_real` | 開始維護的**現實時間**（Unix 秒） |
 | `ends_at_real` | 預計恢復的**現實時間**（S16-01「預計 {date} 恢復」） |
-| `active` | 現在是不是已經在維護 |
+| `active` | 現在是不是已經在維護：開始時間到了就是 true，直到營運結束維護（過了預計結束時間還沒結束，照樣是 true，營運要延長會改時間） |
 
 ### 6.2 維護前、維護中
 
 - 維護前（`active: false`）：照常玩，app 可以提示維護時間（設計稿沒有畫這個提示，cow-app 跟 ceo 決定要不要做）。
 - 維護中（`active: true`）：除了 `GET /v1/status` 和 `/healthz`，所有 `/v1/*` 回 `503 maintenance`（`detail.ends_at_real`）；WebSocket 送 `maintenance` 訊息後用 **4503** 關閉，app 不要重連，改成每 30 秒打一次 `/v1/status`，`maintenance` 變成 null 就重新載入。
-- 維護由營運在伺服器上用腳本（`backend/scripts/maint.sh`）安排、取消，不經過 API。
+- 維護由營運在伺服器上用腳本（`backend/scripts/maint.py`）安排、取消，不經過 API；伺服器馬上生效（資料庫 NOTIFY），另外每 30 秒自己再讀一次。
+- 維護中 `/v1/docs` 也能打（只是 API 文件）。
 - 伺服器整個停掉（部署）的那幾分鐘，沒有程式能回 503：M4 由反向代理回同一個形狀的 503，在那之前 app 會看到連不上（S15-01「連線中…」）。
 
 ## 7. WebSocket 即時推播：`/v1/ws`
@@ -990,3 +991,4 @@ app 啟動時先打這個（還沒有 token 也能打），再決定要不要顯
 - 2026-10-02：PR 5 做完第 0 節 11 項：`POST /v1/session {ranch_name, request_id}`、牧場名規則、測試向量 `name_cases.json`；電腦牧場改存詞庫編號。更正 2.2 節的例子：★ ♪ ♥ 在 Extended_Pictographic 裡，算 emoji（之前誤寫 ♪ 可以用）。
 - 2026-10-02：PR 6 做完第 0 節 13 項（D26）：借種費依公牛現在的體重和稀有度現算（`fee`、`cows[].stud_fee`），`/v1/stud/list` 不收 `price`，`/v1/stud/borrow` 要帶 `price`、變了回 409 `price_changed`；拿掉 `stud.prices`、上架清單的 `price`、`weight_kg`。存檔格式升到 4。
 - 2026-10-02：PR 7 做完第 0 節 14 項：`GET /v1/stud/log`（借出、借入，保留 30 遊戲天，最多 200 筆）；紀錄跟借種在同一個交易寫入。
+- 2026-10-02：PR 8 做完第 0 節 15 項：`GET /v1/status`、`state.maintenance`、503 `maintenance`、WS `maintenance` 訊息與 4503；`backend/scripts/maint.py` 安排與結束維護。第一版不做維護前的提示畫面（ceo 2026-10-02），資料先給。

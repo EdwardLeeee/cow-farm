@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import random
+import time
 
 import pytest
 from starlette.websockets import WebSocketDisconnect
@@ -981,6 +982,93 @@ def test_news_pushed_over_websocket(h):
         assert n["pct"] == pytest.approx(ev.factor - 1.0, abs=1e-4) and (n["pct"] > 0) == (direction == "up")
     ids = {x["id"] for x in h.get("/v1/market", tok).json()["news"]}
     assert n["id"] in ids
+
+
+def _set_maintenance(h, value):
+    """測試用：直接寫 meta 的 maintenance（跟 scripts/maint.py 一樣），再叫伺服器重讀。"""
+
+    async def go():
+        async with h.server.store.pool.acquire() as conn:
+            if value is None:
+                await conn.execute("DELETE FROM meta WHERE key='maintenance'")
+            else:
+                await conn.execute(
+                    "INSERT INTO meta(key, value) VALUES('maintenance', $1) "
+                    "ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value",
+                    value,
+                )
+
+    h.client.portal.call(go)
+    h.client.portal.call(h.server.reload_maintenance)
+
+
+def test_maintenance(h):
+    """維護（協定第 6 節）：/v1/status 不用 token；預告時照常玩並推 maintenance；開始後 503、WebSocket 4503；結束後恢復。"""
+    tok = h.session()["token"]
+    st = h.client.get("/v1/status").json()
+    assert st["protocol"] == 2 and st["maintenance"] is None and "server_time" in st
+    assert state(h, tok)["maintenance"] is None
+    now = time.time()
+    with h.client.websocket_connect(f"/v1/ws?token={tok}") as ws:
+        ws.receive_json()
+        ws.receive_json()
+        _set_maintenance(h, {"starts_at_real": now + 3600, "ends_at_real": now + 7200})  # 預告
+        m = ws.receive_json()
+        assert m["type"] == "maintenance"
+        assert m["maintenance"] == {"starts_at_real": now + 3600, "ends_at_real": now + 7200, "active": False}
+        assert h.client.get("/v1/status").json()["maintenance"]["active"] is False
+        assert state(h, tok)["maintenance"]["ends_at_real"] == now + 7200  # 預告時照常玩
+        _set_maintenance(h, {"starts_at_real": now - 1, "ends_at_real": now + 3600})  # 開始了
+        m = ws.receive_json()
+        assert m["type"] == "maintenance" and m["maintenance"]["active"] is True
+        with pytest.raises(WebSocketDisconnect) as exc:
+            ws.receive_json()
+        assert exc.value.code == 4503
+    e = err(h.get("/v1/state", tok), 503, "maintenance")
+    assert e["detail"] == {"ends_at_real": now + 3600}
+    err(h.client.post("/v1/session", json={"ranch_name": "牧場"}), 503, "maintenance")
+    assert h.client.get("/v1/status").json()["maintenance"]["active"] is True  # 維護中也能打
+    with h.client.websocket_connect("/v1/ws?token=bad") as ws:  # 維護中：先說維護，不管 token
+        assert ws.receive_json()["type"] == "maintenance"
+        with pytest.raises(WebSocketDisconnect) as exc:
+            ws.receive_json()
+        assert exc.value.code == 4503
+    _set_maintenance(h, None)  # 結束
+    assert h.get("/v1/state", tok).status_code == 200 and h.client.get("/v1/status").json()["maintenance"] is None
+    with h.client.websocket_connect(f"/v1/ws?token={tok}") as ws:
+        assert ws.receive_json()["type"] == "hello"
+
+
+def test_maintenance_script_notifies_server(h, db_dsn):
+    """scripts/maint.py 寫資料庫並 NOTIFY，執行中的伺服器不用重啟就知道。"""
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    script = Path(__file__).resolve().parents[1] / "scripts" / "maint.py"
+    env = {**os.environ, "COWFARM_PG_DSN": db_dsn}
+
+    def run(*args):
+        r = subprocess.run([sys.executable, str(script), *args], env=env, capture_output=True, text=True, timeout=60)
+        assert r.returncode == 0, r.stderr
+        return r.stdout
+
+    def wait_status(pred):
+        for _ in range(50):
+            m = h.client.get("/v1/status").json()["maintenance"]
+            if pred(m):
+                return m
+            time.sleep(0.1)
+        raise AssertionError("伺服器沒有收到通知")
+
+    assert "已安排" in run("schedule", "+1h", "+30m")
+    m = wait_status(lambda m: m is not None)
+    assert m["active"] is False and m["ends_at_real"] - m["starts_at_real"] == pytest.approx(1800)
+    assert "預告中" in run("status")
+    assert "已結束" in run("end")
+    wait_status(lambda m: m is None)
+    assert "沒有安排" in run("status")
 
 
 def test_client_time_is_ignored(h):
