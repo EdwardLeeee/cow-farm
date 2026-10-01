@@ -6,19 +6,23 @@ import 'api/push.dart';
 import 'app.dart';
 import 'config.dart';
 import 'state/game_model.dart';
+import 'state/settings.dart';
 import 'storage/token_store.dart';
 import 'theme/app_theme.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   registerFontLicenses();
+  // 先讀語言設定，第一個畫面就用對的語言。
+  final settings = SettingsController(SharedPrefsStore());
+  await settings.load();
   final base = resolveApiBase();
   final model = GameModel(
     api: HttpGameApi(base: base),
     push: WsPushClient(base: base),
     tokens: createTokenStore(),
   );
-  runApp(CowFarmApp(model: model));
+  runApp(CowFarmApp(model: model, settings: settings));
   model.start();
 }

@@ -12,6 +12,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  # 系統元件（輸入框選單、日期）跟著 app 的語言（D25：繁中、英文、泰文）。
+  flutter_localizations:
+    sdk: flutter
   # 狀態管理：ChangeNotifier + provider（簡單做法）。
   provider: ^6.1.5
   # HTTP 與 WebSocket。
@@ -23,6 +26,8 @@ dependencies:
   flutter_secure_storage: ^11.2.0
   # 網頁版把 token 存在瀏覽器 localStorage（區網 http 不是安全環境，無法用 WebCrypto）。
   web: ^1.1.0
+  # 偏好設定（語言、漲跌顏色）；不是帳，也不放 token（T1）。
+  shared_preferences: ^2.5.0
 
 dev_dependencies:
   flutter_test:
