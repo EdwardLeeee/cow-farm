@@ -43,9 +43,25 @@ def dpr2(png):
     im = Image.open(png).convert('RGB')
     return im.resize((round(im.width * 2 / 3), round(im.height * 2 / 3)), Image.LANCZOS)
 
-def header(draw, x, y, title, sub, tags=()):
-    draw.text((x, y), title, font=font(34, 'Black'), fill=INK)
-    tx = x + draw.textlength(title, font=font(34, 'Black')) + 16
+NO_START = set('，。、）」：；！？』')  # 這些標點不放在行首
+def wrap_text(draw, text, f, width):
+    lines, cur = [], ''
+    for ch in text:
+        if draw.textlength(cur + ch, font=f) > width and cur and ch not in NO_START:
+            lines.append(cur); cur = ch
+        else:
+            cur += ch
+    if cur: lines.append(cur)
+    return lines
+
+def header(draw, x, y, title, sub, tags=(), maxw=None):
+    # maxw：標題加標籤最多這麼寬；太長就把標題的字縮小（最小 24），不讓右邊被切掉
+    size = 34
+    tagw = (16 + sum(draw.textlength(t, font=font(22)) + 24 for t in tags) + 10 * (len(tags) - 1)) if tags else 0
+    if maxw:
+        while size > 24 and draw.textlength(title, font=font(size, 'Black')) + tagw > maxw: size -= 2
+    draw.text((x, y + (34 - size)), title, font=font(size, 'Black'), fill=INK)
+    tx = x + draw.textlength(title, font=font(size, 'Black')) + 16
     for t in tags:
         w = draw.textlength(t, font=font(22)) + 24
         draw.rounded_rectangle([tx, y + 6, tx + w, y + 42], 14, fill=(255, 212, 94), outline=INK, width=3)
@@ -59,7 +75,7 @@ def board_full(m, img, screen_dir):
     W, H = ph.width + pad * 2, head + ph.height + pad
     im = Image.new('RGB', (W, H), BG); d = ImageDraw.Draw(im)
     tags = ['長頁'] if m.get('tall') else []
-    header(d, pad, 20, f"M2-{m['id']}  {m['name']}", f"{m['screen']} {m['screenName']}　·　{DEVNAME[m['width']]}", tags)
+    header(d, pad, 20, f"M2-{m['id']}  {m['name']}", f"{m['screen']} {m['screenName']}　·　{DEVNAME[m['width']]}", tags, maxw=ph.width)
     im.paste(ph, (pad, head), ph)
     d.rounded_rectangle([pad - 3, head - 3, pad + ph.width + 2, head + ph.height + 2], 62, outline=INK, width=4)
     name = f"M2-{m['id']}-{safe(m['screenName'])}-{safe(m['name'])}-{m['width']}.png"
@@ -76,9 +92,12 @@ def sheet_parts(screen, sname, parts, w, screen_dir):
         tiles.append((m, img, cap))
     colw = max(t[1].width for t in tiles)
     ncol = 2 if colw <= 900 and len(tiles) > 1 else 1
+    # 每格的標題太長就換行（一行 34 高），不讓它超出欄寬
+    tmp = ImageDraw.Draw(Image.new('RGB', (10, 10)))
+    tiles = [(m, img, wrap_text(tmp, cap, font(26), colw)) for m, img, cap in tiles]
     cols = [[] for _ in range(ncol)]; hs = [0] * ncol
     for t in tiles:
-        i = hs.index(min(hs)); cols[i].append(t); hs[i] += 60 + t[1].height + gap
+        i = hs.index(min(hs)); cols[i].append(t); hs[i] += 60 + 34 * (len(t[2]) - 1) + t[1].height + gap
     W = pad * 2 + ncol * colw + (ncol - 1) * gap
     H = head + max(hs) + pad
     im = Image.new('RGB', (W, H), BG); d = ImageDraw.Draw(im)
@@ -86,8 +105,9 @@ def sheet_parts(screen, sname, parts, w, screen_dir):
     for ci, col in enumerate(cols):
         x, y = pad + ci * (colw + gap), head
         for m, img, cap in col:
-            d.text((x, y + 8), cap, font=font(26), fill=INK)
-            y += 50
+            for j, line in enumerate(cap):
+                d.text((x, y + 8 + 34 * j), line, font=font(26), fill=INK)
+            y += 50 + 34 * (len(cap) - 1)
             im.paste(img, (x, y))
             d.rectangle([x - 2, y - 2, x + img.width + 1, y + img.height + 1], outline=(200, 184, 168), width=2)
             y += img.height + gap
