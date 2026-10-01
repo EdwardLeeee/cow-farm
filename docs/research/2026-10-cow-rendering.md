@@ -1,13 +1,28 @@
 # 牛在 app 裡怎麼畫、同品種的個體差異怎麼保留、要內建多大的字型：研究
 
 - 日期：2026-10-02
-- 負責：cow-app（只研究，沒有改產品程式）
+- 負責：cow-app（只研究，沒有改產品程式；檔頭「結果」2026-10-02 補上 ceo 的決定和一處更正）
 - 問題：
   - cow-app brief（`docs/briefs/2026-10-01-app.md`）第 2 步：牛要畫 24 種 × 公母 × 小牛／成牛／老牛 × 側面／正面，加上轉身。比較 (a) cow-ui 用產生器匯出圖、app 載入，和 (b) 把產生器移植成 Dart；同品種的個體微調怎麼保留；列出要 cow-ui 匯出的東西。
   - ceo 2026-10-02 補充：
     - 這一步不量 fps，改成 M4 的驗收條件。
     - 字型要量完整版、常用字子集和可變字型的大小。
     - 決定時看三件事：多出來的 MB 數、跟核准圖的一致性、cow-ui 之後改牛時要不要整批重出。
+
+## 結果（2026-10-02 更新）
+
+- **ceo 定的**（PR #28 合併後，記成 T3）：
+  - 牛用選項 2：會變花紋的 9 種各 4 個變體，加上 12 種的朝右版本。
+  - 字型內建可變字型完整版。
+- **更正：素材不在建置時轉換，執行時直接讀 SVG**（ceo 2026-10-02，選三個做法的第 1 種）。
+  - 原本建議用 pubspec 的 asset transformer 在建置時把 SVG 編成 `.vec`。研究時只拿 1 個檔試，確認會轉換、解得開。
+  - 真的對 600 張開轉換後，`flutter test` 在這台的記憶體上限（1.5 GB）內兩次都在 4 秒內被 OOM 砍掉（結束碼 137）。
+  - 原因：Flutter 每個檔各開一個 `dart run vector_graphics_compiler` 行程，同時 4 個（flutter_tools 的 `Pool(4)`），再加上 flutter 本身。
+  - 所以改成執行時用 flutter_svg 讀 SVG。畫出來跟 `.vec` 一模一樣（第 1 節的表：直接讀 SVG 和關掉最佳化的 `.vec` 數字完全相同）。
+  - 大小（600 張實測）：iPhone 安裝 +29.2 MB、下載 +5.8 MB。原本 `.vec` 是 +10.6 MB／+7.3 MB：安裝多 18.6 MB，下載反而少 1.5 MB。
+  - 載入：每張第一次解析約 4.2 ms（筆電），之後快取。
+  - 備案：同樣的轉換用批次模式（`vector_graphics_compiler --input-dir`，一個行程）600 張只要 3 秒、137 MB。M4 實機的載入時間或記憶體不理想時，在建置前加這一步，素材本身不用動。
+- 下面「先說結論」到第 6 節是當時的分析，保留原文；跟這段不同的地方以這段為準。
 
 ## 先說結論
 
@@ -140,11 +155,12 @@
 - 這是每種長相只做一次的成本，做完的圖存起來重複用。之後每一格畫面只是把圖貼上去，加上移動、翻轉、搖晃。
 - 以 40 頭都不一樣、各要側面加正面來算，筆電上約 0.3–0.6 秒，可以在背景慢慢做。
 - 這些數字不代表 fps。
-- **M4 驗收條件（ceo 2026-10-02 定）**：
-  - 在 iPhone 14 Pro Max（TestFlight）上，牧場 40 頭牛走動。
-  - fps 中位數 ≥ 55，最慢 5% ≥ 30。
-  - 量法沿用 `docs/research/tech-stack/flutter-findings.md` 的 FrameTiming 做法。
-  - 同時記下記憶體。
+- **M4 驗收條件（ceo 2026-10-02 定）**，在 iPhone 14 Pro Max（TestFlight）上量：
+  1. 牧場 40 頭牛走動：fps 中位數 ≥ 55，最慢 5% ≥ 30。量法沿用 `docs/research/tech-stack/flutter-findings.md` 的 FrameTiming 做法。
+  2. 安裝大小（執行時讀 SVG：牛 +29.2 MB、字型 +11.8 MB）。
+  3. 牧場第一次打開到牛全部畫出來的時間（每張 SVG 第一次要解析，筆電上約 4.2 ms 一張）。
+  4. 記憶體。
+  - 第 3、4 項不理想時，在建置前加批次編譯成 `.vec` 的步驟（見檔頭「結果」），素材不用動。
 
 ## 3. 大小與記憶體
 
@@ -227,10 +243,9 @@
 
 ## 5. 對現有架構的影響
 
-- pubspec：
-  - 加 `flutter_svg`、`vector_graphics_compiler`（建置時的 asset transformer）。
-  - 牛的圖放 `app/assets/cows/`，用 transformer 編成 `.vec`，並帶 `args: ['--no-optimize-masks', '--no-optimize-clips', '--no-optimize-overdraw']`。
-  - 官方文件：「You can configure your project to automatically transform assets at build time」，pubspec 範例就是 vector_graphics_compiler，也能傳 args。
+- pubspec（2026-10-02 更正：不用 asset transformer，見檔頭「結果」）：
+  - 加 `flutter_svg`，素材照原樣宣告，執行時讀 SVG。
+  - 原本的想法是用 transformer 編成 `.vec` 並關掉三個最佳化。官方文件：「You can configure your project to automatically transform assets at build time」。但 600 張在這台跑不動。
 - 素材的來源：
   - cow-ui 從 `design/m2/` 匯出 SVG 和 `cows.json`（每張圖的框、臉、頭頂、影子）。
   - app 用小工具複製進 `app/assets/cows/`，用測試鎖住兩邊相同，跟字串表的做法一樣。
@@ -244,9 +259,8 @@
   - 主題同時設 fontWeight 和 `FontVariation.weight`。
   - 授權：兩個字型都是 SIL Open Font License 1.1。條件 2 原文：「each copy contains the above copyright notice and this license」。用 `LicenseRegistry.addLicense` 放進 app 的第三方授權頁（ceo 2026-10-02 要求）。
   - Noto Sans TC 的保留名稱是「Source」。如果改用子集（子集算 Modified Version），檔名和字型名不能用「Source」；「Noto Sans TC」不受影響。
-- **已確認 asset transformer 在 `flutter test` 也會跑**（`spike/test/transformer_test.dart`）：
-  - `rootBundle` 讀到的是編好的 `.vec`（17,105 bytes；原始 SVG 45,774 bytes），`AssetBytesLoader` 解得開。
-  - 所以截圖管線和每個畫面的 widget test 讀到的牛，跟 app 裡的一樣。
+- 研究時確認過 asset transformer 在 `flutter test` 也會跑（`spike/test/transformer_test.dart`，只有 1 個檔）：`rootBundle` 讀到的是編好的 `.vec`（17,105 bytes；原始 SVG 45,774 bytes）。
+  - 但 600 張在 1.5 GB 記憶體上限內跑不動（見檔頭「結果」），所以沒有採用。
 
 ## 6. 建議與分階段
 
@@ -269,7 +283,7 @@
    - 第 3a 步：字型和主題（字型等 ceo 定）。
    - 牛的圖到了以後，才做有牛的畫面和第 5 步的場景。
    - 驗收：每個畫面的截圖跟設計稿並排，牛的部分照第 1 節的量法再比一次。
-4. **M4**：照第 2 節的驗收條件，在 iPhone 量 fps 和記憶體。牛的圖在 Impeller（iPhone 的繪圖引擎）上，用同一套比對工具再跑一次。
+4. **M4**：照第 2 節的四項驗收條件（fps、安裝大小、第一次載入的時間、記憶體），在 iPhone 上量。牛的圖在 Impeller（iPhone 的繪圖引擎）上，用同一套比對工具再跑一次。
 
 ## 附錄
 
