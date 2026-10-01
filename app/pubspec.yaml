@@ -28,15 +28,27 @@ dependencies:
   web: ^1.1.0
   # 偏好設定（語言、漲跌顏色）；不是帳，也不放 token（T1）。
   shared_preferences: ^2.5.0
+  # 牛、圖示、場景是 cow-ui 匯出的 SVG，執行時讀（T3；ceo 2026-10-02：不在建置時轉換）。
+  flutter_svg: ^2.3.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  # test/cow_assets_test.dart 算素材的 SHA-256
+  crypto: ^3.0.0
   flutter_lints: ^6.0.0
 
 flutter:
   uses-material-design: true
   assets:
+    # cow-ui 的 design/m2/harness/assetexport.mjs 產生的素材，不要手改（test/cow_assets_test.dart 檢查）。
+    # 執行時直接讀 SVG：Flutter 的 asset transformer 每個檔開一個行程，600 張在這台的記憶體上限內跑不動。
+    - assets/cows/svg/
+    - assets/cows/cows.json
+    - assets/ui/icons/
+    - assets/ui/scenes/
+    - assets/ui/parts/
+    - assets/ui/ui.json
     # 內建字型的授權全文（OFL 1.1），放進第三方授權頁（theme/app_theme.dart 的 registerFontLicenses）。
     - assets/fonts/OFL-NotoSansTC.txt
     - assets/fonts/OFL-NotoSansThai.txt

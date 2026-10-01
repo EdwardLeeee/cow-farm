@@ -39,6 +39,7 @@
 | `lib/util/name_tables.g.dart` | 由 `tool/gen_name_tables.py` 用伺服器的 `backend/server/ranchname.py` 逐字產生（要 Python 3.10，Unicode 13.0），不要手改 |
 | `lib/ui/` | 頂列、各分頁畫面（`screens/`）、共用元件（`widgets/`） |
 | `lib/theme/` | 設計參數（顏色、尺寸、圓角、實心下陰影、文字樣式），照 M2 設計稿的 `base.css`、`kit.css`；`app_theme.dart` 是頁面底色、字型和字型授權 |
+| `assets/cows/`、`assets/ui/` | 牛、圖示、場景、卡車零件的 SVG 和描述檔（`cows.json`、`ui.json`），由 cow-ui 的 `design/m2/harness/assetexport.mjs` 產生，不要手改；執行時讀 SVG（T3）。`test/cow_assets_test.dart` 檢查檔案、雜湊和產生器有沒有漂移 |
 | `assets/fonts/` | 內建字型（T3）：Noto Sans TC 可變字型完整版（google/fonts 2.004-H2）、Noto Sans Thai 可變字型（2.002）、兩份 OFL 授權 |
 | `test/` | widget test 與單元測試，全部用 `test/fakes.dart` 的假資料層 |
 
