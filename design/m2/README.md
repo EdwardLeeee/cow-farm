@@ -123,6 +123,22 @@
 - 數字縮寫：繁中用「萬」「億」；英文、泰文用 K、M（`Intl.NumberFormat` 的 compact）。
 - 給 cow-app 的 strings.dart 對照表、錯誤碼文案、「幫我想一個」的取名詞庫（`namegen.*`）、電腦牧場名的做法：`i18n/README.md`。
 
+## 匯出給 app 的牛和素材（ceo 2026-10-02，選項 2；格式跟 cow-app 商量好）
+
+- `node design/m2/harness/assetexport.mjs`：清空再寫 `app/assets/cows/`、`app/assets/ui/`。這兩個資料夾只放產生的檔案，不要手改。
+- 改了牛的產生器（`src/cow/`）、圖示（`icons.js`）、場景（`scene.js` 的 `backdrop`）或卡車（`truck.js`），就重跑一次，跟 `design/` 的改動放在同一個 PR。
+- `--check`：在記憶體重產一次，跟 repo 裡的檔案逐檔比，不一樣就結束碼 1，給本機用。CI 的 app 測試（cow-app）核對 `cows.json`、`ui.json` 記的雜湊。
+- 牛：
+  - 24 種 × 公母 × 小牛／成牛 × 側面／正面，全部朝左；12 種有光澤的加朝右。
+  - 花紋會變的 9 種各 4 個變體：v0 是品種本身的 seed，v1–v3 是 1000、1037、1074。
+  - 共 600 張，`cows.json` 記每張的框、臉、頭頂、影子。
+- 素材：
+  - 圖示 48 個、分頁列 6 個（選中、沒選中各一張）。
+  - 場景：牧場兩個螢幕寬、出貨那一幕，都不含牛。
+  - 零件：卡車車身前後兩層、輪子、擋板、路、星星亮光。
+  - `ui.json` 記錨點，例如輪子中心、擋板轉軸、路的位置。
+- 田地不匯出：cow-app 照 `s17.js` 的 `fieldScene` 在 app 裡畫。改 `fieldScene` 或田地的配色時，要通知 cow-app。
+
 ## 重新出圖
 
 ```bash

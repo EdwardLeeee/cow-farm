@@ -46,8 +46,8 @@ export function sparkle(x, y, r) {
   return `<path d="M${x},${y - r} Q${x + r * 0.18},${y - r * 0.18} ${x + r},${y} Q${x + r * 0.18},${y + r * 0.18} ${x},${y + r} Q${x - r * 0.18},${y + r * 0.18} ${x - r},${y} Q${x - r * 0.18},${y - r * 0.18} ${x},${y - r}z" fill="#FFE27A" stroke="${L}" stroke-width="1.6" stroke-linejoin="round"/>`;
 }
 
-// 背景（不含牛）
-function backdrop(herd, wide = false) {
+// 背景（不含牛）。素材匯出（harness/assetexport.mjs）也用這個畫 app 的牧場背景
+export function backdrop(herd, wide = false) {
   const o = [];
   const X = wide ? WIDE + 450 : 450; // 右邊緣（畫面外）
   o.push(`<defs><linearGradient id="a-sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#94D3FF"/><stop offset="0.5" stop-color="#C4E9FF"/><stop offset="1" stop-color="#E4F6FF"/></linearGradient></defs>`);

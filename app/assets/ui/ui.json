@@ -1,0 +1,427 @@
+{
+ "about": [
+  "cow-ui 的 design/m2/harness/assetexport.mjs 產生的，不要手改。files 的 key 是 app/assets/ui/ 底下的路徑。",
+  "scenes：設計稿的座標，一個螢幕 390×844（ranch 是兩個螢幕寬 780），app 用 cover 放到螢幕上；不含牛。",
+  "parts/road：出貨那一幕的路，畫在螢幕座標：上緣 = 螢幕高 × 0.74 − 34，高 70，左右各多 10；48 寬一段，左右重複接。",
+  "parts/truck_*：卡車自己的座標 270×152（anchors.truck）。back 畫在牛後面，front 畫在牛前面；輪子、擋板另外畫。",
+  "parts/sparkle：半徑 10，中心在 (0, 0)；描邊 1.6，設計稿畫小的星星時描邊不縮。"
+ ],
+ "generator": {
+  "design/m2/harness/assetexport.mjs": "57cfbc5f63bf1df2f9f492e9d1edd0cd54b89d3295a3146afe2202eff92ea9a3",
+  "design/m2/src/cow/breeds.js": "8a1563caa470739a78b3b7d33f49d0b3043985b194f560ce0a3a7d466543ae26",
+  "design/m2/src/cow/q.js": "161f0ebf2cffa8d8baf19f095bab63f04c6d55004155fd078942b2aae7b5fbee",
+  "design/m2/src/cow/r1/cowgen.js": "1935ca123df02952bfc2c3ba4ed768a4101e009477d1258ce018eb060096db42",
+  "design/m2/src/cow/r11.js": "6320eccb9408e09ad5ee4a983d2c30e1a9341461d08bad9b2665994b4147b06e",
+  "design/m2/src/cow/render.js": "d4aa6d2d5424a517065cc814a5ee3bf77258bf285891beff7ca9c8ecdeacf3c8",
+  "design/m2/src/js/icons.js": "13d04ae5805cfa8cc7438b2cd1a0c21f5b4e44f1bf90659e3044eaa4dfa13d2f",
+  "design/m2/src/js/scene.js": "2711f239a02174a5a8f45f5ed02da8891d26350170bf720380c73c07fa6c7d5c",
+  "design/m2/src/js/truck.js": "3731ad8d2be15bc3ab095511aa41ca2befa924b28d54888b94b70de3abdb741a"
+ },
+ "anchors": {
+  "truck": {
+   "size": [
+    270,
+    152
+   ],
+   "wheels": [
+    [
+     62,
+     128
+    ],
+    [
+     204,
+     128
+    ]
+   ],
+   "wheelR": 18,
+   "wheelSvgOrigin": [
+    0,
+    128
+   ],
+   "hinge": [
+    12,
+    100
+   ],
+   "gateOpenDeg": -145,
+   "floor": 98,
+   "bedCx": 82,
+   "namePlate": {
+    "x": 83,
+    "y": 96,
+    "anchor": "middle",
+    "font": "Noto Sans CJK TC",
+    "weight": 900,
+    "size": 11.5,
+    "color": "#4B3326"
+   },
+   "reverseLight": {
+    "x": 13.5,
+    "y": 88,
+    "w": 5.5,
+    "h": 8,
+    "on": "#FFE27A",
+    "off": "#FFF7D6"
+   }
+  },
+  "road": {
+   "top": "0.74*H-34",
+   "height": 70,
+   "overhang": 10,
+   "dash": [
+    8,
+    4
+   ],
+   "dashY": 36
+  },
+  "scenes": {
+   "base": [
+    390,
+    844
+   ],
+   "ranchWidth": 780,
+   "fit": "cover"
+  }
+ },
+ "files": {
+  "icons/coin.svg": {
+   "w": 34,
+   "h": 34,
+   "sha256": "b529be28966e95b3786dc04d816764d7b2bab233ea1f9d49a24b364943347eec"
+  },
+  "icons/news.svg": {
+   "w": 28,
+   "h": 28,
+   "sha256": "27e2b5e7baef282fef6835119823f3f1487a05b72a1f510f84cd4a7ebef3c9e8"
+  },
+  "icons/milk.svg": {
+   "w": 28,
+   "h": 30,
+   "sha256": "bfe6ff8c53dd4c8ded37a716b0fdc972cac87fc9415744eb3c567232853dc410"
+  },
+  "icons/beef.svg": {
+   "w": 30,
+   "h": 30,
+   "sha256": "4b3e66cb62b5c0b93e6aff9d677ea5868b4a54bfb8901748070a2c4a13be3a09"
+  },
+  "icons/rice.svg": {
+   "w": 30,
+   "h": 30,
+   "sha256": "cd7b3fc26fa71fc617b74a567cd5e8b77d2d21f02e252d925e1a4ec19d387b72"
+  },
+  "icons/leaf.svg": {
+   "w": 16,
+   "h": 16,
+   "sha256": "c3d4dad1077f53f6cb5a1091e31f6640c96903847d090dc80492e97b56fb2387"
+  },
+  "icons/leafOld.svg": {
+   "w": 16,
+   "h": 16,
+   "sha256": "0ebf2a7364735bf03f7dcea839fe3420d31e51e68be3b1762db1aad4e43cbaa7"
+  },
+  "icons/leafBad.svg": {
+   "w": 16,
+   "h": 16,
+   "sha256": "2f71f2815936349c946e8af2816b364233dc6fbbcf33f7c9f9a745f0b958c14f"
+  },
+  "icons/up.svg": {
+   "w": 12,
+   "h": 12,
+   "sha256": "553f8321843d9b7696401c7932263334933fa2b44affda88d5900d5ee3127038"
+  },
+  "icons/down.svg": {
+   "w": 12,
+   "h": 12,
+   "sha256": "c43149c2b9f93f8e24ac9ef2c07351d58db1537e00f9daa64b8ac0f60a90c021"
+  },
+  "icons/pail.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "d44e8235c7ab312ae56d59d9b62369cb7df9329e0ba0a8e60727b0b8dbea9157"
+  },
+  "icons/barn.svg": {
+   "w": 28,
+   "h": 28,
+   "sha256": "8b9fdd8cbfd1259eea7166c80b40d7312fa4c9c56c51725356023846f6ff80dc"
+  },
+  "icons/gear.svg": {
+   "w": 28,
+   "h": 28,
+   "sha256": "5fe62c7704c6d8d78894e10ecffe0548ff420e173456a3f4dc213b11340835e8"
+  },
+  "icons/lock.svg": {
+   "w": 20,
+   "h": 20,
+   "sha256": "0718693c8c74bfc28db347230bc938980d73962c6f4efb65fdc4f6d0f3ab1769"
+  },
+  "icons/ok.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "4ed6938573aaf7c54b9ceb40977a4f97bccae7d70a57e29003f98dd3a5146fdf"
+  },
+  "icons/warn.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "2c08af60641c3bcab3a08f29869083ea8ce47561a7cc89a04383badce9f00663"
+  },
+  "icons/err.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "a239bca5ac6bd5939e5ce24286f50996e50e25f174944789e07b5504ac48ad78"
+  },
+  "icons/info.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "3971fe27b66bffa56ab0b2238bac9cfa8bae709954f00670f8b0a6b4ad2605a7"
+  },
+  "icons/offline.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "a3932e4b8110125df96df2fa750ef767a851f30edf86ece9765d7db1cc54f541"
+  },
+  "icons/refresh.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "903bb882c37266fb2f8163859f4c4d7b12f0d50cb28e24a6fde6101e391979db"
+  },
+  "icons/clock.svg": {
+   "w": 20,
+   "h": 20,
+   "sha256": "b46c5b3adb13da7b55cae7b5fbf392fe2464a4d4b376cf2ab46bb4c2db61b2b6"
+  },
+  "icons/chevron.svg": {
+   "w": 20,
+   "h": 20,
+   "sha256": "926e554bf0a61d00500d094a31fed51452add6bd3ea68bafb162ab37f35a1ee3"
+  },
+  "icons/back.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "ff4d2292aab711f115f584de3deadd50e1d283f8f93295c9df139a5a9cdbc659"
+  },
+  "icons/close.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "f96f443cc045efdbdb46c6f8e9c73082cd3f30c9598897d77af666b4b853816d"
+  },
+  "icons/truck.svg": {
+   "w": 30,
+   "h": 30,
+   "sha256": "f0e152759fb0561516eadacc8fe77b8a35926b9088560a3f79f87185b33492e2"
+  },
+  "icons/heart.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "735998e9bfe46f7791bc33dbe179fed70c27db03691558cca1b752312862ab90"
+  },
+  "icons/sparkle.svg": {
+   "w": 20,
+   "h": 20,
+   "sha256": "25cc47829887e7d427b279c3af13d9d1c290ced93e33a24c08dda2ccac0761d7"
+  },
+  "icons/star.svg": {
+   "w": 20,
+   "h": 20,
+   "sha256": "e0bfd9883324692e8a521c666dd109965c64152b92fdbf77a5454290d4b15ea6"
+  },
+  "icons/trophy.svg": {
+   "w": 34,
+   "h": 34,
+   "sha256": "4cd6670cc0949ca770451959963f2ab69ee96cdcc407fc00610431e73a225597"
+  },
+  "icons/book.svg": {
+   "w": 34,
+   "h": 34,
+   "sha256": "2d0f74eb8819a96dac01a53c6a59f4a211f80077d9d24c37f5a987baccfb038a"
+  },
+  "icons/field.svg": {
+   "w": 30,
+   "h": 30,
+   "sha256": "9d2b9fcd2a5cac85da9e6b3e06d97aaab9d18e4291f7c329b052ca75438b21ea"
+  },
+  "icons/sprout.svg": {
+   "w": 20,
+   "h": 20,
+   "sha256": "3e5450edb34637916dae91de9a9d8d2c4464f43a8f9edc38fca7b2130e3c1b12"
+  },
+  "icons/globe.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "0833de16577b6c649652bc6e20d414292b8235bcf2ded330d99e36503cf7e029"
+  },
+  "icons/updown.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "a7df8afe64be49ba712cbc81577ee13288fca0a434533348723f9882e7cc6337"
+  },
+  "icons/backup.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "148574205b4debd377c9c74269b5b887e304361b932fc01b3b97067ff15b726c"
+  },
+  "icons/transfer.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "1d7e824e7bce38a2f3a46a6da03322a3f3e0c745817ecb2aca776730c137f830"
+  },
+  "icons/trash.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "87d554e36fe04af99bf92a3dbe2ec10759daace8e96f5819103f89891e82f8da"
+  },
+  "icons/sound.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "17147ab96585f1964f59941f8b2c88480ccd9504f00a46d88a3f2ceb873f7f1d"
+  },
+  "icons/shield.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "3a2343999402ab89c2c9f9ddccc845530ab3c33199e2d7cd0423e30157c49560"
+  },
+  "icons/tag.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "aed8ad477cf5b83f6eb42f7c6da7c5af4ff604447315a82e9e575b08a4ad1951"
+  },
+  "icons/hand.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "84ff2886ffb8e53800e100e908ccd850060375c9c84ce2d3a4e7a917255f4f11"
+  },
+  "icons/tools.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "a393e8a9d3497574d6814020904c52724ef713b6c7799077e41ce802ef49e863"
+  },
+  "icons/box.svg": {
+   "w": 28,
+   "h": 28,
+   "sha256": "8512d75cf29c5a7deb744130dc1853c62baa0fadf3a0878dc75a3f4e4d27f02a"
+  },
+  "icons/bull.svg": {
+   "w": 20,
+   "h": 20,
+   "sha256": "ff1a7daf79b51806bfb7b430fab9f5186feb303d78200f5307a2a345e65b3f15"
+  },
+  "icons/cowf.svg": {
+   "w": 20,
+   "h": 20,
+   "sha256": "563d76a8d2399f0dc06459b1de7b0f4bdb402bb9db666c0adc4b185d54e34c7a"
+  },
+  "icons/plus.svg": {
+   "w": 20,
+   "h": 20,
+   "sha256": "47efefcc471fc744300ff417cdfc87e9e6eae01e9be85697d619209fe7e92e89"
+  },
+  "icons/history.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "6d77824e4cade1c19458aede4caa9541a2df699f1da5cc818655c5f2173aad75"
+  },
+  "icons/medal.svg": {
+   "w": 20,
+   "h": 20,
+   "sha256": "6716269775222a8733f8de83e7248e8ba7f1f26aaced37564f6d6db50df96734"
+  },
+  "icons/tab_ranch_on.svg": {
+   "w": 34,
+   "h": 34,
+   "sha256": "c010cd10172e8611ef73781250ee42218f9861d976b041df977d74f1860b967b"
+  },
+  "icons/tab_ranch_off.svg": {
+   "w": 34,
+   "h": 34,
+   "sha256": "4f5bdaaa0397daa85306ac557699f7a6e57b611685ebfebe902fafa0ec50751b"
+  },
+  "icons/tab_market_on.svg": {
+   "w": 34,
+   "h": 34,
+   "sha256": "8c6148200bd431b1eb42063145296ec76ea3a6a957bbacfb2d22a077fd40f076"
+  },
+  "icons/tab_market_off.svg": {
+   "w": 34,
+   "h": 34,
+   "sha256": "b7745154efa60d0ceef638b19055f571533b8e2d10ddfd5f8a8a0901bc22d4ee"
+  },
+  "icons/tab_fields_on.svg": {
+   "w": 34,
+   "h": 34,
+   "sha256": "94104061851a61a4e850ed1ab3ccf064808adfcb8d01c60739acf0841d257198"
+  },
+  "icons/tab_fields_off.svg": {
+   "w": 34,
+   "h": 34,
+   "sha256": "c70f335a5ff5d304f6eaea611b26252e43e5c88ed8b81a2c010e9e149abe867d"
+  },
+  "icons/tab_breed_on.svg": {
+   "w": 34,
+   "h": 34,
+   "sha256": "d42b08245beffbea2d92724e11f3ffd5a77dd76c821e0553e560e1ae06ab232c"
+  },
+  "icons/tab_breed_off.svg": {
+   "w": 34,
+   "h": 34,
+   "sha256": "0937d8551e996339cfea6f408823a9bcb50863a103a5545f927f44125c4e02fd"
+  },
+  "icons/tab_shop_on.svg": {
+   "w": 34,
+   "h": 34,
+   "sha256": "ebecb725319989a8382e2794b15063744ab201666fb0b37521c38390cc9d3ccc"
+  },
+  "icons/tab_shop_off.svg": {
+   "w": 34,
+   "h": 34,
+   "sha256": "77bd3a94ce04160c01317e9dd5b6accdfc51c6e396433eee7f8c5934266cd7e8"
+  },
+  "icons/tab_records_on.svg": {
+   "w": 34,
+   "h": 34,
+   "sha256": "2d0f74eb8819a96dac01a53c6a59f4a211f80077d9d24c37f5a987baccfb038a"
+  },
+  "icons/tab_records_off.svg": {
+   "w": 34,
+   "h": 34,
+   "sha256": "9818274469a5071196e3425fea6239e4ac4915f8056693d568bc5233cca96fc9"
+  },
+  "scenes/ranch.svg": {
+   "w": 780,
+   "h": 844,
+   "sha256": "3911ab7086174f3138a4d2047eda32a9555b597eb4ff8e8fea0a860becd1ad90"
+  },
+  "scenes/ship.svg": {
+   "w": 390,
+   "h": 844,
+   "sha256": "9cd1dba977f2edff59758457acec31d7bf07f049f15e4ee635a23eb3d9eeadb3"
+  },
+  "parts/road.svg": {
+   "w": 48,
+   "h": 70,
+   "sha256": "8e6a0b740dd5051c4be3f8fe14e020a30fd747af93d97505034b63c7100949cd"
+  },
+  "parts/truck_back.svg": {
+   "w": 270,
+   "h": 152,
+   "sha256": "8bff893d4f06c957fd9460d5a9782738628753c7438f13e7636bff3a86bab3cd"
+  },
+  "parts/truck_front.svg": {
+   "w": 270,
+   "h": 152,
+   "sha256": "c3866e65597cd93a6de3286026692d865c4f8477f7d5bd0faca0900aae3080fa"
+  },
+  "parts/truck_wheel.svg": {
+   "w": 40,
+   "h": 40,
+   "sha256": "7e19f96e3ddb1a9cf57af338a4c2f2a4aef9b3b9645bc54680c7d32072d3ec5b"
+  },
+  "parts/truck_tailgate.svg": {
+   "w": 12,
+   "h": 66,
+   "sha256": "559a7a7abeb9a20fcbb16e3207a4799a19040feecab83db81879058b4551670a"
+  },
+  "parts/sparkle.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "d60a9998bb838a4629ecb5289493d65ab255d4cc847f2312f7a7e75afe7e5e57"
+  }
+ }
+}
