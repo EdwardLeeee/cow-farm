@@ -34,6 +34,7 @@ from .clock import GameClock
 from .config import Config
 from .breeds import breed_of_genes
 from .game import Game, GameError, Player, week_id, week_start
+from . import accounts as A
 from . import ranchname
 from .names import compose_name, random_name_words
 from .population import TUTORIAL_S, day_sessions_with, local_midnight_utc
@@ -61,6 +62,10 @@ NAME_MESSAGES = {  # invalid_name 的 message（只供除錯；app 依 detail.re
 # 2：v0.2（沒有這個欄位的舊世界）；3：協定 v2 的 24 品種圖鑑（品種代號 → 第一次發現的時間）；
 # 4：借種費依體重自動算（D26：借種上架改存公牛長大的時間，不存價位）。
 WORLD_FORMAT = 4
+
+
+def _sign_in_failed(reason: str) -> GameError:
+    return GameError("sign_in_failed", "登入失敗", 400, {"reason": reason})
 
 
 def resume_game_time(saved: float, clock_meta: Optional[dict], scale: float, now_real: float) -> float:
@@ -201,10 +206,15 @@ class ServerBots:
 
 
 class GameServer:
-    def __init__(self, cfg: Config, store: Store, clock=None):
+    def __init__(self, cfg: Config, store: Store, clock=None, accounts: Optional[A.AccountServices] = None):
         self.cfg = cfg
         self.store = store
         self.clock = clock
+        # 帳號（協定第 5 節）：驗證器、Apple、加密、nonce、換回憑單、重送記錄。None = 照設定組（start 時）
+        self.accounts = accounts
+        self.links: Dict[int, Dict[str, float]] = {}  # player_id → {provider: 綁定的現實時間}
+        self.link_owner: Dict[Tuple[str, str], int] = {}  # (provider, sub) → player_id
+        self.revoked: Dict[bytes, Tuple[int, str]] = {}  # 失效登入憑證的雜湊 → (player_id, 原因)
         self.game: Optional[Game] = None
         self.tokens: Dict[bytes, int] = {}
         self.write_lock = asyncio.Lock()  # 所有會改狀態的動作排成一列（借種會同時改兩位玩家）
@@ -231,6 +241,15 @@ class GameServer:
             await self._create_world()
         else:
             await self._restore(data)
+        # 牧場編號接在「含已刪除的最大編號」後面（軟刪除的空殼還在，編號不重複使用）；要在加電腦玩家之前
+        self.game.next_pid = max(self.game.next_pid, int(data["max_pid"]) + 1)
+        for r in data["links"]:
+            self.links.setdefault(r["player_id"], {})[r["provider"]] = r["linked_at_real"]
+            self.link_owner[(r["provider"], r["subject"])] = r["player_id"]
+        for r in data["revoked"]:
+            self.revoked[bytes(r["token_sha256"])] = (r["player_id"], r["reason"])
+        if self.accounts is None:
+            self.accounts = A.services_from_config(self.cfg)
         await self._ensure_bots()
         self.maintenance = data["meta"].get("maintenance")
         self._maint_checked = time.time()
@@ -250,6 +269,7 @@ class GameServer:
         if self.cfg.run_loops:
             self.tasks.append(asyncio.create_task(self._tick_loop(), name="tick"))
             self.tasks.append(asyncio.create_task(self._push_loop(), name="push"))
+            self.tasks.append(asyncio.create_task(self.process_revocations(), name="revoke"))
 
     async def stop(self) -> None:
         for t in self.tasks:
@@ -499,11 +519,245 @@ class GameServer:
     def auth(self, token: Optional[str]) -> Player:
         if not token:
             raise GameError("unauthorized", "缺少登入憑證，請先建立訪客帳號", 401)
-        pid = self.tokens.get(token_hash(token))
+        th = token_hash(token)
+        pid = self.tokens.get(th)
         if pid is None:
+            rv = self.revoked.get(th)
+            if rv is not None and rv[1] == "signed_in_elsewhere":  # 協定 5.7 節：舊手機看 S14-05
+                raise GameError("signed_in_elsewhere", "這個牧場已經在另一支手機登入", 401)
             raise GameError("unauthorized", "登入憑證無效，請重新建立訪客帳號", 401)
         self.last_seen[pid] = time.time()
         return self.game.players[pid]
+
+    # ------------------------------------------------------------------ 帳號（協定第 5 節）
+    def account_view(self, pid: int) -> dict:
+        links = self.links.get(pid, {})
+        return {"links": [{"provider": prov, "linked_at_real": links[prov]} for prov in sorted(links)]}
+
+    def issue_nonce(self) -> Tuple[str, float]:
+        return self.accounts.nonces.issue()
+
+    async def _verify(self, provider: str, id_token, nonce) -> A.Identity:
+        """驗登入憑證（在背景執行緒：第一次要抓公鑰）並比對 nonce。nonce 不論成功失敗都用掉（協定 5.0 節）。"""
+        fresh = self.accounts.nonces.consume(nonce)
+        try:
+            ident = await asyncio.to_thread(self.accounts.verifier.verify, provider, id_token)
+        except A.SignInError as e:
+            raise _sign_in_failed(e.reason) from None
+        if not fresh:
+            raise _sign_in_failed("nonce_invalid")
+        if ident.nonce is None:
+            if ident.nonce_required:
+                raise _sign_in_failed("nonce_invalid")
+        elif not A.nonce_matches(ident.nonce, nonce):
+            raise _sign_in_failed("nonce_invalid")
+        return ident
+
+    async def link_account(self, p: Player, provider: str, id_token, nonce, code) -> dict:
+        """綁定（協定 5.2 節）。Apple 要用 authorization code 換 refresh token（網路），在鎖外面換，換完再檢查一次。"""
+        ident = await self._verify(provider, id_token, nonce)
+        key = (provider, ident.subject)
+
+        def check() -> bool:
+            """True = 已經綁在這個牧場；別的情況丟錯誤。"""
+            owner = self.link_owner.get(key)
+            if owner == p.pid:
+                return True
+            if owner is not None:
+                target = self.game.players.get(owner)
+                ticket, exp = self.accounts.tickets.issue(A.SwitchTicket(p.pid, owner, provider, ident.subject))
+                raise GameError(
+                    "account_in_use",
+                    "這個帳號已經綁了別的牧場",
+                    409,
+                    {
+                        "provider": provider,
+                        "ranch": V.ranch_ref(target) if target is not None else None,
+                        "switch_ticket": ticket,
+                        "ticket_expires_at_real": exp,
+                    },
+                )
+            if provider in self.links.get(p.pid, {}):
+                raise GameError("provider_already_linked", "這個牧場已經綁了同一種帳號", 409, {"provider": provider})
+            return False
+
+        async with self.write_lock:
+            if p.pid not in self.game.players:
+                raise GameError("unauthorized", "登入憑證無效", 401)
+            done = check()
+        enc = None
+        if not done and provider == "apple":
+            if not code or not isinstance(code, str):
+                raise GameError(
+                    "bad_request", "Apple 綁定要送 authorization_code", 400, {"fields": ["authorization_code"]}
+                )
+            if self.accounts.cipher is None or not self.accounts.apple.configured():
+                raise _sign_in_failed("not_configured")
+            try:
+                refresh = await asyncio.to_thread(self.accounts.apple.exchange_code, code)
+            except A.SignInError as e:
+                raise _sign_in_failed(e.reason) from None
+            enc = self.accounts.cipher.encrypt(refresh)
+        async with self.write_lock:
+            try:
+                if p.pid not in self.game.players:
+                    raise GameError("unauthorized", "登入憑證無效", 401)
+                done = check()
+            except GameError:
+                if enc is not None:  # 換到了卻用不上：撤銷，不留 Apple 的授權
+                    await self.store.enqueue_revocation(enc)
+                    asyncio.ensure_future(self.process_revocations())
+                raise
+            if not done:
+                linked_at = time.time()
+                await self.store.link_account(provider, ident.subject, p.pid, linked_at, enc)
+                self.links.setdefault(p.pid, {})[provider] = linked_at
+                self.link_owner[key] = p.pid
+        return {
+            "linked": {"provider": provider, "linked_at_real": self.links[p.pid][provider]},
+            "account": self.account_view(p.pid),
+        }
+
+    async def unlink_account(self, p: Player, provider: str) -> dict:
+        async with self.write_lock:
+            links = self.links.get(p.pid, {})
+            if provider not in links:
+                raise GameError("not_linked", "這個牧場沒有綁這種帳號", 404, {"provider": provider})
+            await self.store.unlink_account(p.pid, provider)
+            del links[provider]
+            for k in [k for k, v in self.link_owner.items() if v == p.pid and k[0] == provider]:
+                del self.link_owner[k]
+        asyncio.ensure_future(self.process_revocations())
+        return {"account": self.account_view(p.pid)}
+
+    def _new_token(self) -> Tuple[str, bytes]:
+        token = secrets.token_urlsafe(32)
+        return token, token_hash(token)
+
+    def _apply_rotation(self, target: Player, new_hash: bytes) -> Optional[bytes]:
+        """記憶體：換登入憑證，舊的記成「在另一支手機找回」。回傳舊的雜湊。"""
+        old = target.token_hash
+        if old is not None:
+            self.tokens.pop(old, None)
+            self.revoked[old] = (target.pid, "signed_in_elsewhere")
+        target.token_hash = new_hash
+        self.tokens[new_hash] = target.pid
+        self.last_seen[target.pid] = time.time()
+        return old
+
+    async def recover_account(self, provider: str, id_token, nonce) -> Tuple[str, Player]:
+        """找回（協定 5.5 節）：發新登入憑證；舊手機收到 signed_in_elsewhere，開著的 WebSocket 也關掉。"""
+        ident = await self._verify(provider, id_token, nonce)
+        async with self.write_lock:
+            owner = self.link_owner.get((provider, ident.subject))
+            target = self.game.players.get(owner) if owner is not None else None
+            if target is None:
+                raise GameError("account_not_linked", "這個帳號沒有備份過牧場", 404, {"provider": provider})
+            token, th = self._new_token()
+            await self.store.rotate_token(target.pid, th, target.token_hash)
+            self._apply_rotation(target, th)
+        await self._close_player_ws(target.pid, "signed_in_elsewhere", "這個牧場已經在另一支手機登入")
+        return token, target
+
+    def _remove_player_memory(self, p: Player) -> None:
+        self.game.players.pop(p.pid, None)
+        if p.token_hash is not None:
+            self.tokens.pop(p.token_hash, None)
+        for th in [th for th, (pid, _r) in self.revoked.items() if pid == p.pid]:
+            del self.revoked[th]
+        self.links.pop(p.pid, None)
+        for k in [k for k, v in self.link_owner.items() if v == p.pid]:
+            del self.link_owner[k]
+        self.last_seen.pop(p.pid, None)
+        self._lb_cache.clear()
+
+    def _unlist_all(self, p: Player) -> Optional[dict]:
+        """他上架的公牛全部下架；回傳要存的借種市場（沒有上架就 None）。"""
+        mine = self.game.stud.owner_listings(p.pid)
+        for lst in mine:
+            self.game.stud.unlist(lst.lid, p.farm)
+        return self.game.stud.to_dict() if mine else None
+
+    async def delete_ranch(self, p: Player) -> None:
+        """刪除牧場（協定 5.6 節，軟刪除）。"""
+        async with self.write_lock:
+            if p.pid not in self.game.players:
+                raise GameError("unauthorized", "登入憑證無效", 401)
+            stud_backup = self.game.stud.to_dict()
+            stud = self._unlist_all(p)
+            try:
+                await self.store.delete_player(p.pid, stud)
+            except Exception:
+                self.game.stud = StudMarket.from_dict(self.game.params, stud_backup)
+                raise
+            self._remove_player_memory(p)
+        await self._close_player_ws(p.pid, "unauthorized", "牧場已經刪除")
+        asyncio.ensure_future(self.process_revocations())
+
+    async def switch_ranch(self, p: Player, ticket_code) -> Tuple[str, Player]:
+        """換回那個牧場（協定 5.3 節）：刪除現在的牧場、發新登入憑證給那個牧場，同一個資料庫交易。"""
+        async with self.write_lock:
+            status, t = self.accounts.tickets.take(ticket_code)
+            if status == "expired":
+                raise _sign_in_failed("ticket_expired")
+            if t is None or t.from_pid != p.pid or p.pid not in self.game.players:
+                raise _sign_in_failed("ticket_invalid")
+            target = self.game.players.get(t.target_pid)
+            if target is None or self.link_owner.get((t.provider, t.subject)) != target.pid:
+                raise _sign_in_failed("ticket_invalid")
+            token, th = self._new_token()
+            stud_backup = self.game.stud.to_dict()
+            stud = self._unlist_all(p)
+            try:
+                await self.store.switch_ranch(p.pid, stud, target.pid, th, target.token_hash)
+            except Exception:
+                self.game.stud = StudMarket.from_dict(self.game.params, stud_backup)
+                raise
+            self._remove_player_memory(p)
+            self._apply_rotation(target, th)
+        await self._close_player_ws(p.pid, "unauthorized", "牧場已經刪除")
+        await self._close_player_ws(target.pid, "signed_in_elsewhere", "這個牧場已經在另一支手機登入")
+        asyncio.ensure_future(self.process_revocations())
+        return token, target
+
+    async def _close_player_ws(self, pid: int, code: str, message: str) -> None:
+        text = json.dumps({"type": "error", "error": {"code": code, "message": message}}, ensure_ascii=False)
+        for ws, wpid in list(self.ws.items()):
+            if wpid != pid:
+                continue
+            try:
+                await ws.send_text(text)
+                await ws.close(code=4401, reason=code)
+            except Exception:  # noqa: BLE001
+                pass
+            self.ws.pop(ws, None)
+
+    async def process_revocations(self) -> int:
+        """撤銷佇列（Apple 的 refresh token）：試一次，成功就刪，失敗延後重試（1 分鐘起、每次加倍、最多 1 小時）。
+        TN3194：拿不到 token 也要完成刪除；這裡只是盡量讓 Apple 那邊也解除。回傳這次成功幾筆。"""
+        ok = 0
+        try:
+            rows = await self.store.revocations_due()
+        except Exception:  # noqa: BLE001
+            log.exception("讀撤銷佇列失敗")
+            return 0
+        for r in rows:
+            retry = min(3600.0, 60.0 * 2 ** min(int(r["attempts"]), 6))
+            try:
+                if self.accounts.cipher is None:
+                    raise A.RevokeError("no_key")
+                refresh = self.accounts.cipher.decrypt(r["refresh_enc"])
+                await asyncio.to_thread(self.accounts.apple.revoke, refresh)
+            except A.RevokeError as e:
+                await self.store.revocation_failed(r["id"], str(e), retry)
+                continue
+            except Exception as e:  # noqa: BLE001
+                log.exception("撤銷 Apple 登入失敗")
+                await self.store.revocation_failed(r["id"], type(e).__name__, retry)
+                continue
+            await self.store.revocation_done(r["id"])
+            ok += 1
+        return ok
 
     # ------------------------------------------------------------------ 動作
     async def run_action(
@@ -720,6 +974,7 @@ class GameServer:
             await self.broadcast({"type": "news", **V.news_item(ev, self.clock.now())})
         if self.stats["ticks"] % 60 == 0:
             await self.store.prune(t_last - PRICE_PRUNE_S, stud_log_before=t_last - STUD_LOG_KEEP_DAYS * DAY)
+            await self.process_revocations()
         return [d[0] for d in done]
 
     async def _tick_loop(self) -> None:

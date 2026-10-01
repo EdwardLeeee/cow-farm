@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 PG_ENV_FILE = Path(os.environ.get("COWFARM_PG_ENV_FILE", str(Path.home() / ".config" / "cow-farm" / "pg.env")))
 
@@ -37,6 +37,10 @@ def default_dsn(database: Optional[str] = None) -> str:
     return dsn
 
 
+def _list_env(name: str) -> Tuple[str, ...]:
+    return tuple(x.strip() for x in os.environ.get(name, "").split(",") if x.strip())
+
+
 def _float_env(name: str, default: Optional[float]) -> Optional[float]:
     v = os.environ.get(name)
     return float(v) if v not in (None, "") else default
@@ -53,6 +57,13 @@ class Config:
     ws_push_s: float = 1.0  # 每現實幾秒推一次行情
     online_window_s: float = 30.0  # 最近幾秒（現實）內有請求就算在線
     run_loops: bool = True  # 測試時關掉背景 tick／推播
+    # 帳號（協定 5.5 節；M4 由使用者照 ceo 的步驟設定）。沒設定的那一家，綁定和找回回 sign_in_failed not_configured。
+    apple_client_ids: Tuple[str, ...] = ()  # Apple 的 client_id（App ID：com.oraclelee.cowfarm）
+    google_client_ids: Tuple[str, ...] = ()  # Google 的 Web client ID（手機 app 拿 ID token 用的 server client ID）
+    apple_team_id: Optional[str] = None
+    apple_key_id: Optional[str] = None
+    apple_key_file: Optional[str] = None  # .p8 金鑰檔（權限 600，不進 git；照 secrets-custody）
+    token_key_file: Optional[str] = None  # 加密 Apple refresh token 的金鑰檔（沒有就產生，權限 600）
     extra: dict = field(default_factory=dict)
 
     @classmethod
@@ -64,4 +75,11 @@ class Config:
             bots=int(os.environ.get("COWFARM_BOTS", "30")),
             seed=os.environ.get("COWFARM_SEED") or None,
             game_start=_float_env("COWFARM_GAME_START", None),
+            apple_client_ids=_list_env("COWFARM_APPLE_CLIENT_IDS"),
+            google_client_ids=_list_env("COWFARM_GOOGLE_CLIENT_IDS"),
+            apple_team_id=os.environ.get("COWFARM_APPLE_TEAM_ID") or None,
+            apple_key_id=os.environ.get("COWFARM_APPLE_KEY_ID") or None,
+            apple_key_file=os.environ.get("COWFARM_APPLE_KEY_FILE") or None,
+            token_key_file=os.environ.get("COWFARM_TOKEN_KEY_FILE")
+            or str(Path.home() / ".config" / "cow-farm" / "token.key"),
         )

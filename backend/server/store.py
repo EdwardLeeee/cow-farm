@@ -14,6 +14,11 @@
 - processed_requests：request_id → 第一次的回應，防止重送時重複成交。
 - session_requests：建立牧場的 request_id → 牧場（協定 2.1 節：10 分鐘內重送回同一個牧場、發新 token）。
 - stud_log：借種紀錄（協定 4.6 節），跟借種在同一個交易寫入；保留 30 遊戲天。牧場刪除時對方欄位變 NULL。
+- account_links：綁定的 Apple／Google 帳號（只存帳號識別碼 sub 和綁定時間；Apple 另有加密的 refresh token）。
+- revoked_tokens：在另一支手機找回、換回以後失效的登入憑證雜湊（舊手機收到 signed_in_elsewhere）。
+- apple_revoke_queue：待撤銷的 Apple refresh token（加密）。撤銷成功就刪，失敗之後重試。
+- players.deleted_at：刪除牧場是軟刪除（協定 5.6 節）：只留編號和時間，名字、登入憑證、綁定、進度都清掉；
+  編號不會被別的牧場重複使用。
 """
 
 from __future__ import annotations
@@ -35,6 +40,30 @@ CREATE TABLE IF NOT EXISTS players (
     ranch_name text NOT NULL,
     is_bot boolean NOT NULL DEFAULT false,
     created_game_t double precision NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE players ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+CREATE TABLE IF NOT EXISTS account_links (
+    provider text NOT NULL,
+    subject text NOT NULL,
+    player_id bigint NOT NULL REFERENCES players(id),
+    linked_at_real double precision NOT NULL,
+    apple_refresh_enc bytea,
+    PRIMARY KEY (provider, subject),
+    UNIQUE (player_id, provider)
+);
+CREATE TABLE IF NOT EXISTS revoked_tokens (
+    token_sha256 bytea PRIMARY KEY,
+    player_id bigint NOT NULL REFERENCES players(id),
+    reason text NOT NULL,
+    revoked_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS apple_revoke_queue (
+    id bigserial PRIMARY KEY,
+    refresh_enc bytea NOT NULL,
+    attempts integer NOT NULL DEFAULT 0,
+    last_error text,
+    next_try_at timestamptz NOT NULL DEFAULT now(),
     created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE TABLE IF NOT EXISTS farms (
@@ -169,7 +198,7 @@ class Store:
             meta = {r["key"]: r["value"] for r in await conn.fetch("SELECT key, value FROM meta")}
             players = await conn.fetch(
                 "SELECT p.id, p.token_sha256, p.ranch_name, p.is_bot, p.created_game_t, f.state, f.version, f.game_t "
-                "FROM players p JOIN farms f ON f.player_id = p.id ORDER BY p.id"
+                "FROM players p JOIN farms f ON f.player_id = p.id WHERE p.deleted_at IS NULL ORDER BY p.id"
             )
             markets = {
                 r["commodity"]: r["snapshot"] for r in await conn.fetch("SELECT commodity, snapshot FROM markets")
@@ -177,6 +206,9 @@ class Store:
             max_seq = await conn.fetchval("SELECT COALESCE(MAX(seq), 0) FROM trades")
             max_trade_t = await conn.fetchval("SELECT MAX(t) FROM trades")
             news = await conn.fetch("SELECT * FROM news ORDER BY id")
+            max_pid = await conn.fetchval("SELECT COALESCE(MAX(id), 0) FROM players")  # 含已刪除的：編號不重複使用
+            links = await conn.fetch("SELECT provider, subject, player_id, linked_at_real FROM account_links")
+            revoked = await conn.fetch("SELECT token_sha256, player_id, reason FROM revoked_tokens")
             return {
                 "meta": meta,
                 "players": players,
@@ -184,6 +216,9 @@ class Store:
                 "max_seq": max_seq,
                 "max_trade_t": max_trade_t,
                 "news": news,
+                "max_pid": max_pid,
+                "links": links,
+                "revoked": revoked,
             }
 
     async def price_history(
@@ -420,6 +455,115 @@ class Store:
                 pid,
                 since_t,
                 limit,
+            )
+
+    # ---- 帳號（協定第 5 節） ----
+    async def link_account(
+        self, provider: str, subject: str, pid: int, linked_at_real: float, refresh_enc: Optional[bytes]
+    ) -> None:
+        async with self.pool.acquire() as conn:
+            await conn.execute(
+                "INSERT INTO account_links(provider, subject, player_id, linked_at_real, apple_refresh_enc) "
+                "VALUES($1, $2, $3, $4, $5)",
+                provider,
+                subject,
+                pid,
+                linked_at_real,
+                refresh_enc,
+            )
+
+    async def unlink_account(self, pid: int, provider: str) -> None:
+        """解除綁定；Apple 的 refresh token 移到撤銷佇列（同一個交易）。"""
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                await conn.execute(
+                    "INSERT INTO apple_revoke_queue(refresh_enc) SELECT apple_refresh_enc FROM account_links "
+                    "WHERE player_id=$1 AND provider=$2 AND apple_refresh_enc IS NOT NULL",
+                    pid,
+                    provider,
+                )
+                await conn.execute("DELETE FROM account_links WHERE player_id=$1 AND provider=$2", pid, provider)
+
+    @staticmethod
+    async def _rotate(conn, pid: int, new_hash: bytes, old_hash: Optional[bytes]) -> None:
+        await conn.execute("UPDATE players SET token_sha256=$2 WHERE id=$1", pid, new_hash)
+        if old_hash is not None:
+            await conn.execute(
+                "INSERT INTO revoked_tokens(token_sha256, player_id, reason) VALUES($1, $2, 'signed_in_elsewhere') "
+                "ON CONFLICT (token_sha256) DO NOTHING",
+                old_hash,
+                pid,
+            )
+
+    @staticmethod
+    async def _soft_delete(conn, pid: int, stud: Optional[dict]) -> None:
+        """刪除牧場（協定 5.6 節）：只留編號和時間。名字、登入憑證、綁定（帳號識別碼）、失效憑證、
+        request_id 記錄（裡面有牧場名）、進度都清掉；別人借種紀錄裡指向他的改成 NULL；Apple 的 refresh token 移到撤銷佇列。"""
+        await conn.execute(
+            "INSERT INTO apple_revoke_queue(refresh_enc) SELECT apple_refresh_enc FROM account_links "
+            "WHERE player_id=$1 AND apple_refresh_enc IS NOT NULL",
+            pid,
+        )
+        for sql in (
+            "DELETE FROM account_links WHERE player_id=$1",
+            "DELETE FROM revoked_tokens WHERE player_id=$1",
+            "DELETE FROM processed_requests WHERE player_id=$1",
+            "DELETE FROM session_requests WHERE player_id=$1",
+            "UPDATE stud_log SET lender_id=NULL WHERE lender_id=$1",
+            "UPDATE stud_log SET borrower_id=NULL WHERE borrower_id=$1",
+            "DELETE FROM farms WHERE player_id=$1",
+            "UPDATE players SET ranch_name='', token_sha256=NULL, deleted_at=now() WHERE id=$1",
+        ):
+            await conn.execute(sql, pid)
+        if stud is not None:
+            await conn.execute(
+                "INSERT INTO meta(key, value) VALUES('stud', $1) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=now()",
+                stud,
+            )
+
+    async def rotate_token(self, pid: int, new_hash: bytes, old_hash: Optional[bytes]) -> None:
+        """找回牧場：發新登入憑證，舊的記成「在另一支手機找回」。"""
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                await self._rotate(conn, pid, new_hash, old_hash)
+
+    async def delete_player(self, pid: int, stud: Optional[dict]) -> None:
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                await self._soft_delete(conn, pid, stud)
+
+    async def switch_ranch(
+        self, from_pid: int, stud: Optional[dict], target_pid: int, new_hash: bytes, old_hash: Optional[bytes]
+    ) -> None:
+        """換回（協定 5.3 節）：刪除現在的牧場、發新登入憑證給那個牧場，同一個交易。"""
+        async with self.pool.acquire() as conn:
+            async with conn.transaction():
+                await self._soft_delete(conn, from_pid, stud)
+                await self._rotate(conn, target_pid, new_hash, old_hash)
+
+    async def enqueue_revocation(self, refresh_enc: bytes) -> None:
+        async with self.pool.acquire() as conn:
+            await conn.execute("INSERT INTO apple_revoke_queue(refresh_enc) VALUES($1)", refresh_enc)
+
+    async def revocations_due(self, limit: int = 20) -> List[asyncpg.Record]:
+        async with self.pool.acquire() as conn:
+            return await conn.fetch(
+                "SELECT id, refresh_enc, attempts FROM apple_revoke_queue WHERE next_try_at <= now() ORDER BY id LIMIT $1",
+                limit,
+            )
+
+    async def revocation_done(self, rid: int) -> None:
+        async with self.pool.acquire() as conn:
+            await conn.execute("DELETE FROM apple_revoke_queue WHERE id=$1", rid)
+
+    async def revocation_failed(self, rid: int, error: str, retry_in_s: float) -> None:
+        async with self.pool.acquire() as conn:
+            await conn.execute(
+                "UPDATE apple_revoke_queue SET attempts=attempts+1, last_error=$2, "
+                "next_try_at=now() + make_interval(secs => $3) WHERE id=$1",
+                rid,
+                error[:200],
+                float(retry_in_s),
             )
 
     async def set_token(self, pid: int, token_hash: bytes) -> None:
