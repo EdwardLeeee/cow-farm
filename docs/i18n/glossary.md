@@ -48,7 +48,7 @@
 | 牛奶／牛肉／稻米 | Milk／Beef／Rice | นม／เนื้อวัว／ข้าว | |
 | 瓶／公斤 | btl／kg | ขวด／กก. | 英文用縮寫 btl：同一個字要接在數量後面（146 btl），也要接在斜線後面（coins/btl），避開單複數 |
 | 奶桶 | Milk bucket | ถังนม | |
-| 收奶 | Collect milk | เก็บนม | |
+| 收奶 | Collect milk | เก็บนม | 按鈕放不下時英文寫 Collect（cow-ui 2026-10-02 量測） |
 | 倉庫 | Storage | โกดัง | 不用 barn，避免跟牛舍混淆 |
 | 新鮮度 | Freshness | ความสด | |
 | 快壞了 | Spoiling soon | ใกล้เสีย | |

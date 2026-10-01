@@ -64,6 +64,7 @@
   - Apple Developer：App ID 開「Sign in with Apple」，建一把金鑰給伺服器撤銷登入用。
   - Google Cloud：建登入用的用戶端（iOS、Android、伺服器）。做之前查官方文件：設定要不要經過 Google 審核。
   - Google 登入先在 Android 模擬器驗；使用者沒有 Android 手機，上架前的實機驗收另外安排。
+  - Apple 的 server-to-server 通知（ceo 2026-10-02 同意，研究文件 docs/research/2026-10-sso-verification.md 5.4 節）：M4 有正式主機和 HTTPS 時，在 Apple Developer 登記通知網址；收到玩家停用我們的 app 或刪除 Apple 帳號的通知，就解除綁定、刪掉 refresh token。
 
 ## 不在第一版（試玩後，企劃書 v0.3 再決定）
 
