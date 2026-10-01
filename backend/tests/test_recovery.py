@@ -3,6 +3,7 @@
 1. 當機後從資料庫回復：市場（含亂數、pending、24 小時歷史）、新聞產生器、每座牧場、借種市場，和當機前的記憶體逐數字相同。
 2. 「跑一半當機、回復、再跑」和「一路跑到底」：價格與每座牧場最後完全一樣（含 4 位假玩家）。
 3. 真的伺服器程序：SIGKILL 之後重開，進度與行情都還在（同一個 token 還能用）。
+4. 倍率 1（正式版）：關機的那段照真實時間算（奶桶照樣累積、市場補跑 tick、假玩家不補做）；試玩倍率暫停。
 """
 
 from __future__ import annotations
@@ -250,3 +251,67 @@ async def _ws_once(token: str) -> None:
 
     async with websockets.connect(f"ws://127.0.0.1:{PORT}/v1/ws?token={token}") as ws:
         assert json.loads(await ws.recv())["type"] == "hello"
+
+
+def test_resume_game_time_rules():
+    """重啟後從哪個遊戲時間接著走（不需要資料庫）。"""
+    from server.runtime import resume_game_time
+
+    meta = {"game_t": 1000.0, "scale": 1.0, "real_t": 5000.0}
+    assert resume_game_time(1000.0, meta, 1.0, 5000.0 + 3600) == 1000.0 + 3600  # 正式版：關機一小時照算
+    assert resume_game_time(1200.0, meta, 1.0, 5000.0 + 10) == 1200.0  # 不會比存下的動作時間早
+    assert resume_game_time(1000.0, meta, 1.0, 4000.0) == 1000.0  # 主機時間倒退也不會倒退
+    assert resume_game_time(1000.0, meta, 144.0, 5000.0 + 3600) == 1000.0  # 試玩倍率：暫停
+    assert resume_game_time(1000.0, None, 1.0, 9e9) == 1000.0  # 沒有存過時鐘
+
+
+def test_restart_after_one_hour_at_scale_1(db_dsn):
+    """正式版（倍率 1）關機一小時後重開：遊戲時間照真實時間走；奶桶照樣累積、市場補跑那段的 tick，
+    假玩家不補做那段的動作（ceo 2026-10-02）。用真的時鐘；「關了一小時」= 把存下的現實時間往前撥一小時。"""
+    import asyncpg
+    import pytest
+    from fastapi.testclient import TestClient
+
+    from server.app import create_app
+    from server.config import Config
+
+    def make_app():
+        return create_app(Config(time_scale=1.0, pg_dsn=db_dsn, bots=2, seed="realtime-seed", run_loops=False))
+
+    with TestClient(make_app()) as c:
+        s = c.post("/v1/session", json={"ranch_name": "正式版牧場"}).json()
+        hd = {"Authorization": f"Bearer {s['token']}"}
+        before = c.get("/v1/state", headers=hd).json()
+    # 正常關機時存下了遊戲時鐘（含 real_t）
+
+    async def shift_one_hour():
+        conn = await asyncpg.connect(db_dsn)
+        try:
+            await conn.execute(
+                "UPDATE meta SET value = jsonb_set(value, '{real_t}', to_jsonb((value->>'real_t')::float8 - 3600)) "
+                "WHERE key='clock'"
+            )
+        finally:
+            await conn.close()
+
+    asyncio.run(shift_one_hour())
+    app = make_app()
+    with TestClient(app) as c:
+        server = app.state.server
+        after = c.get("/v1/state", headers=hd).json()  # 同一個 token
+        gap = after["server_time"] - before["server_time"]
+        assert 3600 <= gap < 3600 + 60, gap
+        assert server.bots.skip_until == pytest.approx(after["server_time"], abs=60)
+        # 奶桶照樣累積（開局的乳牛加上新手期加倍，一小時一定滿）
+        assert before["bucket"]["qty"] < before["bucket"]["capacity"]
+        assert after["bucket"]["qty"] == pytest.approx(after["bucket"]["capacity"])
+        # 市場補跑關機那段的 tick
+        t0 = server.game.ex.t
+        n = 0
+        while c.portal.call(server.tick_once) is not None:
+            n += 1
+        assert n >= 59 and server.game.ex.t - t0 >= 3600 - 60
+        # 假玩家：關機那段排好的動作都跳過，沒有任何一個動作的時間落在那段
+        bots = [p for p in server.game.players.values() if p.is_bot]
+        assert len(bots) == 2
+        assert all(p.bot["last_t"] is None or p.bot["last_t"] >= server.bots.skip_until for p in bots)
