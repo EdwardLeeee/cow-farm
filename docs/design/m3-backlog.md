@@ -55,8 +55,9 @@
 
 ## 共同
 
-- GitHub 必要檢查照 connect4 的做法補上（AGENTS.md）。
-- 開工前先問使用者主機和網域，附每月費用。
+- GitHub 必要檢查 2026-10-01 補上（PR #12）：main 要 `backend`、`app` 全綠才能合併，只能 squash，管理員也不能略過。排版檢查由 cow-back、cow-app 的第一個 PR 加上。
+- 開工說明：`docs/briefs/2026-10-01-back.md`、`docs/briefs/2026-10-01-app.md`。
+- 主機和網域：開發階段用不到，M4 要讓 TestFlight 版連上伺服器之前，ceo 附每月費用問使用者。可以沿用 connect4 的主機和 oraclelee.com 網域，要先確認那台主機的容量。
 - 商店資料、截圖、隱私權政策、刪除帳號說明頁都要三種語言（M5）。語言代碼：App Store 用 zh-Hant、en-US、th；Google Play 用 zh-TW、en-US、th。
 - Apple 登入與 Google 登入的後台設定（D22），M4 跟 TestFlight 一起做，ceo 寫步驟給使用者：
   - Apple Developer：App ID 開「Sign in with Apple」，建一把金鑰給伺服器撤銷登入用。
