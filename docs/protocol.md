@@ -19,8 +19,8 @@
 | 6 | v0.1 相容欄位 | 還留著 | 拿掉：`shop.calf_price`、`breed`（`first_free`）、`cows[].ready_at`、`breed_ready`、配種的 `fee`／`normal_fee`／`first_free`、`POST /v1/buy_calf`、錯誤碼 `gone`、`breed_cooldown` | 3，已做 |
 | 7 | 行情 | `/v1/market` 每種商品帶 24 小時走勢 `history` | 拿掉 `history`（D24 沒有走勢圖）；`/v1/market/history` 不變 | 3，已做 |
 | 8 | WS `hello` | `protocol: 1` | `protocol: 2` | 3，已做 |
-| 9 | 圖鑑 | 12 格（用途 × 稀有度） | 24 個品種（`breed`），附第一次發現的時間 | 4 |
-| 10 | 牛 | — | `cows[].breed`（品種代號），app 顯示「品種名 #id」 | 4 |
+| 9 | 圖鑑 | 12 格（用途 × 稀有度） | 24 個品種（`breed`），附第一次發現的時間 | 4，已做 |
+| 10 | 牛 | — | `cows[].breed`（品種代號），app 顯示「品種名 #id」 | 4，已做 |
 | 11 | 建立牧場 | 伺服器從詞庫隨機取名 | 玩家自己取：`POST /v1/session {ranch_name}`，取好名字才建立（D23） | 5 |
 | 12 | 電腦牧場名 | 中文字串 | 三組詞的編號 `name_words`，app 照 `namegen.pattern` 用玩家的語言組 | 3，已做（PR 5 改成直接存編號，協定不變） |
 | 13 | 借種費 | 主人從 300／800／2,000／5,000 選 | 系統依公牛現在的體重和稀有度算（D26）；借種要帶預覽看到的價格，變了回 `price_changed` | 6 |
@@ -29,7 +29,7 @@
 | 16 | 帳號 | 只有訪客 token | 綁定、解除、找回、換回、刪除牧場（D22）；舊手機收到 `signed_in_elsewhere` | 9 |
 | 17 | 遊戲時間 | 伺服器關著時暫停 | 倍率 1（正式版）照真實時間走，關機那段也算；試玩倍率照舊暫停 | 10 |
 
-PR 3 已做；PR 4–10 還沒做（2026-10-02）。每個 PR 合併時更新這張表的「PR」欄。
+PR 3、4 已做；PR 5–10 還沒做（2026-10-02）。每個 PR 合併時更新這張表的「PR」欄。
 
 **存檔不相容**：PR 4 起存檔格式改變，舊的世界（v0.2）伺服器會拒絕啟動。原型階段直接清掉資料庫重來（`backend/README.md`）。
 
@@ -945,7 +945,7 @@ app 啟動時先打這個（還沒有 token 也能打），再決定要不要顯
 | `hello` | 連上時一次 | 時間欄位、`player_id`、`protocol`（**2**） |
 | `market` | 連上時一次，之後**每現實 1 秒** | 時間欄位、`tick_t`，以及 `milk`、`beef`、`rice` 各 `{price, change_24h, change_24h_pct, ma24}` |
 | `news` | 新聞第一次出現（公告或直接開始）時 | 跟 `news[]` 單筆同形狀，平鋪在訊息裡（`id`、`code`、`params`、`pct`、`commodity`、`targets`、`direction`、`big`、`time`、`announce_at`、`start_at`、`end_at`、`state`） |
-| `stud` | 有人借了你上架的公牛（你在線時） | `event: "borrowed"`、`listing_id`、`cow`（你的公牛 `{"id", "breed"}`；`breed` 是 PR 4 加的）、`price`（收到的錢）、`borrower`（1.6 節的牧場物件）、時間欄位。G-05「{cow} 借給 {ranch}，收到 {price} 幣」。app 收到後重抓 `GET /v1/state`（PR 3） |
+| `stud` | 有人借了你上架的公牛（你在線時） | `event: "borrowed"`、`listing_id`、`cow`（你的公牛 `{"id", "breed"}`）、`price`（收到的錢）、`borrower`（1.6 節的牧場物件）、時間欄位。G-05「{cow} 借給 {ranch}，收到 {price} 幣」。app 收到後重抓 `GET /v1/state`（PR 3） |
 | `maintenance` | 安排、改變、取消維護時，和開始維護的那一刻（PR 8） | `maintenance`（6.1 節的物件，取消時是 null） |
 | `error` | 關閉前 | 見上表 |
 
@@ -985,3 +985,4 @@ app 啟動時先打這個（還沒有 token 也能打），再決定要不要顯
 - 2026-09-30：v1 加 v0.2 玩法（企劃書 4.0、D17）：稻米、商店等級、出貨評級、配種一次、田地、借種；`/v1/buy_calf` 停用。
 - 2026-10-02：v2 草稿（D22–D27、ceo 2026-10-02 裁示）：見第 0 節。v1 的「跟 M1 規格表不一樣的地方」對照表拿掉了，要看請查 git 歷史（`f11ce12` 的 `docs/protocol.md` 第 8 節）。
 - 2026-10-02：PR 3 做完第 0 節 1–8、12 項；每週排行榜加 `week_started_at_real`、`next_reset_at_real`（ceo 2026-10-02）。
+- 2026-10-02：PR 4 做完第 0 節 9、10 項：`cows[].breed`、24 品種圖鑑 `codex[] {breed, found_at}`、借種上架和 WS `stud` 的 `breed`、商店機率表的 `breed`。存檔格式升到 3，v0.2 的世界拒絕啟動。

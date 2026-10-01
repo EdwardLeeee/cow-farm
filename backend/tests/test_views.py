@@ -7,16 +7,51 @@ from __future__ import annotations
 
 import json
 import random
+import re
 from pathlib import Path
 
 import pytest
 
+from cowecon.farm import make_genotype
 from cowecon.market import MarketEvent
 from cowecon.params import HEADLINES
+from server.breeds import ALL, BREEDS, breed_of_genes
 from server.names import GROUPS, load_words, name_words, random_ranch_name, station_words
 from server.views import news_code
 
-ZH = Path(__file__).resolve().parents[2] / "design" / "m2" / "i18n" / "zh-Hant.json"
+DESIGN = Path(__file__).resolve().parents[2] / "design" / "m2"
+ZH = DESIGN / "i18n" / "zh-Hant.json"
+BREEDS_JS = DESIGN / "src" / "cow" / "breeds.js"
+
+
+def test_breed_table_matches_design():
+    """24 品種代號跟設計稿 breeds.js 一樣：每個 key 的用途和特徵組合對上伺服器的表；字串表有每種的名字和介紹。"""
+    if not BREEDS_JS.exists() or not ZH.exists():
+        pytest.skip("找不到設計稿")
+    src = BREEDS_JS.read_text(encoding="utf-8")
+    use_idx = {"dairy": 0, "draft": 1, "beef": 2}
+    found = {}
+    for m in re.finditer(
+        r"^\s+(\w+):\s*\{(?:\s*//[^\n]*)?\s*name:\s*'[^']*',\s*use:\s*'(\w+)',\s*traits:\s*\{([^}]*)\}", src, re.M
+    ):
+        key, use, traits = m.groups()
+        mask = sum(1 << "ABC".index(t) for t in re.findall(r"([ABC]):\s*true", traits))
+        found[key] = (use_idx[use], mask)
+    assert len(found) == 24 and set(found) == set(ALL)
+    for key, (t, mask) in found.items():
+        assert BREEDS[t][mask] == key, key
+    zh = json.loads(ZH.read_text(encoding="utf-8"))
+    assert all(zh.get(f"breed.{b}.name") and zh.get(f"breed.{b}.intro") for b in ALL)
+
+
+def test_breed_of_genes_uses_expressed_traits():
+    """只看顯現的特徵（兩份隱性基因）：只帶一份的牛還是一般品種。位元 1 = A 長毛、2 = B 淡色、4 = C 光澤。"""
+    assert breed_of_genes(make_genotype(0, [(0, 0), (0, 0), (0, 0)])) == "holstein"
+    assert breed_of_genes(make_genotype(0, [(1, 0), (1, 0), (1, 0)])) == "holstein"  # 只帶一份
+    assert breed_of_genes(make_genotype(0, [(1, 1), (0, 0), (0, 0)])) == "fluffyHolstein"  # A
+    assert breed_of_genes(make_genotype(1, [(0, 0), (1, 1), (0, 0)])) == "milkTea"  # 耕牛 B
+    assert breed_of_genes(make_genotype(2, [(0, 0), (0, 0), (1, 1)])) == "wagyu"  # 肉牛 C
+    assert breed_of_genes(make_genotype(2, [(1, 1), (1, 1), (1, 1)])) == "starry"  # 肉牛 A＋B＋C
 
 
 def _event(targets, factor, headline):

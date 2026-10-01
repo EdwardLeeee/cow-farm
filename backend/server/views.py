@@ -30,6 +30,8 @@ from cowecon.farm import (
 )
 from cowecon.params import HEADLINES, HOUR
 
+from .breeds import ORDER as BREED_ORDER
+from .breeds import breed_of_genes
 from .game import TYPE_WIRE, Game, Player, level_threshold, ship_value
 from .names import name_words, station_words
 
@@ -73,6 +75,7 @@ def cow_view(game: Game, p: Player, c: Cow, now: float) -> dict:
         "type": TYPE_WIRE[c.ctype],
         "bull": c.bull,
         "tier": c.tier,
+        "breed": breed_of_genes(c.g),
         "stage": cow_stage(p, c, now),
         "born_at": c.born_at,
         "adult_at": c.adult_at,
@@ -282,6 +285,7 @@ def listing_view(game: Game, lst, me: Optional[int], now: float) -> dict:
     return {
         "id": lst.lid,
         "price": ci(lst.price),
+        "breed": breed_of_genes(lst.g),
         "type": TYPE_WIRE[lst.ctype],
         "tier": lst.tier,
         "owner": ranch_ref(owner) if owner is not None else station_ref(game, lst.lid),
@@ -293,7 +297,9 @@ def listing_view(game: Game, lst, me: Optional[int], now: float) -> dict:
 
 
 def codex_view(p: Player) -> List[dict]:
-    return [{"type": TYPE_WIRE[t], "tier": tier} for t, tier in sorted(p.codex)]
+    """圖鑑：已發現的品種與第一次發現的時間，先發現的在前。"""
+    rows = sorted(p.codex.items(), key=lambda x: (x[1], BREED_ORDER[x[0]]))
+    return [{"breed": b, "found_at": t} for b, t in rows]
 
 
 def time_fields(clock, now: float) -> dict:

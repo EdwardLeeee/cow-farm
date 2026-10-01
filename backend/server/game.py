@@ -31,6 +31,8 @@ from cowecon.farm import (
 )
 from cowecon.params import DAY, HOUR, TZ_OFFSET_S
 
+from .breeds import breed_id, breed_of_genes
+
 TYPE_WIRE = ("dairy", "dual", "beef")  # 基因用途 0/1/2 的協定名稱；v0.2 的「耕牛」沿用 dual（見 docs/protocol.md）
 TYPE_INDEX = {w: i for i, w in enumerate(TYPE_WIRE)}
 UPGRADE_KINDS = ("pen", "bucket", "warehouse", "fresh", "field")
@@ -104,7 +106,7 @@ class Player:
         self.token_hash = token_hash
         self.created_at = created_at
         self.farm = farm
-        self.codex: set = set()  # {(用途 0–2, 稀有度 0–3)}：出現過的牛
+        self.codex: Dict[str, float] = {}  # 圖鑑：品種代號 → 第一次發現的遊戲時間（24 種，server/breeds.py）
         self.earned = 0.0  # 累積收入（賣出 + 借種收入，幣），換算等級
         self.week = week_id(created_at)
         self.week_earned = 0.0
@@ -114,8 +116,9 @@ class Player:
         self.rng_n = 0  # 伺服器亂數的計數（每用一次 +1；重啟後接著數）
         self.stud_income = 0.0  # 借種收入累計（幣）
 
-    def add_codex(self, cow: Cow) -> None:
-        self.codex.add((cow.ctype, cow.tier))
+    def add_codex(self, cow: Cow, now: float) -> None:
+        """牛一出生（或抽到、借種生下）就算發現；記第一次的時間，之後出貨也不會消失。"""
+        self.codex.setdefault(breed_of_genes(cow.g), now)
 
     def add_income(self, coins: float, now: float) -> None:
         self.earned += coins
@@ -134,7 +137,7 @@ class Player:
     def state_dict(self) -> dict:
         return {
             "farm": self.farm.to_dict(),
-            "codex": sorted([list(x) for x in self.codex]),
+            "codex": dict(sorted(self.codex.items())),
             "earned": self.earned,
             "week": self.week,
             "week_earned": self.week_earned,
@@ -157,7 +160,7 @@ class Player:
         game_t: Optional[float] = None,
     ) -> "Player":
         p = cls(pid, name, is_bot, created_at, Farm.from_dict(params, state["farm"]), token_hash)
-        p.codex = {tuple(x) for x in state.get("codex", [])}
+        p.codex = dict(state.get("codex", {}))  # 舊格式（v0.2 的 [用途, 稀有度]）的世界在載入前就被拒絕（runtime）
         p.earned = state.get("earned", 0.0)
         p.week = state.get("week", week_id(created_at))
         p.week_earned = state.get("week_earned", 0.0)
@@ -272,7 +275,7 @@ class Game:
         farm = Farm(self.params, now, rng if rng is not None else random.Random(f"{self.seed}:new:{pid}"))
         p = Player(pid, name, is_bot, now, farm, token_hash)
         for c in farm.cows:
-            p.add_codex(c)
+            p.add_codex(c, now)
         self.players[pid] = p
         return p
 
@@ -446,7 +449,7 @@ class Game:
         cow = f.buy_shop(gi, now, self._rng(p, rng))
         if cow is None:
             raise GameError("rejected", "現在不能買牛", 409)
-        p.add_codex(cow)
+        p.add_codex(cow, now)
         return cow
 
     def shop_info(self) -> List[dict]:
@@ -461,7 +464,16 @@ class Game:
                 type_p[t] += pr
                 if bull:
                     bull_p += pr
-                rows.append({"type": TYPE_WIRE[t], "bull": bull, "traits": mask, "tier": bin(mask).count("1"), "p": pr})
+                rows.append(
+                    {
+                        "type": TYPE_WIRE[t],
+                        "bull": bull,
+                        "traits": mask,
+                        "tier": bin(mask).count("1"),
+                        "breed": breed_id(t, mask),
+                        "p": pr,
+                    }
+                )
             out.append(
                 {
                     "grade": name,
@@ -530,7 +542,7 @@ class Game:
         calf = p.farm.breed(sire, dam, now, self._rng(p, rng))
         if calf is None:
             raise GameError("rejected", "現在不能配種", 409)
-        p.add_codex(calf)
+        p.add_codex(calf, now)
         return {"calf": calf, "sire": sire, "dam": dam}
 
     # ---- 田地 ----
@@ -680,14 +692,21 @@ class Game:
         if calf is None:  # 上面已經檢查過，理論上不會發生
             raise GameError("rejected", "現在不能借種", 409)
         self.stud_dirty = True
-        p.add_codex(calf)
+        p.add_codex(calf, now)
         if owner is not None:
             owner.stud_income += price
             owner.add_income(price, now)
         else:
             self.stud.npc_refill(now, npc_rng if npc_rng is not None else self.npc_rng())
         self.stud_events.append(
-            {"owner": lst.owner, "borrower": pid, "listing_id": lst.lid, "price": price, "cow_id": lst.cow_id}
+            {
+                "owner": lst.owner,
+                "borrower": pid,
+                "listing_id": lst.lid,
+                "price": price,
+                "cow_id": lst.cow_id,
+                "g": lst.g,
+            }
         )
         return {"calf": calf, "price": int(round(price)), "listing": lst, "dam": dam}
 
