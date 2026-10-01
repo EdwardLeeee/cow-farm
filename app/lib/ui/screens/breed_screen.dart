@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../api/models.dart';
+import '../../l10n/l10n.dart';
 import '../../l10n/strings.dart';
 import '../../state/game_model.dart';
 import '../format.dart';
@@ -134,7 +135,15 @@ class BreedOdds extends StatelessWidget {
         if (p.bullProb != null) Text(S.bullProbLine(fmtPlainPct1(p.bullProb!))),
         const SizedBox(height: 6),
         Text(feeText, key: const Key('breed-fee')),
-        for (final b in p.blockers) Text(b, style: const TextStyle(color: Palette.warn)),
+        for (final b in p.blockers)
+          Text(
+            Strings.of(context).blockerText(
+              b,
+              gameNow: context.read<GameModel>().gameNow,
+              timeScale: context.read<GameModel>().timeScale,
+            ),
+            style: const TextStyle(color: Palette.warn),
+          ),
       ],
     );
   }
@@ -255,14 +264,14 @@ class _OwnBreedViewState extends State<OwnBreedView> {
                 else if (_loader.statusText(m) != null)
                   Text(_loader.statusText(m)!)
                 else
-                  BreedOdds(preview: p!, feeText: p.fee <= 0 ? S.breedFree : S.fee(fmtInt(p.fee))),
+                  BreedOdds(preview: p!, feeText: S.breedFree),
                 const SizedBox(height: 8),
                 if (s.pen.full) const Text(S.penFull, style: TextStyle(color: Palette.warn)),
                 ActionButton(
                   key: const Key('breed-go'),
                   label: S.breed,
                   expand: true,
-                  enabled: sire != null && dam != null && p != null && p.canBreed && s.coins >= p.fee && !s.pen.full,
+                  enabled: sire != null && dam != null && p != null && p.canBreed && !s.pen.full,
                   onPressed: () async {
                     final r = await m.breed(sire!, dam!);
                     if (!context.mounted) return;

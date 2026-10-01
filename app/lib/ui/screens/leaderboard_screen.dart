@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../api/models.dart';
+import '../../l10n/l10n.dart';
 import '../../l10n/strings.dart';
 import '../../state/game_model.dart';
 import '../format.dart';
@@ -61,8 +62,11 @@ class _RankListState extends State<RankList> {
     await f;
   }
 
-  static String displayName(RankEntry e) =>
-      e.isBot && !e.name.startsWith(S.botPrefix) ? '${S.botPrefix} ${e.name}' : e.name;
+  /// 牧場名（協定 1.6）：電腦牧場前面加「電腦」，後面加 #編號。正式的排版（S12）在第 4 步照設計稿做。
+  static String displayName(Strings s, RankEntry e) {
+    final tag = Strings.ranchTag(e.ranch);
+    return tag == null ? s.ranchText(e.ranch) : '${s.ranchText(e.ranch)} $tag';
+  }
 
   String _score(double v) => widget.kind == RankKind.collection ? fmtInt(v) : S.costCoins(fmtInt(v));
 
@@ -104,7 +108,7 @@ class _RankListState extends State<RankList> {
                       dense: true,
                       selected: e.isMe,
                       leading: SizedBox(width: 32, child: Text('${e.rank}', textAlign: TextAlign.end)),
-                      title: Text(displayName(e)),
+                      title: Text(displayName(Strings.of(context), e)),
                       trailing: Text(_score(e.score)),
                     );
                   },

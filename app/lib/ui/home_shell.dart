@@ -3,8 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../l10n/l10n.dart';
 import '../l10n/strings.dart';
 import '../state/game_model.dart';
+import 'widgets/action_button.dart';
 import 'screens/breed_screen.dart';
 import 'screens/codex_screen.dart';
 import 'screens/cow_detail_screen.dart';
@@ -36,14 +38,19 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
-  StreamSubscription<String>? _sub;
+  StreamSubscription<GameNotice>? _sub;
 
   @override
   void initState() {
     super.initState();
-    _sub = context.read<GameModel>().notices.listen((text) {
+    _sub = context.read<GameModel>().notices.listen((notice) {
+      if (!mounted) return;
       _messengerKey.currentState?.showSnackBar(
-        SnackBar(key: const Key('notice'), content: Text(text), duration: const Duration(seconds: 4)),
+        SnackBar(
+          key: const Key('notice'),
+          content: Text(noticeText(context, notice)),
+          duration: const Duration(seconds: 4),
+        ),
       );
     });
   }
@@ -114,15 +121,30 @@ class _Loading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final m = context.watch<GameModel>();
+    final s = Strings.of(context);
+    // M1 的原型畫面：只用文字。正式的 S01、S02、S15-03、S14-05 在第 4 步照設計稿做。
+    final (String text, Widget? action) = switch (m) {
+      GameModel(authLost: 'signed_in_elsewhere') => (
+        s.s14ElsewhereTitle,
+        OutlinedButton(onPressed: m.startOver, child: Text(s.s14NewRanch)),
+      ),
+      GameModel(authLost: final String _) => (
+        s.s15InvalidTitle,
+        OutlinedButton(onPressed: m.startOver, child: Text(s.s14NewRanch)),
+      ),
+      GameModel(needsRanch: true) => (s.s02Title, null),
+      GameModel(startError: final ActionError e) when !m.starting => (
+        actionErrorText(context, e),
+        OutlinedButton(onPressed: m.start, child: Text(s.retry)),
+      ),
+      _ => (s.loadingFarm, null),
+    };
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(m.startError ?? S.loadingFarm, textAlign: TextAlign.center),
-          if (m.startError != null && !m.starting) ...[
-            const SizedBox(height: 12),
-            OutlinedButton(onPressed: m.start, child: const Text(S.retry)),
-          ],
+          Text(text, textAlign: TextAlign.center),
+          if (action != null) ...[const SizedBox(height: 12), action],
           const SizedBox(height: 24),
           Text(S.prototypeNote, style: Theme.of(context).textTheme.bodySmall),
         ],

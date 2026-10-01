@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/widgets.dart';
 import 'package:provider/provider.dart';
 
+import '../api/models.dart';
 import 'format.dart' as f;
 import 'gen/strings.g.dart';
 
@@ -123,6 +124,90 @@ class Strings extends GeneratedStrings {
     if (yesterday) return dateYesterday(time: time);
     return dateMd(m: month!, d: day!, time: time);
   }
+
+  /// 用途名：乳牛、耕牛、肉牛。
+  String useName(CowType type) => switch (type) {
+    CowType.dairy => typeDairy,
+    CowType.dual => typeDual,
+    CowType.beef => typeBeef,
+  };
+
+  /// 牧場名（協定 1.6）：真人用自己取的名字；電腦用三組詞照這個語言的 namegen.pattern 組。
+  /// 對方的牧場已經刪除（null）時是「已刪除的牧場」。電腦標記和 #編號由畫面另外放（設計稿把它們分開排版）。
+  String ranchName(RanchRef? ranch) {
+    if (ranch == null) return s18DeletedRanch;
+    final words = ranch.nameWords;
+    return ranch.name ?? (words != null ? ranchNameFromWords(words) : '');
+  }
+
+  /// 只有一行文字的地方（借種紀錄、通知）：電腦牧場前面加「電腦」，例「電腦 露珠溪谷牧野」。
+  String ranchText(RanchRef? ranch) =>
+      ranch != null && ranch.isBot ? '$botPrefix ${ranchName(ranch)}' : ranchName(ranch);
+
+  /// #編號：player_id 補零到 4 位（#0031），超過 9999 照實顯示；公營種牛站（player_id null）沒有編號。
+  static String? ranchTag(RanchRef? ranch) {
+    final id = ranch?.playerId;
+    return id == null ? null : '#${id.toString().padLeft(4, '0')}';
+  }
+
+  /// 新聞標題：伺服器送代碼，查字串表 `news.<code>`（協定 3.11）。字串表還沒有的新代碼回空字串，不讓畫面壞掉。
+  String newsHeadline(NewsItem news) {
+    final text = table['news.${news.code}'];
+    return text == null ? '' : fillTemplate(text, {for (final e in news.params.entries) e.key: '${e.value}'});
+  }
+
+  /// 倒數的時間長度（現實時間的秒數，無條件進位）：不到 1 分鐘寫秒，不到 1 小時寫分，不到 1 天寫時分，其他寫天時。
+  String countdown(double seconds) {
+    final s = seconds.ceil().clamp(0, 1 << 31);
+    if (s < 60) return duration(s: s);
+    final m = (s / 60).ceil();
+    if (m < 60) return duration(m: m);
+    if (m < 24 * 60) return duration(h: m ~/ 60, m: m % 60);
+    final h = (m / 60).ceil();
+    return duration(d: h ~/ 24, h: h % 24);
+  }
+
+  /// 錯誤碼 → 給玩家看的字（協定 1.4 的「app 文案」欄）。不顯示伺服器的 message。
+  /// [gameNow]、[timeScale] 用來把 not_yet_available 的 open_at 換成現實時間的倒數。
+  /// unauthorized、signed_in_elsewhere、account_*、maintenance 是整頁狀態（S15-03、S14-05、S13、S14、S16-01），
+  /// 這裡只給萬一變成提示條時的通用字。
+  String errorText(String code, {Map<String, dynamic> detail = const {}, double? gameNow, double timeScale = 1}) {
+    switch (code) {
+      case 'invalid_name':
+        return switch (detail['reason']) {
+          'too_short' => s02ErrShort,
+          'too_long' => s02ErrLong,
+          'emoji' => s02ErrEmoji,
+          'bad_char' => s02ErrChar,
+          _ => unknownError,
+        };
+      case 'sign_in_failed':
+        return s13ToastFailed;
+      case 'not_enough_coins':
+        final need = detail['need'], have = detail['have'];
+        if (need is num && have is num) return notEnoughCoins(n: f.fmt(need - have > 0 ? need - have : 0));
+        return unknownError;
+      case 'not_yet_available':
+        final openAt = detail['open_at'];
+        if (openAt is num && gameNow != null) {
+          return errNotYetAvailable(time: countdown((openAt - gameNow) / (timeScale > 0 ? timeScale : 1)));
+        }
+        return unknownError;
+      case 'pen_full':
+        return penFull;
+      case 'listing_not_found' || 'listing_gone':
+        return errListingGone;
+      case 'price_changed':
+        return s18FeeChangedTitle;
+      default:
+        final key = 'err.$code';
+        return table.containsKey(key) ? byKey(key) : unknownError;
+    }
+  }
+
+  /// 伺服器說「現在不能做」的原因（出貨、配種、借種預覽的 blockers[]）。
+  String blockerText(Blocker blocker, {double? gameNow, double timeScale = 1}) =>
+      errorText(blocker.code, detail: blocker.detail, gameNow: gameNow, timeScale: timeScale);
 
   /// 數字縮寫（頂列金幣等），見 format.dart 的 compact。
   String compact(num n, {int from = 10000}) => f.compact(n, lang, from: from);

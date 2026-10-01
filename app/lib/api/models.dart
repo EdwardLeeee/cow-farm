@@ -1,8 +1,8 @@
-// 協定 v1（含 v0.2 新增）的資料格式。欄位名稱全部集中在這個檔案的 fromJson，協定改了只要改這裡。
-// 依據：docs/protocol.md（伺服器端負責）。
+// 協定 v2 的資料格式（docs/protocol.md）。欄位名稱全部集中在這個檔案的 fromJson，協定改了只要改這裡。
 //
-// 時間：伺服器一律用「遊戲時間」的 Unix 秒數（可有小數），另外附 real_time 與 time_scale。
+// 時間：伺服器一律用「遊戲時間」的 Unix 秒數（可有小數），另外附 real_time 與 time_scale；名字以 _real 結尾的是現實時間。
 // app 只拿來顯示與倒數，不回報任何時間或數量。
+// v2 起伺服器不送給玩家看的中文（type_name、新聞 title、排行榜 name…），app 用代碼查字串表（l10n/l10n.dart）。
 
 double _d(Object? v, [double def = 0]) {
   if (v is num) return v.toDouble();
@@ -111,9 +111,61 @@ List<double> _tierProbs(Object? raw) {
   return probs;
 }
 
-/// 伺服器說「現在不能做」的原因（blockers[]），直接顯示 message。
-List<String> _blockers(Object? v) =>
-    _l(v).map((e) => '${_m(e)['message'] ?? _m(e)['code'] ?? ''}').where((x) => x.isNotEmpty).toList();
+/// 伺服器說「現在不能做」的一個原因（出貨、配種、借種預覽的 blockers[]）：app 用 [code] 查字串表，不顯示 message。
+class Blocker {
+  const Blocker(this.code, [this.detail = const {}]);
+  final String code;
+  final Map<String, dynamic> detail;
+
+  factory Blocker.fromJson(Map<String, dynamic> j) => Blocker('${j['code'] ?? ''}', {
+    for (final e in j.entries)
+      if (e.key != 'code' && e.key != 'message') e.key: e.value,
+  });
+}
+
+List<Blocker> _blockers(Object? v) =>
+    _l(v).map((e) => Blocker.fromJson(_m(e))).where((b) => b.code.isNotEmpty).toList();
+
+// ---------------------------------------------------------------------------
+// 共用物件（協定 1.6）
+// ---------------------------------------------------------------------------
+/// 牧場：排行榜、借種上架的主人、借種紀錄的對方、借種通知的借方。顯示方式見 Strings.ranchName。
+class RanchRef {
+  const RanchRef({this.playerId, this.name, this.nameWords, this.isBot = false, this.level});
+  final int? playerId; // 公營種牛站是 null（不顯示 #編號）
+  final String? name; // 真人自己取的名字；電腦是 null
+  final List<int>? nameWords; // 電腦牧場名的三組詞編號；真人是 null
+  final bool isBot;
+  final int? level; // 公營種牛站是 null
+
+  static RanchRef? fromJson(Object? v) {
+    if (v is! Map) return null;
+    final j = v.cast<String, dynamic>();
+    final words = j['name_words'];
+    return RanchRef(
+      playerId: j['player_id'] is num ? (j['player_id'] as num).toInt() : null,
+      name: j['name'] as String?,
+      nameWords: words is List && words.length == 3 ? [for (final w in words) _i(w)] : null,
+      isBot: _b(j['is_bot']),
+      level: j['level'] is num ? (j['level'] as num).toInt() : null,
+    );
+  }
+}
+
+/// 借種費（D26）：公牛現在的體重 × 每公斤價格，四捨五入到 10 幣，跟著公牛長大自動漲。
+class StudFee {
+  const StudFee({required this.price, required this.perKg, required this.kg, required this.atMax});
+  final int price;
+  final double perKg;
+  final double kg;
+  final bool atMax; // 已經長到最壯，不會再漲
+
+  static StudFee? fromJson(Object? v) {
+    if (v is! Map) return null;
+    final j = v.cast<String, dynamic>();
+    return StudFee(price: _i(j['price']), perKg: _d(j['per_kg']), kg: _d(j['kg']), atMax: _b(j['at_max']));
+  }
+}
 
 enum CowStage { calf, adult, old }
 
@@ -124,12 +176,12 @@ class Cow {
     required this.bull,
     required this.tier,
     required this.stage,
+    this.breed = '',
     this.ageH,
     this.milkPerH = 0,
     this.weightKg = 0,
     this.shipValue,
     this.adultAt,
-    this.readyAt,
     this.bred = false,
     this.fieldIndex,
     this.listedId,
@@ -139,22 +191,24 @@ class Cow {
     this.ricePerH = 0,
     this.gradeProbs,
     this.origin,
+    this.studFee,
   });
 
-  /// 伺服器給的原始 id（送回伺服器時原樣送）。
+  /// 伺服器給的原始 id（送回伺服器時原樣送）。畫面顯示「品種名 #id」。
   final Object id;
   final CowType type;
   final bool bull;
   final int tier; // 0 一般、1 優良、2 稀有、3 傳說
   final CowStage stage;
+
+  /// 品種代號（協定 1.6，跟 design/m2/src/cow/breeds.js 的 key 一樣）；名字查字串表。
+  final String breed;
   final double? ageH; // 遊戲小時
   final double milkPerH;
   final double weightKg;
   final double? shipValue; // 出貨估值（幣）
   final double? adultAt; // 遊戲時間：長大的時間
-  final double? readyAt; // v0.1 的配種冷卻；v0.2 固定 = adult_at
 
-  // ---- v0.2 ----
   final bool bred; // 這輩子配過種了（借出去也算）
   final int? fieldIndex; // 在第幾塊田工作；null = 沒下田
   final Object? listedId; // 借種市場上架編號；null = 沒上架
@@ -164,6 +218,9 @@ class Cow {
   final double ricePerH; // 在田裡時每小時產稻米
   final Map<String, double>? gradeProbs; // 現在出貨評到 A／B／C 的機率；小牛 null
   final String? origin; // start／A／B／C／breed／stud
+
+  /// 成年、沒配過種的公牛現在的借種費（S04-04 上架前就先顯示）；其他牛 null。
+  final StudFee? studFee;
 
   String get key => '$id';
 
@@ -176,38 +233,30 @@ class Cow {
 
   bool isAdultAt(double gameNow) => adultAt == null ? stage != CowStage.calf : gameNow >= adultAt!;
 
-  /// 伺服器給的 can_* 為準；舊伺服器沒給時照規則推。
+  /// 伺服器給的 can_* 為準；沒給時照規則推。
   bool canBreedAt(double gameNow) => serverCanBreed ?? (isAdultAt(gameNow) && !bred && !busy);
   bool canShipAt(double gameNow) => serverCanShip ?? (isAdultAt(gameNow) && !busy);
   bool canWorkAt(double gameNow) => serverCanWork ?? (type == CowType.dual && isAdultAt(gameNow) && !busy);
   bool canListAt(double gameNow) => bull && isAdultAt(gameNow) && !bred && !busy;
 
-  factory Cow.fromJson(Map<String, dynamic> j, {double serverTime = 0}) {
-    final stageRaw = _pick(j, ['stage']);
-    final stage = switch (stageRaw) {
-      'calf' || '小牛' => CowStage.calf,
-      'old' || '老牛' => CowStage.old,
+  factory Cow.fromJson(Map<String, dynamic> j) {
+    final stage = switch (j['stage']) {
+      'calf' => CowStage.calf,
+      'old' => CowStage.old,
       _ => CowStage.adult,
     };
-    double? readyAt = _dn(_pick(j, ['ready_at', 'breed_ready_at']));
-    if (readyAt == null) {
-      // 另一種寫法：剩餘冷卻秒數（遊戲時間）。
-      final left = _dn(_pick(j, ['breed_cooldown_s', 'breed_cooldown']));
-      if (left != null) readyAt = serverTime + left;
-    }
-    final sex = _pick(j, ['bull', 'sex']);
     return Cow(
-      id: _pick(j, ['id', 'cow_id']) ?? '?',
-      type: CowType.parse(_pick(j, ['type', 'ctype'])),
-      bull: sex is String ? (sex == 'M' || sex == 'male' || sex == 'bull') : _b(sex),
-      tier: _i(_pick(j, ['tier', 'rarity'])).clamp(0, 3),
+      id: j['id'] ?? '?',
+      type: CowType.parse(j['type']),
+      bull: _b(j['bull']),
+      tier: _i(j['tier']).clamp(0, 3),
       stage: stage,
-      ageH: _dn(_pick(j, ['age_h', 'age'])),
-      milkPerH: _d(_pick(j, ['milk_per_h', 'milk_rate'])),
-      weightKg: _d(_pick(j, ['weight_kg', 'weight'])),
-      shipValue: _dn(_pick(j, ['ship_value', 'value'])),
-      adultAt: _dn(_pick(j, ['adult_at'])),
-      readyAt: readyAt,
+      breed: '${j['breed'] ?? ''}',
+      ageH: _dn(j['age_h']),
+      milkPerH: _d(j['milk_per_h']),
+      weightKg: _d(j['weight_kg']),
+      shipValue: _dn(j['ship_value']),
+      adultAt: _dn(j['adult_at']),
       bred: _b(j['bred']),
       fieldIndex: j['field'] is num ? (j['field'] as num).toInt() : null,
       listedId: j['listed'],
@@ -217,6 +266,7 @@ class Cow {
       ricePerH: _d(j['rice_per_h']),
       gradeProbs: j['grade_probs'] is Map ? _gradeMap(j['grade_probs']) : null,
       origin: j['origin'] as String?,
+      studFee: StudFee.fromJson(j['stud_fee']),
     );
   }
 }
@@ -370,36 +420,46 @@ class UpgradeInfo {
   }
 }
 
-/// 圖鑑一格：用途 × 稀有度。
-typedef CodexKey = ({CowType type, int tier});
+/// 場主等級的進度（頂列經驗條）：這一級從 [levelAt] 開始，到 [nextAt] 升級；[earned] 是累積收入。
+class LevelProgress {
+  const LevelProgress({this.earned = 0, this.levelAt = 0, this.nextAt = 0});
+  final double earned;
+  final double levelAt;
+  final double nextAt;
 
-Set<CodexKey> _parseCodex(Object? v) {
-  final out = <CodexKey>{};
-  if (v is List) {
-    for (var i = 0; i < v.length; i++) {
-      final e = v[i];
-      if (e is Map) {
-        final j = e.cast<String, dynamic>();
-        out.add((type: CowType.parse(j['type']), tier: _i(j['tier']).clamp(0, 3)));
-      } else if (e is String && e.contains(':')) {
-        final p = e.split(':');
-        out.add((type: CowType.parse(p[0]), tier: _i(p[1]).clamp(0, 3)));
-      } else if (e is List && i < 3) {
-        // [[bool×4]×3] 矩陣
-        for (var t = 0; t < e.length && t < 4; t++) {
-          if (_b(e[t])) out.add((type: CowType.values[i], tier: t));
-        }
-      }
-    }
-  } else if (v is Map) {
-    // {"dairy": [0, 2], ...}
-    v.forEach((k, tiers) {
-      for (final t in _l(tiers)) {
-        out.add((type: CowType.parse(k), tier: _i(t).clamp(0, 3)));
-      }
-    });
+  /// 這一級走了幾成（0–1）。
+  double get fraction => nextAt <= levelAt ? 1 : ((earned - levelAt) / (nextAt - levelAt)).clamp(0.0, 1.0);
+
+  factory LevelProgress.fromJson(Map<String, dynamic> j) =>
+      LevelProgress(earned: _d(j['earned']), levelAt: _d(j['level_at']), nextAt: _d(j['next_at']));
+}
+
+/// 綁定的帳號（D22；協定 2.3 account.links）。
+class AccountLink {
+  const AccountLink({required this.provider, this.linkedAtReal});
+  final String provider; // apple／google
+  final double? linkedAtReal; // 現實時間
+
+  factory AccountLink.fromJson(Map<String, dynamic> j) =>
+      AccountLink(provider: '${j['provider'] ?? ''}', linkedAtReal: _dn(j['linked_at_real']));
+}
+
+/// 維護（協定第 6 節）：/v1/status、/v1/state、WS 都用這個形狀；沒有安排維護是 null。
+class Maintenance {
+  const Maintenance({this.startsAtReal, this.endsAtReal, this.active = false});
+  final double? startsAtReal; // 現實時間
+  final double? endsAtReal; // 預計恢復（S16-01）；過了也可能還在維護
+  final bool active;
+
+  static Maintenance? fromJson(Object? v) {
+    if (v is! Map) return null;
+    final j = v.cast<String, dynamic>();
+    return Maintenance(
+      startsAtReal: _dn(j['starts_at_real']),
+      endsAtReal: _dn(j['ends_at_real']),
+      active: _b(j['active']),
+    );
   }
-  return out;
 }
 
 class GameState {
@@ -414,13 +474,16 @@ class GameState {
     required this.warehouse,
     required this.pen,
     required this.upgrades,
-    required this.codex,
-    this.calfPrices = const {},
+    this.codex = const {},
+    this.playerId,
     this.ranchName,
+    this.levelProgress = const LevelProgress(),
     this.shopGrades = const [],
     this.fields = const [],
     this.rice = const RiceInfo(),
     this.stud = const StudInfo(),
+    this.accountLinks = const [],
+    this.maintenance,
   });
 
   final double serverTime; // 遊戲時間 Unix 秒
@@ -433,19 +496,20 @@ class GameState {
   final Warehouse warehouse;
   final Pen pen;
   final Map<UpgradeKind, UpgradeInfo> upgrades;
-  final Set<CodexKey> codex;
 
-  /// 商店小牛價格（依用途）；沒給就是 null，畫面不擋錢不夠。
-  final Map<CowType, double> calfPrices;
+  /// 圖鑑：發現過的品種 → 第一次發現的遊戲時間（24 種裡沒出現的顯示剪影）。
+  final Map<String, double> codex;
+  final int? playerId; // 顯示「牧場名 #編號」
   final String? ranchName;
-
-  // ---- v0.2 ----
+  final LevelProgress levelProgress;
   final List<GradePrice> shopGrades; // 商店各等級價格（機率看 GET /v1/shop）
   final List<FieldInfo> fields;
   final RiceInfo rice;
   final StudInfo stud;
 
-  double? calfPrice(CowType t) => calfPrices[t];
+  /// 綁定的帳號；空的代表還沒備份（頂列齒輪的小點 G-10）。
+  final List<AccountLink> accountLinks;
+  final Maintenance? maintenance;
 
   double? gradePrice(String grade) {
     for (final g in shopGrades) {
@@ -462,42 +526,39 @@ class GameState {
   }
 
   factory GameState.fromJson(Map<String, dynamic> j) {
-    final st = _d(_pick(j, ['server_time']));
     final ups = _m(j['upgrades']);
     final pen = Pen.fromJson(_m(j['pen']));
     final upgrades = <UpgradeKind, UpgradeInfo>{
       for (final k in UpgradeKind.values)
         if (ups.containsKey(k.wire)) k: UpgradeInfo.fromJson(ups[k.wire]),
     };
-    // 擴建的費用與開放時間也可能只寫在 pen 裡。
+    // 擴建的費用與開放時間也寫在 pen 裡。
     upgrades.putIfAbsent(UpgradeKind.pen, () => UpgradeInfo(cost: pen.nextCost, openAt: pen.nextOpenAt));
-    final shop = _m(j['shop']);
-    final rawPrice = _pick(shop, ['calf_price']) ?? j['calf_price'];
-    final calfPrices = <CowType, double>{
-      for (final t in CowType.values)
-        if (rawPrice is num)
-          t: rawPrice.toDouble()
-        else if (rawPrice is Map && rawPrice[t.wire] is num)
-          t: (rawPrice[t.wire] as num).toDouble(),
-    };
+    final account = _m(j['account']);
     return GameState(
-      serverTime: st,
-      realTime: _d(_pick(j, ['real_time'])),
-      timeScale: _d(_pick(j, ['time_scale']), 1),
-      coins: _d(_pick(j, ['coins'])),
-      level: _i(_pick(j, ['level']), 1),
-      cows: _l(j['cows']).map((e) => Cow.fromJson(_m(e), serverTime: st)).toList(),
+      serverTime: _d(j['server_time']),
+      realTime: _d(j['real_time']),
+      timeScale: _d(j['time_scale'], 1),
+      coins: _d(j['coins']),
+      level: _i(j['level'], 1),
+      cows: _l(j['cows']).map((e) => Cow.fromJson(_m(e))).toList(),
       bucket: Bucket.fromJson(_m(j['bucket'])),
       warehouse: Warehouse.fromJson(_m(j['warehouse'])),
       pen: pen,
       upgrades: upgrades,
-      codex: _parseCodex(j['codex']),
-      calfPrices: calfPrices,
-      ranchName: _pick(j, ['ranch_name']) as String?,
-      shopGrades: _l(shop['grades']).map((e) => GradePrice.fromJson(_m(e))).toList(),
+      codex: {
+        for (final e in _l(j['codex']))
+          if (_m(e)['breed'] is String) _m(e)['breed'] as String: _d(_m(e)['found_at']),
+      },
+      playerId: j['player_id'] is num ? (j['player_id'] as num).toInt() : null,
+      ranchName: j['ranch_name'] as String?,
+      levelProgress: LevelProgress.fromJson(_m(j['level_progress'])),
+      shopGrades: _l(_m(j['shop'])['grades']).map((e) => GradePrice.fromJson(_m(e))).toList(),
       fields: _l(j['fields']).map((e) => FieldInfo.fromJson(_m(e))).toList(),
       rice: RiceInfo.fromJson(_m(j['rice'])),
       stud: StudInfo.fromJson(_m(j['stud'])),
+      accountLinks: _l(account['links']).map((e) => AccountLink.fromJson(_m(e))).toList(),
+      maintenance: Maintenance.fromJson(j['maintenance']),
     );
   }
 }
@@ -596,7 +657,7 @@ class ShopBuyResult {
 
   factory ShopBuyResult.fromJson(Map<String, dynamic> j) => ShopBuyResult(
     grade: '${j['grade'] ?? ''}',
-    cow: j['cow'] is Map ? Cow.fromJson(_m(j['cow']), serverTime: _d(j['server_time'])) : null,
+    cow: j['cow'] is Map ? Cow.fromJson(_m(j['cow'])) : null,
     cost: _dn(j['cost']),
   );
 }
@@ -620,7 +681,7 @@ class ShipPreview {
   final double? expectedValue;
   final double? weightKg;
   final bool canShip;
-  final List<String> blockers;
+  final List<Blocker> blockers; // cow_not_adult、cow_in_field、cow_listed
 
   factory ShipPreview.fromJson(Map<String, dynamic> j) => ShipPreview(
     gradeProbs: _gradeMap(j['grade_probs']),
@@ -657,81 +718,101 @@ class ShipResult {
 class StudListing {
   const StudListing({
     required this.id,
-    required this.price,
+    required this.breed,
     required this.type,
     required this.tier,
-    required this.ownerName,
-    this.isBot = false,
+    required this.fee,
+    this.owner,
     this.isMine = false,
     this.cowId,
-    this.weightKg,
+    this.listedAt,
   });
   final Object id; // 上架編號（借種、下架用，原樣送回）
-  final double price;
+  final String breed;
   final CowType type;
   final int tier;
-  final String ownerName; // 電腦假玩家前面有「電腦」
-  final bool isBot;
+  final StudFee fee; // 借種費，這一刻現算（D26）
+  final RanchRef? owner; // 主人；公營種牛站是 player_id null 的電腦牧場
   final bool isMine;
-  final Object? cowId; // 主人牧場裡的牛編號；系統上架 null
-  final double? weightKg;
+  final Object? cowId; // 主人牧場裡的牛編號；公營種牛站 null
+  final double? listedAt;
 
   String get key => '$id';
 
+  /// 借種費（幣）。
+  int get price => fee.price;
+
   factory StudListing.fromJson(Map<String, dynamic> j) => StudListing(
     id: j['id'] ?? '?',
-    price: _d(j['price']),
+    breed: '${j['breed'] ?? ''}',
     type: CowType.parse(j['type']),
     tier: _i(j['tier']).clamp(0, 3),
-    ownerName: '${j['owner_name'] ?? ''}',
-    isBot: _b(j['is_bot']),
+    fee: StudFee.fromJson(j['fee']) ?? const StudFee(price: 0, perKg: 0, kg: 0, atMax: false),
+    owner: RanchRef.fromJson(j['owner']),
     isMine: _b(j['is_mine']),
     cowId: j['cow_id'],
-    weightKg: _dn(j['weight_kg']),
+    listedAt: _dn(j['listed_at']),
   );
 }
 
-/// state.stud：自己上架的、借種收入、可選價位。
+/// state.stud：自己上架的、借種收入。
 class StudInfo {
-  const StudInfo({this.listings = const [], this.income = 0, this.prices = const []});
+  const StudInfo({this.listings = const [], this.income = 0});
   final List<StudListing> listings;
   final double income;
-  final List<double> prices;
 
-  factory StudInfo.fromJson(Map<String, dynamic> j) => StudInfo(
-    listings: _l(j['listings']).map((e) => StudListing.fromJson(_m(e))).toList(),
-    income: _d(j['income']),
-    prices: _l(j['prices']).map((e) => _d(e)).toList(),
-  );
+  factory StudInfo.fromJson(Map<String, dynamic> j) =>
+      StudInfo(listings: _l(j['listings']).map((e) => StudListing.fromJson(_m(e))).toList(), income: _d(j['income']));
 }
 
-/// `GET /v1/stud`。
+/// `GET /v1/stud`：全部上架（便宜的在前）和自己上架的。
 class StudMarket {
-  const StudMarket({required this.listings, this.mine = const [], this.prices = const []});
+  const StudMarket({required this.listings, this.mine = const []});
   final List<StudListing> listings;
   final List<StudListing> mine;
-  final List<double> prices;
 
   factory StudMarket.fromJson(Map<String, dynamic> j) => StudMarket(
     listings: _l(j['listings']).map((e) => StudListing.fromJson(_m(e))).toList(),
     mine: _l(j['mine']).map((e) => StudListing.fromJson(_m(e))).toList(),
-    prices: _l(j['prices']).map((e) => _d(e)).toList(),
   );
 }
 
 // ---------------------------------------------------------------------------
 // 帳號
 // ---------------------------------------------------------------------------
+/// `POST /v1/session` 建立牧場（取好名字才建立，協定 2.1）。
 class Session {
-  const Session({required this.token, required this.playerId, required this.ranchName});
+  const Session({
+    required this.token,
+    required this.playerId,
+    required this.ranchName,
+    this.created = true,
+    this.state,
+  });
   final String token;
-  final String playerId;
-  final String ranchName;
+  final int playerId;
+  final String ranchName; // 去掉前後空白之後的名字
+  final bool created; // 重送同一個 request_id 時是 false
+  final GameState? state; // S02-02 的開局牛、金幣、奶桶從這裡拿
 
   factory Session.fromJson(Map<String, dynamic> j) => Session(
     token: '${j['token']}',
-    playerId: '${_pick(j, ['player_id', 'id']) ?? ''}',
-    ranchName: '${_pick(j, ['ranch_name']) ?? ''}',
+    playerId: _i(j['player_id']),
+    ranchName: '${j['ranch_name'] ?? ''}',
+    created: j['created'] is bool ? j['created'] as bool : true,
+    state: j['state'] is Map ? GameState.fromJson(_m(j['state'])) : null,
+  );
+}
+
+/// `GET /v1/status`（不用 token）：開機先打，決定要不要顯示維護畫面（協定 6.1）。
+class ServerStatus {
+  const ServerStatus({this.protocol, this.maintenance});
+  final int? protocol;
+  final Maintenance? maintenance;
+
+  factory ServerStatus.fromJson(Map<String, dynamic> j) => ServerStatus(
+    protocol: j['protocol'] is num ? (j['protocol'] as num).toInt() : null,
+    maintenance: Maintenance.fromJson(j['maintenance']),
   );
 }
 
@@ -739,9 +820,15 @@ class Session {
 // 行情
 // ---------------------------------------------------------------------------
 class Quote {
-  const Quote({required this.price, required this.change24h, this.ma24, this.serverPct});
+  const Quote({required this.price, required this.change24h, this.ma24, this.serverPct, this.basePrice, this.ratio});
   final double price;
   final double? serverPct;
+
+  /// 基本價（平常的價）：牛奶 12、牛肉 12、稻米 5。
+  final double? basePrice;
+
+  /// 現價 ÷ 基本價。「比平常高／低幾 %」= ratio − 1（D24）。
+  final double? ratio;
 
   /// 24 小時的價格變化（幣，現價減 24 小時前）。畫面的漲跌顏色只看正負號。
   final double change24h;
@@ -759,6 +846,8 @@ class Quote {
     change24h: _d(_pick(j, ['change_24h', 'change'])),
     ma24: _dn(_pick(j, ['ma24', 'ma_24h'])),
     serverPct: _dn(j['change_24h_pct']),
+    basePrice: _dn(j['base_price']),
+    ratio: _dn(j['ratio']),
   );
 }
 
@@ -779,39 +868,57 @@ class PricePoint {
   static List<PricePoint> listFrom(Object? v) => _l(v).map(PricePoint.fromJson).whereType<PricePoint>().toList();
 }
 
+/// 新聞（協定 3.11）：標題由 app 用 [code] 查字串表 `news.<code>`（Strings.newsTitle）。
 class NewsItem {
   const NewsItem({
     required this.id,
-    required this.title,
+    required this.code,
+    this.params = const {},
+    this.pct = 0,
     this.commodity,
+    this.targets = const [],
     this.up,
+    this.big = false,
     this.time,
-    this.upcoming = false,
+    this.announceAt,
     this.startAt,
+    this.endAt,
+    this.upcoming = false,
   });
+  final String id;
+  final String code; // 例 milk_up.1、all_down.3
+  final Map<String, dynamic> params;
+
+  /// 全幅時讓價格變多少（+0.18 = 漲 18%）。|pct| ≥ 0.2 時牧場頁提示一次（S03-15）。
+  final double pct;
+  final Commodity? commodity; // 不只一種時是 null（看 targets）
+  final List<Commodity> targets;
+  final bool? up; // 利多 true／利空 false
+  final bool big; // 罕見的大新聞（±30–40%）
+  final double? time; // 遊戲時間（= announceAt）
+  final double? announceAt;
+  final double? startAt; // 開始影響價格
+  final double? endAt;
   final bool upcoming; // 伺服器給的狀態：預告，還沒開始影響價格
-  final double? startAt; // 開始影響價格的遊戲時間
 
   /// 在 [gameNow] 時是不是還在預告階段（「即將發生 → 進行中」由 app 用 start_at 判斷）。
   bool isUpcomingAt(double gameNow) => startAt != null ? gameNow < startAt! : upcoming;
-  final String id;
-  final String title;
-  final Commodity? commodity; // null = 兩者都受影響
-  final bool? up; // 利多 true／利空 false
-  final double? time; // 遊戲時間
 
-  factory NewsItem.fromJson(Map<String, dynamic> j) {
-    final dir = _pick(j, ['direction', 'up', 'sign']);
-    return NewsItem(
-      id: '${_pick(j, ['id']) ?? _pick(j, ['time', 't']) ?? j.hashCode}',
-      title: '${_pick(j, ['title', 'headline']) ?? ''}',
-      commodity: Commodity.tryParse(_pick(j, ['commodity', 'target'])),
-      up: dir == null ? null : (dir is num ? dir > 0 : (dir == 'up' || dir == '+' || dir == true)),
-      time: _dn(_pick(j, ['time', 't', 'announce_at', 'start_at'])),
-      upcoming: j['state'] == 'upcoming',
-      startAt: _dn(j['start_at']),
-    );
-  }
+  factory NewsItem.fromJson(Map<String, dynamic> j) => NewsItem(
+    id: '${j['id'] ?? j['time'] ?? j.hashCode}',
+    code: '${j['code'] ?? ''}',
+    params: _m(j['params']),
+    pct: _d(j['pct']),
+    commodity: Commodity.tryParse(j['commodity']),
+    targets: _l(j['targets']).map(Commodity.tryParse).whereType<Commodity>().toList(),
+    up: j['direction'] == null ? null : j['direction'] == 'up',
+    big: _b(j['big']),
+    time: _dn(j['time']),
+    announceAt: _dn(j['announce_at']),
+    startAt: _dn(j['start_at']),
+    endAt: _dn(j['end_at']),
+    upcoming: j['state'] == 'upcoming',
+  );
 }
 
 class MarketInfo {
@@ -896,28 +1003,28 @@ class SellResult {
 // ---------------------------------------------------------------------------
 // 配種
 // ---------------------------------------------------------------------------
-/// 配種／借種前的預覽：小牛各稀有度、各用途、公母的精確機率，以及費用。
+/// 配種／借種前的預覽：小牛各稀有度、各用途、公母的精確機率；借種另外有這一刻的借種費。
 class BreedPreview {
   const BreedPreview({
     required this.tierProbs,
-    required this.fee,
+    this.fee,
     this.typeProbs = const {},
     this.bullProb,
     this.canBreed = true,
     this.blockers = const [],
   });
   final List<double> tierProbs; // 稀有度 0–3
-  final double fee; // 自己配種 0；借種是借出價
+  final StudFee? fee; // 借種費（自己配種免費，是 null）。借種時把 fee.price 原樣送回
   final Map<CowType, double> typeProbs;
   final double? bullProb;
   final bool canBreed; // can_breed／can_borrow
-  final List<String> blockers;
+  final List<Blocker> blockers;
 
   factory BreedPreview.fromJson(Map<String, dynamic> j) {
     final can = j['can_breed'] ?? j['can_borrow'];
     return BreedPreview(
-      tierProbs: _tierProbs(_pick(j, ['tier_probs', 'probs', 'tiers'])),
-      fee: _d(_pick(j, ['price', 'fee', 'cost'])),
+      tierProbs: _tierProbs(j['tier_probs']),
+      fee: StudFee.fromJson(j['fee']),
       typeProbs: _typeProbs(j['type_probs']),
       bullProb: _dn(j['bull_prob']),
       canBreed: can is bool ? can : true,
@@ -932,9 +1039,7 @@ class BreedResult {
 
   factory BreedResult.fromJson(Map<String, dynamic> j) {
     final c = _pick(j, ['calf', 'cow']);
-    return BreedResult(
-      calf: c is Map ? Cow.fromJson(c.cast<String, dynamic>(), serverTime: _d(j['server_time'])) : null,
-    );
+    return BreedResult(calf: c is Map ? Cow.fromJson(c.cast<String, dynamic>()) : null);
   }
 }
 
@@ -951,34 +1056,33 @@ enum RankKind {
 }
 
 class RankEntry {
-  const RankEntry({required this.rank, required this.name, required this.score, this.isBot = false, this.isMe = false});
+  const RankEntry({required this.rank, required this.score, this.ranch, this.isMe = false});
   final int rank;
-  final String name;
-  final double score;
-  final bool isBot;
+  final double score; // 總資產與本週收入是幣，圖鑑是種數
+  final RanchRef? ranch; // 每列的等級是 ranch.level
   final bool isMe;
 
-  factory RankEntry.fromJson(Map<String, dynamic> j) => RankEntry(
-    rank: _i(j['rank']),
-    name: '${_pick(j, ['name', 'ranch_name']) ?? ''}',
-    score: _d(_pick(j, ['score', 'value'])),
-    isBot: _b(_pick(j, ['is_bot', 'bot'])),
-    isMe: _b(_pick(j, ['is_me', 'me'])),
-  );
+  factory RankEntry.fromJson(Map<String, dynamic> j) =>
+      RankEntry(rank: _i(j['rank']), score: _d(j['score']), ranch: RanchRef.fromJson(j['ranch']), isMe: _b(j['is_me']));
 }
 
 class Leaderboard {
-  const Leaderboard({required this.entries, this.me});
-  final List<RankEntry> entries;
-  final RankEntry? me;
+  const Leaderboard({required this.entries, this.me, this.total, this.weekStartedAtReal, this.nextResetAtReal});
+  final List<RankEntry> entries; // 前 50 名
+  final RankEntry? me; // 自己的名次（不論在不在前 50）
+  final int? total;
 
-  factory Leaderboard.fromJson(Map<String, dynamic> j) {
-    final me = _pick(j, ['me', 'self', 'mine']);
-    return Leaderboard(
-      entries: _l(_pick(j, ['entries', 'top', 'rows'])).map((e) => RankEntry.fromJson(_m(e))).toList(),
-      me: me is Map ? RankEntry.fromJson(me.cast<String, dynamic>()) : null,
-    );
-  }
+  /// kind=weekly 才有：這一週開始、下次重算的現實時間（s12.weeklyHint 依手機時區換算）。
+  final double? weekStartedAtReal;
+  final double? nextResetAtReal;
+
+  factory Leaderboard.fromJson(Map<String, dynamic> j) => Leaderboard(
+    entries: _l(j['entries']).map((e) => RankEntry.fromJson(_m(e))).toList(),
+    me: j['me'] is Map ? RankEntry.fromJson(_m(j['me'])) : null,
+    total: j['total'] is num ? (j['total'] as num).toInt() : null,
+    weekStartedAtReal: _dn(j['week_started_at_real']),
+    nextResetAtReal: _dn(j['next_reset_at_real']),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -987,8 +1091,11 @@ class Leaderboard {
 sealed class PushMessage {
   const PushMessage();
 
+  /// 伺服器送的訊息（協定第 7 節）；不認得的 type 回 null（要忽略）。
   static PushMessage? fromJson(Map<String, dynamic> j) {
     switch (j['type']) {
+      case 'hello':
+        return HelloPush(protocol: j['protocol'] is num ? (j['protocol'] as num).toInt() : null);
       case 'market':
         final quotes = <Commodity, Quote>{};
         for (final c in Commodity.values) {
@@ -997,19 +1104,32 @@ sealed class PushMessage {
         }
         return MarketPush(quotes, _dn(j['server_time']));
       case 'news':
-        final n = j['news'] is Map ? _m(j['news']) : j;
-        return NewsPush(NewsItem.fromJson(n));
+        // v2：新聞的欄位平鋪在訊息裡
+        return NewsPush(NewsItem.fromJson(j['news'] is Map ? _m(j['news']) : j));
       case 'stud':
+        final cow = _m(j['cow']);
         return StudPush(
           event: '${j['event'] ?? ''}',
           listingId: j['listing_id'],
-          cowId: j['cow_id'],
+          cowId: cow['id'],
+          breed: cow['breed'] as String?,
           price: _d(j['price']),
+          borrower: RanchRef.fromJson(j['borrower']),
         );
+      case 'maintenance':
+        return MaintenancePush(Maintenance.fromJson(j['maintenance']));
+      case 'error':
+        return ServerErrorPush('${_m(j['error'])['code'] ?? ''}');
       default:
         return null;
     }
   }
+}
+
+/// 連上時一次：協定版本（v2 是 2）。
+class HelloPush extends PushMessage {
+  const HelloPush({this.protocol});
+  final int? protocol;
 }
 
 class MarketPush extends PushMessage {
@@ -1018,19 +1138,35 @@ class MarketPush extends PushMessage {
   final double? serverTime;
 }
 
-/// v0.2：有人借了你上架的公牛（你在線時）。
+/// 有人借了你上架的公牛（你在線時）。G-05「{cow} 借給 {ranch}，收到 {price} 幣」。
 class StudPush extends PushMessage {
-  const StudPush({required this.event, this.listingId, this.cowId, this.price = 0});
+  const StudPush({required this.event, this.listingId, this.cowId, this.breed, this.price = 0, this.borrower});
   final String event; // borrowed
   final Object? listingId;
   final Object? cowId;
+  final String? breed;
   final double price;
+  final RanchRef? borrower;
 }
 
-/// WebSocket 的 token 無效（伺服器用關閉碼 4401 關閉）。app 不要重連，改建立新帳號。
+/// 安排、改變、取消維護，和開始維護的那一刻（取消時 maintenance 是 null）。
+class MaintenancePush extends PushMessage {
+  const MaintenancePush(this.maintenance);
+  final Maintenance? maintenance;
+}
+
+/// 伺服器關閉連線前送的錯誤（unauthorized、signed_in_elsewhere）。
+class ServerErrorPush extends PushMessage {
+  const ServerErrorPush(this.code);
+  final String code;
+}
+
+/// WebSocket 的 token 無效（伺服器用關閉碼 4401 關閉）：不要重連。
+/// [code] 是關閉前送來的錯誤碼：unauthorized（S15-03）或 signed_in_elsewhere（S14-05）。
 class PushAuthFailed extends PushMessage {
-  const PushAuthFailed(this.token);
+  const PushAuthFailed(this.token, [this.code = 'unauthorized']);
   final String token;
+  final String code;
 }
 
 class NewsPush extends PushMessage {

@@ -13,7 +13,7 @@ void main() {
       tester.view.physicalSize = const Size(360 * 3, 740 * 3);
       tester.view.devicePixelRatio = 3;
       addTearDown(tester.view.reset);
-      await tester.pumpWidget(CowFarmApp(model: m));
+      await tester.pumpWidget(CowFarmApp(model: m, settings: zhSettings()));
       m.selectTab(tab);
       await tester.pump();
       await tester.pump();
@@ -36,7 +36,7 @@ void main() {
     tester.view.physicalSize = const Size(360 * 3, 740 * 3);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(CowFarmApp(model: m));
+    await tester.pumpWidget(CowFarmApp(model: m, settings: zhSettings()));
     for (final id in ['1', '2', '3', '4', '5']) {
       m.openCow(id);
       await tester.pump();

@@ -9,10 +9,11 @@ import 'models.dart';
 
 /// 用 HTTP 呼叫伺服器的資料層。
 ///
-/// - 除了 `POST /v1/session` 以外都帶 `Authorization: Bearer <token>`。
+/// - 有 token 就帶 `Authorization: Bearer <token>`（`POST /v1/session`、`GET /v1/status` 不需要）。
 /// - 會改變狀態的請求每次產生新的 request_id（UUID v4）；網路失敗重送時沿用同一個，
-///   伺服器就會回第一次的結果，不會重複成交。
-/// - 只在「沒收到回應」時重送（連線失敗、逾時、502/503/504）；收到 4xx 就直接把錯誤交給畫面。
+///   伺服器就會回第一次的結果，不會重複成交（協定 1.3）。
+/// - 只在「沒收到回應」時重送（連線失敗、逾時、502／504、沒有錯誤本文的 503）；
+///   收到 4xx、500 或 503 maintenance 就直接把錯誤交給畫面。
 class HttpGameApi implements GameApi {
   HttpGameApi({
     required this.base,
@@ -62,13 +63,24 @@ class HttpGameApi implements GameApi {
         lastError = e;
         continue;
       }
-      if (_retryStatus.contains(res.statusCode)) {
+      // 503 有兩種：伺服器回的「維護中」（有錯誤本文，直接交給畫面），和反向代理回的連不上（重送）
+      if (_retryStatus.contains(res.statusCode) && !_isMaintenance(res)) {
         lastError = 'HTTP ${res.statusCode}';
         continue;
       }
       return _decode(res);
     }
     throw NetworkException(lastError ?? 'unknown');
+  }
+
+  static bool _isMaintenance(http.Response res) {
+    if (res.statusCode != 503) return false;
+    try {
+      final body = jsonDecode(utf8.decode(res.bodyBytes));
+      return body is Map && body['error'] is Map && (body['error'] as Map)['code'] == 'maintenance';
+    } on FormatException {
+      return false;
+    }
   }
 
   Map<String, dynamic> _decode(http.Response res) {
@@ -84,6 +96,7 @@ class HttpGameApi implements GameApi {
         res.statusCode,
         '${err['code'] ?? 'http_${res.statusCode}'}',
         '${err['message'] ?? 'HTTP ${res.statusCode}'}',
+        err['detail'] is Map ? (err['detail'] as Map).cast<String, dynamic>() : const {},
       );
     }
     if (body is Map) return body.cast<String, dynamic>();
@@ -105,7 +118,11 @@ class HttpGameApi implements GameApi {
   }
 
   @override
-  Future<Session> createSession() async => Session.fromJson(await _post('/v1/session', const {}));
+  Future<Session> createSession(String ranchName) async =>
+      Session.fromJson(await _mutate('/v1/session', {'ranch_name': ranchName}));
+
+  @override
+  Future<ServerStatus> status() async => ServerStatus.fromJson(await _get('/v1/status'));
 
   @override
   Future<GameState> getState() async => GameState.fromJson(await _get('/v1/state'));
@@ -181,13 +198,12 @@ class HttpGameApi implements GameApi {
       BreedPreview.fromJson(await _get('/v1/stud/preview', {'listing_id': '$listingId', 'dam': '$dam'}));
 
   @override
-  Future<Map<String, dynamic>> studList(Object cowId, double price) =>
-      _mutate('/v1/stud/list', {'cow_id': cowId, 'price': price.round()});
+  Future<Map<String, dynamic>> studList(Object cowId) => _mutate('/v1/stud/list', {'cow_id': cowId});
 
   @override
   Future<Map<String, dynamic>> studUnlist(Object listingId) => _mutate('/v1/stud/unlist', {'listing_id': listingId});
 
   @override
-  Future<BreedResult> studBorrow(Object listingId, Object dam) async =>
-      BreedResult.fromJson(await _mutate('/v1/stud/borrow', {'listing_id': listingId, 'dam': dam}));
+  Future<BreedResult> studBorrow(Object listingId, Object dam, {required int price}) async =>
+      BreedResult.fromJson(await _mutate('/v1/stud/borrow', {'listing_id': listingId, 'dam': dam, 'price': price}));
 }

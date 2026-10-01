@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../api/models.dart';
+import '../../l10n/l10n.dart';
 import '../../l10n/strings.dart';
 import '../../state/game_model.dart';
 import '../format.dart';
@@ -134,7 +135,7 @@ class NewsTile extends StatelessWidget {
       dense: true,
       contentPadding: EdgeInsets.zero,
       leading: Container(width: 6, height: 32, color: color),
-      title: Text('$tag${item.title}'),
+      title: Text('$tag${Strings.of(context).newsHeadline(item)}'),
       subtitle: item.time == null ? null : Text(fmtGameClock(item.time!)),
     );
   }

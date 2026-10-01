@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../api/models.dart';
+import '../../l10n/l10n.dart';
 import '../../l10n/strings.dart';
 import '../../state/game_model.dart';
 import '../format.dart';
@@ -22,7 +23,6 @@ class _StudViewState extends State<StudView> {
   bool _loadingMarket = false;
   String? _listingKey; // 選中的上架
   String? _damKey;
-  final Map<String, double> _priceFor = {}; // 我的公牛 → 選的價位
   final _loader = PreviewLoader();
 
   @override
@@ -127,7 +127,7 @@ class _StudViewState extends State<StudView> {
                                 style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
                               Text(
-                                '${S.studOwner(l.ownerName)}${l.weightKg == null ? '' : '　${S.weight(fmtInt(l.weightKg!))}'}',
+                                '${S.studOwner(Strings.of(context).ranchText(l.owner))}　${S.weight(fmtInt(l.fee.kg))}',
                                 style: theme.textTheme.bodySmall,
                               ),
                             ],
@@ -165,7 +165,7 @@ class _StudViewState extends State<StudView> {
                   else if (_loader.statusText(m) != null)
                     Text(_loader.statusText(m)!)
                   else
-                    BreedOdds(preview: p!, feeText: S.fee(fmtInt(p.fee))),
+                    BreedOdds(preview: p!, feeText: S.fee(fmtInt(p.fee?.price ?? listing.price))),
                   const SizedBox(height: 8),
                   if (s.pen.full) const Text(S.penFull, style: TextStyle(color: Palette.warn)),
                   if (listing != null && s.coins < listing.price)
@@ -182,7 +182,8 @@ class _StudViewState extends State<StudView> {
                         s.coins >= listing.price &&
                         !s.pen.full,
                     onPressed: () async {
-                      final r = await m.studBorrow(listing!, dam!);
+                      // 借種費用預覽時看到的價格；公牛長大了伺服器回 price_changed（S18-12 在第 4 步做）
+                      final r = await m.studBorrow(listing!, dam!, price: p?.fee?.price ?? listing.price);
                       if (!context.mounted) return;
                       final c = r.value?.calf;
                       showResult(
@@ -213,8 +214,6 @@ class _StudViewState extends State<StudView> {
 
   Widget _myBullRow(BuildContext context, GameModel m, GameState s, Cow bull) {
     final listing = s.stud.listings.where((l) => '${l.cowId}' == bull.key).firstOrNull;
-    final prices = s.stud.prices;
-    final chosen = _priceFor[bull.key] ?? (prices.isEmpty ? null : prices.first);
     return Card(
       key: Key('my-bull-${bull.key}'),
       child: Padding(
@@ -240,26 +239,16 @@ class _StudViewState extends State<StudView> {
                   ),
                 ),
             ] else ...[
-              Wrap(
-                spacing: 6,
-                children: [
-                  for (final pr in prices)
-                    ChoiceChip(
-                      key: Key('price-${bull.key}-${pr.round()}'),
-                      label: Text(S.costCoins(fmtInt(pr))),
-                      selected: chosen == pr,
-                      onSelected: (_) => setState(() => _priceFor[bull.key] = pr),
-                    ),
-                ],
-              ),
+              // 借種費由系統算（D26），主人只決定要不要上架
+              if (bull.studFee != null) Text(S.costCoins(fmtInt(bull.studFee!.price)), key: Key('fee-${bull.key}')),
               Align(
                 alignment: Alignment.centerRight,
                 child: ActionButton(
                   key: Key('list-${bull.key}'),
                   label: S.list,
-                  enabled: chosen != null,
+                  enabled: bull.canListAt(m.gameNow),
                   onPressed: () async {
-                    final r = await m.studList(bull, chosen!);
+                    final r = await m.studList(bull);
                     if (context.mounted) showResult(context, r.error, S.listedOk);
                     _reload();
                   },
