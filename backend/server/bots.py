@@ -28,15 +28,35 @@ import random
 from typing import Dict, List, Optional, Tuple
 
 from cowecon.farm import (
-    BEEF, DAIRY, OX, Cow, Farm, beef_storage_factor, beef_weight, cow_milk_rate, draw_beef_grade, freshness, is_milker,
-    milk_frac, rice_factor, shop_grade_distribution,
+    BEEF,
+    DAIRY,
+    OX,
+    Cow,
+    Farm,
+    beef_storage_factor,
+    beef_weight,
+    cow_milk_rate,
+    draw_beef_grade,
+    freshness,
+    is_milker,
+    milk_frac,
+    rice_factor,
+    shop_grade_distribution,
 )
 from cowecon.params import HOUR, MINUTE, EconomyParams
 
 from .game import Game, GameError
 
 STRATEGIES = ("D", "B", "F", "C", "T", "L", "W")
-STRATEGY_NAMES = {"D": "乳牛派", "B": "肉牛派", "F": "耕田派", "C": "配種收集派", "T": "抓時機派", "L": "出借公牛派", "W": "大戶"}
+STRATEGY_NAMES = {
+    "D": "乳牛派",
+    "B": "肉牛派",
+    "F": "耕田派",
+    "C": "配種收集派",
+    "T": "抓時機派",
+    "L": "出借公牛派",
+    "W": "大戶",
+}
 PLAYER_STRATEGIES = ("D", "B", "F", "C", "T", "L")
 
 BUCKET_TARGET_H = 6.0  # 奶桶至少放得下幾小時產量
@@ -84,11 +104,28 @@ class Bot:
     """
 
     __slots__ = (
-        "game", "pid", "strategy", "prof", "rng", "joined_at", "tut_end", "taste", "returns", "whale",
-        "first_sale", "first_expand", "first_breed", "grade_value", "sched", "ledger", "worth",
+        "game",
+        "pid",
+        "strategy",
+        "prof",
+        "rng",
+        "joined_at",
+        "tut_end",
+        "taste",
+        "returns",
+        "whale",
+        "first_sale",
+        "first_expand",
+        "first_breed",
+        "grade_value",
+        "sched",
+        "ledger",
+        "worth",
     )
 
-    def __init__(self, game: Game, pid: int, strategy: str, joined_at: float, taste: float, rng: Optional[random.Random] = None):
+    def __init__(
+        self, game: Game, pid: int, strategy: str, joined_at: float, taste: float, rng: Optional[random.Random] = None
+    ):
         self.game = game
         self.pid = pid
         self.strategy = strategy
@@ -152,7 +189,10 @@ def offspring_value(prof: dict, fp, sire_g: int, dam_g: int, bonus: float) -> fl
     for t in range(3):
         if p_type[t] <= 0:
             continue
-        per = sum(tier_p[k] * 0.5 * (VALUE_TABLE[(t, False)][k] + VALUE_TABLE[(t, True)][k]) * (1.0 + bonus * k) for k in range(4))
+        per = sum(
+            tier_p[k] * 0.5 * (VALUE_TABLE[(t, False)][k] + VALUE_TABLE[(t, True)][k]) * (1.0 + bonus * k)
+            for k in range(4)
+        )
         v += p_type[t] * per * prof["pref"][t]
     return v
 
@@ -329,7 +369,11 @@ def breeding_pass(b: Bot, ctx, now: float) -> None:
 def assign_fields(b: Bot, now: float) -> None:
     f = b.farm
     fp = f.fp
-    idle = [c for c in f.cows if c.ctype == OX and f.can_work(c, now) and milk_frac(fp, c.adult_age_h(now)) >= DAIRY_SHIP_FRAC]
+    idle = [
+        c
+        for c in f.cows
+        if c.ctype == OX and f.can_work(c, now) and milk_frac(fp, c.adult_age_h(now)) >= DAIRY_SHIP_FRAC
+    ]
     if b.prof["lend"]:
         idle = [c for c in idle if not (c.bull and not c.bred)]  # L：沒配過的公牛拿去上架
     idle.sort(key=lambda c: -c.tier)
@@ -612,7 +656,12 @@ def panic_sell(b: Bot, ctx, now: float) -> None:
         ship_many(b, adults, now)
 
 
-EXTRA_FUNCS = {"hold_return": hold_return, "whale_dump": whale_dump, "whale_batch": whale_batch, "panic_sell": panic_sell}
+EXTRA_FUNCS = {
+    "hold_return": hold_return,
+    "whale_dump": whale_dump,
+    "whale_batch": whale_batch,
+    "panic_sell": panic_sell,
+}
 
 
 def act(b: Bot, ctx, now: float, kind: str) -> None:

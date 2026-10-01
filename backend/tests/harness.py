@@ -38,20 +38,52 @@ LOW_DAY = 15  # 線上很少的那一天
 
 
 def base(players: int, seed: int, tick_s: int = 60, days: int = DAYS) -> dict:
-    return {"name": f"base_{players}_s{seed}", "group": "base", "players": players, "days": days, "tick_s": tick_s, "seed": seed}
+    return {
+        "name": f"base_{players}_s{seed}",
+        "group": "base",
+        "players": players,
+        "days": days,
+        "tick_s": tick_s,
+        "seed": seed,
+    }
 
 
 def whale(players: int, mode: str, cows: int, seed: int = 1) -> dict:
     return {
-        "name": f"whale_{players}_{cows}cows_{mode}_s{seed}", "group": "whale", "players": players, "days": 23, "tick_s": 60, "seed": seed,
-        "whale": {"cows": cows, "mode": mode, "hoard_from_h": DUMP_H - 48, "dump_at_h": DUMP_H if mode != "hold" else 10 ** 6, "batches": 8, "batch_gap_h": 3.0},
+        "name": f"whale_{players}_{cows}cows_{mode}_s{seed}",
+        "group": "whale",
+        "players": players,
+        "days": 23,
+        "tick_s": 60,
+        "seed": seed,
+        "whale": {
+            "cows": cows,
+            "mode": mode,
+            "hoard_from_h": DUMP_H - 48,
+            "dump_at_h": DUMP_H if mode != "hold" else 10**6,
+            "batches": 8,
+            "batch_gap_h": 3.0,
+        },
     }
 
 
 def panic(players: int, with_panic: bool, seed: int = 1) -> dict:
     sc = {
-        "name": f"event_{players}_{'panic' if with_panic else 'calm'}_s{seed}", "group": "event", "players": players, "days": 23, "tick_s": 60, "seed": seed,
-        "inject_events": [{"targets": ["milk", "beef", "rice"], "factor": 1.4, "at_h": EVENT_H, "half_life_h": 4.0, "headline": "（情境）全國農牧節：鮮奶、牛肉、稻米收購價大漲"}],
+        "name": f"event_{players}_{'panic' if with_panic else 'calm'}_s{seed}",
+        "group": "event",
+        "players": players,
+        "days": 23,
+        "tick_s": 60,
+        "seed": seed,
+        "inject_events": [
+            {
+                "targets": ["milk", "beef", "rice"],
+                "factor": 1.4,
+                "at_h": EVENT_H,
+                "half_life_h": 4.0,
+                "headline": "（情境）全國農牧節：鮮奶、牛肉、稻米收購價大漲",
+            }
+        ],
     }
     if with_panic:
         sc["panic"] = {"at_h": EVENT_H + 0.25, "share": 0.6, "window_min": 30}
@@ -59,16 +91,51 @@ def panic(players: int, with_panic: bool, seed: int = 1) -> dict:
 
 
 def low_online(players: int, seed: int = 1, low: bool = True) -> dict:
-    return {"name": f"low_{players}_s{seed}" + ("" if low else "_ref"), "group": "low", "players": players, "days": 20, "tick_s": 60, "seed": seed,
-            "low_online_days": {LOW_DAY: 0.2} if low else {}}
+    return {
+        "name": f"low_{players}_s{seed}" + ("" if low else "_ref"),
+        "group": "low",
+        "players": players,
+        "days": 20,
+        "tick_s": 60,
+        "seed": seed,
+        "low_online_days": {LOW_DAY: 0.2} if low else {},
+    }
 
 
 # ---------------------------------------------------------------------------
 # 帳本（每位玩家「類別 × 第幾天」的收支）
 # ---------------------------------------------------------------------------
-AMOUNT_KINDS = ("milk", "beef", "rice", "calf", "breed", "expand", "bucket", "warehouse", "fresh", "field", "stud_in", "stud_out")
-QTY_KINDS = ("milk", "beef", "rice", "collect", "spoiled", "harvest", "breed", "stud_in", "stud_out",
-             "grade_A", "grade_B", "grade_C", "shop_A", "shop_B", "shop_C")
+AMOUNT_KINDS = (
+    "milk",
+    "beef",
+    "rice",
+    "calf",
+    "breed",
+    "expand",
+    "bucket",
+    "warehouse",
+    "fresh",
+    "field",
+    "stud_in",
+    "stud_out",
+)
+QTY_KINDS = (
+    "milk",
+    "beef",
+    "rice",
+    "collect",
+    "spoiled",
+    "harvest",
+    "breed",
+    "stud_in",
+    "stud_out",
+    "grade_A",
+    "grade_B",
+    "grade_C",
+    "shop_A",
+    "shop_B",
+    "shop_C",
+)
 REVENUE_KINDS = ("milk", "beef", "rice", "stud_in")  # 週收入 = 賣出收入 + 借種收入
 
 
@@ -143,19 +210,28 @@ class ServiceWorld:
         self.whale: Optional[B.Bot] = None
         if wcfg:
             b = self._add_bot(len(self.bots), "W")
-            B.setup_whale(b, {
-                "cows": wcfg["cows"], "mode": wcfg["mode"],
-                "hoard_from": self.t0 + wcfg["hoard_from_h"] * HOUR, "dump_at": self.t0 + wcfg["dump_at_h"] * HOUR,
-                "batches": wcfg.get("batches", 1), "batch_gap_s": wcfg.get("batch_gap_h", 1.0) * HOUR,
-            })
+            B.setup_whale(
+                b,
+                {
+                    "cows": wcfg["cows"],
+                    "mode": wcfg["mode"],
+                    "hoard_from": self.t0 + wcfg["hoard_from_h"] * HOUR,
+                    "dump_at": self.t0 + wcfg["dump_at_h"] * HOUR,
+                    "batches": wcfg.get("batches", 1),
+                    "batch_gap_s": wcfg.get("batch_gap_h", 1.0) * HOUR,
+                },
+            )
             self.whale = b
             # 囤貨開始那一刻一定要有一次上線（換成大牧場）
             self.schedule(self.t0 + wcfg["hoard_from_h"] * HOUR, b.pid, "session", 5 * MINUTE)
 
         for ev in sc.get("inject_events", []):
             self.ex.inject_event(
-                targets=ev["targets"], factor=ev["factor"], start_at=self.t0 + ev["at_h"] * HOUR,
-                half_life_s=ev.get("half_life_h", 4.0) * HOUR, announce_lead_s=ev.get("announce_min", 0) * MINUTE,
+                targets=ev["targets"],
+                factor=ev["factor"],
+                start_at=self.t0 + ev["at_h"] * HOUR,
+                half_life_s=ev.get("half_life_h", 4.0) * HOUR,
+                announce_lead_s=ev.get("announce_min", 0) * MINUTE,
                 headline=ev.get("headline", "（情境事件）"),
             )
         pan = sc.get("panic")
@@ -164,7 +240,9 @@ class ServiceWorld:
             t_start = self.t0 + pan["at_h"] * HOUR
             for b in self.bots:
                 if b.strategy != "W" and prng.random() < pan["share"]:
-                    self.schedule(t_start + prng.uniform(0, pan["window_min"] * MINUTE), b.pid, "panic_sell", 5 * MINUTE)
+                    self.schedule(
+                        t_start + prng.uniform(0, pan["window_min"] * MINUTE), b.pid, "panic_sell", 5 * MINUTE
+                    )
 
         keys = ["t", "online"]
         for cid in self.cids:
@@ -301,7 +379,11 @@ def price_stats(ratios, lo=0.6, hi=1.7) -> dict:
 
     return {
         "inside_soft_band": sum(1 for r in ratios if lo <= r <= hi) / n,
-        "p1": pct(0.01), "p50": pct(0.5), "p99": pct(0.99), "min": xs[0], "max": xs[-1],
+        "p1": pct(0.01),
+        "p50": pct(0.5),
+        "p99": pct(0.99),
+        "min": xs[0],
+        "max": xs[-1],
     }
 
 
@@ -332,8 +414,11 @@ def stud_stats(w: ServiceWorld) -> dict:
     lend_in = sum(b.ledger.amount_days("stud_in", 0, w.n_days) for b in lenders)
     lend_rev = sum(b.ledger.revenue_days(0, w.n_days) for b in lenders)
     borrows = sum(b.ledger.qty_days("stud_out", 0, w.n_days) for b in ob)
-    return {"borrows": borrows, "lender_share": lend_in / lend_rev if lend_rev > 0 else 0.0,
-            "grades": {g: sum(b.ledger.qty_days("grade_" + g, 0, w.n_days) for b in ob) for g in ("A", "B", "C")}}
+    return {
+        "borrows": borrows,
+        "lender_share": lend_in / lend_rev if lend_rev > 0 else 0.0,
+        "grades": {g: sum(b.ledger.qty_days("grade_" + g, 0, w.n_days) for b in ob) for g in ("A", "B", "C")},
+    }
 
 
 def goal_b(w: ServiceWorld) -> dict:
@@ -371,7 +456,9 @@ def whale_totals(w: ServiceWorld) -> dict:
     return tot
 
 
-def gap_stats(w_a: ServiceWorld, w_b: ServiceWorld, cid: str, t_evt_h: float, direct_h: float = 3.0, horizon_h: float = 18.0) -> dict:
+def gap_stats(
+    w_a: ServiceWorld, w_b: ServiceWorld, cid: str, t_evt_h: float, direct_h: float = 3.0, horizon_h: float = 18.0
+) -> dict:
     """w_a 相對對照組 w_b（同 seed）的價格差距。照 report.py 的 _gap_stats。"""
     direct, full = [], []
     for t, a, b in zip(w_a.rec["t"], w_a.rec[cid], w_b.rec[cid]):

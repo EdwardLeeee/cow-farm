@@ -172,7 +172,9 @@ class Driver:
                     if calf is not None and owner is None:
                         self.stud.npc_refill(t, self.npc_rng)
             else:
-                getattr(f, self.rng.choice(("upgrade_bucket", "upgrade_wh", "upgrade_fresh", "expand_pen", "expand_field")))(t)
+                getattr(
+                    f, self.rng.choice(("upgrade_bucket", "upgrade_wh", "upgrade_fresh", "expand_pen", "expand_field"))
+                )(t)
         self.ex.step(t, 1.0 + 4.0 * self.rng.random())
         self.prices.append(tuple(self.ex.markets[c].price for c in ("milk", "beef", "rice")))
         self.tick += 1
@@ -182,15 +184,18 @@ class Driver:
             self.step()
 
     def to_json(self) -> str:
-        return json.dumps({
-            "ex": self.ex.to_dict(),
-            "stud": self.stud.to_dict(),
-            "farms": [f.to_dict() for f in self.farms],
-            "rng": rng_to_state(self.rng),
-            "npc_rng": rng_to_state(self.npc_rng),
-            "farm_rngs": [rng_to_state(r) for r in self.farm_rngs],
-            "tick": self.tick,
-        }, allow_nan=False)
+        return json.dumps(
+            {
+                "ex": self.ex.to_dict(),
+                "stud": self.stud.to_dict(),
+                "farms": [f.to_dict() for f in self.farms],
+                "rng": rng_to_state(self.rng),
+                "npc_rng": rng_to_state(self.npc_rng),
+                "farm_rngs": [rng_to_state(r) for r in self.farm_rngs],
+                "tick": self.tick,
+            },
+            allow_nan=False,
+        )
 
     @classmethod
     def from_json(cls, s: str, prices) -> "Driver":

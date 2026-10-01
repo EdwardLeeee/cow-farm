@@ -91,8 +91,16 @@ def db_dsn(request):
 class Harness:
     """TestClient + 手動時鐘：時間只在 advance() 時前進，tick 由測試自己叫。"""
 
-    def __init__(self, dsn: str, bots: int = 0, seed: str = "test-seed", t0: float = T0, clock_t: float = None,
-                 online_window_s: float = 30.0, web_dir: str = None):
+    def __init__(
+        self,
+        dsn: str,
+        bots: int = 0,
+        seed: str = "test-seed",
+        t0: float = T0,
+        clock_t: float = None,
+        online_window_s: float = 30.0,
+        web_dir: str = None,
+    ):
         from fastapi.testclient import TestClient
 
         from server.app import create_app
@@ -101,8 +109,16 @@ class Harness:
 
         self.dsn = dsn
         self.clock = ManualClock(t0 if clock_t is None else clock_t, scale=144.0)
-        self.cfg = Config(time_scale=144.0, pg_dsn=dsn, bots=bots, seed=seed, game_start=t0, run_loops=False,
-                          online_window_s=online_window_s, web_dir=web_dir)
+        self.cfg = Config(
+            time_scale=144.0,
+            pg_dsn=dsn,
+            bots=bots,
+            seed=seed,
+            game_start=t0,
+            run_loops=False,
+            online_window_s=online_window_s,
+            web_dir=web_dir,
+        )
         self.app = create_app(self.cfg, clock=self.clock)
         self.server = self.app.state.server
         self.client = TestClient(self.app)

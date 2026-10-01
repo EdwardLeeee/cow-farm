@@ -344,9 +344,26 @@ class Market:
 
     # ---- 存檔與回復 ----
     _STATE_FIELDS = (
-        "t_start", "t", "x", "y", "y_base", "flow", "online", "ref_flow", "ref_online",
-        "_ord_wq", "_ord_w", "pending_counted", "pending_actual", "pending_ord_w", "pending_ord_wq",
-        "event_log", "season_log", "excess", "price", "_hist_sum",
+        "t_start",
+        "t",
+        "x",
+        "y",
+        "y_base",
+        "flow",
+        "online",
+        "ref_flow",
+        "ref_online",
+        "_ord_wq",
+        "_ord_w",
+        "pending_counted",
+        "pending_actual",
+        "pending_ord_w",
+        "pending_ord_wq",
+        "event_log",
+        "season_log",
+        "excess",
+        "price",
+        "_hist_sum",
     )
 
     def to_dict(self, include_hist: bool = True) -> dict:
@@ -401,9 +418,23 @@ class Market:
 # 新聞事件
 # ---------------------------------------------------------------------------
 class MarketEvent:
-    __slots__ = ("eid", "targets", "factor", "log_mag", "announce_at", "start_at", "ramp_s", "half_life_s", "end_at", "headline", "rare")
+    __slots__ = (
+        "eid",
+        "targets",
+        "factor",
+        "log_mag",
+        "announce_at",
+        "start_at",
+        "ramp_s",
+        "half_life_s",
+        "end_at",
+        "headline",
+        "rare",
+    )
 
-    def __init__(self, eid, targets, factor, announce_at, start_at, ramp_s, half_life_s, lifetime_hl, headline, rare=False):
+    def __init__(
+        self, eid, targets, factor, announce_at, start_at, ramp_s, half_life_s, lifetime_hl, headline, rare=False
+    ):
         self.eid = eid
         self.targets = tuple(targets)
         self.factor = factor
@@ -439,9 +470,16 @@ class MarketEvent:
 
     def to_state(self) -> dict:
         return {
-            "id": self.eid, "targets": list(self.targets), "factor": self.factor,
-            "announce_at": self.announce_at, "start_at": self.start_at, "ramp_s": self.ramp_s,
-            "half_life_s": self.half_life_s, "end_at": self.end_at, "headline": self.headline, "rare": self.rare,
+            "id": self.eid,
+            "targets": list(self.targets),
+            "factor": self.factor,
+            "announce_at": self.announce_at,
+            "start_at": self.start_at,
+            "ramp_s": self.ramp_s,
+            "half_life_s": self.half_life_s,
+            "end_at": self.end_at,
+            "headline": self.headline,
+            "rare": self.rare,
         }
 
     @classmethod
@@ -464,7 +502,9 @@ class MarketEvent:
 class EventGenerator:
     """Poisson 新聞事件。每則事件的所有屬性在抽到發生時間時一次抽完，所以結果與 tick 大小無關。"""
 
-    def __init__(self, ep: EventParams, rng: random.Random, t0: float, commodity_ids: Sequence[str] = ("milk", "beef", "rice")):
+    def __init__(
+        self, ep: EventParams, rng: random.Random, t0: float, commodity_ids: Sequence[str] = ("milk", "beef", "rice")
+    ):
         self.ep = ep
         self.rng = rng
         self.cids = tuple(commodity_ids)
@@ -553,7 +593,14 @@ class EventGenerator:
 # 交易所：多種商品 + 共用事件
 # ---------------------------------------------------------------------------
 class Exchange:
-    def __init__(self, params: EconomyParams, seed, t0: float, commodity_ids: Optional[Sequence[str]] = None, events_enabled: bool = True):
+    def __init__(
+        self,
+        params: EconomyParams,
+        seed,
+        t0: float,
+        commodity_ids: Optional[Sequence[str]] = None,
+        events_enabled: bool = True,
+    ):
         """commodity_ids 沒給就用 params.commodity_ids（v0.2：牛奶、牛肉、稻米）。"""
         if commodity_ids is None:
             commodity_ids = params.commodity_ids
@@ -563,14 +610,24 @@ class Exchange:
             cid: Market(params.commodity(cid), t0, random.Random(f"{seed}:noise:{cid}")) for cid in commodity_ids
         }
         self.generator: Optional[EventGenerator] = (
-            EventGenerator(params.events, random.Random(f"{seed}:events"), t0, commodity_ids) if events_enabled else None
+            EventGenerator(params.events, random.Random(f"{seed}:events"), t0, commodity_ids)
+            if events_enabled
+            else None
         )
         self.events: List[MarketEvent] = []  # 已公開、還沒結束
         self.event_log_history: List[MarketEvent] = []  # 全部出現過的事件（分析用）
         self._cap_hi = math.log(params.events.total_cap_up)
         self._cap_lo = math.log(params.events.total_cap_down)
 
-    def inject_event(self, targets: Sequence[str], factor: float, start_at: float, half_life_s: float, announce_lead_s: float = 0.0, headline: str = "（測試事件）") -> MarketEvent:
+    def inject_event(
+        self,
+        targets: Sequence[str],
+        factor: float,
+        start_at: float,
+        half_life_s: float,
+        announce_lead_s: float = 0.0,
+        headline: str = "（測試事件）",
+    ) -> MarketEvent:
         ep = self.params.events
         ev = MarketEvent(
             eid=-(len(self.event_log_history) + 1),
@@ -640,14 +697,20 @@ class Exchange:
         return d
 
     @classmethod
-    def from_dict(cls, params: EconomyParams, d: dict, hist: Optional[Dict[str, Iterable[Tuple[float, float]]]] = None) -> "Exchange":
+    def from_dict(
+        cls, params: EconomyParams, d: dict, hist: Optional[Dict[str, Iterable[Tuple[float, float]]]] = None
+    ) -> "Exchange":
         """從 to_dict() 回復。hist = {商品: [(時間, 價格), ...]}，存檔沒有含歷史時由呼叫端補。"""
         ex = cls.__new__(cls)
         ex.params = params
         ex.t = d["t"]
         hist = hist or {}
-        ex.markets = {cid: Market.from_dict(params.commodity(cid), md, hist.get(cid)) for cid, md in d["markets"].items()}
-        ex.generator = EventGenerator.from_dict(params.events, d["generator"]) if d.get("generator") is not None else None
+        ex.markets = {
+            cid: Market.from_dict(params.commodity(cid), md, hist.get(cid)) for cid, md in d["markets"].items()
+        }
+        ex.generator = (
+            EventGenerator.from_dict(params.events, d["generator"]) if d.get("generator") is not None else None
+        )
         by_id: Dict[int, MarketEvent] = {}
         if "history" in d:
             ex.event_log_history = []

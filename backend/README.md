@@ -130,6 +130,13 @@ systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 .venv/bin/py
 
 約 4 分鐘。會建立 `cowfarm_test_*` 資料庫（每次重建），不會碰到試玩用的 `cowfarm` 資料庫；沒有資料庫時，需要資料庫的測試會 skip。
 
+排版和 lint（CI 會檢查；ruff 要跟 CI 同版：`.venv/bin/pip install ruff==0.15.2`）：
+
+```bash
+.venv/bin/ruff format .          # 行寬 120，設定在 repo 根目錄的 ruff.toml
+.venv/bin/ruff check ..          # 整個 repo 的 Python
+```
+
 | 檔案 | 測什麼 | 要資料庫 |
 |---|---|---|
 | `test_persist.py` | cowecon 各類別（含田地、稻米、借種市場）存檔回復；同一個 seed「跑一半存檔、回復、再跑」＝「一路跑到底」（每個數字） | 否 |

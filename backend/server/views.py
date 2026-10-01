@@ -123,19 +123,33 @@ def warehouse_view(p: Player, now: float) -> dict:
     milk_lots = []
     for l in f.lots:
         fr = freshness(fp, (now - l.t) / HOUR, f.fresh_level)
-        milk_lots.append({
-            "qty": r6(l.qty), "tier": l.tier, "collected_at": l.t, "freshness": round(fr, 4),
-            "fresh_until": l.t + full_h * HOUR, "spoils_at": l.t + zero_h * HOUR,
-        })
+        milk_lots.append(
+            {
+                "qty": r6(l.qty),
+                "tier": l.tier,
+                "collected_at": l.t,
+                "freshness": round(fr, 4),
+                "fresh_until": l.t + full_h * HOUR,
+                "spoils_at": l.t + zero_h * HOUR,
+            }
+        )
     beef_lots = []
     for l in f.beef_lots:
-        beef_lots.append({
-            "qty": r6(l.qty), "tier": l.tier, "cow_id": l.cow_id, "shipped_at": l.t,
-            "quality": round(f.beef_lot_mult(l, now) / fp.tier_mult[l.tier], 4),
-            "storage_factor": round(beef_storage_factor(fp, (now - l.t) / HOUR), 4),
-            "grade": GRADE_NAMES[l.grade] if 0 <= l.grade < 3 else None,
-        })
-    rice_lots = [{"qty": r6(l.qty), "harvested_at": l.t, "quality": round(rice_factor(fp, (now - l.t) / HOUR), 4)} for l in f.rice_lots]
+        beef_lots.append(
+            {
+                "qty": r6(l.qty),
+                "tier": l.tier,
+                "cow_id": l.cow_id,
+                "shipped_at": l.t,
+                "quality": round(f.beef_lot_mult(l, now) / fp.tier_mult[l.tier], 4),
+                "storage_factor": round(beef_storage_factor(fp, (now - l.t) / HOUR), 4),
+                "grade": GRADE_NAMES[l.grade] if 0 <= l.grade < 3 else None,
+            }
+        )
+    rice_lots = [
+        {"qty": r6(l.qty), "harvested_at": l.t, "quality": round(rice_factor(fp, (now - l.t) / HOUR), 4)}
+        for l in f.rice_lots
+    ]
     return {
         "capacity": r2(f.wh_capacity()),
         "used": r6(f.wh_used()),
@@ -158,7 +172,13 @@ def _first_open_at(p: Player, now: float) -> Optional[float]:
 
 def pen_view(p: Player, now: float) -> dict:
     f = p.farm
-    return {"slots": f.slots, "used": len(f.cows), "next_cost": ci(f.next_pen_cost()), "next_open_at": _first_open_at(p, now), "max_slots": f.fp.pen_max_slots}
+    return {
+        "slots": f.slots,
+        "used": len(f.cows),
+        "next_cost": ci(f.next_pen_cost()),
+        "next_open_at": _first_open_at(p, now),
+        "max_slots": f.fp.pen_max_slots,
+    }
 
 
 def upgrades_view(p: Player, now: float) -> dict:
@@ -171,12 +191,39 @@ def upgrades_view(p: Player, now: float) -> dict:
     fc = f.next_fresh_cost()
     flc = f.next_field_cost()
     return {
-        "pen": {"level": f.expansions, "cost": ci(f.next_pen_cost()), "next_open_at": _first_open_at(p, now), "slots": f.slots, "next_slots": f.slots + 1 if f.next_pen_cost() is not None else None},
-        "bucket": {"level": f.bucket_level, "cost": ci(bc), "capacity": r2(bucket_cap(fp, f.bucket_level)), "next_capacity": r2(bucket_cap(fp, f.bucket_level + 1)) if bc is not None else None},
-        "warehouse": {"level": f.wh_level, "cost": ci(wc), "capacity": r2(wh_cap(fp, f.wh_level)), "next_capacity": r2(wh_cap(fp, f.wh_level + 1)) if wc is not None else None},
-        "fresh": {"level": f.fresh_level, "cost": ci(fc), "fresh_h": full_h, "half_h": half_h,
-                  "next_fresh_h": nfull_h if fc is not None else None, "next_half_h": nhalf_h if fc is not None else None},
-        "field": {"level": len(f.fields) - fp.field_start, "cost": ci(flc), "count": len(f.fields), "max": fp.field_max},
+        "pen": {
+            "level": f.expansions,
+            "cost": ci(f.next_pen_cost()),
+            "next_open_at": _first_open_at(p, now),
+            "slots": f.slots,
+            "next_slots": f.slots + 1 if f.next_pen_cost() is not None else None,
+        },
+        "bucket": {
+            "level": f.bucket_level,
+            "cost": ci(bc),
+            "capacity": r2(bucket_cap(fp, f.bucket_level)),
+            "next_capacity": r2(bucket_cap(fp, f.bucket_level + 1)) if bc is not None else None,
+        },
+        "warehouse": {
+            "level": f.wh_level,
+            "cost": ci(wc),
+            "capacity": r2(wh_cap(fp, f.wh_level)),
+            "next_capacity": r2(wh_cap(fp, f.wh_level + 1)) if wc is not None else None,
+        },
+        "fresh": {
+            "level": f.fresh_level,
+            "cost": ci(fc),
+            "fresh_h": full_h,
+            "half_h": half_h,
+            "next_fresh_h": nfull_h if fc is not None else None,
+            "next_half_h": nhalf_h if fc is not None else None,
+        },
+        "field": {
+            "level": len(f.fields) - fp.field_start,
+            "cost": ci(flc),
+            "count": len(f.fields),
+            "max": fp.field_max,
+        },
     }
 
 
@@ -188,11 +235,15 @@ def fields_view(p: Player, now: float) -> List[dict]:
     for i, (fl, q) in enumerate(zip(f.fields, grown)):
         ox = f.cow_by_id(fl.ox) if fl.ox >= 0 else None
         cap = field_cap_for(fp, ox) if ox is not None else None
-        out.append({
-            "index": i, "cow_id": ox.cid if ox is not None else None, "rice": r6(q),
-            "capacity": r2(cap) if cap is not None else None,
-            "per_hour": r6(cow_rice_rate(fp, ox, now)) if ox is not None else 0.0,
-        })
+        out.append(
+            {
+                "index": i,
+                "cow_id": ox.cid if ox is not None else None,
+                "rice": r6(q),
+                "capacity": r2(cap) if cap is not None else None,
+                "per_hour": r6(cow_rice_rate(fp, ox, now)) if ox is not None else 0.0,
+            }
+        )
     return out
 
 
@@ -249,7 +300,11 @@ def state_view(game: Game, p: Player, now: float, clock) -> dict:
         "ranch_name": p.name,
         "coins": int(round(f.coins)),
         "level": lv,
-        "level_progress": {"earned": int(round(p.earned)), "level_at": level_threshold(lv), "next_at": level_threshold(lv + 1)},
+        "level_progress": {
+            "earned": int(round(p.earned)),
+            "level_at": level_threshold(lv),
+            "next_at": level_threshold(lv + 1),
+        },
         "cows": [cow_view(game, p, c, now) for c in f.cows],
         "bucket": bucket_view(p, now),
         "warehouse": warehouse_view(p, now),
@@ -261,8 +316,11 @@ def state_view(game: Game, p: Player, now: float, clock) -> dict:
         # v0.2
         "fields": fields_view(p, now),
         "rice": rice_view(p, now),
-        "stud": {"listings": [listing_view(game, l, p.pid, now) for l in game.stud.owner_listings(p.pid)],
-                 "income": int(round(p.stud_income)), "prices": [ci(x) for x in f.fp.stud_prices]},
+        "stud": {
+            "listings": [listing_view(game, l, p.pid, now) for l in game.stud.owner_listings(p.pid)],
+            "income": int(round(p.stud_income)),
+            "prices": [ci(x) for x in f.fp.stud_prices],
+        },
     }
 
 

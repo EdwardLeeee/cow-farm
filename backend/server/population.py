@@ -14,8 +14,30 @@ from cowecon.params import DAY, MINUTE, TZ_OFFSET_S
 
 # 台灣時間每小時的上線權重（晚上 19–23 點最多，凌晨最少）
 HOURLY_WEIGHT = (
-    0.6, 0.3, 0.15, 0.1, 0.1, 0.15, 0.4, 0.9, 1.0, 0.7, 0.6, 0.8,
-    1.3, 1.1, 0.7, 0.7, 0.8, 1.0, 1.3, 1.8, 2.2, 2.4, 2.2, 1.4,
+    0.6,
+    0.3,
+    0.15,
+    0.1,
+    0.1,
+    0.15,
+    0.4,
+    0.9,
+    1.0,
+    0.7,
+    0.6,
+    0.8,
+    1.3,
+    1.1,
+    0.7,
+    0.7,
+    0.8,
+    1.0,
+    1.3,
+    1.8,
+    2.2,
+    2.4,
+    2.2,
+    1.4,
 )
 
 MIN_GAP_S = 30 * MINUTE
@@ -49,7 +71,9 @@ def sample_local_minute(rng: random.Random) -> float:
     return min(i, 1439) + rng.random()
 
 
-def day_sessions_with(r: random.Random, per_day: int, shift_min: float, day_start_utc: float, keep_prob: float = 1.0) -> List[Tuple[float, float]]:
+def day_sessions_with(
+    r: random.Random, per_day: int, shift_min: float, day_start_utc: float, keep_prob: float = 1.0
+) -> List[Tuple[float, float]]:
     """某一天（台灣時間 00:00 起）的 (開始, 長度)。和 Schedule.day_sessions 同一個算法。"""
     mins = sorted((sample_local_minute(r) + shift_min) % 1440.0 for _ in range(per_day))
     out: List[Tuple[float, float]] = []

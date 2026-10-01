@@ -78,11 +78,26 @@ def week_start(wid: int) -> float:
 # ---------------------------------------------------------------------------
 class Player:
     __slots__ = (
-        "pid", "name", "is_bot", "token_hash", "created_at", "farm", "codex", "earned",
-        "week", "week_earned", "bot", "version", "game_t", "rng_n", "stud_income",
+        "pid",
+        "name",
+        "is_bot",
+        "token_hash",
+        "created_at",
+        "farm",
+        "codex",
+        "earned",
+        "week",
+        "week_earned",
+        "bot",
+        "version",
+        "game_t",
+        "rng_n",
+        "stud_income",
     )
 
-    def __init__(self, pid: int, name: str, is_bot: bool, created_at: float, farm: Farm, token_hash: Optional[bytes] = None):
+    def __init__(
+        self, pid: int, name: str, is_bot: bool, created_at: float, farm: Farm, token_hash: Optional[bytes] = None
+    ):
         self.pid = pid
         self.name = name
         self.is_bot = is_bot
@@ -129,8 +144,18 @@ class Player:
         }
 
     @classmethod
-    def from_state(cls, params: EconomyParams, pid: int, name: str, is_bot: bool, created_at: float, state: dict,
-                   token_hash: Optional[bytes] = None, version: int = 0, game_t: Optional[float] = None) -> "Player":
+    def from_state(
+        cls,
+        params: EconomyParams,
+        pid: int,
+        name: str,
+        is_bot: bool,
+        created_at: float,
+        state: dict,
+        token_hash: Optional[bytes] = None,
+        version: int = 0,
+        game_t: Optional[float] = None,
+    ) -> "Player":
         p = cls(pid, name, is_bot, created_at, Farm.from_dict(params, state["farm"]), token_hash)
         p.codex = {tuple(x) for x in state.get("codex", [])}
         p.earned = state.get("earned", 0.0)
@@ -145,8 +170,17 @@ class Player:
 
     def copy(self) -> "Player":
         """深複製（存檔失敗時還原用）。"""
-        p = Player.from_state(self.farm.p, self.pid, self.name, self.is_bot, self.created_at,
-                              json.loads(json.dumps(self.state_dict())), self.token_hash, self.version, self.game_t)
+        p = Player.from_state(
+            self.farm.p,
+            self.pid,
+            self.name,
+            self.is_bot,
+            self.created_at,
+            json.loads(json.dumps(self.state_dict())),
+            self.token_hash,
+            self.version,
+            self.game_t,
+        )
         return p
 
 
@@ -154,8 +188,15 @@ class Player:
 # 服務層
 # ---------------------------------------------------------------------------
 class Game:
-    def __init__(self, params: EconomyParams = DEFAULT, seed: str = "cowfarm", t0: float = 0.0,
-                 exchange: Optional[Exchange] = None, events_enabled: bool = True, stud: Optional[StudMarket] = None):
+    def __init__(
+        self,
+        params: EconomyParams = DEFAULT,
+        seed: str = "cowfarm",
+        t0: float = 0.0,
+        exchange: Optional[Exchange] = None,
+        events_enabled: bool = True,
+        stud: Optional[StudMarket] = None,
+    ):
         self.params = params
         self.seed = str(seed)
         self.ex = exchange if exchange is not None else Exchange(params, self.seed, t0, events_enabled=events_enabled)
@@ -214,8 +255,15 @@ class Game:
         return out
 
     # ---- 帳號 ----
-    def create_player(self, now: float, name: str, is_bot: bool = False, rng: Optional[random.Random] = None,
-                      pid: Optional[int] = None, token_hash: Optional[bytes] = None) -> Player:
+    def create_player(
+        self,
+        now: float,
+        name: str,
+        is_bot: bool = False,
+        rng: Optional[random.Random] = None,
+        pid: Optional[int] = None,
+        token_hash: Optional[bytes] = None,
+    ) -> Player:
         if pid is None:
             pid = self.next_pid
         if pid in self.players:
@@ -297,19 +345,36 @@ class Game:
         out = _sale_dict(commodity, res)
         if res.units > 0:
             self.trade_seq += 1
-            self.captured.append({
-                "seq": self.trade_seq, "player_id": pid, "commodity": commodity, "qty": res.units,
-                "proceeds": res.proceeds, "coins": coins, "price": res.price, "discount": res.avg_discount,
-                "t": now, "market_t": market_t, "contrib": list(m.last_contribution) if m.last_contribution else None,
-            })
+            self.captured.append(
+                {
+                    "seq": self.trade_seq,
+                    "player_id": pid,
+                    "commodity": commodity,
+                    "qty": res.units,
+                    "proceeds": res.proceeds,
+                    "coins": coins,
+                    "price": res.price,
+                    "discount": res.avg_discount,
+                    "t": now,
+                    "market_t": market_t,
+                    "contrib": list(m.last_contribution) if m.last_contribution else None,
+                }
+            )
         return out
 
     # ---- 出貨（當場評級，牛肉進倉庫） ----
     def _check_free(self, c: Cow, action: str) -> None:
         if c.field >= 0:
-            raise GameError("cow_in_field", f"這頭牛在田裡工作，先叫回來才能{action}", 409, {"cow_id": c.cid, "field": c.field})
+            raise GameError(
+                "cow_in_field", f"這頭牛在田裡工作，先叫回來才能{action}", 409, {"cow_id": c.cid, "field": c.field}
+            )
         if c.listed is not None:
-            raise GameError("cow_listed", f"這頭牛正在借種市場上架，先下架才能{action}", 409, {"cow_id": c.cid, "listing_id": c.listed})
+            raise GameError(
+                "cow_listed",
+                f"這頭牛正在借種市場上架，先下架才能{action}",
+                409,
+                {"cow_id": c.cid, "listing_id": c.listed},
+            )
 
     def ship_check(self, p: Player, c: Cow, now: float) -> None:
         if not c.is_adult(now):
@@ -326,7 +391,9 @@ class Game:
             raise GameError("rejected", "現在不能出貨", 409)
         return {"cow_id": c.cid, "lot": lot, "grade_probs": probs}
 
-    def ship_and_sell(self, pid: int, cow_ids: Sequence[int], now: float, rng: Optional[random.Random] = None) -> Optional[dict]:
+    def ship_and_sell(
+        self, pid: int, cow_ids: Sequence[int], now: float, rng: Optional[random.Random] = None
+    ) -> Optional[dict]:
         """一次出貨多頭並當場賣掉（同一筆單、滑價一起算）＝ Farm.ship_many。電腦假玩家用；
         倉庫裡原本的牛肉不動。不能出貨的牛略過；一頭都不能出貨時回傳 None。"""
         p = self.player(pid)
@@ -341,11 +408,21 @@ class Game:
         p.add_income(coins, now)
         if res.units > 0:
             self.trade_seq += 1
-            self.captured.append({
-                "seq": self.trade_seq, "player_id": pid, "commodity": "beef", "qty": res.units,
-                "proceeds": res.proceeds, "coins": coins, "price": res.price, "discount": res.avg_discount,
-                "t": now, "market_t": market_t, "contrib": list(m.last_contribution) if m.last_contribution else None,
-            })
+            self.captured.append(
+                {
+                    "seq": self.trade_seq,
+                    "player_id": pid,
+                    "commodity": "beef",
+                    "qty": res.units,
+                    "proceeds": res.proceeds,
+                    "coins": coins,
+                    "price": res.price,
+                    "discount": res.avg_discount,
+                    "t": now,
+                    "market_t": market_t,
+                    "contrib": list(m.last_contribution) if m.last_contribution else None,
+                }
+            )
         return _sale_dict("beef", res)
 
     # ---- 商店（A／B／C 等級抽牛） ----
@@ -363,7 +440,9 @@ class Game:
         if f.free_slots() <= 0:
             raise GameError("pen_full", "牛舍滿了，先擴建或出貨", 409, {"slots": f.slots})
         if f.coins < price:
-            raise GameError("not_enough_coins", "金幣不夠", 409, {"need": int(round(price)), "have": int(round(f.coins))})
+            raise GameError(
+                "not_enough_coins", "金幣不夠", 409, {"need": int(round(price)), "have": int(round(f.coins))}
+            )
         cow = f.buy_shop(gi, now, self._rng(p, rng))
         if cow is None:
             raise GameError("rejected", "現在不能買牛", 409)
@@ -383,12 +462,16 @@ class Game:
                 if bull:
                     bull_p += pr
                 rows.append({"type": TYPE_WIRE[t], "bull": bull, "traits": mask, "tier": bin(mask).count("1"), "p": pr})
-            out.append({
-                "grade": name, "price": int(round(fp.shop_grade_price[gi])),
-                "tier_probs": shop_grade_tier_probs(fp, gi),
-                "type_probs": {TYPE_WIRE[i]: type_p[i] for i in range(3)},
-                "bull_prob": bull_p, "distribution": rows,
-            })
+            out.append(
+                {
+                    "grade": name,
+                    "price": int(round(fp.shop_grade_price[gi])),
+                    "tier_probs": shop_grade_tier_probs(fp, gi),
+                    "type_probs": {TYPE_WIRE[i]: type_p[i] for i in range(3)},
+                    "bull_prob": bull_p,
+                    "distribution": rows,
+                }
+            )
         return out
 
     def buy_calf(self, pid: int, *args, **kw):
@@ -423,13 +506,25 @@ class Game:
         type_probs = [0.0, 0.0, 0.0]
         for (t, _mask), pr in dist.items():
             type_probs[t] += pr
-        return {"tier_probs": tier_distribution(sire_g, dam_g), "type_probs": {TYPE_WIRE[i]: type_probs[i] for i in range(3)}, "bull_prob": 0.5}
+        return {
+            "tier_probs": tier_distribution(sire_g, dam_g),
+            "type_probs": {TYPE_WIRE[i]: type_probs[i] for i in range(3)},
+            "bull_prob": 0.5,
+        }
 
     def breed_preview(self, pid: int, sire_id, dam_id, now: float) -> dict:
         p = self.player(pid)
         sire, dam, blockers = self._breed_pair(p, sire_id, dam_id, now)
-        return {"sire": sire.cid, "dam": dam.cid, "fee": 0, "normal_fee": 0, "first_free": False,
-                **self._probs(sire.g, dam.g), "can_breed": not blockers, "blockers": blockers}
+        return {
+            "sire": sire.cid,
+            "dam": dam.cid,
+            "fee": 0,
+            "normal_fee": 0,
+            "first_free": False,
+            **self._probs(sire.g, dam.g),
+            "can_breed": not blockers,
+            "blockers": blockers,
+        }
 
     def breed(self, pid: int, sire_id, dam_id, now: float, rng: Optional[random.Random] = None) -> dict:
         p = self.player(pid)
@@ -456,7 +551,9 @@ class Game:
         if not 0 <= field < len(p.farm.fields):
             raise GameError("field_not_found", "沒有這塊田", 404, {"field": field})
         if p.farm.fields[field].ox >= 0:
-            raise GameError("field_occupied", "這塊田已經有牛在工作", 409, {"field": field, "cow_id": p.farm.fields[field].ox})
+            raise GameError(
+                "field_occupied", "這塊田已經有牛在工作", 409, {"field": field, "cow_id": p.farm.fields[field].ox}
+            )
         return field
 
     def field_assign(self, pid: int, cow_id, field, now: float) -> dict:
@@ -530,7 +627,14 @@ class Game:
         if p.farm.free_slots() <= 0:
             out.append({"code": "pen_full", "message": "牛舍滿了，小牛沒地方放"})
         if p.farm.coins < lst.price:
-            out.append({"code": "not_enough_coins", "message": "金幣不夠", "need": int(round(lst.price)), "have": int(round(p.farm.coins))})
+            out.append(
+                {
+                    "code": "not_enough_coins",
+                    "message": "金幣不夠",
+                    "need": int(round(lst.price)),
+                    "have": int(round(p.farm.coins)),
+                }
+            )
         if lst.owner is not None:
             owner = self.players.get(lst.owner)
             bull = owner.farm.cow_by_id(lst.cow_id) if owner else None
@@ -545,11 +649,24 @@ class Game:
         if dam.bull:
             raise GameError("invalid_pair", "借種要用自己的母牛（dam）", 400)
         blockers = self._borrow_blockers(p, lst, dam, now)
-        return {"listing_id": lst.lid, "dam": dam.cid, "price": int(round(lst.price)), **self._probs(lst.g, dam.g),
-                "can_borrow": not blockers, "blockers": blockers}
+        return {
+            "listing_id": lst.lid,
+            "dam": dam.cid,
+            "price": int(round(lst.price)),
+            **self._probs(lst.g, dam.g),
+            "can_borrow": not blockers,
+            "blockers": blockers,
+        }
 
-    def stud_borrow(self, pid: int, lid, dam_id, now: float, rng: Optional[random.Random] = None,
-                    npc_rng: Optional[random.Random] = None) -> dict:
+    def stud_borrow(
+        self,
+        pid: int,
+        lid,
+        dam_id,
+        now: float,
+        rng: Optional[random.Random] = None,
+        npc_rng: Optional[random.Random] = None,
+    ) -> dict:
         p = self.player(pid)
         lst = self._listing(lid)
         dam = self._cow(p, dam_id, "dam")
@@ -575,7 +692,9 @@ class Game:
             owner.add_income(price, now)
         else:
             self.stud.npc_refill(now, npc_rng if npc_rng is not None else self.npc_rng())
-        self.stud_events.append({"owner": lst.owner, "borrower": pid, "listing_id": lst.lid, "price": price, "cow_id": lst.cow_id})
+        self.stud_events.append(
+            {"owner": lst.owner, "borrower": pid, "listing_id": lst.lid, "price": price, "cow_id": lst.cow_id}
+        )
         return {"calf": calf, "price": int(round(price)), "listing": lst, "dam": dam}
 
     # ---- 升級 ----
@@ -584,17 +703,29 @@ class Game:
         f = p.farm
         if kind not in UPGRADE_KINDS:
             raise GameError("bad_request", "kind 只能是 " + "、".join(UPGRADE_KINDS), 400)
-        cost = {"pen": f.next_pen_cost, "bucket": f.next_bucket_cost, "warehouse": f.next_wh_cost,
-                "fresh": f.next_fresh_cost, "field": f.next_field_cost}[kind]()
+        cost = {
+            "pen": f.next_pen_cost,
+            "bucket": f.next_bucket_cost,
+            "warehouse": f.next_wh_cost,
+            "fresh": f.next_fresh_cost,
+            "field": f.next_field_cost,
+        }[kind]()
         if cost is None:
             raise GameError("max_level", "已經是最高級", 409)
         if kind == "pen" and not f.can_expand_at(now):
             open_at = f.created_at + self.params.onboarding.first_expand_unlock_s
             raise GameError("not_yet_available", "擴建還沒開放", 409, {"open_at": open_at})
         if f.coins < cost:
-            raise GameError("not_enough_coins", "金幣不夠", 409, {"need": int(round(cost)), "have": int(round(f.coins))})
-        ok = {"pen": f.expand_pen, "bucket": f.upgrade_bucket, "warehouse": f.upgrade_wh, "fresh": f.upgrade_fresh,
-              "field": f.expand_field}[kind](now)
+            raise GameError(
+                "not_enough_coins", "金幣不夠", 409, {"need": int(round(cost)), "have": int(round(f.coins))}
+            )
+        ok = {
+            "pen": f.expand_pen,
+            "bucket": f.upgrade_bucket,
+            "warehouse": f.upgrade_wh,
+            "fresh": f.upgrade_fresh,
+            "field": f.expand_field,
+        }[kind](now)
         if not ok:
             raise GameError("rejected", "現在不能升級", 409)
         return {"kind": kind, "cost": int(round(cost))}
