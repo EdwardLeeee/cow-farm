@@ -31,8 +31,8 @@ function glossaryTerms() {
 }
 const DEV = { 430: [430, 932, 3], 390: [390, 844, 3], 360: [360, 800, 1], 320: [320, 568, 1] };
 
-// ---- 在頁面裡量 ----
-function measure(terms = []) {
+// ---- 在頁面裡量 ----（anim.mjs 量英文、泰文的動畫最後一格也用這個）
+export function measure(terms = []) {
   const phone = document.querySelector('.phone');
   const inSim = (el) => !!el.closest('.sim-statusbar, .sim-home-indicator, .fold-line');
   const vis = (el) => {
@@ -104,6 +104,22 @@ function measure(terms = []) {
     const cr = c.getBoundingClientRect(), r = t.rect;
     if (r.left < cr.left - 0.5 || r.right > cr.right + 0.5 || r.top < cr.top - 0.5 || r.bottom > cr.bottom + 0.5) outside.push({ text: t.text, container: String(c.className).slice(0, 40) });
   });
+  // 超出最近的「看得出邊界」的框（有背景色或外框的區塊，包括自己）：補上面那份固定名單沒列到的列、格子
+  const boxed = (el) => {
+    const cs = getComputedStyle(el);
+    if (cs.overflowX !== 'visible' || cs.overflowY !== 'visible') return false; // 會裁切的框交給「被截」那一項
+    const bg = cs.backgroundColor, hasBg = bg && bg !== 'transparent' && !/rgba\([^)]*,\s*0\)$/.test(bg);
+    const hasBorder = ['Top', 'Right', 'Bottom', 'Left'].some((s) => parseFloat(cs[`border${s}Width`]) > 0 && cs[`border${s}Style`] !== 'none');
+    return hasBg || hasBorder || cs.backgroundImage !== 'none';
+  };
+  shown.forEach((t) => {
+    if (t.ellip || t.el.closest('[data-marquee], [data-free], [data-hscroll]')) return;
+    let c = null;
+    for (let a = t.el; a && a !== phone; a = a.parentElement) if (boxed(a)) { c = a; break; }
+    if (!c || c.matches(CONT)) return; // 固定名單的框上面已經查過
+    const cr = c.getBoundingClientRect(), r = t.rect;
+    if (r.left < cr.left - 1 || r.right > cr.right + 1 || r.top < cr.top - 1 || r.bottom > cr.bottom + 1) outside.push({ text: t.text, container: String(c.className || c.tagName).slice(0, 40) });
+  });
   // 不該換行的換行了
   const wrapped = shown.filter((t) => t.nowrap && t.lines > 1).map((t) => t.text);
   // 文字互相重疊（不同元素、不是祖孫關係）
@@ -154,13 +170,13 @@ function measure(terms = []) {
     shown.forEach((t) => {
       if (t.lines < 2 || t.el.closest('[data-note], [data-keep]')) return;
       const tw = document.createTreeWalker(t.el, NodeFilter.SHOW_TEXT);
-      let full = '';
-      const tops = [];
-      for (let n = tw.nextNode(); n; n = tw.nextNode()) {
+      let full = '', ni = 0;
+      const tops = [], node = []; // node：每個字屬於第幾個文字節點（換到另一個區塊造成的分行不算斷在詞中間）
+      for (let n = tw.nextNode(); n; n = tw.nextNode(), ni++) {
         for (let i = 0; i < n.length; i++) {
           const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + 1);
           const rc = [...r.getClientRects()].find((x) => x.width > 0);
-          tops.push(rc ? rc.top + rc.height / 2 : null); full += n.data[i];
+          tops.push(rc ? rc.top + rc.height / 2 : null); full += n.data[i]; node.push(ni);
         }
       }
       if (!/[\u0E00-\u0E7F]/.test(full) || seen.has(full)) return;
@@ -168,7 +184,7 @@ function measure(terms = []) {
       const breaks = []; let prev = null;
       tops.forEach((y, i) => { if (y == null) return; if (prev != null && y > prev + t.fontSize * 0.6) breaks.push(i); prev = y; });
       const bounds = new Set([...sg.segment(full)].map((s) => s.index));
-      const midWord = breaks.filter((b) => !bounds.has(b) && /[\u0E00-\u0E7FA-Za-z]/.test(full[b - 1] || '') && /[\u0E00-\u0E7FA-Za-z]/.test(full[b] || ''));
+      const midWord = breaks.filter((b) => node[b] === node[b - 1] && !bounds.has(b) && /[\u0E00-\u0E7FA-Za-z]/.test(full[b - 1] || '') && /[\u0E00-\u0E7FA-Za-z]/.test(full[b] || ''));
       const split = [];
       terms.forEach((w) => { for (let p = full.indexOf(w); p >= 0; p = full.indexOf(w, p + 1)) if (breaks.some((b) => b > p && b < p + w.length)) split.push(w); });
       const view = [...sg.segment(full)].map((s) => s.segment).join('|');
@@ -279,6 +295,6 @@ const isMain = process.argv[1] && fileURLToPath(import.meta.url) === process.arg
 if (isMain) {
   const filter = process.argv[2] && process.argv[2] !== 'all' ? process.argv[2] : '';
   const widths = (process.argv[3] || '430,390,360,320').split(',').map(Number);
-  const watchdog = setTimeout(() => { console.error('capture timeout (20 分)'); process.exit(2); }, 20 * 60 * 1000);
+  const watchdog = setTimeout(() => { console.error('capture timeout (45 分)'); process.exit(2); }, 45 * 60 * 1000); // 全部 × 四種寬度大約 25 分
   run(filter, widths).then(() => clearTimeout(watchdog)).catch((e) => { console.error(e); process.exit(1); });
 }
