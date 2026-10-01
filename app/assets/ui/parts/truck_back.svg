@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 270 152" width="270" height="152">
+    <!-- 遠側的柵欄（顏色深一點） -->
+    <g fill="#DDBB86" stroke="#4B3326" stroke-width="2.2" stroke-linejoin="round">
+      <rect x="20" y="40" width="5" height="36" rx="1.5"/><rect x="56" y="40" width="5" height="36" rx="1.5"/><rect x="92" y="40" width="5" height="36" rx="1.5"/><rect x="128" y="40" width="5" height="36" rx="1.5"/>
+      <rect x="16" y="43" width="136" height="7" rx="3"/><rect x="16" y="59" width="136" height="7" rx="3"/>
+    </g>
+    <!-- 底盤、排氣管、車斗地板 -->
+    <rect x="2" y="108" width="18" height="6" rx="3" fill="#B9ADA3" stroke="#4B3326" stroke-width="2.2"/>
+    <rect x="16" y="104" width="236" height="11" rx="4" fill="#7A675D" stroke="#4B3326" stroke-width="3"/>
+    <rect x="12" y="95" width="142" height="11" rx="3" fill="#D9A777" stroke="#4B3326" stroke-width="3"/>
+    <!-- 車頭 -->
+    <path d="M154,108 V40 a8,8 0 0 1 8,-8 H200 a10,10 0 0 1 9,5.4 L226,68 H246 a12,12 0 0 1 12,12 V108 Z" fill="#FFD45E" stroke="#4B3326" stroke-width="3.5" stroke-linejoin="round"/>
+    <path d="M155.8,88 H256.2 V95 H155.8 Z" fill="#FFF4CC"/>
+    <path d="M164,42 H197 a6,6 0 0 1 5.4,3.2 L215,68 H164 Z" fill="#D6ECFA" stroke="#4B3326" stroke-width="2.6" stroke-linejoin="round"/>
+    <path d="M170,62 L182,46 M178,63 L186,52" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.9"/>
+    <path d="M163,74 V103 H207 V74" fill="none" stroke="#E0A93E" stroke-width="2" stroke-linejoin="round"/>
+    <rect x="168" y="77" width="11" height="4.6" rx="2.3" fill="#FFF4DE" stroke="#4B3326" stroke-width="1.6"/>
+    <path d="M214,60 h6" stroke="#4B3326" stroke-width="2.4" stroke-linecap="round"/><rect x="218" y="50" width="7" height="14" rx="3" fill="#7A675D" stroke="#4B3326" stroke-width="2"/>
+    <rect x="171" y="24" width="16" height="8.5" rx="4" fill="#FF9F5E" stroke="#4B3326" stroke-width="2.2"/>
+    <ellipse cx="253.5" cy="83" rx="4.6" ry="6" fill="#FFF1B8" stroke="#4B3326" stroke-width="2.2"/>
+    <path d="M244,95.5 h9 M244,99.5 h9" stroke="#C99A3A" stroke-width="1.8" stroke-linecap="round"/>
+    <rect x="243" y="101" width="22" height="10" rx="4.5" fill="#F1EADF" stroke="#4B3326" stroke-width="2.6"/>
+  </svg>

@@ -70,6 +70,8 @@ const TAB = {
   records: (on) => `<svg viewBox="0 0 34 34" width="28" height="28"><path d="M6 6.5A2.5 2.5 0 0 1 8.5 4H27v22H8.5A2.5 2.5 0 0 0 6 28.5z" fill="${on ? '#9FD2FF' : '#D5EBFF'}" stroke="${L}" stroke-width="2.3" stroke-linejoin="round"/><path d="M6 28.5A2.5 2.5 0 0 1 8.5 26H27v4H8.5A2.5 2.5 0 0 1 6 28.5z" fill="#FFFFFF" stroke="${L}" stroke-width="2.3" stroke-linejoin="round"/><path d="M13 10.5c2-1.6 5-1.2 5.6 1 .6 2.4-2 3.4-3.8 2.8-1.8-.6-3.2-2.4-1.8-3.8zM20 16.5c1.5-.8 3.4 0 3.2 1.6-.2 1.5-2.2 1.9-3.2 1-1-.8-.9-2.1 0-2.6z" fill="${L}"/></svg>`,
 };
 
+// 圖示的名字（素材匯出用）
+export const ICON_NAMES = Object.keys(I), TAB_KEYS = Object.keys(TAB);
 export function icon(name, size) {
   const f = I[name];
   if (!f) throw new Error(`沒有這個圖示：${name}`);
