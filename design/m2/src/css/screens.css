@@ -190,6 +190,9 @@
 .grade-big { margin-top: 8px; width: 116px; height: 116px; border: 4px solid var(--ink); border-radius: 32px; box-shadow: 0 6px 0 var(--ink); display: flex; align-items: baseline; justify-content: center; padding-top: 12px; }
 .grade-big .num { font-size: 72px; line-height: 80px; }
 .grade-big small { font-size: 20px; font-weight: 900; margin-left: 2px; }
+.grade-big small.pre { margin-left: 0; margin-right: 4px; }
+/* 名字裡不能用的字（私用區等）：畫成缺字的方塊 */
+.name-input .tofu { display: inline-block; width: 0.6em; height: 0.95em; margin-left: 2px; border: 2px solid currentColor; border-radius: 2px; vertical-align: -0.12em; }
 .boxes { display: flex; gap: 2px; margin-top: 12px; }
 .gift-box { line-height: 0; transform: rotate(calc((var(--i) - 1) * 6deg)); }
 .r-line { margin-top: 6px; font-size: 16px; font-weight: 700; }

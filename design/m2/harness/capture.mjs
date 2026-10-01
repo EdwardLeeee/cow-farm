@@ -94,7 +94,7 @@ function measure(terms = []) {
     }
   });
   // 超出所屬的框
-  const CONT = '.sso, .card, .btn, .badge, .tier, .toast, .dialog, .sheet, .tab, .seg button, .coins, .profile-text, .bubble, .ticker, .pen-pill, .notice, .filter button, .w-item, .gift, .cow-pop, .kv .cell, .chip-box';
+  const CONT = '.grade-big, .sso, .card, .btn, .badge, .tier, .toast, .dialog, .sheet, .tab, .seg button, .coins, .profile-text, .bubble, .ticker, .pen-pill, .notice, .filter button, .w-item, .gift, .cow-pop, .kv .cell, .chip-box';
   const outside = [];
   shown.forEach((t) => {
     if (t.el.closest('[data-marquee], [data-free]')) return; // 故意超出框的（例如卡片上緣的緞帶）
