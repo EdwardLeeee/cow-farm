@@ -49,8 +49,8 @@ if (existsSync(WORDS)) {
   const w = JSON.parse(readFileSync(WORDS, 'utf8'));
   for (const g of NG) (w[g] || []).forEach((s, i) => { if (zh[`namegen.${g}.${i}`] !== s) errs.push(`namegen.${g}.${i} 跟 ranch_words.json 不一樣：${zh[`namegen.${g}.${i}`]} ≠ ${s}`); });
 } else console.log(`（找不到 ${WORDS}，跳過詞庫檢查）`);
-// 取名的長度規則（D23，跟 kit.js 的 nameWidth 一樣）：中文字算 2，其他字算 1，總共 2–16
-const nameWidth = (s) => [...s].reduce((n, ch) => n + (/[\u2E80-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF]/.test(ch) ? 2 : 1), 0);
+// 取名的長度規則（D23，ceo 2026-10-01）：Mn、Me、Cf 算 0，East Asian Width 是 W、F 的算 2，其他算 1，總共 2–16（src/js/namewidth.js）
+const { nameWidth } = await import(pathToFileURL(join(ROOT, 'src/js/namewidth.js')).href);
 // 每組 12 個詞、接法有三個佔位符；最長的組合不能超過 16（缺的詞用繁中補，跟畫面一樣）
 function checkNamegen(d, label, out) {
   const v = (k) => (d[k] != null ? d[k] : zh[k]);

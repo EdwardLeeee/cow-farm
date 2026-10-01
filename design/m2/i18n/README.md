@@ -63,7 +63,18 @@
 
 - 放在字串表，app 在手機上自己組；伺服器只驗最後送出的名字。
 - key：`namegen.first.0`–`namegen.first.11`、`namegen.second.0`–`11`、`namegen.third.0`–`11`，接法 `namegen.pattern`（繁中 `{first}{second}{third}`）。
-- 繁中的詞照 `backend/server/data/ranch_words.json` 的順序（`i18ncheck` 會檢查）。英文、泰文由 ceo 選詞和接法：每組一樣 12 個，接出來的名字寬度不超過 16（D23：中文字算 2，其他字算 1；`i18ncheck` 會算最長的組合）。
+- 繁中的詞照 `backend/server/data/ranch_words.json` 的順序（`i18ncheck` 會檢查）。英文、泰文由 ceo 選詞和接法：每組一樣 12 個，接出來的名字寬度不超過 16（`i18ncheck` 會算最長的組合）。
+  - ceo 的接法：英文 `{first}{second} {third}`（例 Fernbrook Farm），泰文 `{third}{first}{second}`（例 ฟาร์มแสงเช้าริมน้ำ），跟 en.json、th.json 一起出。
+
+## 名字的寬度（D23；ceo 2026-10-01 定的算法）
+
+伺服器、app、`i18ncheck` 都用同一套，逐個 Unicode 字元算：
+- 類別是 Mn、Me、Cf 的算 0：泰文的上下標記號（例 ั ี ่ ้ ์）屬於 Mn，玩家看到的是一個字。
+- East Asian Width 是 W 或 F 的算 2：中文字和全形符號。
+- 其他算 1：英文字母、數字、泰文的子音和母音。
+- 名字總共 2–16。例：「ฟาร์ม」5 個字元，์ 算 0，寬度 4；「晨光河畔牧場」12；「MorningRiverFarm」16。
+
+設計稿的寫法在 `src/js/namewidth.js`（取名頁的字數、頂列長名字縮小都用它）。W、F 的範圍由 Python 3.10 的 `unicodedata`（Unicode 13.0，跟伺服器一樣）產生，漢字區塊補到區塊結尾；跟 Python 逐字比對 143,924 個字元，只有 2 個罕用文字的記號（U+1734、U+1171E，新版 Unicode 改了類別）不一樣。
 
 ## 電腦牧場的名字（ceo 2026-10-01）
 

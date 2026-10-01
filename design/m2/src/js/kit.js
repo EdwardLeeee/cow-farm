@@ -4,6 +4,7 @@ import { drawCow, SIL_DEFS } from '../cow/render.js';
 import { BREEDS, USE_NAME, TIER_NAME, tierOf } from '../cow/breeds.js';
 import { RANCH, xpPct, fmt, compact } from './fixtures.js';
 import { t, tierName, useName, sexName, cowName } from './i18n.js';
+import { nameWidth } from './namewidth.js';
 
 // ---------- 裝置 ----------
 export const DEVICES = {
@@ -62,7 +63,8 @@ export function cowFace(entry, size = 46) {
 // 金幣：一百萬以上寫成「萬」；窄手機（寬度小於 390）十萬以上就寫成「萬」
 // dot：齒輪上的小點（還沒備份牧場、也還沒打開過「備份牧場」頁；企劃書 4.11）
 // 名字的顯示寬度（D23）：中文等全形字算 2，英文字母、數字、泰文字算 1
-export function nameWidth(s) { return [...s].reduce((n, ch) => n + (/[\u2E80-\u9FFF\uF900-\uFAFF\uFF00-\uFFEF]/.test(ch) ? 2 : 1), 0); }
+// 名字的顯示寬度（D23）：算法在 namewidth.js，伺服器、app、i18ncheck 都用同一套
+export { nameWidth };
 export function hud({ ranch = RANCH, coins, level, xp, gear = true, w = 390, dot = false } = {}) {
   const c = coins ?? ranch.coins, lv = level ?? ranch.level, x = xp ?? xpPct(ranch);
   const coinText = compact(c, w < 390 ? 100000 : 1000000);
