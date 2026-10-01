@@ -87,7 +87,9 @@ def next_rng(h, pid):
 def test_session_and_state_fields(h):
     s = h.session()
     assert s["created"] is True and s["token"] and isinstance(s["player_id"], int)
-    assert s["ranch_name"] and len(s["ranch_name"]) >= 6
+    assert (
+        s["ranch_name"] == "小花的快樂牧場" and s["state"]["player_id"] == s["player_id"]
+    )  # 回應附完整的 state（S02-02）
     st = state(h, s["token"])
     for k in (
         "server_time",
@@ -155,6 +157,47 @@ def test_session_and_state_fields(h):
         assert c["breed"] == BREEDS[cow_type(g)][rare_mask(g)] and c["type"] == TYPE_WIRE[cow_type(g)]
     assert {e["breed"] for e in st["codex"]} == {c["breed"] for c in cows.values()}
     assert all(e["found_at"] == p.created_at for e in st["codex"]) and cow["breed"] in BREEDS[0]
+
+
+def test_session_name_rules(h):
+    """建立牧場：名字照協定 2.2 節檢查；不能用的名字回 400 invalid_name，什麼都不建立。"""
+    n0 = len(h.server.game.players)
+    for name, reason, width, char in (
+        ("A", "too_short", 1, None),
+        ("   ", "too_short", 0, None),
+        ("晨光河畔牧場小屋X", "too_long", 17, None),
+        ("小花牧場🐮", "emoji", 10, "U+1F42E"),
+        ("牧\u202e場", "bad_char", 4, "U+202E"),
+    ):
+        e = err(h.client.post("/v1/session", json={"ranch_name": name}), 400, "invalid_name")
+        assert e["detail"] == {"reason": reason, "width": width, **({"char": char} if char else {})}, name
+    err(h.client.post("/v1/session"), 400, "bad_request")  # v1 的寫法（沒有本文）
+    e = err(h.client.post("/v1/session", json={}), 400, "bad_request")
+    assert e["detail"]["fields"] == ["ranch_name"]
+    err(h.client.post("/v1/session", json={"ranch_name": 12}), 400, "bad_request")
+    err(h.client.post("/v1/session", json={"ranch_name": "牛", "request_id": "abc"}), 400, "bad_request")
+    assert len(h.server.game.players) == n0
+    s = h.session("\u3000 ฟาร์มสุขใจ \u3000")  # 前後空白去掉；泰文的上下標記號算 0
+    assert s["ranch_name"] == "ฟาร์มสุขใจ" and state(h, s["token"])["ranch_name"] == "ฟาร์มสุขใจ"
+    assert h.session("小花的快樂牧場")["player_id"] != h.session("小花的快樂牧場")["player_id"]  # 名字不必唯一
+
+
+def test_session_request_id_replay(h):
+    """建立牧場帶 request_id：10 分鐘內重送回同一個牧場、發新 token（前一次的作廢），不會多建一個。"""
+    rid = new_rid()
+    a = h.session("小花的快樂牧場", request_id=rid)
+    b = h.session("別的名字", request_id=rid)
+    assert a["created"] is True and b["created"] is False
+    assert b["player_id"] == a["player_id"] and b["ranch_name"] == "小花的快樂牧場"  # 名字以第一次為準
+    assert b["token"] != a["token"]
+    err(h.get("/v1/state", a["token"]), 401, "unauthorized")
+    assert state(h, b["token"])["player_id"] == a["player_id"]
+    n = h.client.portal.call(_count, h, "SELECT count(*) FROM players WHERE NOT is_bot")
+    assert n == 1
+    # 超過 10 分鐘（現實時間）的 request_id 當成新的
+    h.client.portal.call(_count, h, "UPDATE session_requests SET created_at = now() - interval '11 minutes'")
+    c = h.session("小花的快樂牧場", request_id=rid)
+    assert c["created"] is True and c["player_id"] != a["player_id"]
 
 
 def test_unauthorized_and_validation_errors(h):
@@ -817,10 +860,10 @@ def test_static_web_dir(db_dsn, tmp_path):
     with Harness(db_dsn, web_dir=str(tmp_path)) as hh:
         r = hh.client.get("/")
         assert r.status_code == 200 and "cow" in r.text
-        assert hh.client.post("/v1/session").status_code == 200  # API 優先於靜態檔
+        assert hh.client.post("/v1/session", json={"ranch_name": "牧場"}).status_code == 200  # API 優先於靜態檔
     with Harness(db_dsn, web_dir=str(tmp_path / "missing")) as hh:
         err(hh.client.get("/"), 404, "not_found")
-        assert hh.client.post("/v1/session").status_code == 200
+        assert hh.client.post("/v1/session", json={"ranch_name": "牧場"}).status_code == 200
 
 
 def test_old_world_format_is_refused(db_dsn):

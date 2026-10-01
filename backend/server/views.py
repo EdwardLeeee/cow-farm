@@ -257,7 +257,9 @@ def shop_view(game: Game, p: Player) -> dict:
 
 def ranch_ref(p: Player) -> dict:
     """協定 1.6 節的「牧場」：真人送自己取的名字，電腦送三組詞的編號（app 依玩家的語言組）。"""
-    words = name_words(p.name) if p.is_bot else None
+    words = None
+    if p.is_bot:  # 電腦牧場存三組詞的編號；沒存的（測試用的電腦玩家）從名字反查
+        words = p.name_words if p.name_words is not None else name_words(p.name)
     return {
         "player_id": p.pid,
         "name": p.name if words is None else None,

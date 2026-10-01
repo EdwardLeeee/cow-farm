@@ -16,7 +16,7 @@ from cowecon.farm import make_genotype
 from cowecon.market import MarketEvent
 from cowecon.params import HEADLINES
 from server.breeds import ALL, BREEDS, breed_of_genes
-from server.names import GROUPS, load_words, name_words, random_ranch_name, station_words
+from server.names import GROUPS, compose_name, load_words, name_words, random_name_words, station_words
 from server.views import news_code
 
 DESIGN = Path(__file__).resolve().parents[2] / "design" / "m2"
@@ -81,7 +81,7 @@ def test_name_words_roundtrip():
     words = load_words()
     rng = random.Random(7)
     for _ in range(200):
-        name = random_ranch_name(rng)
+        name = compose_name(random_name_words(rng))
         w = name_words(name)
         assert w is not None and all(0 <= i < 12 for i in w)
         assert "".join(words[g][i] for g, i in zip(GROUPS, w)) == name

@@ -34,7 +34,8 @@ from .clock import GameClock
 from .config import Config
 from .breeds import breed_of_genes
 from .game import Game, GameError, Player, week_id, week_start
-from .names import random_ranch_name
+from . import ranchname
+from .names import compose_name, random_name_words
 from .population import TUTORIAL_S, day_sessions_with, local_midnight_utc
 from .store import Store
 
@@ -45,6 +46,13 @@ HISTORY_KEEP_S = 7 * DAY + HOUR  # 記憶體裡留幾天的價格（走勢圖 7d
 PRICE_PRUNE_S = 8 * DAY  # 資料庫的價格留幾天
 BOT_JOIN_SPREAD_S = 1 * HOUR  # 假玩家在開服後 1 遊戲小時內陸續加入
 MAX_TICKS_PER_COMMIT = 120
+SESSION_REPLAY_S = 600.0  # 建立牧場的 request_id 在多久（現實秒數）內重送算同一次（協定 2.1 節）
+NAME_MESSAGES = {  # invalid_name 的 message（只供除錯；app 依 detail.reason 查字串表 s02.err*）
+    "too_short": "名字太短",
+    "too_long": "名字太長",
+    "emoji": "名字不能用表情符號",
+    "bad_char": "名字裡有不能用的字",
+}
 # 伺服器的存檔格式（跟經濟引擎的版本分開算）。不一樣就拒絕啟動，原型階段不做搬移（ceo 2026-10-02）。
 # 2：v0.2（沒有這個欄位的舊世界）；3：協定 v2 的 24 品種圖鑑（品種代號 → 第一次發現的時間）。
 WORLD_FORMAT = 3
@@ -388,8 +396,10 @@ class GameServer:
             pid = game.next_pid
             r = random.Random(f"{game.seed}:botmeta:{pid}")
             joined = now + r.uniform(0.0, BOT_JOIN_SPREAD_S)
-            name = random_ranch_name(r)
+            words = random_name_words(r)  # 協定只送編號，app 依玩家的語言組；繁中名字存著給日誌看
+            name = compose_name(words)
             p = game.create_player(joined, name, is_bot=True, pid=pid)
+            p.name_words = words
             p.bot = {
                 "strategy": order[i],
                 "joined_at": joined,
@@ -407,23 +417,49 @@ class GameServer:
         log.info("加入 %d 位假玩家", n_new)
 
     # ------------------------------------------------------------------ 帳號
-    async def create_session(self) -> Tuple[str, Player]:
-        now = self.clock.now()
-        token = secrets.token_urlsafe(32)
-        th = token_hash(token)
-        game = self.game
-        pid = game.next_pid
-        name = random_ranch_name(random.SystemRandom())
-        p = game.create_player(now, name, is_bot=False, pid=pid, token_hash=th)
-        try:
-            await self.store.create_player(pid, th, name, False, now, p.state_dict())
-        except Exception:
-            game.players.pop(pid, None)
-            raise
-        p.version = 1
-        self.tokens[th] = pid
-        self.last_seen[pid] = time.time()
-        return token, p
+    async def create_session(self, ranch_name, request_id: Optional[str] = None) -> Tuple[str, Player, bool]:
+        """建立牧場（協定 2.1 節）：取好名字才建立。回傳 (token, 牧場, 這次有沒有建立)。
+
+        request_id：SESSION_REPLAY_S 秒內同一個 request_id 重送，回同一個牧場並發新 token（前一次的作廢，
+        反正手機沒收到），不會多建一個。排在 write_lock 裡，同時送來的兩個重送也只會建一個。
+        """
+        if not isinstance(ranch_name, str):
+            raise GameError("bad_request", "ranch_name 要是字串", 400, {"fields": ["ranch_name"]})
+        chk = ranchname.check(ranch_name)
+        if chk.reason is not None:
+            detail = {"reason": chk.reason, "width": chk.width}
+            if chk.char is not None:
+                detail["char"] = chk.char
+            raise GameError("invalid_name", NAME_MESSAGES[chk.reason], 400, detail)
+        async with self.write_lock:
+            game = self.game
+            if request_id is not None:
+                pid = await self.store.session_request(request_id, SESSION_REPLAY_S)
+                if pid is not None and pid in game.players:
+                    p = game.players[pid]
+                    token = secrets.token_urlsafe(32)
+                    th = token_hash(token)
+                    await self.store.set_token(pid, th)
+                    if p.token_hash is not None:
+                        self.tokens.pop(p.token_hash, None)
+                    p.token_hash = th
+                    self.tokens[th] = pid
+                    self.last_seen[pid] = time.time()
+                    return token, p, False
+            now = self.clock.now()
+            token = secrets.token_urlsafe(32)
+            th = token_hash(token)
+            pid = game.next_pid
+            p = game.create_player(now, chk.name, is_bot=False, pid=pid, token_hash=th)
+            try:
+                await self.store.create_player(pid, th, chk.name, False, now, p.state_dict(), request_id=request_id)
+            except Exception:
+                game.players.pop(pid, None)
+                raise
+            p.version = 1
+            self.tokens[th] = pid
+            self.last_seen[pid] = time.time()
+            return token, p, True
 
     def auth(self, token: Optional[str]) -> Player:
         if not token:

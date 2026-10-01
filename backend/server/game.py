@@ -95,6 +95,7 @@ class Player:
         "game_t",
         "rng_n",
         "stud_income",
+        "name_words",
     )
 
     def __init__(
@@ -115,6 +116,7 @@ class Player:
         self.game_t = created_at  # 最後一次寫入時的遊戲時間
         self.rng_n = 0  # 伺服器亂數的計數（每用一次 +1；重啟後接著數）
         self.stud_income = 0.0  # 借種收入累計（幣）
+        self.name_words: Optional[List[int]] = None  # 電腦牧場名的三組詞編號（協定 1.6 節）；真人是 None
 
     def add_codex(self, cow: Cow, now: float) -> None:
         """牛一出生（或抽到、借種生下）就算發現；記第一次的時間，之後出貨也不會消失。"""
@@ -144,6 +146,7 @@ class Player:
             "bot": self.bot,
             "rng_n": self.rng_n,
             "stud_income": self.stud_income,
+            "name_words": self.name_words,
         }
 
     @classmethod
@@ -169,6 +172,7 @@ class Player:
         p.game_t = game_t if game_t is not None else created_at
         p.rng_n = state.get("rng_n", 0)
         p.stud_income = state.get("stud_income", 0.0)
+        p.name_words = state.get("name_words")
         return p
 
     def copy(self) -> "Player":

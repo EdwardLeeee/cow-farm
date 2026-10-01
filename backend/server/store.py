@@ -11,6 +11,7 @@
   每筆存「對下一個 tick 的貢獻」與序號，伺服器當機後照序號重建 pending。
 - news：出現過的新聞事件。
 - processed_requests：request_id → 第一次的回應，防止重送時重複成交。
+- session_requests：建立牧場的 request_id → 牧場（協定 2.1 節：10 分鐘內重送回同一個牧場、發新 token）。
 """
 
 from __future__ import annotations
@@ -78,6 +79,11 @@ CREATE TABLE IF NOT EXISTS news (
     announce_at double precision NOT NULL,
     start_at double precision NOT NULL,
     end_at double precision NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS session_requests (
+    request_id uuid PRIMARY KEY,
+    player_id bigint NOT NULL REFERENCES players(id) ON DELETE CASCADE,
     created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE TABLE IF NOT EXISTS processed_requests (
@@ -171,6 +177,15 @@ class Store:
                 "SELECT seq, commodity, contrib FROM trades WHERE market_t >= $1 ORDER BY seq", market_t
             )
 
+    async def session_request(self, request_id: str, within_s: float) -> Optional[int]:
+        """within_s 秒（現實時間）內用這個 request_id 建立的牧場；沒有就回 None。"""
+        async with self.pool.acquire() as conn:
+            return await conn.fetchval(
+                "SELECT player_id FROM session_requests WHERE request_id=$1 AND created_at > now() - make_interval(secs => $2)",
+                request_id,
+                float(within_s),
+            )
+
     async def processed(self, player_id: int, request_id: str) -> Optional[Tuple[str, Any]]:
         async with self.pool.acquire() as conn:
             r = await conn.fetchrow(
@@ -212,8 +227,16 @@ class Store:
             )
 
     async def create_player(
-        self, pid: int, token_hash: Optional[bytes], name: str, is_bot: bool, created_t: float, state: dict
+        self,
+        pid: int,
+        token_hash: Optional[bytes],
+        name: str,
+        is_bot: bool,
+        created_t: float,
+        state: dict,
+        request_id: Optional[str] = None,
     ) -> None:
+        """建立牧場；request_id（建立牧場的防重送，協定 2.1 節）在同一個交易裡記下。"""
         async with self.pool.acquire() as conn:
             async with conn.transaction():
                 await conn.execute(
@@ -224,6 +247,13 @@ class Store:
                     is_bot,
                     created_t,
                 )
+                if request_id is not None:  # 超過重送期限的舊紀錄直接換成這個牧場
+                    await conn.execute(
+                        "INSERT INTO session_requests(request_id, player_id) VALUES($1, $2) "
+                        "ON CONFLICT (request_id) DO UPDATE SET player_id=EXCLUDED.player_id, created_at=now()",
+                        request_id,
+                        pid,
+                    )
                 await conn.execute(
                     "INSERT INTO farms(player_id, state, version, game_t) VALUES($1, $2, 1, $3)", pid, state, created_t
                 )
@@ -329,6 +359,11 @@ class Store:
                         n["end_at"],
                     )
 
+    async def set_token(self, pid: int, token_hash: bytes) -> None:
+        """換登入憑證（舊的立刻失效）。"""
+        async with self.pool.acquire() as conn:
+            await conn.execute("UPDATE players SET token_sha256=$2 WHERE id=$1", pid, token_hash)
+
     async def prune(self, price_before: float, requests_older_than_days: int = 7) -> None:
         async with self.pool.acquire() as conn:
             await conn.execute("DELETE FROM price_history WHERE t < $1", price_before)
@@ -336,6 +371,7 @@ class Store:
                 "DELETE FROM processed_requests WHERE created_at < now() - make_interval(days => $1)",
                 requests_older_than_days,
             )
+            await conn.execute("DELETE FROM session_requests WHERE created_at < now() - interval '1 day'")
 
     async def weekly_income(self, since_t: float) -> Dict[int, int]:
         async with self.pool.acquire() as conn:

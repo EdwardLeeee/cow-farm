@@ -179,7 +179,7 @@ def test_real_server_survives_sigkill(tmp_path):
     proc = start_server(dsn, log)
     try:
         c = httpx.Client(base_url=base, timeout=5)
-        s = c.post("/v1/session").json()
+        s = c.post("/v1/session", json={"ranch_name": "回復測試牧場"}).json()
         hd = {"Authorization": f"Bearer {s['token']}"}
         assert c.post("/v1/collect", headers=hd, json={"request_id": new_rid()}).status_code == 200
         assert (

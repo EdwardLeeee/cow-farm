@@ -21,15 +21,15 @@
 | 8 | WS `hello` | `protocol: 1` | `protocol: 2` | 3，已做 |
 | 9 | 圖鑑 | 12 格（用途 × 稀有度） | 24 個品種（`breed`），附第一次發現的時間 | 4，已做 |
 | 10 | 牛 | — | `cows[].breed`（品種代號），app 顯示「品種名 #id」 | 4，已做 |
-| 11 | 建立牧場 | 伺服器從詞庫隨機取名 | 玩家自己取：`POST /v1/session {ranch_name}`，取好名字才建立（D23） | 5 |
-| 12 | 電腦牧場名 | 中文字串 | 三組詞的編號 `name_words`，app 照 `namegen.pattern` 用玩家的語言組 | 3，已做（PR 5 改成直接存編號，協定不變） |
+| 11 | 建立牧場 | 伺服器從詞庫隨機取名 | 玩家自己取：`POST /v1/session {ranch_name}`，取好名字才建立（D23） | 5，已做 |
+| 12 | 電腦牧場名 | 中文字串 | 三組詞的編號 `name_words`，app 照 `namegen.pattern` 用玩家的語言組 | 3，已做（PR 5 起伺服器直接存編號，協定不變） |
 | 13 | 借種費 | 主人從 300／800／2,000／5,000 選 | 系統依公牛現在的體重和稀有度算（D26）；借種要帶預覽看到的價格，變了回 `price_changed` | 6 |
 | 14 | 借種紀錄 | 沒有 | `GET /v1/stud/log` | 7 |
 | 15 | 維護 | 沒有 | `GET /v1/status`、`maintenance` 物件、503 `maintenance`、WS 4503 | 8 |
 | 16 | 帳號 | 只有訪客 token | 綁定、解除、找回、換回、刪除牧場（D22）；舊手機收到 `signed_in_elsewhere` | 9 |
 | 17 | 遊戲時間 | 伺服器關著時暫停 | 倍率 1（正式版）照真實時間走，關機那段也算；試玩倍率照舊暫停 | 10 |
 
-PR 3、4 已做；PR 5–10 還沒做（2026-10-02）。每個 PR 合併時更新這張表的「PR」欄。
+PR 3–5 已做；PR 6–10 還沒做（2026-10-02）。每個 PR 合併時更新這張表的「PR」欄。
 
 **存檔不相容**：PR 4 起存檔格式改變，舊的世界（v0.2）伺服器會拒絕啟動。原型階段直接清掉資料庫重來（`backend/README.md`）。
 
@@ -239,7 +239,8 @@ app 怎麼顯示：
      - Unicode emoji-data 的 Extended_Pictographic（含官方替未來 emoji 保留的區段，所以新的 emoji 也擋得到）；
      - 區域指示符 U+1F1E6–U+1F1FF（國旗）、膚色 U+1F3FB–U+1F3FF；
      - U+FE0F（emoji 樣式）、U+20E3（鍵帽）、U+200D（ZWJ）、tag 字元 U+E0020–U+E007F。
-     - 結果：© ® ™ ‼ 也算 emoji；☆ ♪ 這類文字符號、數字、`#`、`*` 可以用（鍵帽 1️⃣ 有 U+FE0F／U+20E3，不行）。
+     - 結果：© ® ™ ‼ 和 ★ ♪ ♥ 這類符號都在 Extended_Pictographic 裡，算 emoji；☆（U+2606）不在，可以用。數字、`#`、`*` 可以用（鍵帽 1️⃣ 有 U+FE0F／U+20E3，不行）。
+     - 區間表：`backend/server/data/extended_pictographic.json`（Unicode 13.0 的 emoji-data.txt，`backend/scripts/gen_name_tables.py` 產生並核對 SHA-256），app 可以直接拿去用。
    - 不能用的字元（`reason: "bad_char"`）：這是為了顯示安全，不是內容過濾。
      - 控制字元（類別 Cc），以及在中間的換行、換段分隔 U+2028、U+2029；
      - 雙向控制字元 U+061C、U+200E、U+200F、U+202A–U+202E、U+2066–U+2069（會讓後面的 #編號倒過來顯示）；
@@ -257,14 +258,14 @@ app 怎麼顯示：
 | `too_short` | 去掉前後空白後寬度 < 2（含全是空白） | `s02.errShort` |
 | `too_long` | 寬度 > 16 | `s02.errLong` |
 | `emoji` | 有 emoji | `s02.errEmoji` |
-| `bad_char` | 有不能用的字元 | 設計稿沒有這句；**ceo 審稿時決定**（建議請 cow-ui 加 `s02.errChar`「名字裡有不能用的字」，在那之前用 `s02.errEmoji`） |
+| `bad_char` | 有不能用的字元 | `s02.errChar`「名字裡有不能用的字」（ceo 2026-10-02：cow-ui 會加；加好之前 app 用 `s02.errEmoji`） |
 
 ```json
 {"error": {"code": "invalid_name", "message": "名字不能用表情符號", "detail": {"reason": "emoji", "width": 10, "char": "U+1F42E"}}}
 ```
 
 - `width`：去掉前後空白後的寬度（照第 3 點算，不能用的字元也照算）；`char`：第一個不能用的字元（`U+XXXX`），沒有就不給。
-- 伺服器會把測試用的名字和答案放在 `backend/server/data/name_cases.json`（PR 5），app 和 i18ncheck 可以拿來跑，確認三邊算得一樣。
+- 測試向量：`backend/server/data/name_cases.json`（37 個名字和伺服器的答案 `ok`、`reason`、`width`），app 和 i18ncheck 拿去跑，確認三邊算得一樣。規則改了由 `backend/tests/test_ranchname.py` 重產。
 
 ### 2.3 `GET /v1/state` 整個牧場
 
@@ -986,3 +987,4 @@ app 啟動時先打這個（還沒有 token 也能打），再決定要不要顯
 - 2026-10-02：v2 草稿（D22–D27、ceo 2026-10-02 裁示）：見第 0 節。v1 的「跟 M1 規格表不一樣的地方」對照表拿掉了，要看請查 git 歷史（`f11ce12` 的 `docs/protocol.md` 第 8 節）。
 - 2026-10-02：PR 3 做完第 0 節 1–8、12 項；每週排行榜加 `week_started_at_real`、`next_reset_at_real`（ceo 2026-10-02）。
 - 2026-10-02：PR 4 做完第 0 節 9、10 項：`cows[].breed`、24 品種圖鑑 `codex[] {breed, found_at}`、借種上架和 WS `stud` 的 `breed`、商店機率表的 `breed`。存檔格式升到 3，v0.2 的世界拒絕啟動。
+- 2026-10-02：PR 5 做完第 0 節 11 項：`POST /v1/session {ranch_name, request_id}`、牧場名規則、測試向量 `name_cases.json`；電腦牧場改存詞庫編號。更正 2.2 節的例子：★ ♪ ♥ 在 Extended_Pictographic 裡，算 emoji（之前誤寫 ♪ 可以用）。

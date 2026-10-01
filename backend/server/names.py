@@ -32,8 +32,14 @@ _BY_NAME: Dict[str, Tuple[int, int, int]] = {
 }
 
 
-def random_ranch_name(rng: random.Random) -> str:
-    return "".join(rng.choice(_WORDS[k]) for k in GROUPS)
+def random_name_words(rng: random.Random) -> List[int]:
+    """電腦牧場名：三組詞各挑一個（亂數用量跟以前的 rng.choice 一樣，電腦玩家的其他設定不會因此改變）。"""
+    return [rng.randrange(len(_WORDS[g])) for g in GROUPS]
+
+
+def compose_name(words: List[int]) -> str:
+    """三組詞的編號 → 繁中名字（只給日誌和除錯看；app 用字串表依玩家的語言組）。"""
+    return "".join(_WORDS[g][i] for g, i in zip(GROUPS, words))
 
 
 def name_words(name: str) -> Optional[List[int]]:
