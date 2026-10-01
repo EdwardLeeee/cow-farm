@@ -1,71 +1,62 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../api/breeds.dart';
 import '../../api/models.dart';
+import '../../l10n/l10n.dart';
 import '../../l10n/strings.dart';
 import '../../state/game_model.dart';
 import '../format.dart';
 import '../palette.dart';
 
-/// 圖鑑：用途 × 稀有度共 12 格，還沒發現的顯示「？」。
+/// 圖鑑：24 個品種（協定 1.6），還沒發現的顯示「？」。M1 的原型畫面；正式的 S09 在第 4 步照設計稿做。
 class CodexScreen extends StatelessWidget {
   const CodexScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final codex = context.select<GameModel, Set<CodexKey>>((m) => m.state!.codex);
+    final codex = context.select<GameModel, Map<String, double>>((m) => m.state!.codex);
     final theme = Theme.of(context);
     return ListView(
       padding: const EdgeInsets.all(12),
       children: [
         Text(S.codexTitle, style: theme.textTheme.titleSmall),
-        Text(S.codexCount(codex.length, 12), key: const Key('codex-count')),
+        Text(S.codexCount(codex.length, kCodexOrder.length), key: const Key('codex-count')),
         const SizedBox(height: 8),
-        Row(
-          children: [
-            const SizedBox(width: 44),
-            for (var t = 0; t < 4; t++)
-              Expanded(
-                child: Center(child: Text(tierName(t), style: theme.textTheme.bodySmall)),
-              ),
-          ],
-        ),
-        for (final type in CowType.values)
-          Row(
+        for (final type in CowType.values) ...[
+          Text(typeName(type), style: theme.textTheme.bodySmall),
+          GridView.count(
+            crossAxisCount: 4,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
             children: [
-              SizedBox(width: 44, child: Text(typeName(type))),
-              for (var t = 0; t < 4; t++)
-                Expanded(
-                  child: AspectRatio(
-                    aspectRatio: 1,
-                    child: _Cell(type: type, tier: t, found: codex.contains((type: type, tier: t))),
-                  ),
-                ),
+              for (final breed in kCodexOrder.where((b) => breedInfo(b)?.type == type))
+                _Cell(info: breedInfo(breed)!, found: codex.containsKey(breed)),
             ],
           ),
+        ],
       ],
     );
   }
 }
 
 class _Cell extends StatelessWidget {
-  const _Cell({required this.type, required this.tier, required this.found});
-  final CowType type;
-  final int tier;
+  const _Cell({required this.info, required this.found});
+  final BreedInfo info;
   final bool found;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      key: Key('codex-${type.wire}-$tier'),
+      key: Key('codex-${info.breed}'),
       margin: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: found ? Palette.type(type) : Palette.unknown,
-        border: found ? Border(bottom: BorderSide(color: Palette.tiers[tier], width: 8)) : null,
+        color: found ? Palette.type(info.type) : Palette.unknown,
+        border: found ? Border(bottom: BorderSide(color: Palette.tiers[info.tier], width: 8)) : null,
       ),
       alignment: Alignment.center,
       child: Text(
-        found ? '${typeName(type)}\n${tierName(tier)}' : S.unknown,
+        found ? '${Strings.of(context).breedName(info.breed)}\n${tierName(info.tier)}' : S.unknown,
         textAlign: TextAlign.center,
         style: TextStyle(fontSize: found ? 12 : 24, fontWeight: FontWeight.bold),
       ),

@@ -86,9 +86,14 @@ void main() {
       return http.Response(jsonEncode({'qty': 1, 'avg_price': 1, 'total': 1, 'market_price': 1}), 200);
     });
     final api = HttpGameApi(base: base, client: client, sleep: noSleep);
-    final s = await api.createSession();
+    final s = await api.createSession('小花的快樂牧場');
     expect(s.token, 't1');
-    expect(seen['/v1/session']!.headers.containsKey('Authorization'), isFalse);
+    expect(s.playerId, 7);
+    final session = seen['/v1/session']!;
+    expect(session.headers.containsKey('Authorization'), isFalse);
+    // 取好名字才建立（協定 2.1）；帶 request_id，逾時重送時拿回同一個牧場
+    expect(jsonDecode(session.body), containsPair('ranch_name', '小花的快樂牧場'));
+    expect((jsonDecode(session.body) as Map)['request_id'], isA<String>());
     api.token = s.token;
     await api.sellQuote(Commodity.beef, 3);
     final q = seen['/v1/sell/quote']!;
@@ -129,9 +134,9 @@ void main() {
     await api.fieldRecall(2);
     await api.fieldHarvest();
     await api.fieldExpand();
-    await api.studList(2, 800);
+    await api.studList(2);
     await api.studUnlist(4);
-    await api.studBorrow(4, 1);
+    await api.studBorrow(4, 1, price: 530);
     await api.shipPreview(3);
     await api.studPreview(4, 1);
     Map<String, dynamic> body(int i) => jsonDecode(reqs[i].body) as Map<String, dynamic>;
@@ -151,13 +156,63 @@ void main() {
     expect(body(0)['grade'], 'C');
     expect(body(1).containsKey('field'), isFalse); // 省略 = 找第一塊空田
     expect(body(2)['field'], 1);
-    expect(body(6)['price'], 800);
+    expect(body(6).containsKey('price'), isFalse, reason: '借種費由系統算（D26），上架不帶價格');
     expect(body(8), containsPair('listing_id', 4));
     expect(body(8), containsPair('dam', 1));
+    expect(body(8), containsPair('price', 530), reason: '借種要帶預覽看到的價格（協定 4.4）');
     for (var i = 0; i < 9; i++) {
       expect(body(i)['request_id'], isA<String>(), reason: reqs[i].url.path);
     }
     expect(reqs[9].url.queryParameters, {'cow_id': '3'});
     expect(reqs[10].url.queryParameters, {'listing_id': '4', 'dam': '1'});
+  });
+
+  test('錯誤：帶 detail；503 維護中不重送，交給畫面（S16-01）', () async {
+    var calls = 0;
+    final client = MockClient((req) async {
+      calls++;
+      if (req.url.path == '/v1/state') {
+        return http.Response(
+          jsonEncode({
+            'error': {
+              'code': 'maintenance',
+              'message': '維護中',
+              'detail': {'ends_at_real': 1790784000.0},
+            },
+          }),
+          503,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      }
+      return http.Response(
+        jsonEncode({
+          'error': {
+            'code': 'not_enough_coins',
+            'message': '金幣不夠',
+            'detail': {'need': 1000, 'have': 414},
+          },
+        }),
+        409,
+        headers: {'content-type': 'application/json; charset=utf-8'},
+      );
+    });
+    final api = HttpGameApi(base: base, client: client, sleep: noSleep)..token = 'tok';
+    await expectLater(api.getState(), throwsA(isA<ApiException>().having((e) => e.maintenance, 'maintenance', isTrue)));
+    expect(calls, 1, reason: '維護中的 503 不重送');
+    await expectLater(
+      api.upgrade(UpgradeKind.bucket),
+      throwsA(isA<ApiException>().having((e) => e.detail, 'detail', {'need': 1000, 'have': 414})),
+    );
+  });
+
+  test('沒有錯誤本文的 503（反向代理）照樣重送', () async {
+    var calls = 0;
+    final client = MockClient((req) async {
+      calls++;
+      return calls < 3 ? http.Response('Service Unavailable', 503) : http.Response(jsonEncode({'coins': 1}), 200);
+    });
+    final api = HttpGameApi(base: base, client: client, sleep: noSleep)..token = 'tok';
+    await api.collect();
+    expect(calls, 3);
   });
 }

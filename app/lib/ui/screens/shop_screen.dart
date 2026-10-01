@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../api/models.dart';
+import '../../l10n/l10n.dart';
 import '../../l10n/strings.dart';
 import '../../state/game_model.dart';
 import '../format.dart';
@@ -150,10 +151,14 @@ class _GradeCard extends StatelessWidget {
   Future<void> _buy(BuildContext context, GameModel m) async {
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.maybeOf(context);
+    final strings = Strings.of(context, listen: false);
     final r = await m.shopBuy(grade);
     final cow = r.value?.cow;
     if (r.error != null || cow == null) {
-      messenger?.showSnackBar(SnackBar(content: Text(r.error ?? S.unknownError)));
+      final error = r.error;
+      messenger?.showSnackBar(
+        SnackBar(content: Text(error == null ? S.unknownError : actionErrorTextWith(strings, m, error))),
+      );
       return;
     }
     // 出貨後這頁可能已經關掉（牛不在了），用事先拿到的 Navigator 顯示結果。

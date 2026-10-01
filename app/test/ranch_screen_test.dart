@@ -148,7 +148,7 @@ void main() {
     expect(_outlined(tester, 'detail-breed').onPressed, isNull);
   });
 
-  testWidgets('公牛可以從詳細資料上架借種（選價位）', (tester) async {
+  testWidgets('公牛可以從詳細資料上架借種（借種費由系統算，D26）', (tester) async {
     final (m, api, _) = await loadedModel();
     await pumpApp(tester, m);
     await _openCow(tester, '2');
@@ -156,10 +156,7 @@ void main() {
     await tester.tap(find.byKey(const Key('detail-list')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-    await tester.tap(find.byKey(const Key('list-price-2000')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(api.calls, contains('stud-list:2:2000'));
+    expect(api.calls, contains('stud-list:2'));
   });
 
   testWidgets('「選這頭去配種」切到配種頁並選好', (tester) async {

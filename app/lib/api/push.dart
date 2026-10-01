@@ -9,7 +9,7 @@ import 'models.dart';
 
 /// 斷線重連的等待時間：指數退避加隨機等待（full jitter），上限 [cap]（5 秒）。
 ///
-/// 照 docs/protocol.md 第 4 節：第 n 次（從 0 起）等 random(0, min(5, 0.5 × 2^n)) 秒。
+/// 照 docs/protocol.md 第 7 節：第 n 次（從 0 起）等 random(0, min(5, 0.5 × 2^n)) 秒。
 /// 隨機的部分讓很多手機不會在伺服器恢復的同一瞬間一起重連。最少等 [floor]，避免空轉。
 class Backoff {
   Backoff({
@@ -31,8 +31,11 @@ class Backoff {
   }
 }
 
-/// 伺服器用這個關閉碼表示 token 無效（protocol 第 4 節）。
+/// 伺服器用這個關閉碼表示 token 無效（協定第 7 節）：關閉前先送 error（unauthorized 或 signed_in_elsewhere）。
 const wsCloseUnauthorized = 4401;
+
+/// 維護中（協定第 7 節）：關閉前先送 maintenance 訊息。不要重連，改打 /v1/status。
+const wsCloseMaintenance = 4503;
 
 /// 即時推播（行情、新聞）的介面：正式版用 [WsPushClient]，測試用假實作。
 abstract class PushClient {
@@ -95,17 +98,19 @@ class WsPushClient implements PushClient {
         _connected.value = true;
         attempt = 0;
         _kickWatchdog();
+        var authCode = 'unauthorized';
         await for (final raw in ch.stream) {
           _kickWatchdog();
           final msg = _parse(raw);
+          if (msg is ServerErrorPush && msg.code.isNotEmpty) authCode = msg.code;
           if (msg != null) _messages.add(msg);
         }
-        if (ch.closeCode == wsCloseUnauthorized) {
-          // token 無效：不要重連，交給 app 建立新帳號（之後會用新 token 呼叫 connect）。
+        if (ch.closeCode == wsCloseUnauthorized || ch.closeCode == wsCloseMaintenance) {
+          // token 無效或維護中：不要重連。token 無效交給 app 顯示 S15-03／S14-05；維護中 app 改打 /v1/status。
           _watchdog?.cancel();
           _connected.value = false;
           _running = false;
-          _messages.add(PushAuthFailed(token));
+          if (ch.closeCode == wsCloseUnauthorized) _messages.add(PushAuthFailed(token, authCode));
           return;
         }
       } catch (e) {

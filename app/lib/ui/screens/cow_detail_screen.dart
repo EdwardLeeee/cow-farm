@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../api/models.dart';
+import '../../l10n/l10n.dart';
 import '../../l10n/strings.dart';
 import '../../state/game_model.dart';
 import '../format.dart';
@@ -206,7 +207,11 @@ class _Body extends StatelessWidget {
                   ],
                 ),
               if (preview.expectedValue != null) Text(S.expectedValue(fmtInt(preview.expectedValue!))),
-              for (final b in preview.blockers) Text(b, style: const TextStyle(color: Palette.warn)),
+              for (final b in preview.blockers)
+                Text(
+                  Strings.of(ctx, listen: false).blockerText(b, gameNow: m.gameNow, timeScale: m.timeScale),
+                  style: const TextStyle(color: Palette.warn),
+                ),
             ],
           ],
         ),
@@ -223,10 +228,14 @@ class _Body extends StatelessWidget {
     if (ok != true || !context.mounted) return;
     final messenger = ScaffoldMessenger.maybeOf(context);
     final navigator = Navigator.of(context);
+    final strings = Strings.of(context, listen: false);
     final r = await m.ship(cow);
     final res = r.value;
     if (r.error != null || res == null) {
-      messenger?.showSnackBar(SnackBar(content: Text(r.error ?? S.unknownError)));
+      final error = r.error;
+      messenger?.showSnackBar(
+        SnackBar(content: Text(error == null ? S.unknownError : actionErrorTextWith(strings, m, error))),
+      );
       return;
     }
     // 揭曉評級（原型不做動畫，只顯示結果）
@@ -245,25 +254,9 @@ class _Body extends StatelessWidget {
     );
   }
 
-  /// 上架借種：從伺服器給的價位挑一個。
+  /// 上架借種：借種費由系統依體重和稀有度算（D26），主人只決定要不要上架。正式的 S04-04 在第 4 步照設計稿做。
   Future<void> _list(BuildContext context, GameModel m, Cow cow) async {
-    final prices = m.state?.stud.prices ?? const <double>[];
-    final price = await showDialog<double>(
-      context: context,
-      builder: (ctx) => SimpleDialog(
-        title: const Text(S.list),
-        children: [
-          for (final p in prices)
-            SimpleDialogOption(
-              key: Key('list-price-${p.round()}'),
-              onPressed: () => Navigator.pop(ctx, p),
-              child: Text(S.costCoins(fmtInt(p))),
-            ),
-        ],
-      ),
-    );
-    if (price == null || !context.mounted) return;
-    final r = await m.studList(cow, price);
+    final r = await m.studList(cow);
     if (context.mounted) showResult(context, r.error, S.listedOk);
   }
 }

@@ -29,7 +29,8 @@
 | `lib/l10n/gen/strings.g.dart` | 由 `tool/gen_l10n.dart` 從 `design/m2/i18n/*.json` 產生，不要手改 |
 | `lib/l10n/format.dart` | 數字的寫法（千分位、萬／億、K／M、百分比），照設計稿 |
 | `lib/state/settings.dart` | 語言、漲跌顏色這些偏好設定（shared_preferences；token 不放這裡） |
-| `lib/api/models.dart` | 協定 v1 的資料格式；欄位名稱只出現在這裡 |
+| `lib/api/models.dart` | 協定 v2 的資料格式；欄位名稱只出現在這裡 |
+| `lib/api/breeds.dart` | 24 個品種：用途 × 特徵組合 → 品種代號、圖鑑順序（協定 1.6；測試讀 `breeds.js` 比對） |
 | `lib/api/game_api.dart` | 資料層介面（測試換成假資料） |
 | `lib/api/http_game_api.dart` | HTTP 實作：Bearer token、request_id、重送 |
 | `lib/api/push.dart` | WebSocket 推播與斷線重連（指數退避加隨機等待 full jitter：第 n 次等 random(0, min(5, 0.5×2^n)) 秒） |
@@ -50,8 +51,11 @@
   單調時鐘不受改手機時間影響。每次操作後和每 5 秒重新拿 `/v1/state` 校正。
 - **request_id**：會改變狀態的請求（收奶、賣出、出貨、商店抽牛、配種、升級、田地四個動作、借種上架／下架／借用）
   每次產生新的 UUID；
-  沒收到回應（連線失敗、逾時、502/503/504）時用同一個 request_id 重送，最多 3 次。收到 4xx 不重送，
-  直接顯示伺服器給的繁中錯誤訊息。
+  沒收到回應（連線失敗、逾時、502／504、沒有錯誤本文的 503）時用同一個 request_id 重送，最多 3 次。
+  收到 4xx、500 或 503 maintenance 不重送。
+- **錯誤**（協定 1.4）：依錯誤碼顯示字串表的文案（`Strings.errorText`），**不顯示**伺服器的 message。
+  不認得的碼顯示「操作失敗，請再試一次」；網路失敗顯示「網路不穩，請稍後再試」。
+  「現在不能做」的原因（blockers）也是代碼。
 - **斷線**：WebSocket 斷線、或最近一次 HTTP 失敗時，頂列顯示「連線中…」，所有操作按鈕和賣出滑桿停用。
   底部分頁仍可切換查看（切換分頁不改變任何狀態）。超過 6 秒沒收到推播也當作斷線重連。
   重連後先補抓 `/v1/state` 與 `/v1/market`。
@@ -61,9 +65,13 @@
   原值（含小數）。
 - **能不能做**：牛能不能配種、出貨、下田，以伺服器的 `can_breed`／`can_ship`／`can_work` 為準；按下去前的機率
   （商店、出貨評級、配種、借種）一律向伺服器拿，不在 app 寫死。
-- **`POST /v1/buy_calf` 已停用**（410），app 只用 `POST /v1/shop/buy`。
-- **token 失效**（HTTP 401，或 WebSocket 用關閉碼 4401 關閉，例如資料庫重建）：不再重連，丟掉舊 token，
-  重新建立訪客帳號（兩邊同時發生也只建立一次）。
+- **建立牧場**（協定 2.1，D23）：取好名字才建立。手機上沒有 token 時，停在「還沒有牧場」（S02 取名），
+  不自動取名、不自動建立。
+- **token 失效**（HTTP 401，或 WebSocket 用關閉碼 4401 關閉）：不再重連，也不默默開新牧場。
+  依錯誤碼停在 S15-03（unauthorized）或 S14-05（signed_in_elsewhere），玩家選「開新牧場」才清掉 token。
+- **伺服器不送給玩家看的中文**（v2）：品種、用途、新聞、電腦牧場名都用代碼查字串表。
+  電腦牧場名用詞庫編號照玩家的語言組，前面加「電腦」，#編號是 player_id 補零到 4 位。
+- **借種費**（D26）：由系統依體重和稀有度算，上架不帶價格；借種帶預覽看到的價格，變了伺服器回 price_changed。
 
 ## 語言與字串（D25）
 

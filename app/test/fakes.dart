@@ -1,10 +1,12 @@
 import 'dart:async';
 
+import 'package:cowfarm/api/breeds.dart';
 import 'package:cowfarm/api/game_api.dart';
 import 'package:cowfarm/api/models.dart';
 import 'package:cowfarm/api/push.dart';
 import 'package:cowfarm/app.dart';
 import 'package:cowfarm/state/game_model.dart';
+import 'package:cowfarm/state/settings.dart';
 import 'package:cowfarm/storage/token_store.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +14,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// 遊戲時間基準：2026-10-01 12:00 台灣時間。
 const t0 = 1790827200.0;
+
+/// 稀有度 → 一種特徵組合（協定 1.6：稀有度 = 位元數），用來挑品種。
+const _bitsForTier = [0, 1, 3, 7];
 
 Map<String, dynamic> _cow(
   int id,
@@ -34,15 +39,17 @@ Map<String, dynamic> _cow(
   return {
     'id': id,
     'type': type,
-    'type_name': {'dairy': '乳牛', 'dual': '耕牛', 'beef': '肉牛'}[type],
     'bull': bull,
     'tier': tier,
+    'breed': kBreedsByType[CowType.parse(type)]![_bitsForTier[tier]],
     'stage': stage,
+    'born_at': t0 - (adult ? 36000 : 1800),
     'age_h': adult ? 10.0 : 0.5,
     'adult_at': adultAt ?? (adult ? t0 - 36000 : t0 + 3600),
-    'ready_at': adultAt ?? (adult ? t0 - 36000 : t0 + 3600),
     'milk_per_h': milk,
+    'milk_frac': milk > 0 ? 1.0 : 0.0,
     'weight_kg': adult ? weight : 0,
+    'beef_quality': 1.0,
     'ship_value': adult ? shipValue : 0,
     'bred': bred,
     'working': field != null,
@@ -54,10 +61,22 @@ Map<String, dynamic> _cow(
     'rice_per_h': ricePerH,
     'grade_probs': adult ? {'A': 0.137323, 'B': 0.492535, 'C': 0.370142} : null,
     'origin': origin,
+    'stud_fee': bull && adult && !bred
+        ? {'price': ((weight * 1.1 / 10).round() * 10), 'per_kg': 1.1, 'kg': weight, 'at_max': false}
+        : null,
   };
 }
 
-/// v0.2 的 /v1/state（形狀照 docs/protocol.md）。
+/// 牧場物件（協定 1.6）。
+Map<String, dynamic> ranchJson({int? id, String? name, List<int>? words, int? level = 3}) => {
+  'player_id': id,
+  'name': name,
+  'name_words': words,
+  'is_bot': name == null,
+  'level': level,
+};
+
+/// 協定 v2 的 /v1/state（形狀照 docs/protocol.md 2.3）。
 /// 牛：#1 母乳牛、#2 公耕牛（優良）、#3 母肉牛小牛、#4 母耕牛（在第 1 塊田工作）、#5 母乳牛（已配種）。
 Map<String, dynamic> sampleStateJson({double coins = 1500, bool penFull = false, bool bullListed = false}) => {
   'server_time': t0,
@@ -65,6 +84,8 @@ Map<String, dynamic> sampleStateJson({double coins = 1500, bool penFull = false,
   'time_scale': 144,
   'coins': coins,
   'level': 3,
+  'level_progress': {'earned': 2400, 'level_at': 1500, 'next_at': 3500},
+  'player_id': 31,
   'ranch_name': '晨光草原牧場',
   'cows': [
     _cow(1, 'dairy', false, 0, milk: 14.0, weight: 120, shipValue: 1440),
@@ -100,18 +121,16 @@ Map<String, dynamic> sampleStateJson({double coins = 1500, bool penFull = false,
     'field': {'level': 1, 'cost': 2880, 'count': 2, 'max': 12},
   },
   'codex': [
-    {'type': 'dairy', 'tier': 0},
-    {'type': 'dual', 'tier': 1},
+    {'breed': 'holstein', 'found_at': t0 - 36000},
+    {'breed': 'highland', 'found_at': t0 - 30000},
   ],
   'shop': {
-    'calf_price': {'dairy': 900, 'dual': 900, 'beef': 900},
     'grades': [
       {'grade': 'A', 'price': 3200},
       {'grade': 'B', 'price': 1700},
       {'grade': 'C', 'price': 900},
     ],
   },
-  'breed': {'first_free': false},
   'fields': [
     {'index': 0, 'cow_id': 4, 'rice': 33.0, 'capacity': 88.0, 'per_hour': 11.0},
     {'index': 1, 'cow_id': null, 'rice': 0.0, 'capacity': null, 'per_hour': 0.0},
@@ -122,19 +141,20 @@ Map<String, dynamic> sampleStateJson({double coins = 1500, bool penFull = false,
       if (bullListed)
         {
           'id': 9,
-          'price': 800,
+          'breed': 'highland',
           'type': 'dual',
           'tier': 1,
-          'owner_id': 7,
-          'owner_name': '晨光草原牧場',
-          'is_bot': false,
+          'owner': ranchJson(id: 31, name: '晨光草原牧場'),
           'is_mine': true,
           'cow_id': 2,
+          'listed_at': t0 - 600,
+          'fee': {'price': 550, 'per_kg': 2.75, 'kg': 200.0, 'at_max': false},
         },
     ],
     'income': 1100,
-    'prices': [300, 800, 2000, 5000],
   },
+  'account': {'links': []},
+  'maintenance': null,
 };
 
 Map<String, dynamic> sampleMarketJson({double milkChange = 0.5, double beefChange = -0.8, double riceChange = 0.2}) => {
@@ -144,36 +164,62 @@ Map<String, dynamic> sampleMarketJson({double milkChange = 0.5, double beefChang
     'change_24h': milkChange,
     'change_24h_pct': milkChange / (10.5 - milkChange),
     'ma24': 10.2,
-    'history': [
-      [t0 - 7200, 10.0],
-      [t0 - 3600, 10.3],
-      [t0, 10.5],
-    ],
+    'base_price': 12.0,
+    'ratio': 10.5 / 12,
   },
   'beef': {
     'price': 11.2,
     'change_24h': beefChange,
     'change_24h_pct': beefChange / (11.2 - beefChange),
     'ma24': 11.8,
-    'history': [
-      [t0 - 7200, 12.0],
-      [t0, 11.2],
-    ],
+    'base_price': 12.0,
+    'ratio': 11.2 / 12,
   },
   'rice': {
     'price': 5.2,
     'change_24h': riceChange,
     'change_24h_pct': riceChange / (5.2 - riceChange),
     'ma24': 5.05,
-    'history': [
-      [t0 - 7200, 5.0],
-      [t0, 5.2],
-    ],
+    'base_price': 5.0,
+    'ratio': 5.2 / 5,
   },
   'news': [
-    {'id': 'n1', 'title': '學校午餐加訂鮮奶', 'commodity': 'milk', 'direction': 'up', 'time': t0 - 600},
-    {'id': 'n2', 'title': '進口牛肉到港量創新高', 'commodity': 'beef', 'direction': 'down', 'time': t0 - 300},
-    {'id': 'n3', 'title': '颱風過境，稻米收購價上漲', 'commodity': 'rice', 'direction': 'up', 'time': t0 - 200},
+    _news(1, 'milk_up.1', 'milk', 'up', 0.18, t0 - 600),
+    _news(2, 'beef_down.1', 'beef', 'down', -0.12, t0 - 300),
+    _news(3, 'rice_up.1', 'rice', 'up', 0.08, t0 - 200),
+  ],
+};
+
+Map<String, dynamic> _news(int id, String code, String commodity, String dir, double pct, double t) => {
+  'id': id,
+  'code': code,
+  'params': {},
+  'pct': pct,
+  'commodity': commodity,
+  'targets': [commodity],
+  'direction': dir,
+  'big': false,
+  'time': t,
+  'announce_at': t,
+  'start_at': t,
+  'end_at': t + 36000,
+  'state': 'active',
+};
+
+/// GET /v1/market/history（走勢；D24 第一版用不到，M1 的走勢圖還在用）。
+final sampleHistory = <String, List<List<double>>>{
+  'milk': [
+    [t0 - 7200, 10.0],
+    [t0 - 3600, 10.3],
+    [t0, 10.5],
+  ],
+  'beef': [
+    [t0 - 7200, 12.0],
+    [t0, 11.2],
+  ],
+  'rice': [
+    [t0 - 7200, 5.0],
+    [t0, 5.2],
   ],
 };
 
@@ -201,10 +247,25 @@ class FakeGameApi implements GameApi {
   @override
   String? token;
 
+  /// 建立牧場時伺服器回的錯誤（例如 invalid_name）；null 就成功。
+  ApiException? sessionError;
+
   @override
-  Future<Session> createSession() async {
-    calls.add('session');
-    return const Session(token: 'tok-new', playerId: 'p1', ranchName: '晨光草原牧場');
+  Future<Session> createSession(String ranchName) async {
+    calls.add('session:$ranchName');
+    if (sessionError != null) throw sessionError!;
+    return Session(
+      token: 'tok-new',
+      playerId: 31,
+      ranchName: ranchName.trim(),
+      state: GameState.fromJson({...stateJson, 'ranch_name': ranchName.trim()}),
+    );
+  }
+
+  @override
+  Future<ServerStatus> status() async {
+    calls.add('status');
+    return const ServerStatus(protocol: 2);
   }
 
   @override
@@ -279,7 +340,6 @@ class FakeGameApi implements GameApi {
     calls.add('preview:$sire:$dam');
     return const BreedPreview(
       tierProbs: [0.5625, 0.375, 0.0625, 0],
-      fee: 0,
       typeProbs: {CowType.dairy: 0.5, CowType.dual: 0.5},
       bullProb: 0.5,
     );
@@ -289,7 +349,15 @@ class FakeGameApi implements GameApi {
   Future<BreedResult> breed(Object sire, Object dam) async {
     calls.add('breed:$sire:$dam');
     return BreedResult(
-      calf: Cow(id: 9, type: CowType.dual, bull: false, tier: 1, stage: CowStage.calf, adultAt: t0 + 7200),
+      calf: Cow(
+        id: 9,
+        type: CowType.dual,
+        bull: false,
+        tier: 1,
+        breed: 'highland',
+        stage: CowStage.calf,
+        adultAt: t0 + 7200,
+      ),
     );
   }
 
@@ -323,59 +391,53 @@ class FakeGameApi implements GameApi {
     return {'kind': 'field', 'cost': 2880};
   }
 
-  /// 借種市場：系統的 300 幣乳牛、別人的 800 幣肉牛。
+  /// 借種市場（協定 4.1）：公營種牛站的 300 幣乳牛、電腦牧場的 1,160 幣肉牛。
   List<Map<String, dynamic>> studListings = [
     {
       'id': 1,
-      'price': 300,
+      'breed': 'holstein',
       'type': 'dairy',
       'tier': 0,
-      'owner_id': null,
-      'owner_name': '電腦 公營種牛站',
-      'is_bot': true,
+      'owner': ranchJson(words: [3, 5, 0], level: null),
       'is_mine': false,
       'cow_id': null,
-      'weight_kg': null,
+      'listed_at': t0 - 3600,
+      'fee': {'price': 300, 'per_kg': 1.1, 'kg': 275.0, 'at_max': true},
     },
     {
       'id': 5,
-      'price': 800,
+      'breed': 'galloway',
       'type': 'beef',
       'tier': 1,
-      'owner_id': 3,
-      'owner_name': '電腦 北坡牧場',
-      'is_bot': true,
+      'owner': ranchJson(id: 3, words: [8, 0, 5], level: 6),
       'is_mine': false,
       'cow_id': 12,
-      'weight_kg': 420.5,
+      'listed_at': t0 - 600,
+      'fee': {'price': 1160, 'per_kg': 2.75, 'kg': 420.5, 'at_max': false},
     },
   ];
 
   @override
   Future<StudMarket> stud() async {
     calls.add('stud');
-    return StudMarket.fromJson({
-      'prices': [300, 800, 2000, 5000],
-      'listings': studListings,
-      'mine': [],
-    });
+    return StudMarket.fromJson({'listings': studListings, 'mine': []});
   }
 
   @override
   Future<BreedPreview> studPreview(Object listingId, Object dam) async {
     calls.add('stud-preview:$listingId:$dam');
-    final price = studListings.firstWhere((l) => '${l['id']}' == '$listingId')['price'] as int;
+    final fee = studListings.firstWhere((l) => '${l['id']}' == '$listingId')['fee'];
     return BreedPreview(
       tierProbs: const [0.75, 0.25, 0, 0],
-      fee: price.toDouble(),
+      fee: StudFee.fromJson(fee),
       typeProbs: const {CowType.dual: 1.0},
       bullProb: 0.5,
     );
   }
 
   @override
-  Future<Map<String, dynamic>> studList(Object cowId, double price) async {
-    calls.add('stud-list:$cowId:${price.round()}');
+  Future<Map<String, dynamic>> studList(Object cowId) async {
+    calls.add('stud-list:$cowId');
     return {};
   }
 
@@ -386,10 +448,18 @@ class FakeGameApi implements GameApi {
   }
 
   @override
-  Future<BreedResult> studBorrow(Object listingId, Object dam) async {
-    calls.add('stud-borrow:$listingId:$dam');
+  Future<BreedResult> studBorrow(Object listingId, Object dam, {required int price}) async {
+    calls.add('stud-borrow:$listingId:$dam:$price');
     return BreedResult(
-      calf: Cow(id: 10, type: CowType.dual, bull: true, tier: 1, stage: CowStage.calf, adultAt: t0 + 7200),
+      calf: Cow(
+        id: 10,
+        type: CowType.dual,
+        bull: true,
+        tier: 1,
+        breed: 'highland',
+        stage: CowStage.calf,
+        adultAt: t0 + 7200,
+      ),
     );
   }
 
@@ -402,7 +472,7 @@ class FakeGameApi implements GameApi {
   @override
   Future<List<PricePoint>> marketHistory(Commodity commodity, String range) async {
     calls.add('history:${commodity.wire}:$range');
-    return PricePoint.listFrom(marketJson[commodity.wire]['history']);
+    return PricePoint.listFrom(sampleHistory[commodity.wire]);
   }
 
   @override
@@ -410,11 +480,11 @@ class FakeGameApi implements GameApi {
     calls.add('rank:${kind.wire}');
     return Leaderboard(
       entries: [
-        const RankEntry(rank: 1, name: '北坡牧場', score: 52000, isBot: true),
-        const RankEntry(rank: 2, name: '晨光草原牧場', score: 31000, isMe: true),
-        const RankEntry(rank: 3, name: '電腦 河谷牧場', score: 20000, isBot: true),
+        RankEntry(rank: 1, ranch: RanchRef.fromJson(ranchJson(id: 3, words: [8, 0, 5], level: 6)), score: 52000),
+        RankEntry(rank: 2, ranch: RanchRef.fromJson(ranchJson(id: 31, name: '晨光草原牧場')), score: 31000, isMe: true),
+        RankEntry(rank: 3, ranch: RanchRef.fromJson(ranchJson(id: 4, words: [0, 1, 0], level: 2)), score: 20000),
       ],
-      me: const RankEntry(rank: 2, name: '晨光草原牧場', score: 31000, isMe: true),
+      me: RankEntry(rank: 2, ranch: RanchRef.fromJson(ranchJson(id: 31, name: '晨光草原牧場')), score: 31000, isMe: true),
     );
   }
 }
@@ -472,11 +542,15 @@ Future<(GameModel, FakeGameApi, FakePush)> loadedModel({
   return (m, a, p);
 }
 
+/// 繁中的設定。測試環境的手機語言是英文，M1 的畫面測試比對繁中的字，所以固定用繁中。
+SettingsController zhSettings() =>
+    SettingsController(MemoryPrefsStore(), deviceLocales: () => const [Locale('zh', 'TW')]);
+
 /// 把 app 放進 430×932（iPhone 14 Pro Max 的邏輯尺寸）。
 Future<void> pumpApp(WidgetTester tester, GameModel m) async {
   tester.view.physicalSize = const Size(430 * 3, 932 * 3);
   tester.view.devicePixelRatio = 3;
   addTearDown(tester.view.reset);
-  await tester.pumpWidget(CowFarmApp(model: m));
+  await tester.pumpWidget(CowFarmApp(model: m, settings: zhSettings()));
   await tester.pump();
 }

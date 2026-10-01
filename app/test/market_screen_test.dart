@@ -1,4 +1,5 @@
 import 'package:cowfarm/api/models.dart';
+import 'package:cowfarm/l10n/gen/strings.g.dart';
 import 'package:cowfarm/state/game_model.dart';
 import 'package:cowfarm/ui/palette.dart';
 import 'package:cowfarm/ui/screens/market_screen.dart';
@@ -157,11 +158,12 @@ void main() {
     await tester.tap(find.byKey(const Key('tab-market')));
     await tester.pump();
     push.emit(const MarketPush({Commodity.milk: Quote(price: 9.0, change24h: -1.2)}, null));
-    push.emit(const NewsPush(NewsItem(id: 'n9', title: '連日高溫，冰品店大量進貨', commodity: Commodity.milk, up: true)));
+    push.emit(const NewsPush(NewsItem(id: 'n9', code: 'milk_up.2', commodity: Commodity.milk, up: true)));
     await tester.pump();
     expect(tester.widget<Text>(find.byKey(const Key('price-milk'))).data, '9.00');
     expect(tester.widget<Text>(find.byKey(const Key('change-milk'))).style?.color, Palette.down);
-    expect(find.textContaining('連日高溫'), findsOneWidget);
+    // v2：新聞標題由 app 用代碼查字串表（協定 3.11）
+    expect(find.textContaining(kStringTables['zh-Hant']!['news.milk_up.2']!), findsOneWidget);
   });
 }
 
