@@ -93,8 +93,7 @@ class CowActionReq(_Req):
 
 
 class StudListReq(_Req):
-    cow_id: Any
-    price: Any
+    cow_id: Any  # D26 起不收 price（借種費由系統算；有送也忽略）
     request_id: str
 
 
@@ -106,6 +105,7 @@ class StudUnlistReq(_Req):
 class StudBorrowReq(_Req):
     listing_id: Any
     dam: Any
+    price: Any  # 預覽時看到的借種費；跟現在的不一樣回 409 price_changed（D26）
     request_id: str
 
 
@@ -498,10 +498,9 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
     async def stud(p: Player = Depends(current)):
         g = server.game
         now = server.clock.now()
-        rows = sorted(g.stud.listings.values(), key=lambda l: (l.price, l.lid))
+        rows = sorted(g.stud.listings.values(), key=lambda l: (g.stud.price(l, now), l.lid))  # 這一刻便宜的在前
         return {
             **base(now),
-            "prices": [int(round(x)) for x in g.params.farm.stud_prices],
             "listings": [V.listing_view(g, l, p.pid, now) for l in rows],
             "mine": [V.listing_view(g, l, p.pid, now) for l in g.stud.owner_listings(p.pid)],
         }
@@ -526,7 +525,7 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
 
         return await server.run_action(
             p.pid,
-            lambda now: g.stud_list(p.pid, req.cow_id, req.price, now),
+            lambda now: g.stud_list(p.pid, req.cow_id, now),
             _rid(req.request_id),
             "stud_list",
             respond,
@@ -547,6 +546,8 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
     @app.post("/v1/stud/borrow")
     async def stud_borrow(req: StudBorrowReq, p: Player = Depends(current)):
         g = server.game
+        if req.price is None:  # 一定要帶預覽時看到的借種費（電腦假玩家才不帶）
+            raise GameError("bad_request", "price 要是整數（預覽時看到的借種費）", 400, {"fields": ["price"]})
 
         def respond(res, now):
             pl = g.players[p.pid]
@@ -564,7 +565,7 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
 
         return await server.run_action(
             p.pid,
-            lambda now: g.stud_borrow(p.pid, req.listing_id, req.dam, now),
+            lambda now: g.stud_borrow(p.pid, req.listing_id, req.dam, now, expected_price=req.price),
             _rid(req.request_id),
             "stud_borrow",
             respond,

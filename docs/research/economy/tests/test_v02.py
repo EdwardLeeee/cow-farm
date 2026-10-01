@@ -12,7 +12,7 @@ import sim  # noqa: E402,F401  （把 backend/ 加進 sys.path）
 from cowecon import DEFAULT, HOUR, MINUTE, Exchange, Farm, StudMarket  # noqa: E402
 from cowecon.farm import (  # noqa: E402
     Cow, beef_grade_probs, beef_weight, cow_milk_between, cow_rice_between, draw_beef_grade, field_cap_for,
-    make_genotype, rice_factor, shop_draw, shop_grade_distribution, shop_grade_tier_probs, tier_of,
+    make_genotype, rice_factor, shop_draw, shop_grade_distribution, shop_grade_tier_probs, stud_fee, tier_of,
 )
 
 T0 = 1791129600.0
@@ -186,20 +186,22 @@ class TestStudMarket(unittest.TestCase):
         o, b, sm, t = self.owner, self.borrower, self.sm, self.t
         bull = [c for c in o.cows if c.bull][0]
         dam = [c for c in b.cows if not c.bull][0]
-        lst = sm.list_bull(o, "owner", bull, FP.stud_prices[1], t)
+        lst = sm.list_bull(o, "owner", bull, t)  # D26：不選價位，借種費依體重算
         self.assertIsNotNone(lst)
         self.assertFalse(o.can_ship(bull, t))  # 上架中不能出貨
         self.assertIsNone(sm.borrow(lst.lid, b, "owner", dam, t, random.Random(3), o))  # 不能借自己的
         oc, bc = o.coins, b.coins
+        price = sm.price(lst, t)
+        self.assertEqual(price, stud_fee(FP, bull.ctype, bull.tier, bull.adult_at, t)[0])
         calf = sm.borrow(lst.lid, b, "borrower", dam, t, random.Random(3), o)
         self.assertIsNotNone(calf)
         self.assertIn(calf, b.cows)
-        self.assertEqual(o.coins, oc + lst.price)
-        self.assertEqual(b.coins, bc - lst.price)
+        self.assertEqual(o.coins, oc + price)
+        self.assertEqual(b.coins, bc - price)
         self.assertTrue(bull.bred and dam.bred)
         self.assertIsNone(bull.listed)
         self.assertNotIn(lst.lid, sm.listings)
-        self.assertIsNone(sm.list_bull(o, "owner", bull, FP.stud_prices[0], t))  # 用過一次，不能再上架
+        self.assertIsNone(sm.list_bull(o, "owner", bull, t))  # 用過一次，不能再上架
 
     def test_npc_listing_is_a_sink(self):
         b, sm, t = self.borrower, self.sm, self.t
@@ -208,15 +210,18 @@ class TestStudMarket(unittest.TestCase):
         lid = next(iter(sm.listings))
         dam = [c for c in b.cows if not c.bull][0]
         bc = b.coins
+        lst = sm.listings[lid]
+        price = sm.price(lst, t)  # 公營種牛站：用那種用途公牛的最佳體重算
+        self.assertEqual(price, stud_fee(FP, lst.ctype, lst.tier, None, t)[0])
         self.assertIsNotNone(sm.borrow(lid, b, "borrower", dam, t, random.Random(5)))
-        self.assertEqual(b.coins, bc - FP.npc_stud_price)
+        self.assertEqual(b.coins, bc - price)
         sm.npc_refill(t, random.Random(4))
         self.assertEqual(sum(1 for l in sm.listings.values() if l.owner is None), FP.npc_stud_listings)
 
     def test_unlist(self):
         o, sm, t = self.owner, self.sm, self.t
         bull = [c for c in o.cows if c.bull][0]
-        lst = sm.list_bull(o, "owner", bull, FP.stud_prices[0], t)
+        lst = sm.list_bull(o, "owner", bull, t)
         self.assertTrue(sm.unlist(lst.lid, o))
         self.assertIsNone(bull.listed)
         self.assertTrue(o.can_ship(bull, t))

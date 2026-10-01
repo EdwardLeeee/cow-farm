@@ -20,6 +20,7 @@ if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
 import sim  # noqa: E402,F401
+from cowecon.farm import stud_fee  # noqa: E402
 from cowecon.params import DEFAULT, HOUR  # noqa: E402
 from sim import scenarios as S  # noqa: E402
 
@@ -261,7 +262,8 @@ def goal_d() -> dict:
 def goal_stud() -> dict:
     fp = DEFAULT.farm
     milk_day = fp.milk_per_h[0] * 24 * DEFAULT.milk.base_price  # 一頭壯年乳牛一天的奶錢（基本價）
-    out = {"milk_money_per_day": milk_day, "top_price": max(fp.stud_prices), "top_price_days_of_milk": max(fp.stud_prices) / milk_day, "pops": {}}
+    top = stud_fee(fp, 2, 3, None, 0.0)[0]  # D26：最貴的是長到最壯的傳說肉牛公牛
+    out = {"milk_money_per_day": milk_day, "top_price": top, "top_price_days_of_milk": top / milk_day, "pops": {}}
     for n in S.POP_SEEDS:
         runs = base_runs(n)
         if not runs:

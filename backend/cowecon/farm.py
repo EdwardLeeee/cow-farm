@@ -23,7 +23,7 @@ M1 伺服器加的部分：出貨兩步（ship_to_storage → sell_beef）、sel
 
 from __future__ import annotations
 
-import bisect
+import math
 import random
 from itertools import product
 from typing import Dict, List, Optional, Sequence, Tuple, Union
@@ -1249,20 +1249,35 @@ class Farm:
 # ---------------------------------------------------------------------------
 # 借種市場（全服共用；第一個跨玩家的狀態）
 # ---------------------------------------------------------------------------
+def stud_fee(fp: FarmParams, ctype: int, tier: int, adult_at: Optional[float], now: float) -> Tuple[float, float, bool]:
+    """借種費（D26）：公牛現在的體重 × 每公斤價格（依稀有度），四捨五入到 stud_fee_round 幣。
+
+    體重跟 beef_weight 同一個算法（公牛，成年後 peak_age_h 小時長到最佳體重，之後不變）。
+    adult_at = None 是公營種牛站（沒有真的牛）：用那種用途公牛的最佳體重。
+    回傳 (借種費, 體重公斤, 是否已經長到最壯)。
+    """
+    w0, w1, pa = fp.adult_weight_kg[ctype], fp.peak_weight_kg[ctype], fp.peak_age_h[ctype]
+    frac = 1.0 if adult_at is None else min(max(now - adult_at, 0.0) / HOUR / pa, 1.0)
+    kg = (w0 + (w1 - w0) * frac) * fp.bull_weight_mult
+    step = fp.stud_fee_round
+    return math.floor(kg * fp.stud_fee_per_kg[tier] / step + 0.5) * step, kg, frac >= 1.0
+
+
 class StudListing:
-    """一筆上架：owner = 主人的識別碼（None = 電腦假玩家）；cow_id = 主人牧場裡那頭公牛；
-    g、ctype、tier 是上架當下公牛的基因（畫面顯示與配種機率用）；price 借種價（幣）。"""
+    """一筆上架：owner = 主人的識別碼（None = 公營種牛站）；cow_id = 主人牧場裡那頭公牛；
+    g、ctype、tier 是上架當下公牛的基因（畫面顯示與配種機率用）；adult_at 是公牛長大的時間，借種費依「現在」的體重算
+    （StudMarket.fee）。公營種牛站沒有真的牛，adult_at = None（用最佳體重算）。"""
 
-    __slots__ = ("lid", "owner", "cow_id", "g", "ctype", "tier", "price", "listed_at")
+    __slots__ = ("lid", "owner", "cow_id", "g", "ctype", "tier", "adult_at", "listed_at")
 
-    def __init__(self, lid: int, owner, cow_id: int, g: int, price: float, listed_at: float):
+    def __init__(self, lid: int, owner, cow_id: int, g: int, adult_at: Optional[float], listed_at: float):
         self.lid = lid
         self.owner = owner
         self.cow_id = cow_id
         self.g = g
         self.ctype = cow_type(g)
         self.tier = tier_of(g)
-        self.price = price
+        self.adult_at = adult_at
         self.listed_at = listed_at
 
     def to_dict(self) -> dict:
@@ -1271,34 +1286,34 @@ class StudListing:
             "owner": self.owner,
             "cow_id": self.cow_id,
             "g": self.g,
-            "price": self.price,
+            "adult_at": self.adult_at,
             "listed_at": self.listed_at,
         }
 
     @classmethod
     def from_dict(cls, d: dict) -> "StudListing":
-        return cls(d["id"], d["owner"], d["cow_id"], d["g"], d["price"], d["listed_at"])
+        return cls(d["id"], d["owner"], d["cow_id"], d["g"], d["adult_at"], d["listed_at"])
 
 
 class StudMarket:
-    """借種：主人把自己成年、沒配過、沒在田裡的公牛上架，從 stud_prices 挑一個價位。
-    別的玩家用自己成年、沒配過的母牛借種：付錢給主人（電腦假玩家上架的錢不給任何人），小牛歸借的人，
-    公牛和母牛的「這輩子一次」都用掉。公牛留在主人牧場。
+    """借種：主人把自己成年、沒配過、沒在田裡的公牛上架；借種費由系統依公牛現在的體重和稀有度算（D26），
+    跟著公牛長大自動漲。別的玩家用自己成年、沒配過的母牛借種：付錢給主人（公營種牛站的錢不給任何人），
+    小牛歸借的人，公牛和母牛的「這輩子一次」都用掉。公牛留在主人牧場。
 
-    伺服器要在同一個交易裡處理：借的人牧場、主人牧場（電腦假玩家沒有）、上架清單。
+    伺服器要在同一個交易裡處理：借的人牧場、主人牧場（公營種牛站沒有）、上架清單。
     """
 
     def __init__(self, params: EconomyParams):
         self.p = params
         self.listings: Dict[int, StudListing] = {}
         self._next_id = 1
-        self._npc_type = 0  # 電腦假玩家輪流上架的用途
+        self._npc_type = 0  # 公營種牛站輪流上架的用途
         self._npc_count = 0
-        self._index: Dict[Tuple[int, int], List[Tuple[float, int]]] = {}  # (用途, 稀有度) → [(價錢, 編號)]，由低到高
+        self._index: Dict[Tuple[int, int], List[int]] = {}  # (用途, 稀有度) → 上架編號（價格會變，用的時候現算）
 
     def _add(self, lst: StudListing) -> None:
         self.listings[lst.lid] = lst
-        bisect.insort(self._index.setdefault((lst.ctype, lst.tier), []), (lst.price, lst.lid))
+        self._index.setdefault((lst.ctype, lst.tier), []).append(lst.lid)
         if lst.owner is None:
             self._npc_count += 1
 
@@ -1306,37 +1321,45 @@ class StudMarket:
         lst = self.listings.pop(lid, None)
         if lst is None:
             return None
-        bucket = self._index.get((lst.ctype, lst.tier), [])
-        i = bisect.bisect_left(bucket, (lst.price, lst.lid))
-        if i < len(bucket) and bucket[i] == (lst.price, lst.lid):
-            bucket.pop(i)
+        self._index[(lst.ctype, lst.tier)].remove(lid)
         if lst.owner is None:
             self._npc_count -= 1
         return lst
 
-    def cheapest(self, ctype: int, tier: int, exclude_owner=None) -> Optional[StudListing]:
-        """某用途、某稀有度最便宜的上架（跳過 exclude_owner 自己的）。"""
-        for _price, lid in self._index.get((ctype, tier), []):
+    def fee(self, lst: StudListing, now: float) -> Tuple[float, float, bool]:
+        """這一刻的借種費：(價格, 公牛體重, 是否已經長到最壯)。"""
+        return stud_fee(self.p.farm, lst.ctype, lst.tier, lst.adult_at, now)
+
+    def price(self, lst: StudListing, now: float) -> float:
+        return self.fee(lst, now)[0]
+
+    def cheapest(self, ctype: int, tier: int, now: float, exclude_owner=None) -> Optional[StudListing]:
+        """某用途、某稀有度這一刻最便宜的上架（同價先上架的在前；跳過 exclude_owner 自己的）。"""
+        best, best_key = None, None
+        for lid in self._index.get((ctype, tier), []):
             lst = self.listings[lid]
-            if exclude_owner is None or lst.owner != exclude_owner:
-                return lst
-        return None
+            if exclude_owner is not None and lst.owner == exclude_owner:
+                continue
+            key = (self.price(lst, now), lid)
+            if best_key is None or key < best_key:
+                best, best_key = lst, key
+        return best
 
     # ---- 上架 ----
     def can_list(self, farm: Farm, cow: Cow, now: float) -> bool:
         return cow in farm.cows and cow.bull and cow.is_adult(now) and not cow.bred and not cow.is_busy()
 
-    def list_bull(self, farm: Farm, owner, cow: Cow, price: float, now: float) -> Optional[StudListing]:
-        if price not in self.p.farm.stud_prices or owner is None or not self.can_list(farm, cow, now):
+    def list_bull(self, farm: Farm, owner, cow: Cow, now: float) -> Optional[StudListing]:
+        if owner is None or not self.can_list(farm, cow, now):
             return None
-        lst = StudListing(self._next_id, owner, cow.cid, cow.g, price, now)
+        lst = StudListing(self._next_id, owner, cow.cid, cow.g, cow.adult_at, now)
         self._next_id += 1
         self._add(lst)
         cow.listed = lst.lid
         return lst
 
     def unlist(self, lid: int, farm: Optional[Farm] = None) -> bool:
-        """下架。farm = 主人的牧場（清掉公牛的上架標記）；電腦假玩家的上架不用給。"""
+        """下架。farm = 主人的牧場（清掉公牛的上架標記）；公營種牛站的上架不用給。"""
         lst = self._remove(lid)
         if lst is None:
             return False
@@ -1361,7 +1384,7 @@ class StudMarket:
             and not dam.bull
             and dam.can_breed_now(now)
             and borrower.free_slots() > 0
-            and borrower.coins >= lst.price
+            and borrower.coins >= self.price(lst, now)
         ):
             return False
         if lst.owner is not None:
@@ -1382,13 +1405,14 @@ class StudMarket:
         rng: random.Random,
         owner_farm: Optional[Farm] = None,
     ) -> Optional[Cow]:
-        """借種配種，回傳小牛（放在借的人牧場）。失敗回傳 None，狀態不變。"""
+        """借種配種，用這一刻的借種費；回傳小牛（放在借的人牧場）。失敗回傳 None，狀態不變。"""
         if not self.can_borrow(lid, borrower, borrower_id, dam, now, owner_farm):
             return None
+        price = self.price(self.listings[lid], now)
         lst = self._remove(lid)
         borrower.advance(now)
-        borrower.coins -= lst.price
-        borrower._record(now, "stud_out", -lst.price, 1.0)
+        borrower.coins -= price
+        borrower._record(now, "stud_out", -price, 1.0)
         calf = borrower._make_calf(lst.g, dam, now, rng, "stud")
         dam.bred = True
         borrower.first_breed_used = True
@@ -1396,19 +1420,19 @@ class StudMarket:
             bull = owner_farm.cow_by_id(lst.cow_id)
             bull.bred = True
             bull.listed = None
-            owner_farm.coins += lst.price
-            owner_farm._record(now, "stud_in", lst.price, 1.0)
+            owner_farm.coins += price
+            owner_farm._record(now, "stud_in", price, 1.0)
         return calf
 
     # ---- 電腦假玩家 ----
     def npc_refill(self, now: float, rng: random.Random) -> List[StudListing]:
-        """電腦假玩家的上架少於 npc_stud_listings 筆時補上（一般公牛，用途輪流，C 級基因）。"""
+        """公營種牛站的上架少於 npc_stud_listings 筆時補上（用途輪流，C 級基因：大多是一般公牛）。"""
         fp = self.p.farm
         added = []
         while self._npc_count < fp.npc_stud_listings:
             g = shop_genotype(fp, self._npc_type, rng)
             self._npc_type = (self._npc_type + 1) % 3
-            lst = StudListing(self._next_id, None, 0, g, fp.npc_stud_price, now)
+            lst = StudListing(self._next_id, None, 0, g, None, now)  # 沒有真的牛：借種費用最佳體重算
             self._next_id += 1
             self._add(lst)
             added.append(lst)

@@ -300,10 +300,12 @@ class FarmParams:
     shop_bull_prob: float = 0.5
     calf_price: float = 900.0  # 舊版（v0.1）「選用途與公母」的小牛價格；v0.2 = C 級價格，只為相容保留
 
-    # 配種：每頭牛一輩子一次（公母一樣）；自己的公母免費。借種價位（幣）固定幾檔
-    stud_prices: Tuple[float, ...] = (300.0, 800.0, 2000.0, 5000.0)
-    npc_stud_listings: int = 3  # 電腦假玩家最少維持幾筆上架（每種用途一頭一般公牛）
-    npc_stud_price: float = 300.0
+    # 配種：每頭牛一輩子一次（公母一樣）；自己的公母免費。
+    # 借種費（D26，2026-10-01 取代 300／800／2,000／5,000 四檔）：公牛現在的體重（公斤）× 每公斤價格（依稀有度），
+    # 四捨五入到 stud_fee_round 幣，跟著公牛長大自動漲；主人只決定要不要上架。數字暫定，ceo 跑完經濟模擬後定案。
+    stud_fee_per_kg: Tuple[float, float, float, float] = (1.1, 2.75, 6.6, 16.5)
+    stud_fee_round: float = 10.0
+    npc_stud_listings: int = 3  # 公營種牛站最少維持幾筆上架（每種用途一頭，借種費用那種用途公牛的最佳體重算）
 
     # 牛舍（格數）
     pen_start_slots: int = 2

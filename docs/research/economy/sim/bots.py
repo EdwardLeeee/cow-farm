@@ -39,7 +39,6 @@ HOLD_THR = 1.0  # T：價格 ≥ 24 小時均價 × 這個倍數才賣
 HOLD_FRESH_SELL = 0.97  # T：新鮮度（牛奶、稻米、牛肉）掉到這以下就賣
 HOLD_WH_TARGET_H = 14.0
 HOLD_MIN_COWS = 12  # T：牛群少於這個數量時照 D 經營
-STUD_PRICE_BY_TIER = (0, 1, 2, 3)  # L：稀有度 → stud_prices 的第幾檔
 STUD_RELIST_H = 24.0  # L：上架多久沒人借就降一檔
 PANIC_SHIP_AGE_H = 48.0
 TRACK_PLAYERS = 500  # 只追蹤前幾位玩家每頭牛的產出（量商店等級的實際價值；省記憶體）
@@ -258,10 +257,10 @@ def breeding_pass(b: Bot, now: float) -> None:
             reserve = 0.0
             for t in range(3):
                 for tier in range(4):
-                    lst = sm.cheapest(t, tier, exclude_owner=b.pid)
-                    if lst is None or lst.price > f.coins - reserve:
+                    lst = sm.cheapest(t, tier, now, exclude_owner=b.pid)
+                    if lst is None or sm.price(lst, now) > f.coins - reserve:
                         continue
-                    gain = offspring_value(b.prof, fp, lst.g, dam.g, bonus) - lst.price
+                    gain = offspring_value(b.prof, fp, lst.g, dam.g, bonus) - sm.price(lst, now)
                     if gain > best_gain:
                         best, best_gain = lst, gain
         use_own = own is not None and (best is None or own_val >= best_gain)
@@ -273,9 +272,10 @@ def breeding_pass(b: Bot, now: float) -> None:
             f.breed(own, dam, now, b.rng)
         elif best is not None:
             owner = None if best.owner is None else _W["bots"][best.owner]
+            price = sm.price(best, now)
             calf = sm.borrow(best.lid, f, b.pid, dam, now, b.rng, owner.farm if owner else None)
             if calf is not None:
-                _W["world"].stud_log.append((now, best.price, owner.strategy if owner else None, b.strategy, best.ctype, best.tier))
+                _W["world"].stud_log.append((now, price, owner.strategy if owner else None, b.strategy, best.ctype, best.tier))
                 if owner is None:
                     sm.npc_refill(now, _W["npc_rng"])
 
@@ -295,26 +295,18 @@ def assign_fields(b: Bot, now: float) -> None:
 
 
 def lending(b: Bot, now: float) -> None:
-    """L：沒配過的成年公牛都上架；一天沒人借就降一檔；最便宜也沒人借、又太老就下架（之後出貨）。"""
+    """L：沒配過的成年公牛都上架（D26：借種費依體重自動算，不選價位）；上架一天沒人借、又太老就下架（之後出貨）。"""
     f = b.farm
-    fp = f.fp
     sm = _W["stud"]
-    prices = fp.stud_prices
     for lst in list(sm.owner_listings(b.pid)):
         if now - lst.listed_at < STUD_RELIST_H * HOUR:
             continue
         c = f.cow_by_id(lst.cow_id)
-        sm.unlist(lst.lid, f)
-        if c is None:
-            continue
-        i = prices.index(lst.price)
-        if i > 0:
-            sm.list_bull(f, b.pid, c, prices[i - 1], now)
-        elif c.adult_age_h(now) < BULL_WAIT_MAX_H:
-            sm.list_bull(f, b.pid, c, prices[0], now)
+        if c is None or c.adult_age_h(now) >= BULL_WAIT_MAX_H:
+            sm.unlist(lst.lid, f)
     for c in f.cows:
         if c.bull and sm.can_list(f, c, now) and c.adult_age_h(now) < BULL_WAIT_MAX_H:
-            sm.list_bull(f, b.pid, c, prices[STUD_PRICE_BY_TIER[c.tier]], now)
+            sm.list_bull(f, b.pid, c, now)
 
 
 def hold_sell(b: Bot, now: float) -> None:

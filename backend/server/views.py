@@ -26,13 +26,14 @@ from cowecon.farm import (
     is_milker,
     milk_frac,
     rice_factor,
+    stud_fee,
     wh_cap,
 )
 from cowecon.params import HEADLINES, HOUR
 
 from .breeds import ORDER as BREED_ORDER
 from .breeds import breed_of_genes
-from .game import TYPE_WIRE, Game, Player, level_threshold, ship_value
+from .game import TYPE_WIRE, Game, Player, level_threshold, ship_value, stud_fee_view
 from .names import name_words, station_words
 
 GRADE_NAMES = ("A", "B", "C")
@@ -96,6 +97,10 @@ def cow_view(game: Game, p: Player, c: Cow, now: float) -> dict:
         "rice_per_h": r2(cow_rice_rate(fp, c, now)) if c.ctype == OX else 0.0,
         "grade_probs": grade_dict(beef_grade_probs(fp, c, now)) if adult else None,
         "origin": c.origin or None,
+        # D26：成年、沒配過種的公牛現在的借種費（上架前就先算好給 S04-04）；其他牛 null
+        "stud_fee": stud_fee_view(fp, c.tier, *stud_fee(fp, c.ctype, c.tier, c.adult_at, now))
+        if c.bull and adult and not c.bred
+        else None,
     }
 
 
@@ -281,12 +286,9 @@ def station_ref(game: Game, listing_id: int) -> dict:
 
 
 def listing_view(game: Game, lst, me: Optional[int], now: float) -> dict:
-    fp = game.params.farm
     owner = game.players.get(lst.owner) if lst.owner is not None else None
-    bull = owner.farm.cow_by_id(lst.cow_id) if owner is not None else None
     return {
         "id": lst.lid,
-        "price": ci(lst.price),
         "breed": breed_of_genes(lst.g),
         "type": TYPE_WIRE[lst.ctype],
         "tier": lst.tier,
@@ -294,7 +296,7 @@ def listing_view(game: Game, lst, me: Optional[int], now: float) -> dict:
         "is_mine": lst.owner is not None and lst.owner == me,
         "cow_id": lst.cow_id if lst.owner is not None else None,
         "listed_at": lst.listed_at,
-        "weight_kg": r2(beef_weight(fp, bull, now)) if bull is not None else None,
+        "fee": game.stud_fee(lst, now),  # 這一刻現算（D26）
     }
 
 
@@ -335,7 +337,6 @@ def state_view(game: Game, p: Player, now: float, clock) -> dict:
         "stud": {
             "listings": [listing_view(game, l, p.pid, now) for l in game.stud.owner_listings(p.pid)],
             "income": int(round(p.stud_income)),
-            "prices": [ci(x) for x in f.fp.stud_prices],
         },
     }
 

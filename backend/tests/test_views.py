@@ -12,7 +12,8 @@ from pathlib import Path
 
 import pytest
 
-from cowecon.farm import make_genotype
+from cowecon import DEFAULT
+from cowecon.farm import make_genotype, stud_fee
 from cowecon.market import MarketEvent
 from cowecon.params import HEADLINES
 from server.breeds import ALL, BREEDS, breed_of_genes
@@ -93,3 +94,17 @@ def test_station_words_stable():
     assert station_words("seed", 1) == station_words("seed", 1)
     names = {tuple(station_words("seed", lid)) for lid in range(1, 40)}
     assert len(names) > 30 and all(all(0 <= i < 12 for i in w) for w in names)
+
+
+def test_stud_fee_examples_from_d26():
+    """D26 的例子（長到最壯時；公牛的最佳體重：乳牛 275、耕牛 495、肉牛 880 公斤）。"""
+    fp = DEFAULT.farm
+    assert stud_fee(fp, 0, 0, None, 0.0) == pytest.approx((300, 275.0, True))  # 一般乳牛
+    assert stud_fee(fp, 1, 0, None, 0.0)[0] == 540  # 一般耕牛（公營種牛站，ceo 2026-10-02）
+    assert stud_fee(fp, 2, 0, None, 0.0)[0] == 970  # 一般肉牛
+    assert stud_fee(fp, 1, 2, None, 0.0)[0] == 3270  # 稀有耕牛
+    assert stud_fee(fp, 2, 3, None, 0.0)[0] == 14520  # 傳說肉牛
+    adult = 1_000_000.0
+    price, kg, at_max = stud_fee(fp, 1, 0, adult, adult)  # 剛成年的耕牛：30 公斤 × 1.1 = 33 公斤
+    assert (price, round(kg, 2), at_max) == (40, 33.0, False)
+    assert stud_fee(fp, 1, 0, adult, adult + fp.peak_age_h[1] * 3600)[2]  # 長到最佳體重就不再漲
