@@ -3,7 +3,7 @@ import { frame, btn, cowSVG, icon } from '../kit.js';
 import { t } from '../i18n.js';
 
 // 遊戲名先用暫名「牛市牧場」（D21），沿用 strings.dart 的 appTitle，正式名稱定案後只換這一個字串
-export const GAME_NAME = t('appTitle');
+export const gameName = () => t('appTitle');
 const VERSION = '1.0.0';
 
 // 草地上的草叢和小花（R1-A 場景的畫法）
@@ -21,7 +21,7 @@ function splash(ctx, inner) {
   const cows = `<div class="splash-cows">${cowSVG({ breed: 'holstein' }, { w: 150, h: 150, pose: 'front' })}${cowSVG({ breed: 'yellow', sex: 'bull', age: 'calf', seed: 33 }, { w: 96, h: 96, pose: 'front', facing: 'right' })}</div>`;
   const body = `<div class="splash">
     <div class="splash-sun"></div>
-    <div class="splash-title"><span class="t">${GAME_NAME}</span></div>
+    <div class="splash-title"><span class="t">${gameName()}</span></div>
     ${cows}
     <div class="splash-ground"></div>
     ${deco(dev)}

@@ -5,7 +5,7 @@ import { detailPage, GRADE_BG } from './s04.js';
 import { t, cowName } from '../i18n.js';
 
 const cow = cowById(3);
-const baseBtns = `<div class="btn-row"><button class="btn pink"><span>${t('pickForBreed')}</span></button><button class="btn danger"><span>${t('ship')}</span></button></div>`;
+const baseBtns = () => `<div class="btn-row"><button class="btn pink"><span>${t('pickForBreed')}</span></button><button class="btn danger"><span>${t('ship')}</span></button></div>`;
 const PRICE = 11.2; // 牛肉市價（幣／公斤）
 const GM = { A: 1.25, B: 1.0, C: 0.75 };
 const income = (g) => Math.round(cow.kg * PRICE * GM[g]);
@@ -21,7 +21,7 @@ function confirmBody({ loading = false, blocker = '', failed = false } = {}) {
     ${blocker ? `<p class="warn-text note-line" style="margin-top:10px">${icon('warn', 18)}<span>${blocker}</span></p>` : `<p class="hint" style="margin-top:8px">${t('s07.note')}</p>`}`;
 }
 const dlg = (ctx, body, { okDisabled = false, offline = false } = {}) => detailPage(ctx, cow, {
-  buttons: baseBtns, offline,
+  buttons: baseBtns(), offline,
   overlays: dialog({ title: t('shipConfirmTitle'), body, buttons: `${btn(t('cancel'))}${btn(t('s07.confirm'), { kind: 'danger', disabled: okDisabled })}` }),
 });
 

@@ -2,13 +2,13 @@
 import { frame, btn, icon, cowSVG, cowFace, toast, fmt, dialog, badge, sheet } from '../kit.js';
 import { RANCH } from '../fixtures.js';
 import { ranchPage } from './s03.js';
-import { GAME_NAME } from './s01.js';
+import { gameName } from './s01.js';
 import { t, tb, dur, LANG } from '../i18n.js';
 
 const page = (ctx, title, inner, o = {}) => frame(ctx.dev, { tab: null, hud: false, content: `<div class="stack">
   <div class="page-head">${o.noBack ? '' : `<button class="icon-btn" aria-label="${t('back')}">${icon('back', 22)}</button>`}<div class="grow"><h1>${title}</h1></div></div>${inner}</div>`, overlays: o.overlays || '' });
 const row = (ic, label, right = icon('chevron', 18), cls = '') => `<button class="set-row ${cls}"><span class="set-ic">${icon(ic, 22)}</span><span class="set-label">${label}</span><span class="set-right">${right}</span></button>`;
-const ext = `<span class="ext">${t('s13.web')} ${icon('chevron', 16)}</span>`;
+const ext = () => `<span class="ext">${t('s13.web')} ${icon('chevron', 16)}</span>`;
 
 // ---------- 登入按鈕（D22；企劃書 4.11） ----------
 // 照官方樣式：Apple 黑底白字、Google 白底細外框，兩顆一樣大、Apple 在上，不套我們的按鈕樣式。
@@ -18,9 +18,9 @@ const SSO_NOTE = '按鈕左邊的虛線方塊是標誌的位置；實作時用 A
 const SSO_NAME = { apple: 'Apple', google: 'Google' };
 const sso = (k) => `<button class="sso ${k}"><span class="sso-mark" aria-hidden="true"></span><span class="sso-text">${t('s13.ssoSignIn', { name: SSO_NAME[k] })}</span></button>`;
 const ssoGroup = (kinds) => `<div class="sso-group">${kinds.map(sso).join('')}</div>`;
-const PRIVACY = `<p class="hint sso-privacy">${t('s13.privacy')}</p>`;
+const privacy = () => `<p class="hint sso-privacy">${t('s13.privacy')}</p>`;
 const busyCard = (text) => `<div class="card sso-busy"><span class="spinner"></span><span>${text}</span></div>`;
-const ST_NO = badge('listed', t('s13.notBacked')), ST_OK = badge('working', t('s13.backed'));
+const stNo = () => badge('listed', t('s13.notBacked')), stOk = () => badge('working', t('s13.backed'));
 // 牧場卡：頭像、名字、#編號、等級，右邊可以放備份狀態
 const ranchCard = (r, right = '') => `<article class="card me-card"><span class="avatar sm">${cowFace({ breed: 'holstein' }, 40)}</span><div class="grow"><b>${r.name}</b><span class="hint">${r.tag}${t('g.sep')}${t('level', { lv: r.level })}</span></div>${right}</article>`;
 // S13-08、S13-09 的情境：玩家在新手機先按了「開新牧場」（青草小丘農莊 #5678），後來才到設定登入、想換回舊牧場（晨光河畔牧場 #1234）
@@ -30,9 +30,9 @@ function settings(ctx, { backed = false, overlays = '' } = {}) {
   return page(ctx, t('s13.title'), `
     ${ranchCard(RANCH)}
     <article class="card set-group">${row('sound', t('s13.sound'), `<span class="toggle on"><i></i></span>`)}${row('globe', t('s13.language'), `<span class="hint" data-keep>${langName()}</span>${icon('chevron', 18)}`, 'has-status')}${row('updown', t('s13.updown'), `<span class="ud-sample"><span class="up">▲${t('s13.up')}</span><span class="down">▼${t('s13.down')}</span></span>${icon('chevron', 18)}`, 'has-status')}</article>
-    <article class="card set-group acct">${row('backup', `${t('s13.backup.title')}<small>${t('s13.backup.sub')}</small>`, `${backed ? ST_OK : ST_NO}${icon('chevron', 18)}`, 'has-status')}${row('trash', t('s13.delete'), icon('chevron', 18), 'danger')}</article>
-    <article class="card set-group">${row('shield', t('s13.privacyPolicy'), ext)}${row('info', t('s13.version'), '<span class="hint">1.0.0</span>')}</article>
-    <p class="hint" style="text-align:center">${t('s13.footer', { game: GAME_NAME })}</p>`, { overlays });
+    <article class="card set-group acct">${row('backup', `${t('s13.backup.title')}<small>${t('s13.backup.sub')}</small>`, `${backed ? stOk() : stNo()}${icon('chevron', 18)}`, 'has-status')}${row('trash', t('s13.delete'), icon('chevron', 18), 'danger')}</article>
+    <article class="card set-group">${row('shield', t('s13.privacyPolicy'), ext())}${row('info', t('s13.version'), '<span class="hint">1.0.0</span>')}</article>
+    <p class="hint" style="text-align:center">${t('s13.footer', { game: gameName() })}</p>`, { overlays });
 }
 
 // 備份牧場。bound：已經綁定的帳號（'apple'、'google'）；android：Android 版（沒有 Apple 登入；綁過 Apple 才顯示 Apple 那一列）
@@ -43,9 +43,9 @@ function backupPage(ctx, { bound = [], android = false, busy = false, ranch = RA
     : `<p class="bk-lead">${t('s13.backup.lead')}</p><p class="warn-text note-line">${icon('warn', 18)}<span>${t('s13.backup.warn')}</span></p>`;
   const rows = bound.length ? `<article class="card bind-list">${bound.map((k) => `<div class="bind-row"><span class="set-ic">${icon('ok', 22)}</span><span class="set-label">${t('s13.backup.account', { name: SSO_NAME[k] })}<small>${t('s13.backup.boundOn', { date: t('date.ymd', { y: 2026, m: '10', d: '01' }) })}</small></span>${btn(t('s13.unbind'), { small: true })}</div>`).join('')}</article>` : '';
   const more = !android && bound.length === 1 && bound[0] === 'apple' ? `<p class="hint">${t('s13.backup.addGoogle')}</p>` : '';
-  const area = busy ? `<div class="sso-area">${busyCard(t('s13.binding'))}</div>` : todo.length ? `<div class="sso-area">${ssoGroup(todo)}${PRIVACY}</div>` : '';
+  const area = busy ? `<div class="sso-area">${busyCard(t('s13.binding'))}</div>` : todo.length ? `<div class="sso-area">${ssoGroup(todo)}${privacy()}</div>` : '';
   const before = !bound.length && !busy ? `<p class="rule-line shop-rule">${icon('info', 18)}<span>${t('s13.backup.before')}</span></p>` : '';
-  return page(ctx, t('s13.backup.title'), `${ranchCard(ranch, bound.length ? ST_OK : ST_NO)}<div class="bk-body">${intro}${rows}${more}${area}${before}</div>`, { overlays });
+  return page(ctx, t('s13.backup.title'), `${ranchCard(ranch, bound.length ? stOk() : stNo())}<div class="bk-body">${intro}${rows}${more}${area}${before}</div>`, { overlays });
 }
 function deletePage(ctx, typed = '') {
   const word = t('s13.del.word'), ok = typed === word;
@@ -67,15 +67,17 @@ const p13 = (id, name, crop, render, x = {}) => S13.push({ id, name, type: 'part
 f13('S13-01', '設定主頁（還沒備份）', (ctx) => settings(ctx));
 f13('S13-02', '備份牧場：還沒綁定（iPhone）', (ctx) => backupPage(ctx), { note: SSO_NOTE });
 f13('S13-03', '刪除牧場：說明後果、還沒輸入', (ctx) => deletePage(ctx));
-f13('S13-04', '刪除完成', (ctx) => frame(ctx.dev, { tab: null, hud: false, body: `<div class="splash"><div class="splash-title"><span class="t">${GAME_NAME}</span></div>
+f13('S13-04', '刪除完成', (ctx) => frame(ctx.dev, { tab: null, hud: false, body: `<div class="splash"><div class="splash-title"><span class="t">${gameName()}</span></div>
   <div class="splash-box" style="top:calc(var(--H) * 0.2 + 100px)"><article class="card" style="text-align:center"><div style="line-height:0">${cowSVG({ breed: 'holstein' }, { w: 120, h: 120 })}</div><b style="font-size:18px">${t('s13.deleted')}</b><p class="hint" style="margin-top:4px">${t('s13.thanks')}</p><div style="margin-top:12px">${btn(t('s14.newRanch'), { kind: 'primary', block: true })}</div></article></div></div>` }));
 p13('S13-05', '刪除失敗', '#crop', (ctx) => toastSheet(ctx, [['err', t('s13.del.failed')]]));
 p13('S13-06', '刪除牧場：輸入「刪除」後按鈕才能按', '#crop', (ctx) => { const c = `<button class="btn block"><span>${t('cancel')}</span></button>`; return deletePage(ctx, t('s13.del.word')).replace('<label class="field-label">', '<div id="crop"><label class="field-label">').replace(c, `${c}</div>`); });
 f13('S13-07', '備份牧場：已經綁定（iPhone，只綁了 Apple）', (ctx) => backupPage(ctx, { bound: ['apple'] }), { note: SSO_NOTE });
-const otherRanch = `<div class="other-ranch"><span class="avatar sm">${cowFace({ breed: 'holstein' }, 40)}</span><div class="grow"><b>${RANCH.name} ${RANCH.tag}</b><span class="hint">${t('level', { lv: RANCH.level })}</span></div></div>`;
+// 頭像在載入時就畫好（跟原本一樣先佔一個 SVG 編號），字在用的時候才查字串表
+const otherFace = cowFace({ breed: 'holstein' }, 40);
+const otherRanch = () => `<div class="other-ranch"><span class="avatar sm">${otherFace}</span><div class="grow"><b>${RANCH.name} ${RANCH.tag}</b><span class="hint">${t('level', { lv: RANCH.level })}</span></div></div>`;
 f13('S13-08', '這個帳號已經備份了另一個牧場', (ctx) => backupPage(ctx, { ranch: NEW_RANCH, overlays: dialog({
   title: t('s13.other.title'),
-  body: `${otherRanch}<p>${t('s13.other.body')}</p><div class="dlg-stack">${btn(t('s13.other.switch'), { kind: 'primary', block: true })}${btn(t('cancel'), { block: true })}</div>`,
+  body: `${otherRanch()}<p>${t('s13.other.body')}</p><div class="dlg-stack">${btn(t('s13.other.switch'), { kind: 'primary', block: true })}${btn(t('cancel'), { block: true })}</div>`,
 }) }), { note: SSO_NOTE });
 f13('S13-09', '換回前再確認：現在的牧場會刪除', (ctx) => backupPage(ctx, { ranch: NEW_RANCH, overlays: dialog({
   title: t('s13.switch.title'),
@@ -108,7 +110,7 @@ p13('S13-18', '漲跌顏色：漲紅跌綠（繁中預設）或綠漲紅跌（�
 
 // ---------------- S14 找回牧場（新手機或重裝後，用綁定的帳號登入） ----------------
 function firstOpen(ctx) {
-  return frame(ctx.dev, { tab: null, hud: false, body: `<div class="splash"><div class="splash-sun"></div><div class="splash-title"><span class="t">${GAME_NAME}</span></div>
+  return frame(ctx.dev, { tab: null, hud: false, body: `<div class="splash"><div class="splash-sun"></div><div class="splash-title"><span class="t">${gameName()}</span></div>
     <div class="splash-cows">${cowSVG({ breed: 'holstein' }, { w: 150, h: 150 })}${cowSVG({ breed: 'yellow', sex: 'bull', age: 'calf', seed: 33 }, { w: 96, h: 96, facing: 'right' })}</div><div class="splash-ground"></div>
     <div class="splash-box">${btn(t('s14.newRanch'), { kind: 'primary', block: true })}<div style="height:12px"></div>${btn(t('s14.recover'), { block: true, ic: 'transfer' })}</div></div>` });
 }
@@ -117,7 +119,7 @@ function recoverPage(ctx, { android = false, st = '', overlays = '' } = {}) {
   const kinds = android ? ['google'] : ['apple', 'google'];
   const area = st === 'busy' ? `<div class="sso-area">${busyCard(t('s14.signingIn'))}</div>`
     : st === 'none' ? `<article class="card no-ranch"><div class="empty"><div class="t1">${t('s14.noneTitle')}</div><div class="t2">${tb('s14.noneBody')}</div></div><div class="btn-row">${btn(t('s14.otherAccount'))}${btn(t('s14.newRanch'), { kind: 'primary' })}</div></article>`
-      : `<div class="sso-area">${ssoGroup(kinds)}${android ? `<p class="hint">${t('s14.androidHint')}</p>` : ''}${PRIVACY}</div>`;
+      : `<div class="sso-area">${ssoGroup(kinds)}${android ? `<p class="hint">${t('s14.androidHint')}</p>` : ''}${privacy()}</div>`;
   return page(ctx, t('s14.recover'), `
     <article class="card rec-hero"><div style="line-height:0">${cowSVG({ breed: 'holstein', pose: 'side' }, { w: 150, h: 110, pose: 'side' })}</div><p class="rec-lead">${t('s14.lead')}</p><p class="hint">${t('s14.leadHint')}</p></article>
     ${area}`, { overlays });

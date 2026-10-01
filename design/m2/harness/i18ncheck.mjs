@@ -71,11 +71,17 @@ for (const f of readdirSync(I18N).filter((x) => x.endsWith('.json') && x !== 'zh
   const empty = Object.keys(d).filter((k) => String(d[k]).trim() === '' && String(zh[k] || '').trim() !== '');
   const curly = Object.keys(d).filter((k) => /[‘’“”]/.test(d[k])); // 用詞表：一律直引號
   console.log(`\n${lang}：${Object.keys(d).length} 個 key，缺 ${missing.length}（畫面用繁中）、多 ${extra.length}、佔位符不一樣 ${badPh.length}、空字串 ${empty.length}、彎引號 ${curly.length}`);
-  if (missing.length) console.log(`  缺：${missing.join('、')}`);
+  if (missing.length) console.log(`  缺：${missing.slice(0, 80).join('、')}${missing.length > 80 ? ` …共 ${missing.length} 個` : ''}`);
   if (extra.length) console.log(`  多：${extra.join('、')}`);
   for (const k of badPh) console.log(`  佔位符 ${k}：繁中 {${ph(zh[k])}}，${lang} {${ph(d[k])}}`);
   if (empty.length) console.log(`  空字串：${empty.join('、')}`);
   if (curly.length) console.log(`  彎引號：${curly.join('、')}`);
+  if (lang === 'th') {
+    // 牛名多半是外來字：Intl.Segmenter（跟手機的換行用同一套 ICU）會把不認識的字切成幾段，換行時可能從中間斷開
+    const sg = new Intl.Segmenter('th', { granularity: 'word' });
+    const risky = Object.keys(d).filter((k) => /^breed\.\w+\.name$/.test(k)).map((k) => [k, [...sg.segment(d[k])].filter((s) => s.segment.trim()).map((s) => s.segment)]).filter(([, p]) => p.length > 1);
+    if (risky.length) console.log(`  牛名會被切成幾段（換行時可能從中間斷開，量測時看有沒有換行）：${risky.map(([k, p]) => `${k.split('.')[1]} ${p.join('|')}`).join('、')}`);
+  }
 }
 
 if (errs.length) { console.log(`\n錯誤 ${errs.length} 個：`); errs.forEach((e) => console.log('  !!', e)); process.exit(1); }

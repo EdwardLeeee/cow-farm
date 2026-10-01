@@ -108,6 +108,20 @@
 - 圖鑑全收集：只在圖鑑榜上顯示完成，不給遊戲幣和裝飾（ceo 2026-10-01）。
 - 備份牧場的假資料：綁定日期 2026/10/01；另一個牧場用「青草小丘農莊 #5678」（詞庫裡的詞）；畫面不顯示 email 和姓名。
 
+## 字串表與語言（ceo 2026-10-01 交辦；D25）
+
+- 畫面上玩家看得到的字都在 `i18n/zh-Hant.json`：一層「key → 文字」。英文、泰文是同一套 key 的 `i18n/en.json`、`i18n/th.json`（ceo 依 `docs/i18n/glossary.md` 出）。
+- key 的取法：
+  - `app/lib/l10n/strings.dart` 已經有的字沿用它的 key，佔位符名稱也跟 strings.dart 的參數一樣（例：`level` 是 `Lv {lv}`、`days` 是 `{d} 天`）。設計稿的字跟 strings.dart 不一樣時，以設計稿為準（PR 裡列出這幾個）。
+  - 新的 key 用「畫面.用途」，例：`s02.suggest`、`s13.backup.title`；幾個畫面共用的用 `g.`；錯誤碼的文案是 `err.<錯誤碼>`（`scope.md` 第 7 節）。
+  - 24 種牛：`breed.<品種>.name`、`breed.<品種>.intro`，特徵名 `trait.A`–`trait.C`，跟 `src/cow/breeds.js` 一樣（`harness/i18ncheck.mjs` 會檢查）。
+  - 新聞標題：`news.<商品>_<漲跌>.<序號>`，跟 `backend/cowecon/params.py` 的 `HEADLINES` 一樣（也會檢查）。
+- 文字裡不放 HTML：要換行的地方寫 `\n`；數字加粗之類的，用佔位符把整段塞進去（例：`期望收入 約 {v} 幣`）。
+- 不是 app 的字、不翻譯：狀態名稱、橘色註解、動畫分鏡的說明、「手機一個畫面到這裡」、「系統鍵盤（不畫）」、錯誤碼表的錯誤碼；頁面上標 `data-note`。語言選單裡的「繁體中文／English／ไทย」每種語言都用自己的文字寫，標 `data-keep`。
+- 玩家取的牧場名、電腦牧場的名字是資料，不在字串表裡。
+- 看別的語言：網址加 `&lang=en` 或 `&lang=th`。缺的 key 用繁中顯示，記在 `window.__i18n.missing()`，量測報告會列出來。泰文的字型是 Noto Sans Thai（接在中文字型後面：英文字母、數字跟繁中一樣）。
+- 數字縮寫：繁中用「萬」「億」；英文、泰文用 K、M（`Intl.NumberFormat` 的 compact）。
+
 ## 重新出圖
 
 ```bash
@@ -118,6 +132,10 @@ free -m                              # available 要 2000 MB 以上
 systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 node harness/capture.mjs all 430,390,360,320
 systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 node harness/anim.mjs
 python3 harness/compose.py && python3 harness/compose_anim.py && python3 harness/summary.py
+node harness/i18ncheck.mjs            # 字串表：牛名、新聞標題、程式用到的 key、英文泰文缺哪些
+# 英文、泰文只量測（不送核准，D25）：存到 raw/en/、raw/th/，報告是 measure/summary-en.md、summary-th.md
+systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 node harness/capture.mjs all 430,390,360,320 en
+python3 harness/summary.py en
 ```
 
 - `raw/`（DPR 3 原始截圖、量測 JSON、動畫影格）不進 git，用上面的指令重產。

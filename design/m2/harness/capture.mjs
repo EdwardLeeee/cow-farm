@@ -1,19 +1,38 @@
 // M2 出圖與量測：每個狀態 × 每種寬度，存 raw/<ID>__<寬>.png 與 .json。
 // 430、390 用 DPR 3（送核准）；360、320 用 DPR 1（只量測）。局部狀態只截 crop 那一塊（外加 8px 邊）。
-// 用法：node harness/capture.mjs [ID 前綴或逗號清單] [寬度清單，預設 430,390,360,320]
+// 用法：node harness/capture.mjs [ID 前綴或逗號清單] [寬度清單，預設 430,390,360,320] [語言：zh-Hant（預設）｜en｜th]
+// 英文、泰文存到 raw/<語言>/（只量測，不送核准，D25）；缺翻譯的 key 用繁中顯示，記在 .json 的 missing。
+// 泰文另外檢查換行（用詞表）：會換行的泰文用 Intl.Segmenter 切詞，記下實際換行的位置（thaiBreaks）。
+//   換在詞中間（midWord）算錯；把用詞表裡的詞拆到兩行（splitTerms）要人看：複合詞（例 ตลาด|พ่อพันธุ์）可以，外來字（例 ออฟ|ไลน์）不行。
 // 記憶體：跑之前先看 free -m（available ≥ 2000 MB），用 systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 包起來。
 import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
+import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { startServer } from './server.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const RAW = join(ROOT, 'raw');
+const LANG = process.argv[4] || 'zh-Hant';
+const RAW = LANG === 'zh-Hant' ? join(ROOT, 'raw') : join(ROOT, 'raw', LANG);
+const LOCALE = { 'zh-Hant': 'zh-TW', en: 'en-US', th: 'th-TH' }[LANG] || 'zh-TW';
+const LQ = LANG === 'zh-Hant' ? '' : `&lang=${LANG}`;
+// 換行時要注意不能拆開的泰文詞：用詞表（docs/i18n/glossary.md）表格裡的詞，加上 th.json 的 24 種牛名（多半是外來字）
+function glossaryTerms() {
+  const p = join(ROOT, '../../docs/i18n/glossary.md'), th = join(ROOT, 'i18n/th.json');
+  const out = new Set();
+  if (existsSync(th)) for (const [k, v] of Object.entries(JSON.parse(readFileSync(th, 'utf8')))) if (/^breed\.\w+\.name$/.test(k) && /[\u0E00-\u0E7F]/.test(v)) out.add(v);
+  if (!existsSync(p)) return [...out];
+  for (const line of readFileSync(p, 'utf8').split('\n')) {
+    if (!line.startsWith('|')) continue;
+    for (const cell of line.split('|')) for (const w of cell.split(/[、，,／/（）()\s]+/)) if (/^[\u0E00-\u0E7F]{2,}$/.test(w)) out.add(w);
+  }
+  return [...out].sort((a, b) => b.length - a.length);
+}
 const DEV = { 430: [430, 932, 3], 390: [390, 844, 3], 360: [360, 800, 1], 320: [320, 568, 1] };
 
 // ---- 在頁面裡量 ----
-function measure() {
+function measure(terms = []) {
   const phone = document.querySelector('.phone');
   const inSim = (el) => !!el.closest('.sim-statusbar, .sim-home-indicator, .fold-line');
   const vis = (el) => {
@@ -128,9 +147,41 @@ function measure() {
     shown.forEach((t) => { if (t.el.closest('.scene')) return; if (t.vr.bottom - t.vr.top < 1) return; if (t.vr.top < safeTop - 0.5 || t.vr.bottom > H - safeBottom + 0.5) unsafe.push(t.text); });
     [...phone.querySelectorAll('button')].filter((b) => vis(b) && !outOfView(b, b.getBoundingClientRect())).forEach((b) => { const r = visRect(b, b.getBoundingClientRect()); if (r.bottom - r.top < 1) return; if (r.top < safeTop - 0.5 || r.bottom > H - safeBottom + 0.5) unsafe.push('按鈕:' + b.textContent.trim().replace(/\s+/g, ' ').slice(0, 12)); });
   }
+  // 泰文換行：每個換了行、含泰文的字，找出實際換行的位置（這個字比前一個字低半行以上），跟 Intl.Segmenter 的詞界比
+  const thaiBreaks = [];
+  if (document.documentElement.lang === 'th' && typeof Intl.Segmenter === 'function') {
+    const sg = new Intl.Segmenter('th', { granularity: 'word' }), seen = new Set();
+    shown.forEach((t) => {
+      if (t.lines < 2 || t.el.closest('[data-note], [data-keep]')) return;
+      const tw = document.createTreeWalker(t.el, NodeFilter.SHOW_TEXT);
+      let full = '';
+      const tops = [];
+      for (let n = tw.nextNode(); n; n = tw.nextNode()) {
+        for (let i = 0; i < n.length; i++) {
+          const r = document.createRange(); r.setStart(n, i); r.setEnd(n, i + 1);
+          const rc = [...r.getClientRects()].find((x) => x.width > 0);
+          tops.push(rc ? rc.top + rc.height / 2 : null); full += n.data[i];
+        }
+      }
+      if (!/[\u0E00-\u0E7F]/.test(full) || seen.has(full)) return;
+      seen.add(full);
+      const breaks = []; let prev = null;
+      tops.forEach((y, i) => { if (y == null) return; if (prev != null && y > prev + t.fontSize * 0.6) breaks.push(i); prev = y; });
+      const bounds = new Set([...sg.segment(full)].map((s) => s.index));
+      const midWord = breaks.filter((b) => !bounds.has(b) && /[\u0E00-\u0E7FA-Za-z]/.test(full[b - 1] || '') && /[\u0E00-\u0E7FA-Za-z]/.test(full[b] || ''));
+      const split = [];
+      terms.forEach((w) => { for (let p = full.indexOf(w); p >= 0; p = full.indexOf(w, p + 1)) if (breaks.some((b) => b > p && b < p + w.length)) split.push(w); });
+      const view = [...sg.segment(full)].map((s) => s.segment).join('|');
+      const breaksAt = breaks.slice().reverse().reduce((s, b) => s.slice(0, b) + '⏎' + s.slice(b), full); // ⏎ 是實際換行的地方
+      thaiBreaks.push({ text: full.slice(0, 80), lines: t.lines, breaksAt: breaksAt.slice(0, 120), words: view.slice(0, 160), midWord: midWord.length, splitTerms: [...new Set(split)] });
+    });
+  }
   return {
     lang: document.documentElement.lang,
+    i18nMissing: window.__i18n ? window.__i18n.missing() : [],
+    thaiBreaks,
     fonts: { tc700: document.fonts.check('700 13px "Noto Sans CJK TC"'), tc900: document.fonts.check('900 13px "Noto Sans CJK TC"') },
+    fontUi: getComputedStyle(document.documentElement).getPropertyValue('--font-ui').trim(),
     viewport: { w: innerWidth, h: innerHeight, dpr: devicePixelRatio },
     horizontalScroll: document.scrollingElement.scrollWidth > innerWidth + 0.5,
     minFontSize: shown.length ? Math.min(...shown.map((t) => t.fontSize)) : null,
@@ -142,6 +193,7 @@ function measure() {
 
 async function run(filter, widths) {
   await mkdir(RAW, { recursive: true });
+  const terms = LANG === 'th' ? glossaryTerms() : [];
   const srv = await startServer(ROOT);
   const browser = await chromium.launch();
   const summary = [];
@@ -152,8 +204,8 @@ async function run(filter, widths) {
     const all = await lp.evaluate(() => window.__states);
     await lp.context().close();
     const want = !filter ? all : all.filter((s) => filter.split(',').some((f) => s.id === f || s.id.startsWith(f)));
-    // 大張的表（例如 S09-05 24 種全圖）：不是手機畫面，只出一張 DPR 2
-    for (const s of want.filter((x) => x.type === 'sheet')) {
+    // 大張的表（例如 S09-05 24 種全圖）：不是手機畫面，只出一張 DPR 2（給使用者核准外型用，只有繁中）
+    for (const s of want.filter((x) => x.type === 'sheet' && LANG === 'zh-Hant')) {
       const ctx = await browser.newContext({ viewport: { width: s.viewport.w, height: s.viewport.h }, deviceScaleFactor: 2, locale: 'zh-TW', colorScheme: 'light', reducedMotion: 'reduce' });
       const page = await ctx.newPage();
       const errors = [];
@@ -170,7 +222,7 @@ async function run(filter, widths) {
     }
     for (const w of widths) {
       const [vw, vh, dpr] = DEV[w];
-      const ctx = await browser.newContext({ viewport: { width: vw, height: vh }, deviceScaleFactor: dpr, isMobile: true, hasTouch: true, locale: 'zh-TW', colorScheme: 'light', reducedMotion: 'reduce' });
+      const ctx = await browser.newContext({ viewport: { width: vw, height: vh }, deviceScaleFactor: dpr, isMobile: true, hasTouch: true, locale: LOCALE, colorScheme: 'light', reducedMotion: 'reduce' });
       const page = await ctx.newPage();
       page.setDefaultTimeout(20000);
       for (const s of want.filter((x) => x.type !== 'sheet')) {
@@ -180,7 +232,7 @@ async function run(filter, widths) {
         const onCon = (m) => { if (m.type() === 'error') errors.push(m.text()); };
         page.on('pageerror', onErr); page.on('console', onCon);
         await page.setViewportSize({ width: vw, height: vh });
-        await page.goto(`${srv.base}/src/index.html?id=${encodeURIComponent(s.id)}&w=${w}`, { waitUntil: 'load' });
+        await page.goto(`${srv.base}/src/index.html?id=${encodeURIComponent(s.id)}&w=${w}${LQ}`, { waitUntil: 'load' });
         await page.waitForFunction(() => window.__ready === true, null, { timeout: 20000 }).catch(() => errors.push('等不到 __ready'));
         const size = await page.evaluate(() => window.__size);
         if (s.tall && size) await page.setViewportSize({ width: vw, height: size.h });
@@ -200,14 +252,15 @@ async function run(filter, widths) {
         } else {
           await page.screenshot({ path: `${base}.png`, fullPage: !!s.tall });
         }
-        const m = await page.evaluate(measure).catch((e) => ({ error: String(e) }));
-        const meta = { id: s.id, name: s.name, note: s.note || '', screen: s.screen, screenName: s.screenName, type: s.type, tall: !!s.tall, width: w, errors, ...m };
+        const m = await page.evaluate(measure, terms).catch((e) => ({ error: String(e) }));
+        const meta = { id: s.id, name: s.name, note: s.note || '', screen: s.screen, screenName: s.screenName, type: s.type, tall: !!s.tall, width: w, uiLang: LANG, errors, ...m };
         await writeFile(`${base}.json`, JSON.stringify(meta, null, 1));
         page.off('pageerror', onErr); page.off('console', onCon);
         const issues = ['clipped', 'outside', 'wrapped', 'overlaps', 'smallTargets', 'unsafe'].map((k) => (meta[k] || []).length);
         summary.push({ id: s.id, w, min: meta.minFontSize, issues, hscroll: meta.horizontalScroll, errors: errors.length });
         const flag = errors.length || meta.horizontalScroll || issues.some((n) => n);
-        console.log(`${flag ? '!!' : 'ok'} ${s.id} ${w}  字 ${meta.minFontSize}px${(meta.belowFold || []).length ? `  要捲${meta.belowFold.length}` : ''}  截${issues[0]} 出框${issues[1]} 換行${issues[2]} 疊${issues[3]} 小鈕${issues[4]} 安全區${issues[5]}${meta.horizontalScroll ? ' 橫捲' : ''}${errors.length ? ' 錯誤:' + errors.join('|') : ''}`);
+        const thBad = (meta.thaiBreaks || []).filter((x) => x.midWord).length, thSplit = (meta.thaiBreaks || []).filter((x) => x.splitTerms.length).length;
+        console.log(`${flag || thBad ? '!!' : 'ok'} ${s.id} ${w}${LANG === 'zh-Hant' ? '' : ' ' + LANG}  字 ${meta.minFontSize}px${(meta.i18nMissing || []).length ? `  缺字串${meta.i18nMissing.length}` : ''}${thBad ? `  泰文斷在詞中間${thBad}` : ''}${thSplit ? `  拆開用詞表的詞${thSplit}（要人看）` : ''}${(meta.belowFold || []).length ? `  要捲${meta.belowFold.length}` : ''}  截${issues[0]} 出框${issues[1]} 換行${issues[2]} 疊${issues[3]} 小鈕${issues[4]} 安全區${issues[5]}${meta.horizontalScroll ? ' 橫捲' : ''}${errors.length ? ' 錯誤:' + errors.join('|') : ''}`);
        } catch (e) {
         console.log(`!! ${s.id} ${w}  出圖失敗：${String(e).split('\n')[0]}`);
         summary.push({ id: s.id, w, failed: String(e).split('\n')[0] });
