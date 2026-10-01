@@ -94,11 +94,11 @@ export const MARKET = {
 };
 // 比平常高或低幾 %（D24：平常＝基本價；四捨五入到整數）
 export const vsBase = (m) => Math.round((m.price / m.base - 1) * 100);
-// 新聞：c 是商品（milk、beef、rice、all），tk 是標題的 key；when 是多久以前（ago.*）
+// 新聞：c 是商品（milk、beef、rice、all），tk 是標題的 key（backend/cowecon/params.py 的 HEADLINES）；when 是多久以前（ago.*）
 export const NEWS = [
-  { c: 'milk', dir: 'up', tk: 'mock.news.milk1', when: { min: 12 } },
-  { c: 'beef', upcoming: true, dir: 'up', tk: 'mock.news.beef1', when: { h: 1 } },
-  { c: 'all', dir: 'down', tk: 'mock.news.all1', when: { h: 3 } },
+  { c: 'milk', dir: 'up', tk: 'news.milk_up.1', when: { min: 12 } },
+  { c: 'beef', upcoming: true, dir: 'up', tk: 'news.beef_up.3', when: { h: 1 } },
+  { c: 'all', dir: 'down', tk: 'news.all_down.2', when: { h: 3 } },
   { c: 'rice', dir: 'up', tk: 'news.rice_up.1', when: { h: 5 } },
 ];
 // 新聞的商品標籤（【牛奶】【全部】，沿用 strings.dart 的 commodityTag、bothTag）、標題

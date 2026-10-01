@@ -97,7 +97,7 @@ full('S06-10', '賣出：試算完成（往下捲到賣出）', (ctx) => marketP
 full('S06-11', '賣出：一次賣太多', (ctx) => marketPage(ctx, { key: 'beef', sell: 'big', sellData: { qty: 934, avg: 10.4, total: 9714, lots: 2 }, scrollTo: '.sell-card' }));
 part('S06-12', '賣出：試算失敗', '.sell-card', (ctx) => marketPage(ctx, { sell: 'failed', scrollTo: '.sell-card' }));
 full('S06-13', '賣出成功', (ctx) => marketPage(ctx, { hud: { coins: RANCH.coins + 1924 }, m: { stock: 16 }, sellData: { qty: 16, avg: 11.8, total: 189, lots: 1 }, scrollTo: '.sell-card', overlays: toast('ok', t('sold', { qty: 130, unit: t('unitMilk'), avg: 14.8, total: fmt(1924) })) }));
-part('S06-14', '新聞：沒有、漲、跌、預告、大新聞、全部商品', '#crop', (ctx) => frame(ctx.dev, { tab: 'market', content: `<div id="crop" class="stack">${newsCard([])}${newsCard([{ c: 'beef', big: true, dir: 'up', tk: 'mock.news.beefBig', when: {} }, ...NEWS])}</div>` }));
+part('S06-14', '新聞：沒有、漲、跌、預告、大新聞、全部商品', '#crop', (ctx) => frame(ctx.dev, { tab: 'market', content: `<div id="crop" class="stack">${newsCard([])}${newsCard([{ c: 'beef', big: true, dir: 'up', tk: 'news.beef_up.1', when: {} }, ...NEWS])}</div>` }));
 part('S06-15', '斷線：滑桿與按鈕停用', '.sell-card', (ctx) => marketPage(ctx, { sell: 'offline', offline: true, scrollTo: '.sell-card' }));
 full('S06-16', '數字最長（量測用）', (ctx) => marketPage(ctx, {
   key: 'beef', hud: { coins: 987654 }, m: { price: 20.4, stock: 12480 },

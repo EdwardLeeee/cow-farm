@@ -53,7 +53,7 @@ for (const f of files) {
   for (const m of s.matchAll(/\btb\(\s*'([^']+)'/g)) used.add(m[1]);
 }
 // 用變數組 key 的地方（i18n.js 的 breedName、tierName…；fixtures 的新聞；畫面裡的對照表）
-['breed.', 'trait.', 'tier', 'news.', 'mock.news.', 'date.', 'weekday.', 'ago.', 'err.', 's20.tip', 's19.desc', 'typeD', 'typeB', 'bull', 'cow', 'days', 'hours', 'minutes', 'seconds'].forEach((p) => dyn.add(p));
+['breed.', 'trait.', 'tier', 'news.', 'date.', 'weekday.', 'ago.', 'err.', 's20.tip', 's19.desc', 'typeD', 'typeB', 'bull', 'cow', 'days', 'hours', 'minutes', 'seconds'].forEach((p) => dyn.add(p));
 for (const f of files) { const s = readFileSync(f, 'utf8'); for (const m of s.matchAll(/'((?:[a-z]\w*\.)+\w+|[a-z]+[A-Z]\w*)'/g)) if (zh[m[1]] != null) used.add(m[1]); } // 對照表裡寫成字串的 key
 for (const k of used) if (zh[k] == null) errs.push(`程式用到 ${k}，字串表沒有`);
 const unused = Object.keys(zh).filter((k) => !used.has(k) && ![...dyn].some((p) => k.startsWith(p)));
