@@ -21,6 +21,7 @@ from cowecon.farm import (
     cow_type,
     draw_beef_grade,
     offspring_distribution,
+    rare_mask,
     shop_draw,
     shop_grade_distribution,
     shop_grade_tier_probs,
@@ -28,6 +29,8 @@ from cowecon.farm import (
     tier_of,
 )
 from cowecon.params import HEADLINES
+from server.breeds import ALL as ALL_BREEDS
+from server.breeds import BREEDS
 from server.game import TYPE_WIRE, Game, GameError, week_id, week_start
 from server.names import load_words, station_words
 
@@ -123,6 +126,7 @@ def test_session_and_state_fields(h):
             "type",
             "bull",
             "tier",
+            "breed",
             "stage",
             "adult_at",
             "milk_per_h",
@@ -144,7 +148,13 @@ def test_session_and_state_fields(h):
     assert calf["stage"] == "calf" and calf["type"] == TYPE_WIRE[OB.starter_calf_type]
     assert calf["adult_at"] == st["server_time"] + OB.starter_calf_remaining_s and calf["grade_probs"] is None
     cow = next(c for c in cows.values() if not c["bull"])
-    assert {"type": "dairy", "tier": cow["tier"]} in st["codex"]
+    # 圖鑑：開局的兩頭牛一建立牧場就算發現（協定 2.3 節），每頭牛的 breed 跟用途、稀有度一致
+    p = h.server.game.players[st["player_id"]]
+    for c in cows.values():
+        g = p.farm.cow_by_id(c["id"]).g
+        assert c["breed"] == BREEDS[cow_type(g)][rare_mask(g)] and c["type"] == TYPE_WIRE[cow_type(g)]
+    assert {e["breed"] for e in st["codex"]} == {c["breed"] for c in cows.values()}
+    assert all(e["found_at"] == p.created_at for e in st["codex"]) and cow["breed"] in BREEDS[0]
 
 
 def test_unauthorized_and_validation_errors(h):
@@ -298,6 +308,7 @@ def test_shop_probabilities_match_engine(h):
             (TYPE_WIRE.index(r["type"]), r["bull"], r["traits"]): r["p"] for r in g["distribution"]
         } == pytest.approx(dist, abs=1e-15)
         assert sum(r["p"] for r in g["distribution"]) == pytest.approx(1.0)
+        assert all(r["breed"] == BREEDS[TYPE_WIRE.index(r["type"])][r["traits"]] for r in g["distribution"])
         assert g["type_probs"] == pytest.approx({TYPE_WIRE[t]: p for t, p in enumerate(FP.shop_type_probs)})
         assert g["bull_prob"] == pytest.approx(FP.shop_bull_prob)
 
@@ -313,6 +324,25 @@ def test_shop_buy_uses_engine_draw(h):
             r["cow"]["type"] == TYPE_WIRE[cow_type(g)] and r["cow"]["bull"] == bull and r["cow"]["tier"] == tier_of(g)
         )
         assert r["cost"] == int(FP.shop_grade_price[FP.shop_grade_names.index(grade)]) and r["cow"]["origin"] == grade
+        assert r["cow"]["breed"] == BREEDS[cow_type(g)][rare_mask(g)]
+
+
+def test_codex_records_first_found_time(h):
+    """圖鑑記品種和第一次發現的時間：抽到新品種會加一格，同品種再出現不改時間；收藏榜 = 發現幾種。"""
+    tok = h.session()["token"]
+    p = give(h, tok, coins=10_000_000, slots=40)
+    before = {e["breed"]: e["found_at"] for e in state(h, tok)["codex"]}
+    seen = dict(before)
+    for _ in range(12):
+        h.advance(60, tick=False)
+        r = h.post("/v1/shop/buy", tok, {"grade": "A", "request_id": new_rid()}).json()
+        seen.setdefault(r["cow"]["breed"], r["server_time"])
+    codex = state(h, tok)["codex"]
+    assert {e["breed"]: e["found_at"] for e in codex} == seen  # 第一次的時間不會被後來的同品種蓋掉
+    assert [e["found_at"] for e in codex] == sorted(e["found_at"] for e in codex)  # 先發現的在前
+    assert all(e["breed"] in ALL_BREEDS for e in codex) and len(seen) > len(before)
+    lb = h.get("/v1/leaderboard", tok, kind="collection").json()
+    assert lb["me"]["score"] == len(seen) == len(p.codex)
 
 
 def test_shop_sampling_matches_probabilities():
@@ -512,7 +542,7 @@ def test_stud_borrow_pays_owner_and_calf_goes_to_borrower(h):
     bull = next(c for c in sa["cows"] if c["bull"])
     price = int(FP.stud_prices[1])
     lst = h.post("/v1/stud/list", a, {"cow_id": bull["id"], "price": price, "request_id": new_rid()}).json()["listing"]
-    assert lst["is_mine"] and lst["price"] == price
+    assert lst["is_mine"] and lst["price"] == price and lst["breed"] == bull["breed"]
     assert lst["owner"] == {  # 協定 1.6 節的牧場物件；真人送自己的名字
         "player_id": sa["player_id"],
         "name": sa["ranch_name"],
@@ -724,7 +754,7 @@ def test_websocket_stud_notice_to_owner(h):
             and n["price"] == int(FP.stud_prices[0])
         )
         sb = state(h, b)  # 借方是協定 1.6 節的牧場物件（G-05「{cow} 借給 {ranch}」）
-        assert n["cow"] == {"id": bull["id"]} and "cow_id" not in n
+        assert n["cow"] == {"id": bull["id"], "breed": bull["breed"]} and "cow_id" not in n
         assert n["borrower"] == {
             "player_id": sb["player_id"],
             "name": sb["ranch_name"],
@@ -791,6 +821,29 @@ def test_static_web_dir(db_dsn, tmp_path):
     with Harness(db_dsn, web_dir=str(tmp_path / "missing")) as hh:
         err(hh.client.get("/"), 404, "not_found")
         assert hh.client.post("/v1/session").status_code == 200
+
+
+def test_old_world_format_is_refused(db_dsn):
+    """v0.2 的世界（圖鑑還是「用途 × 稀有度」，沒有 format 欄位）：伺服器拒絕啟動，不會讀到一半壞掉。"""
+    import asyncio
+
+    import asyncpg
+
+    with Harness(db_dsn) as hh:
+        hh.session()
+
+    async def make_v02():
+        conn = await asyncpg.connect(db_dsn)
+        try:
+            await conn.execute("UPDATE meta SET value = value - 'format' WHERE key='world'")
+            await conn.execute("UPDATE farms SET state = jsonb_set(state, '{codex}', '[[0, 0], [1, 0]]')")
+        finally:
+            await conn.close()
+
+    asyncio.run(make_v02())
+    with pytest.raises(RuntimeError, match="存檔格式 2"):
+        with Harness(db_dsn):
+            pass
 
 
 def test_old_v01_world_is_refused(db_dsn):

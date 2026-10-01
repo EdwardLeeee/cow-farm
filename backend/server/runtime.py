@@ -32,6 +32,7 @@ from . import bots as B
 from . import views as V
 from .clock import GameClock
 from .config import Config
+from .breeds import breed_of_genes
 from .game import Game, GameError, Player, week_id, week_start
 from .names import random_ranch_name
 from .population import TUTORIAL_S, day_sessions_with, local_midnight_utc
@@ -44,6 +45,9 @@ HISTORY_KEEP_S = 7 * DAY + HOUR  # 記憶體裡留幾天的價格（走勢圖 7d
 PRICE_PRUNE_S = 8 * DAY  # 資料庫的價格留幾天
 BOT_JOIN_SPREAD_S = 1 * HOUR  # 假玩家在開服後 1 遊戲小時內陸續加入
 MAX_TICKS_PER_COMMIT = 120
+# 伺服器的存檔格式（跟經濟引擎的版本分開算）。不一樣就拒絕啟動，原型階段不做搬移（ceo 2026-10-02）。
+# 2：v0.2（沒有這個欄位的舊世界）；3：協定 v2 的 24 品種圖鑑（品種代號 → 第一次發現的時間）。
+WORLD_FORMAT = 3
 
 
 def token_hash(token: str) -> bytes:
@@ -260,6 +264,7 @@ class GameServer:
             "created_real": time.time(),
             "fingerprint": self.fingerprint,
             "engine": ENGINE_VERSION,
+            "format": WORLD_FORMAT,
         }
         prices = {cid: m.price for cid, m in self.game.ex.markets.items()}
         await self.store.init_world(
@@ -286,6 +291,13 @@ class GameServer:
         if engine.split(".")[:2] != ENGINE_VERSION.split(".")[:2] or set(data["markets"]) != set(DEFAULT.commodity_ids):
             raise RuntimeError(
                 f"資料庫裡的世界是引擎 {engine} 建的（商品 {sorted(data['markets'])}），和這版伺服器（引擎 {ENGINE_VERSION}）不相容。"
+                "原型階段不做搬移：請清掉資料庫重建新世界（backend/README.md「從舊資料庫升級」），"
+                "或用 COWFARM_PG_DSN 指到另一個空的資料庫。"
+            )
+        fmt = world.get("format", 2)
+        if fmt != WORLD_FORMAT:
+            raise RuntimeError(
+                f"資料庫裡的世界是存檔格式 {fmt}，這版伺服器是格式 {WORLD_FORMAT}（協定 v2 的 24 品種圖鑑），不相容。"
                 "原型階段不做搬移：請清掉資料庫重建新世界（backend/README.md「從舊資料庫升級」），"
                 "或用 COWFARM_PG_DSN 指到另一個空的資料庫。"
             )
@@ -526,7 +538,7 @@ class GameServer:
             "event": "borrowed",
             **V.time_fields(self.clock, self.clock.now()),
             "listing_id": ev["listing_id"],
-            "cow": {"id": ev["cow_id"]},
+            "cow": {"id": ev["cow_id"], "breed": breed_of_genes(ev["g"])},
             "price": int(round(ev["price"])),
             "borrower": V.ranch_ref(borrower) if borrower is not None else None,
         }
