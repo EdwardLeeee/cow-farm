@@ -23,8 +23,9 @@ def wrap(d, text, f, width):
     return lines
 
 def gif(a, src, dst):
-    vf = ('tpad=start_duration=0.5:start_mode=clone:stop_duration=1.4:stop_mode=clone,'
-          'split[a][b];[a]palettegen=max_colors=160:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle')
+    # 一般的動畫：開頭停 0.5 秒、結尾停 1.4 秒；一直循環的（loop）不停，接起來才順
+    pad = '' if a.get('loop') else 'tpad=start_duration=0.5:start_mode=clone:stop_duration=1.4:stop_mode=clone,'
+    vf = (pad + 'split[a][b];[a]palettegen=max_colors=160:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle')
     subprocess.run(['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y', '-framerate', str(a['fps']), '-i', os.path.join(src, 'f%03d.png'),
                     '-vf', vf, '-loop', '0', dst], check=True)
 
@@ -39,7 +40,7 @@ def storyboard(a, src, dst):
     W = pad * 2 + len(frames) * pw + (len(frames) - 1) * gap
     H = head + fh + capH + pad
     im = Image.new('RGB', (W, H), BG); d = ImageDraw.Draw(im)
-    tags = ['分鏡'] + (['揭曉・1.5 秒內・點一下跳過'] if a['id'] in REVEAL else [])
+    tags = ['分鏡'] + (['揭曉・1.5 秒內・點一下跳過'] if a['id'] in REVEAL else []) + (['一直循環'] if a.get('loop') else [])
     header(d, pad, 20, f"M2-{a['id']}  {a['name']}", f"出現在：{a['where']}　·　長度 {a['dur']} 秒　·　390 寬　·　動起來的樣子看同名的 GIF", tags)
     d.text((pad, 102), '時間是從動畫開始算的秒數；每一格下面寫這時候畫面上在發生什麼。', font=font(20, 'Regular'), fill=MUTED)
     for i, (f, (t, _), c) in enumerate(zip(frames, a['keys'], caps)):
@@ -54,6 +55,8 @@ def storyboard(a, src, dst):
 
 def reduced(a, src, dst):
     pw, gap, pad, head = 360, 90, 32, 190
+    if a['reducedFrom'] == a['reducedTo']:
+        return reduced_single(a, src, dst)
     frames = [Image.open(os.path.join(src, f'r{i}.png')).convert('RGB') for i in range(2)]
     frames = [f.resize((pw, round(f.height * pw / f.width)), Image.LANCZOS) for f in frames]
     fh = frames[0].height
@@ -71,6 +74,21 @@ def reduced(a, src, dst):
         d.text((x, head + fh + 16), ('之前：' if i == 0 else '之後：') + name, font=font(22), fill=INK)
     ax, ay = pad + pw + 16, head + fh // 2
     d.polygon([(ax, ay - 26), (ax + 58, ay), (ax, ay + 26)], fill=(255, 212, 94), outline=INK, width=4)
+    save(im, dst)
+
+def reduced_single(a, src, dst):
+    # 減少動態時畫面不動：只放一張
+    pw, pad, head = 360, 32, 190
+    f = Image.open(os.path.join(src, 'r0.png')).convert('RGB')
+    f = f.resize((pw, round(f.height * pw / f.width)), Image.LANCZOS)
+    W = max(pad * 2 + pw, 760)
+    im = Image.new('RGB', (W, head + f.height + 70 + pad), BG); d = ImageDraw.Draw(im)
+    header(d, pad, 20, f"M2-{a['id']}  {a['name']}", '手機開了「減少動態」時的做法（跟著系統設定，不另外放開關）', ['減少動態'])
+    for j, line in enumerate(wrap(d, a['reduced'], font(24), W - pad * 2)):
+        d.text((pad, 104 + j * 36), line, font=font(24), fill=INK)
+    im.paste(f, (pad, head))
+    d.rectangle([pad - 2, head - 2, pad + pw + 1, head + f.height + 1], outline=INK, width=3)
+    d.text((pad, head + f.height + 16), f"畫面不動：{a['reducedFrom']}（整頁狀態）", font=font(22), fill=INK)
     save(im, dst)
 
 def main(which=''):

@@ -19,14 +19,14 @@ if (q.has('anim')) {
   const ctx = { dev, w, q };
   app.innerHTML = a.base(ctx);
   window.__frame = async (t) => { a.frame(app, t, ctx); await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); };
-  window.__animMeta = { id: a.id, name: a.name, dur: a.dur, keys: a.keys, reduced: a.reduced, where: a.where };
+  window.__animMeta = { id: a.id, name: a.name, dur: a.dur, keys: a.keys, reduced: a.reduced, where: a.where, gifDpr: a.gifDpr || 1, loop: !!a.loop };
   await settle();
   await window.__frame(0);
   window.__ready = true;
 } else if (q.has('list')) {
   window.__states = STATES.map(({ render, ...m }) => m);
   const { ANIMS } = await import('./anims.js');
-  window.__anims = ANIMS.map((a) => ({ id: a.id, name: a.name, dur: a.dur, keys: a.keys, reduced: a.reduced, where: a.where }));
+  window.__anims = ANIMS.map((a) => ({ id: a.id, name: a.name, dur: a.dur, keys: a.keys, reduced: a.reduced, where: a.where, gifDpr: a.gifDpr || 1, loop: !!a.loop }));
   window.__ready = true;
 } else {
   const st = STATES.find((s) => s.id === q.get('id'));

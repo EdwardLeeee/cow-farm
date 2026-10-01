@@ -559,3 +559,41 @@
 .rec-lead { font-size: 17px; font-weight: 900; line-height: 24px; margin-top: 6px; }
 .no-ranch .btn-row { margin-top: 2px; }
 .bk-pic { display: flex; justify-content: center; line-height: 0; margin-bottom: 4px; }
+
+/* A-03 出貨卡車（第 2 版：精細的小貨車，倒車接牛、往前開走） */
+.tk { position: absolute; left: 0; top: 0; line-height: 0; transform-origin: 0 0; }
+.tk-back { z-index: 2; }
+.tk-front { z-index: 4; }
+.cut-cow.c-side, .cut-cow.c-front { z-index: 3; }
+.cut-beep { position: absolute; left: 0; top: 0; z-index: 5; font-size: 14px; font-weight: 900; line-height: 20px; color: var(--ink); background: #FFF1B8; border: 2.5px solid var(--ink); border-radius: 10px; padding: 0 6px; opacity: 0; }
+.cut-hearts i { position: absolute; left: 0; top: 0; z-index: 5; line-height: 0; opacity: 0; }
+.cut-say { z-index: 6; }
+.cut .cut-puffs i { z-index: 1; }
+
+/* ================= S03 牧場：收起／展開、左右滑動（使用者 2026-10-01 第 3、8 項） ================= */
+.dock-head { position: relative; height: 44px; margin-bottom: -6px; display: flex; align-items: center; justify-content: center; }
+.pan-ind { position: relative; width: 64px; height: 10px; border-radius: 5px; background: rgba(255, 255, 255, 0.9); border: 2px solid var(--ink); overflow: hidden; }
+.pan-ind i { position: absolute; top: 0; bottom: 0; width: 50%; border-radius: 3px; background: var(--ink); }
+.dock-toggle { position: absolute; right: 0; top: 0; min-width: 72px; min-height: 44px; display: flex; align-items: center; justify-content: flex-end; }
+.dt-pill { display: inline-flex; align-items: center; gap: 2px; height: 30px; padding: 0 8px 0 12px; background: #FFFFFF; border: 2.5px solid var(--ink); border-radius: 15px; box-shadow: 0 2px 0 var(--ink); font-size: 13px; font-weight: 900; line-height: 18px; white-space: nowrap; }
+.dt-chev { display: inline-flex; line-height: 0; transform: rotate(90deg); }
+.dt-chev.up { transform: rotate(-90deg); }
+.bucket-slim { display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 8px; }
+.bucket-slim.is-full { background: #FFF1EE; }
+.bs-icon { flex: none; line-height: 0; }
+.bs-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.bs-top { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+.bs-name { font-size: 13px; font-weight: 900; }
+.bs-pct { font-size: 16px; line-height: 18px; }
+.bucket-slim.is-full .bs-pct { color: #D9443F; }
+.bs-full { font-size: 12px; font-weight: 900; color: #D9443F; }
+.bucket-slim .bar { height: 10px; }
+.bucket-slim .btn { flex: none; min-width: 76px; }
+.slim-sheet .dock { position: relative; left: 0; right: 0; bottom: 0; }
+.swipe-hint { position: absolute; left: 50%; top: calc(var(--safe-top) + var(--hud-h) + 236px); transform: translateX(-50%); z-index: 16; display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: rgba(255, 255, 255, 0.95); border: 3px solid var(--ink); border-radius: 22px; box-shadow: 0 3px 0 var(--ink); font-size: 14px; font-weight: 900; line-height: 20px; white-space: nowrap; }
+.sh-arrow { display: inline-flex; line-height: 0; }
+.finger { position: absolute; left: 0; top: 0; z-index: 95; line-height: 0; opacity: 0; filter: drop-shadow(0 3px 0 rgba(75, 51, 38, 0.35)); }
+@media (max-height: 700px) {
+  /* 很矮的手機（320×568）：滑動提示往上放，免得壓到奶桶 */
+  .swipe-hint { top: calc(var(--safe-top) + var(--hud-h) + 112px); }
+}

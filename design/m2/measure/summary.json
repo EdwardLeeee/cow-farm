@@ -1,24 +1,24 @@
 {
  "430": {
-  "states": 158,
+  "states": 162,
   "minFont": 12,
   "bad": [],
   "hscroll": []
  },
  "390": {
-  "states": 158,
+  "states": 162,
   "minFont": 12,
   "bad": [],
   "hscroll": []
  },
  "360": {
-  "states": 158,
+  "states": 162,
   "minFont": 12,
   "bad": [],
   "hscroll": []
  },
  "320": {
-  "states": 158,
+  "states": 162,
   "minFont": 12,
   "bad": [
    "G-03",

@@ -2,7 +2,7 @@
 // 揭曉類（A-04、A-06、A-09、A-10）控制在 1.5 秒內，點一下可以跳過。減少動態（手機系統設定）時各自的替代做法寫在 reduced。
 import { frame, btn, icon, fmt, cowSVG, toast, tierChip, badge, dialog } from './kit.js';
 import { ranchPage, dock } from './screens/s03.js';
-import { HERD, fit, ranchScene } from './scene.js';
+import { HERD, fit, ranchScene, WIDE } from './scene.js';
 import { drawCow } from '../cow/render.js';
 import { RANCH, WAREHOUSE, sum, FIELDS, cowById } from './fixtures.js';
 import { GRADE_BG } from './screens/s04.js';
@@ -79,52 +79,147 @@ const A02 = {
 };
 
 // ---------- A-03 出貨卡車 ----------
-const TRUCK = `<svg viewBox="0 0 210 130" width="210" height="130" aria-hidden="true">
-  <path d="M8 60h122v44H8z" fill="#A9DBFF" stroke="#4B3326" stroke-width="4" stroke-linejoin="round"/>
-  <path d="M8 60h122" stroke="#4B3326" stroke-width="4"/><path d="M14 72h110" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" opacity=".7"/>
-  <path d="M130 50h40l28 32v22h-68z" fill="#FFD45E" stroke="#4B3326" stroke-width="4" stroke-linejoin="round"/>
-  <path d="M142 58h24l18 22h-42z" fill="#E6F3FC" stroke="#4B3326" stroke-width="3" stroke-linejoin="round"/>
-  <rect x="186" y="88" width="14" height="8" rx="3" fill="#FFF1B8" stroke="#4B3326" stroke-width="2.5"/>
-  <circle cx="44" cy="108" r="15" fill="#FFFFFF" stroke="#4B3326" stroke-width="4"/><circle cx="44" cy="108" r="5" fill="#4B3326"/>
-  <circle cx="164" cy="108" r="15" fill="#FFFFFF" stroke="#4B3326" stroke-width="4"/><circle cx="164" cy="108" r="5" fill="#4B3326"/>
-  <path d="M40 84h60" stroke="#4B3326" stroke-width="3" stroke-linecap="round"/><text x="70" y="98" text-anchor="middle" font-family="Noto Sans CJK TC" font-weight="900" font-size="13" fill="#4B3326">晨光河畔牧場</text></svg>`;
-function cutscene(ctx, inner) {
-  // 背景用牧場場景（沒有牛），前面加一條路
-  const bg = ranchScene(ctx.dev, []).svg;
+// 使用者 2026-10-01：「a03出貨卡車要更精細，而且倒車接牛是對的，但是應該是往前載走不是繼續倒車」
+// 小貨車（側面，車頭在右）：木柵車斗、車尾擋板放下來當斜坡、車窗、後照鏡、頭燈、保險桿、會轉的輪子。
+// 分兩層畫：back（遠側柵欄、車斗地板、車頭）在牛後面，front（近側柵欄、車斗側板、擋板、輪子）在牛前面，牛坐在車斗裡。
+const TK = { w: 270, h: 152, hinge: [12, 100], floor: 98, wheelR: 18, wheels: [62, 204], bedCx: 82 };
+const WOOD = '#F5D9A8', WOOD_D = '#DDBB86', INK3 = '#4B3326';
+function truckBack() {
+  return `<svg viewBox="0 0 ${TK.w} ${TK.h}" width="${TK.w}" height="${TK.h}" aria-hidden="true">
+    <!-- 遠側的柵欄（顏色深一點） -->
+    <g fill="${WOOD_D}" stroke="${INK3}" stroke-width="2.2" stroke-linejoin="round">
+      <rect x="20" y="40" width="5" height="36" rx="1.5"/><rect x="56" y="40" width="5" height="36" rx="1.5"/><rect x="92" y="40" width="5" height="36" rx="1.5"/><rect x="128" y="40" width="5" height="36" rx="1.5"/>
+      <rect x="16" y="43" width="136" height="7" rx="3"/><rect x="16" y="59" width="136" height="7" rx="3"/>
+    </g>
+    <!-- 底盤、排氣管、車斗地板 -->
+    <rect x="2" y="108" width="18" height="6" rx="3" fill="#B9ADA3" stroke="${INK3}" stroke-width="2.2"/>
+    <rect x="16" y="104" width="236" height="11" rx="4" fill="#7A675D" stroke="${INK3}" stroke-width="3"/>
+    <rect x="12" y="95" width="142" height="11" rx="3" fill="#D9A777" stroke="${INK3}" stroke-width="3"/>
+    <!-- 車頭 -->
+    <path d="M154,108 V40 a8,8 0 0 1 8,-8 H200 a10,10 0 0 1 9,5.4 L226,68 H246 a12,12 0 0 1 12,12 V108 Z" fill="#FFD45E" stroke="${INK3}" stroke-width="3.5" stroke-linejoin="round"/>
+    <path d="M155.8,88 H256.2 V95 H155.8 Z" fill="#FFF4CC"/>
+    <path d="M164,42 H197 a6,6 0 0 1 5.4,3.2 L215,68 H164 Z" fill="#D6ECFA" stroke="${INK3}" stroke-width="2.6" stroke-linejoin="round"/>
+    <path d="M170,62 L182,46 M178,63 L186,52" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.9"/>
+    <path d="M163,74 V103 H207 V74" fill="none" stroke="#E0A93E" stroke-width="2" stroke-linejoin="round"/>
+    <rect x="168" y="77" width="11" height="4.6" rx="2.3" fill="#FFF4DE" stroke="${INK3}" stroke-width="1.6"/>
+    <path d="M214,60 h6" stroke="${INK3}" stroke-width="2.4" stroke-linecap="round"/><rect x="218" y="50" width="7" height="14" rx="3" fill="#7A675D" stroke="${INK3}" stroke-width="2"/>
+    <rect x="171" y="24" width="16" height="8.5" rx="4" fill="#FF9F5E" stroke="${INK3}" stroke-width="2.2"/>
+    <ellipse cx="253.5" cy="83" rx="4.6" ry="6" fill="#FFF1B8" stroke="${INK3}" stroke-width="2.2"/>
+    <path d="M244,95.5 h9 M244,99.5 h9" stroke="#C99A3A" stroke-width="1.8" stroke-linecap="round"/>
+    <rect x="243" y="101" width="22" height="10" rx="4.5" fill="#F1EADF" stroke="${INK3}" stroke-width="2.6"/>
+  </svg>`;
+}
+function wheel(cx) {
+  const cy = TK.h - 6 - TK.wheelR, r = TK.wheelR;
+  const spokes = [0, 60, 120].map((d) => `<path d="M${cx - 9.5},${cy} H${cx + 9.5}" transform="rotate(${d} ${cx} ${cy})" stroke="#D9C8A8" stroke-width="2.2" stroke-linecap="round"/>`).join('');
+  return `<g class="tk-wheel" data-cx="${cx}" data-cy="${cy}"><circle cx="${cx}" cy="${cy}" r="${r}" fill="#5A4038" stroke="${INK3}" stroke-width="3"/><circle cx="${cx}" cy="${cy}" r="10.6" fill="#FFF4DE" stroke="${INK3}" stroke-width="2.2"/>${spokes}<circle cx="${cx}" cy="${cy}" r="3.8" fill="#F5BD83" stroke="${INK3}" stroke-width="1.8"/></g>`;
+}
+function truckFront(name) {
+  const [hx, hy] = TK.hinge;
+  return `<svg viewBox="0 0 ${TK.w} ${TK.h}" width="${TK.w}" height="${TK.h}" aria-hidden="true" style="overflow:visible">
+    <!-- 近側的柵欄 -->
+    <g fill="${WOOD}" stroke="${INK3}" stroke-width="2.6" stroke-linejoin="round">
+      <rect x="14" y="38" width="6" height="40" rx="2"/><rect x="50" y="38" width="6" height="40" rx="2"/><rect x="86" y="38" width="6" height="40" rx="2"/><rect x="122" y="38" width="6" height="40" rx="2"/><rect x="146" y="38" width="6" height="40" rx="2"/>
+      <rect x="12" y="43" width="142" height="8" rx="3.5"/><rect x="12" y="59" width="142" height="8" rx="3.5"/>
+    </g>
+    <!-- 車斗側板與牧場名 -->
+    <rect x="12" y="74" width="142" height="27" rx="5" fill="#A9DBFF" stroke="${INK3}" stroke-width="3.2"/>
+    <path d="M19,80.5 H118" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity="0.75"/>
+    <text x="83" y="96" text-anchor="middle" font-family="Noto Sans CJK TC" font-weight="900" font-size="11.5" fill="${INK3}">${name}</text>
+    <!-- 尾燈、倒車燈 -->
+    <rect x="13.5" y="77" width="5.5" height="8" rx="2" fill="#FF6B5E" stroke="${INK3}" stroke-width="1.6"/>
+    <rect id="tk-rev" x="13.5" y="88" width="5.5" height="8" rx="2" fill="#FFF7D6" stroke="${INK3}" stroke-width="1.6"/>
+    <!-- 車尾擋板：關著是直的，放下來變斜坡（以車斗地板後緣為軸） -->
+    <g id="tk-gate" data-hx="${hx}" data-hy="${hy}"><rect x="${hx - 6}" y="${hy - 60}" width="8" height="62" rx="3" fill="${WOOD}" stroke="${INK3}" stroke-width="2.8"/><path d="M${hx - 2},${hy - 52} V${hy - 8}" stroke="${WOOD_D}" stroke-width="2" stroke-linecap="round"/></g>
+    <!-- 擋泥板、輪子 -->
+    <path d="M38,${TK.h - 22} a24,24 0 0 1 48,0 h-7 a17,17 0 0 0 -34,0 Z" fill="#8CC8F5" stroke="${INK3}" stroke-width="2.6" stroke-linejoin="round"/>
+    <path d="M180,${TK.h - 22} a24,24 0 0 1 48,0 h-7 a17,17 0 0 0 -34,0 Z" fill="#FFC53D" stroke="${INK3}" stroke-width="2.6" stroke-linejoin="round"/>
+    ${TK.wheels.map(wheel).join('')}
+  </svg>`;
+}
+// 用固定的模型比例畫一頭牛（腳底在框的下緣中間）；側面、正面用同一個比例，換姿勢時大小不會跳
+function cowFixed(entry, { w, h, scale, facing = 'left', pad = 3 }) {
+  const r = drawCow(entry, { x: w / 2, y: h - pad, scale, facing, id: `fx${entry.pose}${facing}` });
+  return `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true" style="overflow:visible">${r.svg}</svg>`;
+}
+function cutscene(ctx, inner, herd = []) {
+  // 背景用牧場場景，前面加一條路
+  const bg = ranchScene(ctx.dev, herd).svg;
   return frame(ctx.dev, { tab: null, hud: false, scene: bg, body: `<div class="cut"><div class="cut-road"></div>${inner}</div>` });
 }
+// 留在牧場的牛，站在後面看
+const A03_HERD = [
+  { id: 8, breed: 'holstein', sex: 'bull', seed: 23, x: 318, y: 338, facing: 'left', depth: 0 },
+  { id: 15, breed: 'holstein', age: 'calf', seed: 31, x: 148, y: 420, facing: 'right', depth: 1 },
+  { id: 7, breed: 'jersey', x: 262, y: 404, facing: 'left', depth: 1 },
+];
 const A03 = {
-  id: 'A-03', name: '出貨卡車', dur: 2.6, where: 'S07 出貨確認 → S20 評級結果',
-  keys: [[0, '按下「確定出貨」後切到這一幕'], [0.55, '小卡車開進來'], [0.95, '牛跳上卡車'], [1.4, '牛揮手：「謝謝你的照顧！」'], [2.1, '卡車開走'], [2.6, '白光轉場，接著揭曉評級（A-10）']],
+  id: 'A-03', name: '出貨卡車', dur: 3.6, where: 'S07 出貨確認 → S20 評級結果', gifDpr: 2,
+  keys: [[0, '按下「確定出貨」後切到這一幕：牛在路邊等'], [0.58, '小卡車倒車進來：車尾朝牛，倒車燈閃、「嗶嗶」'], [1.1, '停好，車尾的擋板放下來變成斜坡'], [1.42, '牛跳上車斗'], [1.9, '擋板關上，牛轉過來面向玩家'], [2.3, '牛揮手：「謝謝你的照顧！」'], [3.05, '卡車往前開走（車頭在前）'], [3.6, '白光轉場，接著揭曉評級（A-10）']],
   reduced: '不播卡車：按下「確定出貨」後直接顯示評級結果（S20），不播揭曉動畫。',
-  base: (ctx) => cutscene(ctx, `<div class="cut-cow">${cowSVG({ breed: 'holstein' }, { w: 120, h: 120 })}</div><div class="cut-truck">${TRUCK}</div><div class="cut-say">謝謝你的照顧！</div><div class="cut-puffs"><i></i><i></i><i></i></div><div class="cut-flash"></div>`),
+  base: (ctx) => cutscene(ctx, `
+    <div class="tk tk-back">${truckBack()}</div>
+    <div class="cut-cow c-side">${cowFixed({ breed: 'holstein', pose: 'side' }, { w: 108, h: 96, scale: 1.04, facing: 'right' })}</div>
+    <div class="cut-cow c-front">${cowFixed({ breed: 'holstein', pose: 'front' }, { w: 100, h: 100, scale: 1.04 })}</div>
+    <div class="tk tk-front">${truckFront('晨光河畔牧場')}</div>
+    <div class="cut-beep">嗶</div><div class="cut-beep b2">嗶</div>
+    <div class="cut-say">謝謝你的照顧！</div>
+    <div class="cut-hearts">${[0, 1, 2].map(() => `<i>${icon('heart', 20)}</i>`).join('')}</div>
+    <div class="cut-puffs"><i></i><i></i><i></i><i></i></div>
+    <div class="cut-flash"></div>${skipHint(true)}`, A03_HERD),
   frame(root, t, ctx) {
-    const W = ctx.dev.w, H = ctx.dev.h, groundY = H * 0.74, TS = 1.15;
-    const truck = root.querySelector('.cut-truck'), cow = root.querySelector('.cut-cow'), say = root.querySelector('.cut-say');
-    // 卡車：0–0.55 從右邊開進來，停在畫面右半邊；1.6–2.3 往左開走
-    const inK = outCubic(seg(t, 0, 0.55)), outK = inOut(seg(t, 1.6, 2.3));
-    const stopX = W - 210 * TS - 8;
-    const tx = lerp(W + 40, stopX, inK) - outK * (W + 280);
-    const bounce = Math.sin(t * 28) * (t < 0.55 || (t > 1.6 && t < 2.3) ? 1.5 : 0);
-    const ty = groundY - 128 * TS + bounce;
-    truck.style.transform = `translate(${tx}px, ${ty}px) scale(${TS})`; truck.style.transformOrigin = '0 0';
-    // 牛：站在左邊；0.6–0.95 跳上車斗，之後跟著卡車
-    const jumpK = seg(t, 0.6, 0.95);
-    const cx0 = W * 0.06, cy0 = groundY - 116;
-    const bedX = tx + 14 * TS, bedY = ty + 60 * TS - 104;
-    let cx = lerp(cx0, bedX, outCubic(jumpK)), cy = lerp(cy0, bedY, jumpK) - Math.sin(Math.PI * jumpK) * 80;
-    if (t > 0.95) { cx = bedX; cy = bedY; }
-    const wave = t > 1.0 && t < 1.6 ? Math.sin((t - 1.0) * 18) * 5 : 0;
-    cow.style.transform = `translate(${cx}px, ${cy}px) rotate(${wave}deg)`;
-    const sk = seg(t, 1.0, 1.15);
-    say.style.opacity = t < 1.95 ? sk : 1 - seg(t, 1.95, 2.1);
-    say.style.transform = `translate(${cx + 40}px, ${cy - 40}px) scale(${0.6 + 0.4 * outBack(sk)})`;
-    [...root.querySelectorAll('.cut-puffs i')].forEach((p, i) => {
-      const k = seg(t, 1.65 + i * 0.12, 2.1 + i * 0.12);
-      p.style.opacity = k > 0 && k < 1 ? 1 - k : 0;
-      p.style.transform = `translate(${tx + 210 * TS + k * 30}px, ${groundY - 24 - k * 16}px) scale(${0.5 + k})`;
+    const W = ctx.dev.w, H = ctx.dev.h, TS = 0.86;
+    const road = H * 0.74, wheelY = road + 14, cowGround = road + 6; // 輪子底、牛站的地方（都在路上）
+    const q = (sel) => root.querySelector(sel), qa = (sel) => [...root.querySelectorAll(sel)];
+    const back = q('.tk-back'), front = q('.tk-front'), side = q('.c-side'), fr = q('.c-front'), say = q('.cut-say');
+    // 卡車的位置：tx 是車尾那一邊的左緣。0.1–0.85 倒車進來（往左，車尾在前）；2.75–3.45 往前開走（往右，車頭在前）
+    const stopX = W - 4 - TK.w * TS;
+    const inK = outCubic(seg(t, 0.1, 0.85)), outK = seg(t, 2.75, 3.45) ** 2.2;
+    const tx = lerp(W + 30, stopX, inK) + outK * (W + 90 - stopX);
+    const moving = (t > 0.1 && t < 0.85) || t > 2.75;
+    const dip = 4 * Math.sin(Math.PI * seg(t, 1.66, 1.9));                    // 牛落在車斗上，車身沉一下
+    const rev = t > 2.62 && t < 2.75 ? Math.sin((t - 2.62) * 90) * 1.2 : 0;   // 出發前抖一下
+    const ty = wheelY - TK.h * TS + 6 * TS + (moving ? Math.sin(t * 30) * 1.2 : 0) + dip + rev;
+    [back, front].forEach((el) => { el.style.transform = `translate(${tx}px, ${ty}px) scale(${TS})`; });
+    // 輪子轉動（跟移動距離成正比）
+    const ang = ((tx - stopX) / (TK.wheelR * TS)) * (180 / Math.PI);
+    qa('.tk-wheel').forEach((g) => g.setAttribute('transform', `rotate(${ang} ${g.dataset.cx} ${g.dataset.cy})`));
+    // 倒車燈和「嗶嗶」：倒車時一閃一閃
+    const blink = t > 0.1 && t < 0.85 && Math.floor(t * 7) % 2 === 0;
+    q('#tk-rev').setAttribute('fill', blink ? '#FFE27A' : '#FFF7D6');
+    qa('.cut-beep').forEach((b, i) => { b.style.opacity = blink ? 1 : 0; b.style.transform = `translate(${tx - 26 + i * 22}px, ${ty + 14 - i * 20}px) rotate(${-10 + i * 8}deg)`; });
+    // 擋板：0.9–1.12 放下來，1.72–1.92 關上
+    const gate = q('#tk-gate'), open = inOut(seg(t, 0.9, 1.12)) - inOut(seg(t, 1.72, 1.92));
+    gate.setAttribute('transform', `rotate(${-145 * open} ${gate.dataset.hx} ${gate.dataset.hy})`);
+    // 牛：先在路邊等（側面、朝著卡車）；1.15–1.7 跳兩下上車斗；落地後轉成正面，之後跟著卡車
+    const p = seg(t, 1.15, 1.7), onBoard = t >= 1.7;
+    const sx0 = 14, bedX = tx + TK.bedCx * TS, bedY = ty + TK.floor * TS;
+    const cxm = lerp(sx0 + 54, bedX, inOut(p));
+    const cym = lerp(cowGround, bedY, p * p * (3 - 2 * p)) - Math.abs(Math.sin(Math.PI * 2 * p)) * 34;
+    const idle = t < 1.15 ? Math.abs(Math.sin(t * 5)) * 3 : 0;
+    const showFront = p >= 0.86;
+    const sq = showFront ? 1 + 0.12 * Math.sin(Math.PI * seg(t, 1.62, 1.82)) : 1;  // 轉身時擠一下
+    side.style.opacity = showFront ? 0 : 1; fr.style.opacity = showFront ? 1 : 0;
+    side.style.transform = `translate(${cxm - 54}px, ${cym - 96 - idle}px)`;
+    const wave = t > 2.0 && t < 2.75 ? Math.sin((t - 2.0) * 17) * 6 : 0;
+    const fx = onBoard ? bedX : cxm, fy = onBoard ? bedY : cym;
+    fr.style.transform = `translate(${fx - 50}px, ${fy - 100}px) rotate(${wave}deg) scale(${2 - sq}, ${sq})`;
+    // 對話泡泡、愛心
+    const sk = seg(t, 2.0, 2.15), sOut = seg(t, 2.95, 3.1);
+    say.style.opacity = sk * (1 - sOut);
+    say.style.transform = `translate(${Math.min(fx - 150, W - 172)}px, ${fy - 142}px) scale(${0.6 + 0.4 * outBack(sk)})`;
+    qa('.cut-hearts i').forEach((h, i) => {
+      const k = seg(t, 2.1 + i * 0.18, 2.9 + i * 0.18);
+      h.style.opacity = k > 0 && k < 1 ? Math.sin(Math.PI * k) : 0;
+      h.style.transform = `translate(${fx + 22 + i * 16 - 10}px, ${fy - 96 - k * 46 - i * 6}px) scale(${0.7 + 0.5 * k})`;
     });
-    root.querySelector('.cut-flash').style.opacity = seg(t, 2.3, 2.6);
+    // 往前開走時，車尾揚起的煙
+    qa('.cut-puffs i').forEach((pf, i) => {
+      const k = seg(t, 2.78 + i * 0.13, 3.3 + i * 0.13);
+      pf.style.opacity = k > 0 && k < 1 ? 0.95 * (1 - k) : 0;
+      pf.style.transform = `translate(${tx - 22 - k * 34 - i * 4}px, ${wheelY - 30 - k * 22}px) scale(${0.45 + k * 0.9})`;
+    });
+    q('.cut-flash').style.opacity = seg(t, 3.38, 3.6);
   },
 };
 
@@ -334,4 +429,69 @@ const A10 = {
   },
 };
 
-export const ANIMS = [A01, A02, A03, A04, A05, A06, A07, A08, A09, A10];
+// ---------- A-11 牛在牧場走動（使用者 2026-10-01：「牛在牧場要會動吧」） ----------
+// 只移動整頭牛（位置、一搖一搖、轉身），不改定案的牛產生器。4 秒一輪、一直循環；每頭牛的節奏錯開。
+// 每頭：往前走 1.4 秒 → 停 0.6 秒 → 轉身往回走 1.4 秒 → 停 0.6 秒，回到原位。小牛用跳的。
+const WALK = { // 牛的編號 → [走多遠（場景座標）, 節奏錯開幾秒]
+  14: [16, 0.2], 8: [12, 1.6], 3: [18, 0.9], 15: [26, 0.0], 7: [16, 2.6], 12: [16, 3.3], 5: [12, 1.1], 11: [18, 2.0],
+};
+function walkPose(t, dist, phase, T = 4, calf = false) {
+  const u = (((t + phase) % T) + T) % T / T;
+  let x, moving, back, k;
+  if (u < 0.35) { k = u / 0.35; x = inOut(k) * dist; moving = true; back = false; }
+  else if (u < 0.5) { x = dist; moving = false; back = false; k = 0; }
+  else if (u < 0.85) { k = (u - 0.5) / 0.35; x = dist * (1 - inOut(k)); moving = true; back = true; }
+  else { x = 0; moving = false; back = false; k = 0; }
+  const steps = calf ? 5 : 4;
+  const wave = moving ? Math.sin(k * Math.PI * steps) : 0;
+  const bob = moving ? Math.abs(wave) * (calf ? 6 : 2.4) : 0;
+  const tilt = moving ? wave * (calf ? 4 : 2.2) : 0;
+  return { x, back, bob, tilt };
+}
+function walkFrame(root, t) {
+  root.querySelectorAll('.herd-cow').forEach((g) => {
+    const id = +g.dataset.cow, w = WALK[id];
+    if (!w || g.dataset.pose !== 'side') return;
+    const dir = g.dataset.facing === 'right' ? 1 : -1, cx = +g.dataset.x, cy = +g.dataset.y;
+    const p = walkPose(t, w[0], w[1], 4, g.dataset.calf === '1');
+    g.setAttribute('transform', `translate(${(dir * p.x).toFixed(2)} 0)`);
+    // 往回走時以腳底中間為軸左右翻過來；走路時以腳底為軸左右搖、上下彈
+    const flip = p.back ? -1 : 1;
+    g.querySelector('.cow-body').setAttribute('transform', `translate(${cx} ${(cy - p.bob).toFixed(2)}) rotate(${(p.tilt * dir * flip).toFixed(2)}) scale(${flip} 1) translate(${-cx} ${-cy})`);
+  });
+}
+const A11 = {
+  id: 'A-11', name: '牛在牧場走動', dur: 4, loop: true, gifDpr: 2, where: 'S03 牧場（一直循環）',
+  keys: [[0, '大家在草地上'], [0.8, '牛慢慢往前走，身體一搖一搖'], [1.6, '走一段就停下來；小牛用跳的'], [2.4, '轉身往回走'], [3.2, '每頭牛的節奏錯開，不會一起動'], [4, '回到原位，一直循環']],
+  reduced: '牛站著不動（跟一般的牧場畫面一樣）；轉身、跳都不播。',
+  base: (ctx) => ranchPage(ctx),
+  frame(root, t) { walkFrame(root, t); },
+};
+
+// ---------- A-12 左右滑動牧場（使用者 2026-10-01：「畫面應該可以左右滑動」） ----------
+// 示意手指拖動場景：場景兩個螢幕寬，上面的頂列、下面的奶桶和分頁列不動。放開手指後會滑一小段再停（慣性）。
+const A12 = {
+  id: 'A-12', name: '左右滑動牧場（示意）', dur: 3.2, gifDpr: 2, where: 'S03 牧場',
+  keys: [[0, '牧場的左邊（穀倉）'], [0.7, '手指往左拖，場景跟著移動'], [1.25, '放開後滑一小段停下：牧場的右邊（池塘）'], [2.1, '手指往右拖'], [3.2, '回到左邊；下方的小滑塊跟著移動']],
+  reduced: '手指拖多少就移多少；放開以後不滑行、不回彈。',
+  base: (ctx) => ranchPage(ctx).replace('<div class="overlays">', `<div class="overlays"><div class="finger">${icon('hand', 40)}</div>`),
+  frame(root, t, ctx) {
+    const svg = root.querySelector('.scene > svg'), vb = svg.getAttribute('viewBox').split(' ').map(Number);
+    if (!svg.dataset.x0) svg.dataset.x0 = vb[0];
+    const x0 = +svg.dataset.x0, max = WIDE - 390;
+    // 0.25–1.25 往右捲到底（手指往左拖），2.0–3.0 捲回來
+    const k = outCubic(seg(t, 0.25, 1.25)) - outCubic(seg(t, 2.0, 3.0));
+    const pan = max * k;
+    svg.setAttribute('viewBox', [x0 + pan, vb[1], vb[2], vb[3]].join(' '));
+    root.querySelector('.pan-ind i').style.left = `${(pan / max) * 50}%`;
+    // 手指：按下 → 拖 → 放開（淡出）
+    const f = root.querySelector('.finger'), W = ctx.dev.w, y = ctx.dev.h * 0.48;
+    const drag1 = seg(t, 0.25, 0.95), drag2 = seg(t, 2.0, 2.7);
+    let fx, op;
+    if (t < 1.25) { fx = lerp(W * 0.72, W * 0.28, inOut(drag1)); op = t < 0.1 ? seg(t, 0, 0.1) : 1 - seg(t, 0.95, 1.15); }
+    else { fx = lerp(W * 0.28, W * 0.72, inOut(drag2)); op = t < 2.0 ? seg(t, 1.8, 1.95) : 1 - seg(t, 2.7, 2.9); }
+    f.style.opacity = op; f.style.transform = `translate(${fx - 20}px, ${y}px) scale(${(t > 0.2 && t < 0.95) || (t > 1.95 && t < 2.7) ? 0.92 : 1})`;
+  },
+};
+
+export const ANIMS = [A01, A02, A03, A04, A05, A06, A07, A08, A09, A10, A11, A12];

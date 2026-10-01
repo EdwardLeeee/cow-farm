@@ -1,6 +1,6 @@
 // S03 牧場主畫面
 import { frame, btn, bar, toast, badge, tierChip, useChip, sexText, cowRow, icon, fmt, BREEDS } from '../kit.js';
-import { ranchScene, HERD } from '../scene.js';
+import { ranchScene, HERD, WIDE } from '../scene.js';
 import { RANCH, COWS, PEN, BUCKET, WAREHOUSE, MARKET, NEWS, sum, cowName, compact } from '../fixtures.js';
 import { tierOf } from '../../cow/breeds.js';
 
@@ -33,7 +33,22 @@ export function dock(o = {}) {
   const beef = o.beef ?? sum(WAREHOUSE.beef), rice = o.rice ?? sum(WAREHOUSE.rice);
   const mk = o.market || MARKET;
   const whFull = milk >= cap;
-  return `<section class="dock">
+  // 頂端那一列：中間是場景位置指示（場景兩個螢幕寬，滑塊佔一半），右邊是收起／展開
+  const panPct = Math.max(0, Math.min(50, ((o.pan || 0) / (WIDE - 390)) * 50));
+  const head = `<div class="dock-head"><span class="pan-ind" aria-label="牧場的位置"><i style="left:${panPct}%"></i></span>
+      <button class="dock-toggle" aria-label="${o.collapsed ? '展開奶桶、倉庫、行情' : '收起奶桶、倉庫、行情'}"><span class="dt-pill">${o.collapsed ? '展開' : '收起'}<span class="dt-chev${o.collapsed ? ' up' : ''}">${icon('chevron', 14)}</span></span></button></div>`;
+  const collectBtn = btn(o.collectLabel || '收奶', { kind: 'blue', small: true, disabled: o.collectDisabled ?? b.qty <= 0, busy: o.collectBusy });
+  if (o.collapsed) {
+    // 收起來：只剩一條奶桶（收奶是最常按的，所以留著）；倉庫、行情藏起來
+    return `<section class="dock collapsed">${head}
+    <article class="card bucket-slim${full ? ' is-full' : ''}">
+      <span class="bs-icon">${pailLevel(pct, 34)}</span>
+      <span class="bs-info"><span class="bs-top"><span class="bs-name">奶桶</span><span class="num bs-pct">${pct}%</span>${full ? '<span class="bs-full">滿了</span>' : ''}</span>${bar(pct)}</span>
+      ${collectBtn}
+    </article>
+  </section>`;
+  }
+  return `<section class="dock">${head}
     <article class="card bucket-card${full ? ' is-full' : ''}">
       <div class="bk-main">
         <div class="bk-icon">${pailLevel(pct)}</div>
@@ -42,7 +57,7 @@ export function dock(o = {}) {
           ${bar(pct)}
           <div class="bk-count"><span class="num">${oneDec(b.qty)} / ${fmt(b.cap)}</span> 瓶<span class="bk-rate${full ? ' err-text' : ''}">${full ? '滿了，停止產奶' : b.perHour ? `約 ${untilFull(b)}後滿` : '沒有牛在產奶'}</span></div>
         </div>
-        ${btn(o.collectLabel || '收奶', { kind: 'blue', small: true, disabled: o.collectDisabled ?? b.qty <= 0, busy: o.collectBusy })}
+        ${collectBtn}
       </div>
     </article>
     <div class="dock-row">
@@ -60,10 +75,11 @@ export function dock(o = {}) {
   </section>`;
 }
 
+// o.pan：場景往右捲了多少（0–390）；o.collapsed：奶桶、倉庫、行情收起來；o.swipeHint：第一次打開牧場時的滑動提示
 export function ranchPage(ctx, o = {}) {
   const dev = ctx.dev;
   const herd = o.herd || HERD;
-  const sc = ranchScene(dev, herd);
+  const sc = ranchScene(dev, herd, { wide: true, pan: o.pan || 0 });
   let over = '';
   if (o.bubble) {
     const a = sc.anchors[o.bubble];
@@ -79,7 +95,8 @@ export function ranchPage(ctx, o = {}) {
     <div class="ticker"><span class="ticker-icon">${icon('news', 20)}</span><span class="ticker-text" data-marquee>【${NEWS[0].tag}】${NEWS[0].text}</span></div>
     <button class="pen-pill${pen.used >= pen.slots ? ' full' : ''}">${icon('barn', 22)}我的牛<span class="num">${pen.used} / ${pen.slots}</span>${icon('chevron', 16)}</button>
     ${o.center || ''}
-    ${dock(o.dock || {})}`;
+    ${o.swipeHint ? `<div class="swipe-hint"><span class="sh-arrow">${icon('back', 18)}</span>${icon('hand', 24)}<span>左右滑動，看看整個牧場</span><span class="sh-arrow r">${icon('chevron', 18)}</span></div>` : ''}
+    ${dock({ ...(o.dock || {}), pan: o.pan || 0, collapsed: !!o.collapsed })}`;
   return frame(dev, { tab: 'ranch', scene: sc.svg, body, hud: o.hud || {}, overlays: over + (o.overlays || ''), offline: o.offline });
 }
 
@@ -163,6 +180,10 @@ full('S03-09', '數字最大、牛舍滿（量測用）', (ctx) => ranchPage(ctx
   },
 }));
 
+full('S03-11', '收起來：奶桶、倉庫、行情收成一條（收奶鈕留著）', (ctx) => ranchPage(ctx, { collapsed: true }));
+part('S03-12', '收起來的那一條：奶桶滿了、奶桶是 0', '#crop', (ctx) => frame(ctx.dev, { tab: null, hud: false, content: `<div id="crop" class="g-sheet slim-sheet">${dock({ collapsed: true, bucket: { qty: 42 } })}${dock({ collapsed: true, bucket: { qty: 0 } })}</div>` }));
+full('S03-13', '往右滑：牧場的另一邊（池塘、大樹）', (ctx) => ranchPage(ctx, { pan: WIDE - 390 }));
+full('S03-14', '第一次打開牧場：提示可以左右滑動（只出現一次）', (ctx) => ranchPage(ctx, { swipeHint: true }));
 part('S03-10', '耕牛在田裡：清單顯示「工作中」、場景裡看不到', '#crop', (ctx) => frame(ctx.dev, {
   tab: 'ranch', content: `<div id="crop" class="list" style="padding:4px 0 8px">${COWS.filter((c) => c.field != null).map(cowListRow).join('')}</div>`,
 }));

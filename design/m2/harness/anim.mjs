@@ -14,6 +14,7 @@ const FPS = 15;
 const REDUCED = {
   'A-01': ['t0', 'tEnd'], 'A-02': ['t0', 'tEnd'], 'A-03': ['S07-02', 'S20-01'], 'A-04': ['S08-06', 'tEnd'], 'A-05': ['S03-01', 'tEnd'],
   'A-06': ['t0', 'tEnd'], 'A-07': ['t0', 'tEnd'], 'A-08': ['t0', 'tEnd'], 'A-09': ['S19-01', 'S19-05'], 'A-10': ['S07-02', 'S20-01'],
+  'A-11': ['S03-01', 'S03-01'], 'A-12': ['S03-01', 'S03-13'],
 };
 
 async function run(filter) {
@@ -30,7 +31,8 @@ async function run(filter) {
       const dir = join(OUT, a.id);
       await rm(dir, { recursive: true, force: true });
       await mkdir(dir, { recursive: true });
-      for (const [dpr, what] of [[1, 'gif'], [2, 'keys']]) {
+      // GIF 預設 DPR 1；動畫自己可以指定 gifDpr（例如 A-03 用 2，畫面比較細）
+      for (const [dpr, what] of [[a.gifDpr || 1, 'gif'], [2, 'keys']]) {
         const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: dpr, isMobile: true, hasTouch: true, locale: 'zh-TW', colorScheme: 'light' });
         const page = await ctx.newPage();
         const errors = [];
@@ -39,7 +41,8 @@ async function run(filter) {
         await page.goto(`${srv.base}/src/index.html?anim=${a.id}&w=390`, { waitUntil: 'load' });
         await page.waitForFunction(() => window.__ready === true, null, { timeout: 20000 });
         if (what === 'gif') {
-          const n = Math.round(a.dur * FPS);
+          // 循環的動畫：最後一格就是第一格，不重複拍
+          const n = Math.round(a.dur * FPS) - (a.loop ? 1 : 0);
           for (let i = 0; i <= n; i++) {
             await page.evaluate((t) => window.__frame(t), i / FPS);
             await page.screenshot({ path: join(dir, `f${String(i).padStart(3, '0')}.png`) });
