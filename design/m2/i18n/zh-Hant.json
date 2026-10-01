@@ -646,5 +646,6 @@
  "namegen.third.9": "家園",
  "namegen.third.10": "田園",
  "namegen.third.11": "牧野",
- "namegen.pattern": "{first}{second}{third}"
+ "namegen.pattern": "{first}{second}{third}",
+ "s18.deletedRanch": "已刪除的牧場"
 }
