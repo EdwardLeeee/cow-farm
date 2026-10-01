@@ -155,5 +155,7 @@ systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 node harness
 python3 harness/summary.py en
 ```
 
+- 英文、泰文的量測結果和版面建議：`measure/en-th-report.md`（2026-10-02）。
+
 - `raw/`（DPR 3 原始截圖、量測 JSON、動畫影格）不進 git，用上面的指令重產。
 - `boards/` 是加了標籤的設計稿（DPR 2，256 色），進 git。
