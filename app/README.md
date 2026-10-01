@@ -24,7 +24,11 @@
 
 | 路徑 | 內容 |
 |---|---|
-| `lib/l10n/strings.dart` | 所有給玩家看的文字（繁體中文），加語言時換這個檔 |
+| `lib/l10n/strings.dart` | M1 畫面的文字（繁體中文）；畫面照 M2 設計稿重做時改用下面的 `Strings`，全部換完就刪掉 |
+| `lib/l10n/l10n.dart` | 語言（`AppLang`：繁中、英文、泰文）與給畫面用的字串 `Strings.of(context)`（D25） |
+| `lib/l10n/gen/strings.g.dart` | 由 `tool/gen_l10n.dart` 從 `design/m2/i18n/*.json` 產生，不要手改 |
+| `lib/l10n/format.dart` | 數字的寫法（千分位、萬／億、K／M、百分比），照設計稿 |
+| `lib/state/settings.dart` | 語言、漲跌顏色這些偏好設定（shared_preferences；token 不放這裡） |
 | `lib/api/models.dart` | 協定 v1 的資料格式；欄位名稱只出現在這裡 |
 | `lib/api/game_api.dart` | 資料層介面（測試換成假資料） |
 | `lib/api/http_game_api.dart` | HTTP 實作：Bearer token、request_id、重送 |
@@ -60,6 +64,25 @@
 - **`POST /v1/buy_calf` 已停用**（410），app 只用 `POST /v1/shop/buy`。
 - **token 失效**（HTTP 401，或 WebSocket 用關閉碼 4401 關閉，例如資料庫重建）：不再重連，丟掉舊 token，
   重新建立訪客帳號（兩邊同時發生也只建立一次）。
+
+## 語言與字串（D25）
+
+- 字串只有一份：`design/m2/i18n/` 的 `zh-Hant.json`、`en.json`、`th.json`（cow-ui 出繁中、ceo 出英文和泰文）。
+  app 用 `tool/gen_l10n.dart` 產生成 Dart：每個 key 一個成員，佔位符是具名參數，打錯 key 或參數就編譯不過。
+  例：`s02.suggest` → `Strings.of(context).s02Suggest`，`level`（`Lv {lv}`）→ `level(lv: 3)`。
+- 品種名、取名詞庫這類依資料組的 key 用 `breedName(breed)`、`ranchNameFromWords([a, b, c])` 等方法。
+- 字串表改了以後在 `app/` 跑 `dart run tool/gen_l10n.dart`。`test/l10n_test.dart` 會檢查：
+  - 三種語言的 key 和佔位符一樣；
+  - 產生的檔跟字串表同步；
+  - 前後刻意留的空白有保留；
+  - 依資料組的 key 每一組都齊。
+- 數字和時間的寫法照設計稿的程式（`design/m2/src/js/fixtures.js`、`i18n.js`）：
+  - `node tool/gen_format_cases.mjs` 用設計稿的函式產生 `test/fixtures/format_cases.json`；
+  - `test/format_test.dart` 逐筆比。
+- 語言：
+  - 還沒在設定選過時，每次打開都跟著手機的第一個偏好語言：中文 → 繁中、泰文 → 泰文、其他 → 英文。
+  - 選過以後固定用玩家選的（ceo 2026-10-02）。
+- 漲跌顏色：繁中漲紅跌綠，英文、泰文綠漲紅跌；設定裡選過就固定。
 
 ## 指令
 
