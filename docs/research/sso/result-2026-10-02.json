@@ -1,0 +1,43 @@
+{
+ "apple_jwks": {
+  "n": 3,
+  "algs": [
+   "RS256"
+  ],
+  "ms": 513
+ },
+ "google_jwks": {
+  "n": 2,
+  "algs": [
+   "RS256"
+  ],
+  "ms": 30
+ },
+ "apple_like_ok": true,
+ "wrong_aud": "InvalidAudienceError",
+ "wrong_iss": "InvalidIssuerError",
+ "expired": "ExpiredSignatureError",
+ "alg_none": "InvalidAlgorithmError",
+ "google_iss_list": "accounts.google.com",
+ "client_secret": {
+  "alg": "ES256",
+  "kid": "KEYID12345",
+  "len": 308,
+  "verifies": "com.oraclelee.cowfarm"
+ },
+ "fernet": {
+  "roundtrip": true,
+  "cipher_len": 100
+ },
+ "decode_us": {
+  "n": 1000,
+  "median": 173,
+  "p99": 479,
+  "max": 784
+ },
+ "env": {
+  "python": "3.10.12",
+  "machine": "x86_64",
+  "pyjwt": "2.15.1"
+ }
+}

@@ -26,7 +26,7 @@
 | 13 | 借種費 | 主人從 300／800／2,000／5,000 選 | 系統依公牛現在的體重和稀有度算（D26）；借種要帶預覽看到的價格，變了回 `price_changed` | 6，已做 |
 | 14 | 借種紀錄 | 沒有 | `GET /v1/stud/log` | 7，已做 |
 | 15 | 維護 | 沒有 | `GET /v1/status`、`maintenance` 物件、503 `maintenance`、WS 4503 | 8，已做 |
-| 16 | 帳號 | 只有訪客 token | 綁定、解除、找回、換回、刪除牧場（D22）；舊手機收到 `signed_in_elsewhere` | 9 |
+| 16 | 帳號 | 只有訪客 token | 拿 nonce、綁定、解除、找回、換回、刪除牧場（D22）；舊手機收到 `signed_in_elsewhere` | 9（9a 協定已定，9b 實作） |
 | 17 | 遊戲時間 | 伺服器關著時暫停 | 倍率 1（正式版）照真實時間走，關機那段也算；試玩倍率照舊暫停 | 10，已做 |
 
 PR 3–8、10 已做；PR 9 還沒做（2026-10-02）。每個 PR 合併時更新這張表的「PR」欄。
@@ -41,7 +41,7 @@ PR 3–8、10 已做；PR 9 還沒做（2026-10-02）。每個 PR 合併時更�
 |---|---|
 | 網址 | 區網試玩：`http://<開發機區網 IP>:8787`。正式主機 M4 定 |
 | 格式 | 請求與回應都是 JSON（UTF-8） |
-| 認證 | 除了 `POST /v1/session`、`POST /v1/account/recover`、`GET /v1/status`，都要帶 `Authorization: Bearer <token>`。WebSocket 見第 7 節 |
+| 認證 | 除了 `POST /v1/session`、`POST /v1/account/nonce`、`POST /v1/account/recover`、`GET /v1/status`，都要帶 `Authorization: Bearer <token>`。WebSocket 見第 7 節 |
 | CORS | 開放所有來源（token 放 header、不用 cookie） |
 
 ### 1.2 時間
@@ -66,7 +66,7 @@ PR 3–8、10 已做；PR 9 還沒做（2026-10-02）。每個 PR 合併時更�
 ### 1.3 會改變狀態的請求：`request_id`
 
 - 下面這些**必須**帶 `request_id`（UUID 字串）：`POST /v1/collect`、`/v1/sell`、`/v1/ship`、`/v1/breed`、`/v1/upgrade`、`/v1/shop/buy`、`/v1/field/assign`、`/v1/field/recall`、`/v1/field/harvest`、`/v1/field/expand`、`/v1/stud/list`、`/v1/stud/unlist`、`/v1/stud/borrow`。
-- `POST /v1/session` 可以帶（建議帶），規則見 2.1 節。
+- `POST /v1/session` 可以帶（建議帶），規則見 2.1 節。帳號的綁定、換回、找回、刪除也可以帶，規則不一樣，見 5.0 節。
 - 每個「使用者動作」產生一個新的 UUID；網路逾時要重送時，**用同一個 request_id** 重送。
 - 同一位玩家、同一個 request_id 重送：伺服器不再執行，直接回傳**第一次的回應本文**（HTTP 200，內容逐字相同，包括當時的 `server_time`）。重送拿到的 `state` 可能是舊的，之後請再 `GET /v1/state`。
 - 只記住**成功**的結果。失敗（4xx）沒有改變任何狀態，用同一個 request_id 重送會重新判斷。
@@ -94,7 +94,7 @@ PR 3–8、10 已做；PR 9 還沒做（2026-10-02）。每個 PR 合併時更�
 | 400 | `bad_request` | 欄位缺少、型別不對（數字不接受字串或 true/false）、request_id 不是 UUID、qty ≤ 0 | `fields`（格式錯誤時） | `unknownError` | |
 | 400 | `invalid_pair` | 配種、借種不是「公牛 + 母牛」 | | `unknownError` | |
 | 400 | `invalid_name` | 牧場名不能用（2.2 節） | `reason`、`width`、`char` | 見 2.2 節 | 5 |
-| 400 | `sign_in_failed` | Apple／Google 的登入憑證驗證不過、換回的憑單無效或過期 | `reason` | `s13.toast.failed`（S13-12、S14-08） | 9 |
+| 400 | `sign_in_failed` | Apple／Google 的登入憑證驗證不過、nonce 不對、換回的憑單無效或過期、伺服器還沒設定 Apple／Google | `reason`（5.2 節） | `s13.toast.failed`（S13-12、S14-08） | 9 |
 | 401 | `unauthorized` | 沒帶 token、token 無效（例如牧場已刪除、資料庫清掉） | | 畫面 S15-03 | |
 | 401 | `signed_in_elsewhere` | 這個牧場已經在另一支手機找回，這支手機的 token 失效 | | 畫面 S14-05 | 9 |
 | 404 | `cow_not_found` | 牛的 id 不在自己的牧場 | `cow_id` | `err.cow_not_found` | |
@@ -813,21 +813,51 @@ v2 拿掉 `price`（看 `fee.price`）、`type_name`、`tier_name`、`owner_id`�
 
 ## 5. 帳號：備份、找回、刪除牧場（D22；PR 9）
 
-**這一節是草稿**：PR 9 會先照 tech-decision 查 Apple、Google 官方文件（寫進 `docs/research/`），欄位可能依研究結果調整，改了會通知 cow-app。
+依據：`docs/research/2026-10-sso-verification.md`（Apple、Google 官方文件的原文與 spike）。PR 9a 修訂，PR 9b 實作。
 
 - 一個牧場可以同時綁 Apple 和 Google 各一個；一個 Apple 或 Google 帳號只能綁一個牧場。
-- 伺服器只存 Apple／Google 給的帳號識別碼（`sub`）和綁定時間，**不存 email 和姓名**（登入憑證裡有也不存）。
-- Apple 綁定時另外要送 `authorization_code`：伺服器拿它向 Apple 換 refresh token 並加密保存，刪除牧場或解除綁定時用它撤銷 Apple 登入（Apple 5.1.1(v)）。這是憑證、不是身分資料。
-- `provider`：`apple` 或 `google`。`id_token`：Apple 的 identity token、Google 的 ID token（JWT，原樣送）。
+- 伺服器只存 Apple／Google 給的帳號識別碼（`sub`）和綁定時間，**不存 email 和姓名**（登入憑證裡有也不存）。identity token 驗完就丟。
+- Apple 綁定時另外要送 `authorization_code`。伺服器拿它向 Apple 換 refresh token 並加密保存（Apple TN3194 的做法），刪除牧場或解除綁定時用它撤銷 Apple 登入（Apple 5.1.1(v)）。這是憑證，不是身分資料。
+- `provider`：`apple` 或 `google`。`id_token`：Apple 的 identity token、Google 的 ID token（JWT，原樣送）。Google 的要用伺服器（Web）的 client ID 去要（iOS 的 `GIDServerClientID`、Android 的 `setServerClientId`）。
 - 結果怎麼顯示：綁定成功 `s13.toast.bound`、解除 `s13.toast.unbound`、取消登入 `s13.toast.cancelled`（app 自己知道，不打伺服器）、`sign_in_failed` → `s13.toast.failed`。
 
-### 5.1 `POST /v1/account/link` 綁定（要 token）
+### 5.0 登入流程（綁定 5.2、找回 5.5 都一樣）
+
+1. app 打 `POST /v1/account/nonce`（5.1），拿到 `nonce`。
+2. 把 `nonce` 交給登入套件：
+   - Apple：`ASAuthorizationAppleIDRequest.nonce`（Flutter 的 `sign_in_with_apple` 是 `nonce` 參數）。
+   - Google：Android `setNonce(nonce)`；iOS 的 GoogleSignIn 有 `nonce` 參數的版本就傳。
+3. 使用者登入完成，app 拿到 `id_token`（Apple 另外有 `authorization_code`）。
+4. 把 `id_token`、`nonce`（Apple 加 `authorization_code`）送給伺服器。
+
+**nonce 的比對規則**：token 裡的 `nonce` 等於你拿到的原值，或等於原值的 SHA-256（十六進位小寫）都算對。有些套件會先做 SHA-256 再交給 Apple，這樣兩種都接得上。nonce 只能用一次（不論成功失敗）；失敗了重新從第 1 步開始。
+
+**`request_id`**（選填，建議帶；UUID）：綁定、換回、找回、刪除都可以帶。網路逾時重送時用同一個，10 分鐘內回**第一次的回應**（逐字相同；換回、找回的回應裡有新的 token）。跟其他請求的差別：
+
+- 一般動作（1.3 節）的 request_id 記在資料庫，保存 7 天。
+- 建立牧場（2.1 節）的 request_id 記在資料庫，重送會發一個新的 token。
+- 這四個只記在伺服器的記憶體，伺服器重開就沒有了：裡面有新的 token，不寫進資料庫。換回、刪除成功以後舊 token 已經失效，所以伺服器先比對「request_id＋送來的 token」再驗 token，重送照樣拿得到第一次的回應。
+
+### 5.1 `POST /v1/account/nonce` 拿 nonce（不用 token）
+
+請求：`{}`。回應：
+
+```json
+{"server_time": 1791141900.0, "real_time": 1790771411.2, "time_scale": 144.0,
+ "nonce": "pX3v0Qm8yK2-7wF1aZbT9eRgUhJ4sLcN", "expires_at_real": 1790772011.2}
+```
+
+- 10 分鐘（現實時間）內有效，只能用一次。伺服器重開以後沒用過的都失效。
+
+### 5.2 `POST /v1/account/link` 綁定（要 token）
 
 請求：
 
 ```json
-{"provider": "apple", "id_token": "eyJraWQiOi…", "authorization_code": "c1a2b3…"}
+{"provider": "apple", "id_token": "eyJraWQiOi…", "nonce": "pX3v0Qm8…", "authorization_code": "c1a2b3…", "request_id": "<uuid>"}
 ```
+
+- `authorization_code`：Apple 一定要（只能用一次、很快過期，拿到就送）；Google 不用送。
 
 回應：
 
@@ -837,7 +867,7 @@ v2 拿掉 `price`（看 `fee.price`）、`type_name`、`tier_name`、`owner_id`�
  "account": {"links": [{"provider": "apple", "linked_at_real": 1790771411.2}]}}
 ```
 
-- 同一個帳號已經綁在這個牧場：回 200（重送也安全）。
+- 同一個帳號已經綁在這個牧場：回 200。
 - 帳號已經綁了**別的**牧場：`409 account_in_use`（S13-08「這個帳號已經備份了另一個牧場」）：
 
   ```json
@@ -846,12 +876,12 @@ v2 拿掉 `price`（看 `fee.price`）、`type_name`、`tier_name`、`owner_id`�
               "switch_ticket": "t9Qx…", "ticket_expires_at_real": 1790772011.2}}}
   ```
 
-  玩家選「換回那個牧場」並再確認（S13-09）後，用 `switch_ticket` 打 5.2；選「取消」就什麼都不用做。
-- 其他錯誤：`provider_already_linked`（這個牧場已經綁了另一個同種帳號）、`sign_in_failed`（`reason`：`token_invalid`、`token_expired`、`code_invalid`）。
+  玩家選「換回那個牧場」並再確認（S13-09）後，用 `switch_ticket` 打 5.3；選「取消」就什麼都不用做。
+- 其他錯誤：`provider_already_linked`（這個牧場已經綁了另一個同種帳號）、`sign_in_failed`（`reason`：`token_invalid`、`token_expired`、`nonce_invalid`、`code_invalid`、`not_configured`）。
 
-### 5.2 `POST /v1/account/switch` 換回那個牧場（要 token）
+### 5.3 `POST /v1/account/switch` 換回那個牧場（要 token）
 
-請求：`{"switch_ticket": "t9Qx…"}`（10 分鐘內有效，只能用一次，跟發出它的牧場綁在一起）
+請求：`{"switch_ticket": "t9Qx…", "request_id": "<uuid>"}`。`switch_ticket` 10 分鐘內有效、只能用一次，跟發出它的牧場綁在一起。
 
 回應（形狀同 2.1，`created: false`）：
 
@@ -860,20 +890,24 @@ v2 拿掉 `price`（看 `fee.price`）、`type_name`、`tier_name`、`owner_id`�
  "token": "Zk1…", "player_id": 17, "ranch_name": "青草小丘農莊", "created": false, "state": {"…": "那個牧場的 GET /v1/state"}}
 ```
 
-- 伺服器在同一個動作裡：**刪除這支手機現在的牧場**（跟 5.5 一樣）、發新 token 給那個牧場；那個牧場原本的 token 全部失效（舊手機收到 `signed_in_elsewhere`）。
+- 伺服器在同一個動作裡：**刪除這支手機現在的牧場**（跟 5.6 一樣），發新 token 給那個牧場；那個牧場原本的 token 全部失效（舊手機收到 `signed_in_elsewhere`）。
 - app 換掉存的 token，回到牧場畫面。
 - 錯誤：`sign_in_failed`（`reason`：`ticket_invalid`、`ticket_expired`）。
 
-### 5.3 `POST /v1/account/unlink` 解除綁定（要 token）
+### 5.4 `POST /v1/account/unlink` 解除綁定（要 token）
 
-請求：`{"provider": "apple"}`。回應：`{"…時間欄位", "account": {"links": […]}}`。
+請求：`{"provider": "apple", "request_id": "<uuid>"}`。回應：`{"…時間欄位", "account": {"links": […]}}`。
 
 - Apple 的會順便撤銷 Apple 登入（撤銷失敗會在背景重試，不影響回應）。
 - 錯誤：`not_linked`。
 
-### 5.4 `POST /v1/account/recover` 找回牧場（不用 token）
+### 5.5 `POST /v1/account/recover` 找回牧場（不用 token）
 
-新手機或重裝後，S14-02 按登入按鈕。請求：`{"provider": "google", "id_token": "eyJhbGciOi…"}`
+新手機或重裝後，S14-02 按登入按鈕。請求：
+
+```json
+{"provider": "google", "id_token": "eyJhbGciOi…", "nonce": "pX3v0Qm8…", "request_id": "<uuid>"}
+```
 
 回應（形狀同 2.1，`created: false`；S14-04「歡迎回來」的等級、金幣、牛從 `state` 拿）：
 
@@ -883,20 +917,28 @@ v2 拿掉 `price`（看 `fee.price`）、`type_name`、`tier_name`、`owner_id`�
 ```
 
 - 發新 token；這個牧場原本的 token 全部失效（舊手機收到 `signed_in_elsewhere`，伺服器也會主動關掉它開著的 WebSocket）。
-- 錯誤：`account_not_linked`（S14-03「這個帳號沒有備份過牧場」）、`sign_in_failed`。
+- Apple 找回不用送 `authorization_code`（refresh token 在綁定時已經換好）。
+- 錯誤：`account_not_linked`（S14-03「這個帳號沒有備份過牧場」）、`sign_in_failed`（`token_invalid`、`token_expired`、`nonce_invalid`、`not_configured`）。
 
-### 5.5 `POST /v1/account/delete` 刪除牧場（要 token）
+### 5.6 `POST /v1/account/delete` 刪除牧場（要 token）
 
-請求：`{}`（「輸入刪除兩個字」只在 app 裡確認）。回應：`{"…時間欄位", "deleted": true}`。
+請求：`{"request_id": "<uuid>"}`（「輸入刪除兩個字」只在 app 裡確認）。回應：`{"…時間欄位", "deleted": true}`。
 
-- 伺服器刪除牧場、牛、金幣、倉庫、排行榜紀錄；解除所有綁定並撤銷 Apple 登入；他上架的公牛下架。
-- 留下來的：市場的成交紀錄（不帶身分，市場重算要用）；別人的借種紀錄（對方顯示「已刪除的牧場」）。
-- 之後這個 token 會收到 `401 unauthorized`；app 回到第一次打開的畫面（S13-04）。
+- 伺服器在同一個動作裡刪除：
+  - 牧場名、牛、金幣、倉庫、田地、圖鑑、等級，以及排行榜和借種市場上的資料。
+  - 所有綁定（Apple／Google 帳號識別碼），並撤銷 Apple 登入（撤銷暫時失敗會在背景重試）。
+  - 他上架的公牛下架。
+- 留下來的（都不含個人資料）：
+  - 一筆空殼，只有牧場編號和建立、刪除的時間。用途是讓編號不會被別的牧場重複使用。
+  - 市場的成交紀錄：數量、價格、時間，行情重算要用。
+  - 別人的借種紀錄：對方顯示「已刪除的牧場」（`ranch: null`）。
+- 刪除後任何回應都看不到這個牧場（排行榜、借種市場）。
+- 之後這個 token 會收到 `401 unauthorized`；app 回到第一次打開的畫面（S13-04）。網路逾時沒收到回應：用同一個 `request_id` 重送，10 分鐘內會拿到 `deleted: true`（不是 401）。
 - 刪除後，同一個 Apple／Google 帳號可以再綁新的牧場。
 
-### 5.6 舊手機：`signed_in_elsewhere`
+### 5.7 舊手機：`signed_in_elsewhere`
 
-- 牧場在另一支手機找回（5.4）或換回（5.2）之後，舊手機的 token 失效：HTTP 回 `401 signed_in_elsewhere`；WebSocket 先送 `{"type": "error", "error": {"code": "signed_in_elsewhere", …}}` 再用 4401 關閉（開著的連線伺服器也會主動關）。
+- 牧場在另一支手機找回（5.5）或換回（5.3）之後，舊手機的 token 失效：HTTP 回 `401 signed_in_elsewhere`；WebSocket 先送 `{"type": "error", "error": {"code": "signed_in_elsewhere", …}}` 再用 4401 關閉（開著的連線伺服器也會主動關）。
 - app 顯示 S14-05「牧場已經在另一支手機登入」（`s14.elsewhereLead` 的 `{name}` 用 app 自己記得的牧場名）。
 - 牧場刪除後，舊 token 改回 `unauthorized`（S15-03）。
 
@@ -993,3 +1035,4 @@ app 啟動時先打這個（還沒有 token 也能打），再決定要不要顯
 - 2026-10-02：PR 7 做完第 0 節 14 項：`GET /v1/stud/log`（借出、借入，保留 30 遊戲天，最多 200 筆）；紀錄跟借種在同一個交易寫入。
 - 2026-10-02：PR 8 做完第 0 節 15 項：`GET /v1/status`、`state.maintenance`、503 `maintenance`、WS `maintenance` 訊息與 4503；`backend/scripts/maint.py` 安排與結束維護。第一版不做維護前的提示畫面（ceo 2026-10-02），資料先給。
 - 2026-10-02：PR 10 做完第 0 節 17 項：倍率 1 時伺服器關著的那段照真實時間算（奶桶照樣累積、市場補跑 tick、電腦假玩家不補做）；試玩倍率照舊暫停。欄位不變。
+- 2026-10-02：PR 9a 修訂第 5 節（研究：`docs/research/2026-10-sso-verification.md`）：新增 `POST /v1/account/nonce`，綁定、找回要送 `nonce`；綁定、換回、找回、刪除可以帶 `request_id`（只記在記憶體，10 分鐘內回第一次的回應）；`sign_in_failed` 加 `nonce_invalid`、`not_configured`；刪除牧場改成軟刪除（只留沒有個資的編號）。
