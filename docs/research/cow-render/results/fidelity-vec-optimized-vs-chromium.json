@@ -1,0 +1,42 @@
+{
+ "test_vs_ref": {
+  "images": 192,
+  "compared": 192,
+  "problems": [],
+  "mean_diff": {
+   "median": 0.275,
+   "min": 0.117,
+   "max": 0.783
+  },
+  "pct_gt16": {
+   "median": 0.296,
+   "min": 0.016,
+   "max": 1.256
+  },
+  "pct_gt64": {
+   "median": 0.0,
+   "min": 0.0,
+   "max": 0.159
+  },
+  "pct_gt128": {
+   "median": 0.0,
+   "min": 0.0,
+   "max": 0.087
+  },
+  "alpha_iou": {
+   "median": 0.99985,
+   "min": 0.9991,
+   "max": 1.0
+  },
+  "worst_by_pct_gt64": [
+   "starry_bull_adult_side_v0",
+   "starry_cow_adult_side_v0",
+   "starry_cow_calf_side_v0",
+   "starry_cow_calf_front_v0",
+   "starry_bull_calf_side_v0",
+   "holstein_cow_adult_front_v0",
+   "starry_bull_calf_front_v0",
+   "holstein_cow_calf_side_v0"
+  ]
+ }
+}

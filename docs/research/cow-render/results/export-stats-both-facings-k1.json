@@ -1,0 +1,110 @@
+{
+ "variants": 1,
+ "facings": [
+  "left",
+  "right"
+ ],
+ "combos": 384,
+ "unique": 384,
+ "rawBytes": 18752514,
+ "deflateBytes": 3543970,
+ "maxBytes": 68464,
+ "perBreedSeedVaries": {
+  "holstein": {
+   "side": 1,
+   "front": 1
+  },
+  "fluffyHolstein": {
+   "side": 1,
+   "front": 1
+  },
+  "jersey": {
+   "side": 1,
+   "front": 1
+  },
+  "glossBlack": {
+   "side": 1,
+   "front": 1
+  },
+  "cottonCream": {
+   "side": 1,
+   "front": 1
+  },
+  "velvetBlack": {
+   "side": 1,
+   "front": 1
+  },
+  "chocolate": {
+   "side": 1,
+   "front": 1
+  },
+  "strawberry": {
+   "side": 1,
+   "front": 1
+  },
+  "yellow": {
+   "side": 1,
+   "front": 1
+  },
+  "highland": {
+   "side": 1,
+   "front": 1
+  },
+  "milkTea": {
+   "side": 1,
+   "front": 1
+  },
+  "buffalo": {
+   "side": 1,
+   "front": 1
+  },
+  "cottonCandy": {
+   "side": 1,
+   "front": 1
+  },
+  "shaggyBuffalo": {
+   "side": 1,
+   "front": 1
+  },
+  "honey": {
+   "side": 1,
+   "front": 1
+  },
+  "goldenEar": {
+   "side": 1,
+   "front": 1
+  },
+  "angus": {
+   "side": 1,
+   "front": 1
+  },
+  "galloway": {
+   "side": 1,
+   "front": 1
+  },
+  "charolais": {
+   "side": 1,
+   "front": 1
+  },
+  "wagyu": {
+   "side": 1,
+   "front": 1
+  },
+  "whiteFleece": {
+   "side": 1,
+   "front": 1
+  },
+  "fluffyWagyu": {
+   "side": 1,
+   "front": 1
+  },
+  "whiteWagyu": {
+   "side": 1,
+   "front": 1
+  },
+  "starry": {
+   "side": 1,
+   "front": 1
+  }
+ }
+}

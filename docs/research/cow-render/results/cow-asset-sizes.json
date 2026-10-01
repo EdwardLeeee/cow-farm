@@ -1,0 +1,67 @@
+{
+ "need_right": [
+  "angus",
+  "buffalo",
+  "chocolate",
+  "fluffyWagyu",
+  "glossBlack",
+  "goldenEar",
+  "honey",
+  "shaggyBuffalo",
+  "starry",
+  "velvetBlack",
+  "wagyu",
+  "whiteWagyu"
+ ],
+ "K=1": {
+  "left_only": {
+   "files": 192,
+   "mb": 3.09,
+   "deflate_mb": 2.14
+  },
+  "left_plus_needed_right": {
+   "files": 288,
+   "mb": 4.6,
+   "deflate_mb": 3.17
+  },
+  "both": {
+   "files": 384,
+   "mb": 6.19,
+   "deflate_mb": 4.27
+  }
+ },
+ "K=4": {
+  "left_only": {
+   "files": 408,
+   "mb": 7.31,
+   "deflate_mb": 5.09
+  },
+  "left_plus_needed_right": {
+   "files": 600,
+   "mb": 10.58,
+   "deflate_mb": 7.33
+  },
+  "both": {
+   "files": 816,
+   "mb": 14.62,
+   "deflate_mb": 10.16
+  }
+ },
+ "K=8": {
+  "left_only": {
+   "files": 696,
+   "mb": 12.94,
+   "deflate_mb": 9.02
+  },
+  "left_plus_needed_right": {
+   "files": 1016,
+   "mb": 18.55,
+   "deflate_mb": 12.89
+  },
+  "both": {
+   "files": 1392,
+   "mb": 25.88,
+   "deflate_mb": 18.03
+  }
+ }
+}

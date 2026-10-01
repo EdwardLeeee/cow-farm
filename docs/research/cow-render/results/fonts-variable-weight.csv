@@ -1,0 +1,23 @@
+case,ink,ink_vs_st400
+st400,7072,1.000
+st900,12963,1.833
+st700,10986,1.554
+vfttf_plain,7033,0.994
+vfttf_weight900_only,12771,1.806
+vfttf_var400,7033,0.994
+vfttf_var900,12771,1.806
+vfttf_both900,12771,1.806
+vfttf_both700,10827,1.531
+vfotf_var400,7067,0.999
+vfotf_var900,12974,1.835
+th_var400,4705,0.665
+th_var900,9337,1.320
+
+pair,pct_pixels_alpha_diff_gt64
+vfttf_var400 vs st400,9.248
+vfttf_var900 vs st900,7.242
+vfttf_both700 vs st700,11.034
+vfttf_both900 vs vfttf_var900,0.000
+vfotf_var900 vs st900,3.814
+vfttf_weight900_only vs st900,7.242
+vfttf_weight900_only vs vfttf_plain,66.228
