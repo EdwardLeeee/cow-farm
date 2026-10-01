@@ -175,6 +175,13 @@ def test_real_server_survives_sigkill(tmp_path):
         hist_before = c.get("/v1/market/history", headers=hd, params={"commodity": "milk", "range": "1h"}).json()["points"]
         health_before = c.get("/healthz").json()
         assert health_before["ticks"] > 20 and health_before["bot_actions"] > 0
+        # 價格歷史是記憶體先更新、再寫進資料庫：等下一個 tick 開始（上一個 tick 的寫入一定已經完成），
+        # 確定 hist_before 的最後一點已經寫入，再強制關機。沒等的話，最後一點可能還沒寫入，重開後會重算出些微不同的價格。
+        t_last = hist_before[-1][0]
+        for _ in range(100):
+            if c.get("/healthz").json()["tick_t"] >= t_last + 60:
+                break
+            time.sleep(0.05)
         os.kill(proc.pid, signal.SIGKILL)
         proc.wait(timeout=10)
 
@@ -183,7 +190,6 @@ def test_real_server_survives_sigkill(tmp_path):
         assert stable(after) == stable(before)
         assert after["server_time"] >= before["server_time"]
         hist_after = c.get("/v1/market/history", headers=hd, params={"commodity": "milk", "range": "1h"}).json()["points"]
-        t_last = hist_before[-1][0]
         assert [p for p in hist_after if p[0] <= t_last][-len(hist_before):] == hist_before  # 價格歷史都還在
         health_after = c.get("/healthz").json()
         assert health_after["tick_t"] >= health_before["tick_t"]
