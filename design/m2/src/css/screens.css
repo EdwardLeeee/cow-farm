@@ -306,7 +306,10 @@
 .sr-pic { flex: none; width: 60px; height: 60px; border-radius: 14px; background: #E4F4DA; border: 2px solid var(--ink); overflow: hidden; line-height: 0; display: grid; place-items: end center; }
 .sr-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .sr-name { font-size: 15px; font-weight: 900; line-height: 20px; white-space: nowrap; }
-.sr-owner { font-size: 12px; font-weight: 700; color: var(--ink-2); line-height: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sr-owner { display: flex; align-items: baseline; min-width: 0; font-size: 12px; font-weight: 700; color: var(--ink-2); line-height: 17px; white-space: nowrap; }
+.so-k, .so-tag, .sr-owner .bot { flex: none; }
+.so-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.so-tag { margin-left: 4px; }
 .sr-owner .bot { display: inline-block; font-size: 12px; font-weight: 900; color: #FFFFFF; background: #8A6F60; border-radius: 6px; padding: 0 4px; margin-right: 3px; line-height: 15px; }
 .sr-price { flex: none; display: flex; align-items: center; gap: 3px; }
 .sr-price .num { font-size: 17px; }
@@ -371,7 +374,9 @@
 .medal.m1 { background: #FFD45E; }
 .medal.m2 { background: #E3E7EE; }
 .medal.m3 { background: #F2C29B; }
-.rn { font-size: 15px; font-weight: 900; line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rn { display: flex; align-items: baseline; min-width: 0; font-size: 15px; font-weight: 900; line-height: 20px; white-space: nowrap; }
+.rn-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.rn .tag, .rn .bot { flex: none; }
 .rn .tag { font-size: 12px; font-weight: 700; color: var(--ink-2); margin-left: 4px; }
 .rn .bot { display: inline-block; font-size: 12px; font-weight: 900; color: #FFFFFF; background: #8A6F60; border-radius: 6px; padding: 0 4px; margin-right: 4px; line-height: 16px; vertical-align: 1px; }
 .rl { display: flex; align-items: center; gap: 6px; margin-top: 2px; }
@@ -605,10 +610,11 @@
 .price-row.on { background: #FFF1B8; border-color: var(--ink); box-shadow: 0 2px 0 var(--ink); }
 .pr-ic { flex: none; width: 38px; height: 38px; border-radius: 12px; background: #FFFFFF; border: 2px solid var(--ink); display: grid; place-items: center; line-height: 0; }
 .pr-name { font-size: 16px; font-weight: 900; white-space: nowrap; }
-.pr-price { margin-left: auto; white-space: nowrap; }
+.pr-right { margin-left: auto; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
+.pr-price { white-space: nowrap; }
 .pr-price .num { font-size: 20px; line-height: 24px; }
-.pr-price small { font-size: 11.5px; font-weight: 700; color: var(--ink-2); margin-left: 2px; }
-.vs { flex: none; display: inline-flex; align-items: center; gap: 2px; min-width: 92px; justify-content: flex-end; font-size: 12px; font-weight: 900; white-space: nowrap; }
+.pr-price small { font-size: 12px; font-weight: 700; color: var(--ink-2); margin-left: 2px; }
+.vs { flex: none; display: inline-flex; align-items: center; gap: 2px; justify-content: flex-end; font-size: 12px; font-weight: 900; white-space: nowrap; }
 .vs .num { font-size: 14px; }
 .vs.up { color: var(--up); }
 .vs.down { color: var(--down); }
@@ -640,7 +646,7 @@
 .mb-row .chips .hint .num { font-size: 14px; color: var(--ink); }
 .sr-price { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 1px; }
 .sr-p { display: flex; align-items: center; gap: 3px; }
-.sr-grow { font-size: 11.5px; font-weight: 900; color: #3F8F4A; white-space: nowrap; }
+.sr-grow { font-size: 12px; font-weight: 900; color: #3F8F4A; white-space: nowrap; }
 
 /* ================= S02 自己取名（D23） ================= */
 .namer-head.compact h1 { margin: 2px 0 0; font-size: 20px; }
@@ -673,3 +679,12 @@
 .ud-opt { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 10px 12px; }
 .ud-opt b { display: block; font-size: 16px; line-height: 21px; }
 .ud-opt.on { background: #FFF1B8; }
+
+@media (max-height: 700px) {
+  /* 很矮的手機：大新聞提示往上放，免得壓到奶桶 */
+  .big-news { top: calc(var(--safe-top) + var(--hud-h) + 12px); }
+}
+@media (max-width: 339px) {
+  /* 320 寬：頂列的牧場名放不下時用「…」截短 */
+  .farm-name { overflow: hidden; text-overflow: ellipsis; }
+}

@@ -86,7 +86,7 @@ function studRow(l, { on = false } = {}) {
   const b = BREEDS[l.breed];
   return `<button class="card stud-row${on ? ' on' : ''}">
     <span class="sr-pic">${cowSVG({ breed: l.breed, sex: 'bull', seed: l.seed }, { w: 60, h: 60, pad: 3 })}</span>
-    <span class="sr-info"><span class="sr-name">${b.name}<span class="use"> 公</span></span><span class="chips">${useChip(b.use)}${tierChip(tierOf(b))}</span><span class="sr-owner">主人：${l.bot ? `<span class="bot">電腦</span>${l.owner}` : `${l.owner} ${l.tag}`}</span></span>
+    <span class="sr-info"><span class="sr-name">${b.name}<span class="use"> 公</span></span><span class="chips">${useChip(b.use)}${tierChip(tierOf(b))}</span><span class="sr-owner"><span class="so-k">主人：</span>${l.bot ? '<span class="bot">電腦</span>' : ''}<span class="so-name">${l.owner}</span>${l.bot ? '' : `<span class="so-tag">${l.tag}</span>`}</span></span>
     <span class="sr-price"><span class="sr-p">${icon('coin', 22)}<b class="num">${fmt(l.price)}</b></span>${l.growing ? '<span class="sr-grow">還在長</span>' : ''}</span>
     ${on ? `<span class="pick-check">${icon('ok', 22)}</span>` : ''}
   </button>`;

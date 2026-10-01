@@ -1,32 +1,27 @@
 {
  "430": {
-  "states": 162,
+  "states": 165,
   "minFont": 12,
   "bad": [],
   "hscroll": []
  },
  "390": {
-  "states": 162,
+  "states": 165,
   "minFont": 12,
   "bad": [],
   "hscroll": []
  },
  "360": {
-  "states": 162,
+  "states": 165,
   "minFont": 12,
   "bad": [],
   "hscroll": []
  },
  "320": {
-  "states": 162,
+  "states": 165,
   "minFont": 12,
   "bad": [
-   "G-03",
-   "S03-08",
-   "S03-09",
-   "S12-03",
-   "S12-04",
-   "S12-07"
+   "S03-08"
   ],
   "hscroll": []
  }

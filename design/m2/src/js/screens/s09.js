@@ -84,7 +84,7 @@ S.push({ id: 'S09-05', name: '24 種全圖（核准外型）', type: 'sheet', vi
 const KINDS = [['networth', '總資產', '幣'], ['collection', '圖鑑', '種'], ['weekly', '本週收入', '幣']];
 function rankRow(r, unit, me = false) {
   const medal = r.rank <= 3 ? `<span class="medal m${r.rank}">${r.rank}</span>` : `<span class="rk num">${r.rank}</span>`;
-  return `<div class="rank-row${me ? ' me' : ''}">${medal}<div class="grow"><div class="rn">${r.bot ? '<span class="bot">電腦</span>' : ''}${r.name}<span class="tag">${r.tag}</span></div><div class="rl"><span class="lv num">Lv ${r.level}</span>${me ? '<span class="badge new">我</span>' : ''}</div></div><b class="num rv">${compactBig(r.value)}<small>${unit}</small></b></div>`;
+  return `<div class="rank-row${me ? ' me' : ''}">${medal}<div class="grow"><div class="rn">${r.bot ? '<span class="bot">電腦</span>' : ''}<span class="rn-name">${r.name}</span><span class="tag">${r.tag}</span></div><div class="rl"><span class="lv num">Lv ${r.level}</span>${me ? '<span class="badge new">我</span>' : ''}</div></div><b class="num rv">${compactBig(r.value)}<small>${unit}</small></b></div>`;
 }
 function rankPage(ctx, { kind = 0, me = null, state = '', rows = null, tall = false } = {}) {
   const [key, label, unit] = KINDS[kind];

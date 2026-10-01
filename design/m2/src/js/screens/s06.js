@@ -20,7 +20,7 @@ function pricesCard(sel, mk, { loading = false } = {}) {
     <div class="price-rows">${KEYS.map((k) => {
       const m = mk[k];
       return `<button class="price-row${k === sel ? ' on' : ''}"><span class="pr-ic">${icon(IC[k], 26)}</span><span class="pr-name">${m.name}</span>
-        <span class="pr-price"><b class="num">${m.price}</b><small>幣／${m.unit}</small></span>${vsText(m)}</button>`;
+        <span class="pr-right"><span class="pr-price"><b class="num">${m.price}</b><small>幣／${m.unit}</small></span>${vsText(m)}</span></button>`;
     }).join('')}</div>
     <p class="hint pr-base">平常（基本價）：牛奶 12 幣／瓶、牛肉 12 幣／公斤、稻米 5 幣／公斤</p>
   </article>`;

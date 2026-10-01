@@ -46,7 +46,12 @@ function measure() {
     const top = Math.max(r.top, cr.top), bottom = Math.min(r.bottom, cr.bottom);
     return { left: r.left, right: r.right, top, bottom, width: r.width, height: Math.max(0, bottom - top) };
   };
-  shown.forEach((t) => { t.vr = visRect(t.el, t.rect); });
+  shown.forEach((t) => {
+    t.vr = visRect(t.el, t.rect);
+    // 刻意截成「…」的字（自己或上一層 overflow:hidden＋ellipsis）：看得到的只有那個框
+    const clipEl = [t.el, t.el.parentElement].find((e) => e && getComputedStyle(e).textOverflow === 'ellipsis' && getComputedStyle(e).overflowX !== 'visible');
+    if (clipEl) { const b = clipEl.getBoundingClientRect(); t.vr = { left: Math.max(t.vr.left, b.left), right: Math.min(t.vr.right, b.right), top: t.vr.top, bottom: t.vr.bottom }; t.ellip = clipEl; }
+  });
   // 被截：超出 overflow 不是 visible 的祖先（含手機邊界）
   const clipped = [], truncated = [], belowFold = hiddenTexts.map((t) => t.text);
   shown.forEach((t) => {
@@ -56,7 +61,7 @@ function measure() {
       if (cs.overflowX !== 'visible' || cs.overflowY !== 'visible') {
         const ar = a.getBoundingClientRect(), r = t.rect;
         if (r.left < ar.left - 0.5 || r.right > ar.right + 0.5 || r.top < ar.top - 0.5 || r.bottom > ar.bottom + 0.5) {
-          if (getComputedStyle(t.el).textOverflow === 'ellipsis' && a === t.el.parentElement) { truncated.push(t.text); break; }
+          if (getComputedStyle(a).textOverflow === 'ellipsis' || (getComputedStyle(t.el).textOverflow === 'ellipsis' && a === t.el.parentElement)) { if (!truncated.includes(t.text)) truncated.push(t.text); break; }
           // 可以捲動的內容區：底下被切到只是「要往下捲才看得到」，另外記
           if (a.classList.contains('content') && r.left >= ar.left - 0.5 && r.right <= ar.right + 0.5) belowFold.push(t.text);
           else clipped.push({ text: t.text, by: String(a.className).slice(0, 40) });
@@ -90,8 +95,8 @@ function measure() {
     const x = Math.min(a.vr.right, b.vr.right) - Math.max(a.vr.left, b.vr.left);
     const y = Math.min(a.vr.bottom, b.vr.bottom) - Math.max(a.vr.top, b.vr.top);
     if (x > 2 && y > 0.35 * Math.min(a.rect.height, b.rect.height)) { // 字框比行高大，上下兩行的字框本來就會碰到一點
-      const za = a.el.closest('.backdrop ~ *, .dialog, .sheet, .toast, .cow-pop, .bubble, .hud-offline, .lv-wrap, .long-off');
-      const zb = b.el.closest('.backdrop ~ *, .dialog, .sheet, .toast, .cow-pop, .bubble, .hud-offline, .lv-wrap, .long-off');
+      const za = a.el.closest('.backdrop ~ *, .dialog, .sheet, .toast, .cow-pop, .bubble, .hud-offline, .lv-wrap, .long-off, .big-news, .swipe-hint');
+      const zb = b.el.closest('.backdrop ~ *, .dialog, .sheet, .toast, .cow-pop, .bubble, .hud-offline, .lv-wrap, .long-off, .big-news, .swipe-hint');
       if (!!za !== !!zb) continue; // 對話框、提示蓋在頁面上是故意的
       overlaps.push([a.text, b.text]);
     }
@@ -103,7 +108,7 @@ function measure() {
       if (b.contains(t.el) || t.el.contains(b)) return;
       const r = visRect(b, b.getBoundingClientRect());
       const x = Math.min(t.vr.right, r.right) - Math.max(t.vr.left, r.left), y = Math.min(t.vr.bottom, r.bottom) - Math.max(t.vr.top, r.top);
-      const OV = '.dialog, .sheet, .toast, .cow-pop, .hud-offline, .bubble, .lv-wrap, .long-off';
+      const OV = '.dialog, .sheet, .toast, .cow-pop, .hud-offline, .bubble, .lv-wrap, .long-off, .big-news, .swipe-hint';
       if (x > 2 && y > 2 && !!t.el.closest(OV) === !!b.closest(OV)) overlaps.push([t.text, '按鈕:' + b.textContent.trim().slice(0, 10)]);
     });
   });
