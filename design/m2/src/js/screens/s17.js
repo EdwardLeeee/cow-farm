@@ -3,6 +3,7 @@ import { frame, btn, icon, fmt, bar, cowSVG, sheet, toast, tierChip, badge, BREE
 import { FIELDS, FIELD_UP, cowById, WAREHOUSE, sum, RANCH } from '../fixtures.js';
 import { drawCow } from '../../cow/render.js';
 import { tierOf } from '../../cow/breeds.js';
+import { t, tb, dur, cowName } from '../i18n.js';
 
 const L = '#4B3326';
 // 田地場景：每塊田一格水田，稻子依長滿的比例長高，長滿變金黃；有牛的田，牛站在田前面
@@ -40,20 +41,20 @@ export function fieldScene(w, fields) {
 
 function until(f) {
   const m = Math.ceil(((f.cap - f.rice) / f.rate) * 60);
-  return m >= 60 ? `${Math.floor(m / 60)} 小時 ${m % 60} 分` : `${m} 分`;
+  return m >= 60 ? `${t('hours', { h: Math.floor(m / 60) })} ${t('minutes', { m: m % 60 })}` : t('minutes', { m });
 }
 function fieldCard(f, o = {}) {
-  const head = `<div class="fc-head"><span class="fc-no">第 ${f.index + 1} 塊田</span>`;
+  const head = `<div class="fc-head"><span class="fc-no">${t('fieldName', { n: f.index + 1 })}</span>`;
   if (!f.cow) {
-    const left = f.rice > 0 ? `<p class="hint">牛叫回來了，田裡還有 <b class="num">${fmt(f.rice, 1)}</b> 公斤稻米，收成時一起收。</p>` : '<p class="hint">空田：派一頭成年耕牛來種稻。</p>';
-    return `<article class="card field-card empty">${head}${badge('lock', '空田')}</div>${left}
-      ${o.noOx ? `<p class="warn-text">${icon('warn', 16)} 沒有能下田的成年耕牛</p>` : ''}${btn('派耕牛', { kind: 'green', small: true, ic: 'sprout', disabled: o.noOx, block: true })}</article>`;
+    const left = f.rice > 0 ? `<p class="hint">${t('s17.leftover', { kg: `<b class="num">${fmt(f.rice, 1)}</b>` })}</p>` : `<p class="hint">${t('s17.emptyHint')}</p>`;
+    return `<article class="card field-card empty">${head}${badge('lock', t('fieldEmpty'))}</div>${left}
+      ${o.noOx ? `<p class="warn-text">${icon('warn', 16)} ${t('noOx')}</p>` : ''}${btn(t('assignOx'), { kind: 'green', small: true, ic: 'sprout', disabled: o.noOx, block: true })}</article>`;
   }
   const c = cowById(f.cow), b = BREEDS[c.breed], full = f.rice >= f.cap, p = (f.rice / f.cap) * 100;
-  return `<article class="card field-card${full ? ' full' : ''}">${head}${full ? '<span class="badge full">長滿了</span>' : badge('working', '工作中')}</div>
-    <div class="fc-ox">${cowSVG({ breed: c.breed, sex: c.sex, seed: c.seed }, { w: 52, h: 52, pad: 2 })}<div class="grow"><b>${b.name} #${c.id}</b><div class="chips">${tierChip(tierOf(b))}<span class="hint">每小時 ${f.rate} 公斤</span></div></div>${btn('叫回', { small: true, ic: 'hand' })}</div>
-    <div class="fc-bar">${bar(p, { color: full ? 'yellow' : 'green' })}<span class="num">${fmt(f.rice, 1)} / ${fmt(f.cap, 1)}</span><small>公斤</small></div>
-    <p class="${full ? 'warn-text' : 'hint'}">${full ? '長滿了，快收成！收成後才會繼續長。' : `約 ${until(f)}後長滿（最多存 8 小時的量）`}</p></article>`;
+  return `<article class="card field-card${full ? ' full' : ''}">${head}${full ? `<span class="badge full">${t('s17.full')}</span>` : badge('working', t('badgeWorking'))}</div>
+    <div class="fc-ox">${cowSVG({ breed: c.breed, sex: c.sex, seed: c.seed }, { w: 52, h: 52, pad: 2 })}<div class="grow"><b>${cowName(c.breed, c.id)}</b><div class="chips">${tierChip(tierOf(b))}<span class="hint">${t('fieldRate', { v: f.rate })}</span></div></div>${btn(t('recall'), { small: true, ic: 'hand' })}</div>
+    <div class="fc-bar">${bar(p, { color: full ? 'yellow' : 'green' })}<span class="num">${fmt(f.rice, 1)} / ${fmt(f.cap, 1)}</span><small>${t('g.kg')}</small></div>
+    <p class="${full ? 'warn-text' : 'hint'}">${full ? t('fieldFull') : t('s17.fullIn', { time: until(f), h: 8 })}</p></article>`;
 }
 
 function fieldsPage(ctx, o = {}) {
@@ -63,10 +64,10 @@ function fieldsPage(ctx, o = {}) {
   const w = ctx.dev.w - 24;
   const content = `<div class="stack">
     <article class="card field-scene">${fieldScene(w - 6, fields)}</article>
-    <div class="kv kv3"><div class="cell"><div class="k">田地</div><div class="v num">${fields.length} <small>/ ${FIELD_UP.max} 塊</small></div></div><div class="cell"><div class="k">倉庫稻米</div><div class="v num">${fmt(o.stock ?? sum(WAREHOUSE.rice))} <small>公斤</small></div></div><div class="cell"><div class="k">每小時</div><div class="v num">${fmt(rate, 1)} <small>公斤</small></div></div></div>
-    ${btn(inField > 0 ? `收成（田裡約 ${fmt(inField)} 公斤）` : '收成（田裡沒有稻米）', { kind: 'green', block: true, ic: 'rice', disabled: inField <= 0 || o.offline })}
+    <div class="kv kv3"><div class="cell"><div class="k">${t('fieldsTitle')}</div><div class="v num">${fields.length} <small>${t('s17.ofMax', { max: FIELD_UP.max })}</small></div></div><div class="cell"><div class="k">${t('s17.stock')}</div><div class="v num">${fmt(o.stock ?? sum(WAREHOUSE.rice))} <small>${t('g.kg')}</small></div></div><div class="cell"><div class="k">${t('s17.perHour')}</div><div class="v num">${fmt(rate, 1)} <small>${t('g.kg')}</small></div></div></div>
+    ${btn(inField > 0 ? t('harvestAll', { kg: fmt(inField) }) : t('s17.harvestNone'), { kind: 'green', block: true, ic: 'rice', disabled: inField <= 0 || o.offline })}
     ${fields.map((f) => fieldCard(f, o.card || {})).join('')}
-    ${o.newField || btn(`開新田（${fmt(FIELD_UP.cost)} 幣）`, { block: true, ic: 'plus' })}
+    ${o.newField || btn(t('expandField', { cost: fmt(FIELD_UP.cost) }), { block: true, ic: 'plus' })}
   </div>`;
   const out = frame(ctx.dev, { tab: 'fields', content, tall: o.tall, overlays: o.overlays || '', offline: o.offline, hud: o.hud || {} });
   if (!o.scrollTo) return out;
@@ -81,19 +82,19 @@ full('S17-01', '一般：田地場景與每塊田（長頁）', (ctx) => fieldsP
 part('S17-02', '空田：沒有能下田的耕牛時停用', '.field-card.empty', (ctx) => fieldsPage(ctx, { card: { noOx: true }, scrollTo: '.field-card.empty' }));
 full('S17-03', '選一頭耕牛下田', (ctx) => fieldsPage(ctx, {
   fields: [FIELDS[0], FIELDS[1], { ...FIELDS[2] }],
-  overlays: sheet({ title: '派一頭耕牛到第 2 塊田', body: `<div class="list">
-    <button class="card ox-opt on">${cowSVG({ breed: 'milkTea', sex: 'bull', seed: 101 }, { w: 56, h: 56, pad: 2 })}<div class="grow"><b>奶茶黃牛 #18</b><div class="chips">${tierChip(1)}<span class="hint">每小時 14.3 公斤</span></div></div><span class="pick-check static">${icon('ok', 24)}</span></button>
-    <button class="card ox-opt off" disabled>${cowSVG({ breed: 'yellow', sex: 'bull', seed: 17 }, { w: 56, h: 56, pad: 2 })}<div class="grow"><b>台灣黃牛 #2</b><div class="chips">${badge('working', '在第 1 塊田')}</div></div></button>
-    <button class="card ox-opt off" disabled>${cowSVG({ breed: 'yellow', age: 'calf', seed: 105 }, { w: 56, h: 56, pad: 2 })}<div class="grow"><b>台灣黃牛 #19</b><div class="chips">${badge('calf', '小牛')}<span class="hint">1 小時後長大</span></div></div></button></div>
-    <div class="btn-row" style="margin-top:14px">${btn('取消')}${btn('派去田裡', { kind: 'green', ic: 'sprout' })}</div>` }),
+  overlays: sheet({ title: t('pickOx', { n: 2 }), body: `<div class="list">
+    <button class="card ox-opt on">${cowSVG({ breed: 'milkTea', sex: 'bull', seed: 101 }, { w: 56, h: 56, pad: 2 })}<div class="grow"><b>${cowName('milkTea', 18)}</b><div class="chips">${tierChip(1)}<span class="hint">${t('fieldRate', { v: 14.3 })}</span></div></div><span class="pick-check static">${icon('ok', 24)}</span></button>
+    <button class="card ox-opt off" disabled>${cowSVG({ breed: 'yellow', sex: 'bull', seed: 17 }, { w: 56, h: 56, pad: 2 })}<div class="grow"><b>${cowName('yellow', 2)}</b><div class="chips">${badge('working', t('s17.inField', { n: 1 }))}</div></div></button>
+    <button class="card ox-opt off" disabled>${cowSVG({ breed: 'yellow', age: 'calf', seed: 105 }, { w: 56, h: 56, pad: 2 })}<div class="grow"><b>${cowName('yellow', 19)}</b><div class="chips">${badge('calf', t('stageCalf'))}<span class="hint">${t('g.growsIn', { time: dur({ h: 1 }) })}</span></div></div></button></div>
+    <div class="btn-row" style="margin-top:14px">${btn(t('cancel'))}${btn(t('g.assign'), { kind: 'green', ic: 'sprout' })}</div>` }),
 }));
-part('S17-04', '沒有能下田的耕牛', '.sheet', (ctx) => fieldsPage(ctx, { overlays: sheet({ title: '派一頭耕牛到第 2 塊田', body: `<div class="empty">${cowSVG({ breed: 'yellow', sex: 'bull', seed: 33 }, { w: 90, h: 90, sil: true })}<div class="t1">沒有能下田的成年耕牛</div><div class="t2">耕牛要成年、不在別的田裡、沒有上架借種。<br>可以到商店抽牛，或用乳牛配肉牛生耕牛。</div></div>${btn('知道了', { block: true })}` }) }));
+part('S17-04', '沒有能下田的耕牛', '.sheet', (ctx) => fieldsPage(ctx, { overlays: sheet({ title: t('pickOx', { n: 2 }), body: `<div class="empty">${cowSVG({ breed: 'yellow', sex: 'bull', seed: 33 }, { w: 90, h: 90, sil: true })}<div class="t1">${t('noOx')}</div><div class="t2">${tb('s17.noOxHint')}</div></div>${btn(t('g.gotIt'), { block: true })}` }) }));
 part('S17-05', '耕作中：進度、產量、叫回', '.field-card', (ctx) => fieldsPage(ctx, { scrollTo: '.field-card' }));
 full('S17-06', '長滿了，快收成', (ctx) => fieldsPage(ctx, { scrollTo: '.field-card.full' }));
 part('S17-07', '叫回後田裡還有稻米', '.field-card.empty', (ctx) => fieldsPage(ctx, { fields: [FIELDS[0], { index: 1, cow: null, rice: 20.4 }, FIELDS[2]], scrollTo: '.field-card.empty' }));
 part('S17-08', '田裡沒有稻米：收成鈕停用', '.content .stack > .btn', (ctx) => fieldsPage(ctx, { fields: [{ index: 0, cow: 2, rice: 0, cap: 88, rate: 11 }, { index: 1, cow: null, rice: 0 }, { index: 2, cow: null, rice: 0 }] }));
-full('S17-09', '收成成功', (ctx) => fieldsPage(ctx, { stock: 361, fields: [{ ...FIELDS[0], rice: 0 }, FIELDS[1], { ...FIELDS[2], rice: 0 }], overlays: toast('ok', '收成了 177 公斤稻米，放進倉庫了') }));
-part('S17-10', '開新田：金幣不夠、已經 12 塊', '#crop', (ctx) => frame(ctx.dev, { tab: 'fields', content: `<div id="crop" class="stack">${btn(`開新田（${fmt(FIELD_UP.cost)} 幣）`, { block: true, ic: 'plus', disabled: true })}<p class="warn-text" style="text-align:center">金幣不夠，還差 ${fmt(FIELD_UP.cost - 3200)} 幣</p>${btn('田地已經 12 塊（最多）', { block: true, disabled: true })}</div>`, hud: { coins: 3200 } }));
-part('S17-11', '開新田成功', '.toast', (ctx) => fieldsPage(ctx, { hud: { coins: RANCH.coins - FIELD_UP.cost }, fields: [...FIELDS, { index: 3, cow: null, rice: 0 }], overlays: toast('ok', '開了一塊新田（第 4 塊）') }));
+full('S17-09', '收成成功', (ctx) => fieldsPage(ctx, { stock: 361, fields: [{ ...FIELDS[0], rice: 0 }, FIELDS[1], { ...FIELDS[2], rice: 0 }], overlays: toast('ok', t('harvested', { kg: 177 })) }));
+part('S17-10', '開新田：金幣不夠、已經 12 塊', '#crop', (ctx) => frame(ctx.dev, { tab: 'fields', content: `<div id="crop" class="stack">${btn(t('expandField', { cost: fmt(FIELD_UP.cost) }), { block: true, ic: 'plus', disabled: true })}<p class="warn-text" style="text-align:center">${t('notEnoughCoins', { n: fmt(FIELD_UP.cost - 3200) })}</p>${btn(t('s17.maxFields', { n: 12 }), { block: true, disabled: true })}</div>`, hud: { coins: 3200 } }));
+part('S17-11', '開新田成功', '.toast', (ctx) => fieldsPage(ctx, { hud: { coins: RANCH.coins - FIELD_UP.cost }, fields: [...FIELDS, { index: 3, cow: null, rice: 0 }], overlays: toast('ok', t('fieldExpanded', { n: 4 })) }));
 
 export default { id: 'S17', name: '田地', states: S };

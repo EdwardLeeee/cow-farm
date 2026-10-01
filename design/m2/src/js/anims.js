@@ -6,6 +6,8 @@ import { HERD, fit, ranchScene, WIDE } from './scene.js';
 import { drawCow } from '../cow/render.js';
 import { RANCH, WAREHOUSE, sum, FIELDS, cowById } from './fixtures.js';
 import { GRADE_BG } from './screens/s04.js';
+// 字串表的 t() 在這個檔叫 T()，因為 frame(root, t) 的 t 是時間
+import { t as T, dur, cowName, breedName } from './i18n.js';
 
 // ---------- 小工具 ----------
 const clamp = (v) => Math.max(0, Math.min(1, v));
@@ -19,7 +21,7 @@ function layer(root) { let l = root.querySelector('.fx'); if (!l) { root.querySe
 // 沿著拋物線從 a 飛到 b（k：0–1），回傳位置
 function arc(a, b, k, lift = 80) { const x = lerp(a.x, b.x, k), y = lerp(a.y, b.y, k) - Math.sin(Math.PI * k) * lift; return { x, y }; }
 function place(el, x, y, { s = 1, r = 0, o = 1 } = {}) { el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%) scale(${s}) rotate(${r}deg)`; el.style.opacity = o; }
-function skipHint(on) { return on ? `<div class="skip-hint">點一下跳過</div>` : ''; }
+function skipHint(on) { return on ? `<div class="skip-hint">${T('anim.skip')}</div>` : ''; }
 
 // ---------- A-01 收奶 ----------
 const A01 = {
@@ -29,7 +31,7 @@ const A01 = {
   base: (ctx) => ranchPage(ctx),
   frame(root, t) {
     const L = layer(root);
-    if (!L.children.length) L.innerHTML = [0, 1, 2, 3, 4].map(() => `<span class="fly">${icon('milk', 28)}</span>`).join('') + toast('ok', '收了 36.4 瓶牛奶，放進倉庫了', { style: 'opacity:0' });
+    if (!L.children.length) L.innerHTML = [0, 1, 2, 3, 4].map(() => `<span class="fly">${icon('milk', 28)}</span>`).join('') + toast('ok', T('collected', { v: 36.4 }), { style: 'opacity:0' });
     const bk = root.querySelector('.bucket-card'), from = rel(root, root.querySelector('.bk-icon')), to = rel(root, root.querySelector('.storage .mini-line'));
     const btnEl = bk.querySelector('.btn'); btnEl.style.transform = `scale(${t < 0.15 ? 1 - 0.06 * Math.sin(Math.PI * seg(t, 0, 0.15)) : 1})`;
     [...L.querySelectorAll('.fly')].forEach((el, i) => {
@@ -41,7 +43,7 @@ const A01 = {
     bk.querySelector('.num-pct').textContent = `${pct}%`;
     bk.querySelector('.bar i').style.width = `${pct}%`;
     bk.querySelector('.bk-count .num').textContent = `${qty < 0.05 ? 0 : qty.toFixed(1)} / 42`;
-    bk.querySelector('.bk-rate').textContent = drain >= 1 ? '約 1 小時後滿' : '約 9 分後滿';
+    bk.querySelector('.bk-rate').textContent = T('s03.fullIn', { time: drain >= 1 ? dur({ h: 1 }) : dur({ m: 9 }) });
     const gain = outCubic(seg(t, 0.55, 1.05));
     root.querySelector('.storage .mini-line .num').textContent = `${Math.round(130 + 36.4 * gain)}`;
     const tk = seg(t, 1.0, 1.2), ts = L.querySelector('.toast'); ts.style.opacity = tk; ts.style.transform = `translateY(${(1 - outCubic(tk)) * 14}px)`;
@@ -55,12 +57,12 @@ const A02 = {
   keys: [[0, '按下「確認賣出 130 瓶」'], [0.4, '金幣從按鈕飛向頂列'], [0.8, '頂列金幣數字往上跳'], [1.1, '庫存扣掉，提示成交結果'], [1.4, '結束']],
   reduced: '不飛金幣、數字不跳動：頂列金幣直接變成 14,404，提示淡入（0.2 秒）。',
   base: (ctx) => {
-    const html = frame(ctx.dev, { tab: 'market', content: `<div class="stack">${sellCard({ key: 'milk', name: '牛奶', unit: '瓶', price: 13.4, stock: 146 }, 'ok', { qty: 130, avg: 14.8, total: 1924, lots: 3 })}</div>` });
+    const html = frame(ctx.dev, { tab: 'market', content: `<div class="stack">${sellCard({ key: 'milk', name: T('milk'), unit: T('unitMilk'), price: 13.4, stock: 146 }, 'ok', { qty: 130, avg: 14.8, total: 1924, lots: 3 })}</div>` });
     return html;
   },
   frame(root, t) {
     const L = layer(root);
-    if (!L.children.length) L.innerHTML = [0, 1, 2, 3, 4, 5].map(() => `<span class="fly">${icon('coin', 30)}</span>`).join('') + toast('ok', '賣出 130 瓶，均價 14.8，共 1,924 幣', { style: 'opacity:0' });
+    if (!L.children.length) L.innerHTML = [0, 1, 2, 3, 4, 5].map(() => `<span class="fly">${icon('coin', 30)}</span>`).join('') + toast('ok', T('sold', { qty: 130, unit: T('unitMilk'), avg: 14.8, total: fmt(1924) }), { style: 'opacity:0' });
     const b = root.querySelector('.sell-card .btn.block'), from = rel(root, b), to = rel(root, root.querySelector('.coins'));
     b.style.transform = `scale(${t < 0.15 ? 1 - 0.05 * Math.sin(Math.PI * seg(t, 0, 0.15)) : 1})`;
     [...L.querySelectorAll('.fly')].forEach((el, i) => {
@@ -73,7 +75,7 @@ const A02 = {
     const pulse = Math.sin(Math.PI * seg(t, 0.55, 1.05));
     root.querySelector('.coins').style.transform = `scale(${1 + 0.08 * pulse})`;
     const q = seg(t, 1.0, 1.15);
-    root.querySelector('.sell-card .card-sub').textContent = `庫存 ${q > 0 ? 16 : 146} 瓶${q > 0 ? '（1 批）' : '（3 批）'}`;
+    root.querySelector('.sell-card .card-sub').textContent = T('inventory', { qty: q > 0 ? 16 : 146, unit: T('unitMilk') }) + T('s06.lots', { n: q > 0 ? 1 : 3 });
     const ts = L.querySelector('.toast'); ts.style.opacity = seg(t, 1.0, 1.2); ts.style.transform = `translateY(${(1 - outCubic(seg(t, 1.0, 1.2))) * 14}px)`;
   },
 };
@@ -161,9 +163,9 @@ const A03 = {
     <div class="tk tk-back">${truckBack()}</div>
     <div class="cut-cow c-side">${cowFixed({ breed: 'holstein', pose: 'side' }, { w: 108, h: 96, scale: 1.04, facing: 'right' })}</div>
     <div class="cut-cow c-front">${cowFixed({ breed: 'holstein', pose: 'front' }, { w: 100, h: 100, scale: 1.04 })}</div>
-    <div class="tk tk-front">${truckFront('晨光河畔牧場')}</div>
-    <div class="cut-beep">嗶</div><div class="cut-beep b2">嗶</div>
-    <div class="cut-say">謝謝你的照顧！</div>
+    <div class="tk tk-front">${truckFront(RANCH.name)}</div>
+    <div class="cut-beep">${T('anim.beep')}</div><div class="cut-beep b2">${T('anim.beep')}</div>
+    <div class="cut-say">${T('anim.thanks')}</div>
     <div class="cut-hearts">${[0, 1, 2].map(() => `<i>${icon('heart', 20)}</i>`).join('')}</div>
     <div class="cut-puffs"><i></i><i></i><i></i><i></i></div>
     <div class="cut-flash"></div>${skipHint(true)}`, A03_HERD),
@@ -236,7 +238,7 @@ const A04 = {
   base: (ctx) => revealLayer(ctx, frame(ctx.dev, { tab: 'breed', content: '<div></div>' }), `
     <div class="nest"><div class="calf-sil">${cowSVG({ breed: 'jersey', age: 'calf', seed: 91 }, { w: 170, h: 150, sil: 'dark' })}</div><div class="calf-col">${cowSVG({ breed: 'jersey', age: 'calf', seed: 91 }, { w: 170, h: 150 })}</div>
       <div class="hay"></div><div class="cloth">${icon('heart', 34)}</div></div>
-    <div class="reveal-name"><b>娟珊 #16</b><div class="chips">${tierChip(1)}${badge('calf', '小牛')}</div></div>
+    <div class="reveal-name"><b>${cowName('jersey', 16)}</b><div class="chips">${tierChip(1)}${badge('calf', T('stageCalf'))}</div></div>
     <div class="burst-hearts">${[0, 1, 2, 3, 4, 5].map(() => `<i>${icon('heart', 22)}</i>`).join('')}</div>${skipHint(true)}`),
   frame(root, t) {
     const cloth = root.querySelector('.cloth'), sil = root.querySelector('.calf-sil'), col = root.querySelector('.calf-col'), nm = root.querySelector('.reveal-name');
@@ -265,7 +267,7 @@ const A05 = {
   keys: [[0, '累積收入跨過門檻'], [0.25, '升級卡彈出來'], [0.55, '等級數字從 4 翻成 5'], [0.9, '彩帶落下'], [1.3, '停住，按「好」關掉']],
   reduced: '不彈、不翻、沒有彩帶：升級卡直接出現（淡入 0.2 秒），等級直接是 5。設施升級：那一列直接換成新的數字。',
   base: (ctx) => ranchPage(ctx, { hud: { level: 4, xp: 100 }, overlays: `<div class="backdrop"></div><div class="lv-wrap"><div class="confetti">${Array.from({ length: 26 }, (_, i) => { const c = ['#FFD45E', '#FF9784', '#A9DBFF', '#BDE8A6', '#FFD0DE'][i % 5]; return `<i style="left:${(i * 37) % 100}%;background:${c}"></i>`; }).join('')}</div>
-    <section class="lv-card card"><div class="lv-ribbon" data-free>場主升級</div><div class="lv-big"><span>Lv</span><span class="lv-roll"><b class="num old">4</b><b class="num new">5</b></span></div><p class="lv-sub">累積收入到 7,500 幣了！</p><p class="hint" style="text-align:center">繼續賣牛奶、牛肉、稻米，或出借公牛，等級會往上升。</p><div class="btn-row" style="margin-top:14px;width:100%">${btn('好', { kind: 'primary' })}</div></section></div>` }),
+    <section class="lv-card card"><div class="lv-ribbon" data-free>${T('s11.ribbon')}</div><div class="lv-big"><span>${T('s11.lv')}</span><span class="lv-roll"><b class="num old">4</b><b class="num new">5</b></span></div><p class="lv-sub">${T('s11.earned', { v: fmt(7500) })}</p><p class="hint" style="text-align:center">${T('s11.hint')}</p><div class="btn-row" style="margin-top:14px;width:100%">${btn(T('ok'), { kind: 'primary' })}</div></section></div>` }),
   frame(root, t) {
     const bd = root.querySelector('.backdrop'), card = root.querySelector('.lv-card');
     bd.style.opacity = seg(t, 0, 0.2);
@@ -291,10 +293,10 @@ const A06 = {
   keys: [[0, '「發現新品種！」卡片，先是剪影'], [0.4, '卡片翻面'], [0.75, '翻過來是彩色的新品種'], [1.1, '圖鑑數字 +1'], [1.5, '停住']],
   reduced: '不翻面：直接顯示彩色的品種卡和「已發現 11 / 24」（淡入 0.2 秒）。',
   base: (ctx) => revealLayer(ctx, frame(ctx.dev, { tab: 'breed', content: '<div></div>' }), `
-    <div class="disc-title">發現新品種！</div>
+    <div class="disc-title">${T('anim.newBreed')}</div>
     <div class="disc-card"><div class="disc-face back">${cowSVG({ breed: 'chocolate', age: 'calf', seed: 93 }, { w: 150, h: 140, sil: 'dark' })}<b>？？？</b></div>
-      <div class="disc-face front">${cowSVG({ breed: 'chocolate', age: 'calf', seed: 93 }, { w: 150, h: 140 })}<b>巧克力牛</b><div class="chips">${tierChip(2)}</div></div></div>
-    <div class="disc-count">${icon('book', 22)}圖鑑 已發現 <b class="num"><span class="c-old">10</span><span class="c-new">11</span></b> / 24</div>
+      <div class="disc-face front">${cowSVG({ breed: 'chocolate', age: 'calf', seed: 93 }, { w: 150, h: 140 })}<b>${breedName('chocolate')}</b><div class="chips">${tierChip(2)}</div></div></div>
+    <div class="disc-count">${icon('book', 22)}${T('anim.dexCount', { n: '<b class="num"><span class="c-old">10</span><span class="c-new">11</span></b>', total: 24 })}</div>
     <div class="sparkles">${[0, 1, 2, 3, 4].map(() => `<i>${icon('sparkle', 24)}</i>`).join('')}</div>${skipHint(true)}`),
   frame(root, t) {
     const title = root.querySelector('.disc-title'), card = root.querySelector('.disc-card');
@@ -352,12 +354,12 @@ const A08 = {
   base: (ctx) => S17.states.find((x) => x.id === 'S17-01').render({ ...ctx }).replace('class="phone tall', 'class="phone').replace(' tall"', '"'),
   frame(root, t, ctx) {
     const L = layer(root);
-    if (!L.children.length) L.innerHTML = Array.from({ length: 8 }, () => `<span class="fly">${icon('rice', 30)}</span>`).join('') + toast('ok', '收成了 177 公斤稻米，放進倉庫了', { style: 'opacity:0' });
+    if (!L.children.length) L.innerHTML = Array.from({ length: 8 }, () => `<span class="fly">${icon('rice', 30)}</span>`).join('') + toast('ok', T('harvested', { kg: 177 }), { style: 'opacity:0' });
     const sc = root.querySelector('.field-scene'), cell = root.querySelectorAll('.kv3 .cell')[1], dst = rel(root, cell), src = rel(root, sc);
     const drain = inOut(seg(t, 0.15, 0.8));
     sc.innerHTML = fieldScene(ctx.dev.w - 30, FIELDS.map((f) => (f.cow ? { ...f, rice: f.rice * (1 - drain) + 0.001 } : f)));
     root.querySelectorAll('.field-card').forEach((c) => {
-      const f = FIELDS.find((x) => c.textContent.includes(`第 ${x.index + 1} 塊田`)); if (!f || !f.cow) return;
+      const f = FIELDS.find((x) => c.textContent.includes(T('fieldName', { n: x.index + 1 }))); if (!f || !f.cow) return;
       const r = f.rice * (1 - drain), i = c.querySelector('.bar i'), n = c.querySelector('.fc-bar .num');
       if (i) i.style.width = `${(r / f.cap) * 100}%`; if (n) n.textContent = `${fmt(r, 1)} / ${fmt(f.cap, 1)}`;
     });
@@ -368,7 +370,7 @@ const A08 = {
       const p = arc(from, { x: dst.cx, y: dst.cy }, outCubic(k), 50);
       place(el, p.x, p.y, { s: 0.8 + 0.3 * Math.sin(Math.PI * k), r: k * 90, o: k > 0 && k < 1 ? 1 : 0 });
     });
-    cell.querySelector('.v').innerHTML = `${Math.round(184 + 177 * outCubic(seg(t, 0.5, 1.0)))} <small>公斤</small>`;
+    cell.querySelector('.v').innerHTML = `${Math.round(184 + 177 * outCubic(seg(t, 0.5, 1.0)))} <small>${T('g.kg')}</small>`;
     const ts = L.querySelector('.toast'); ts.style.opacity = seg(t, 0.95, 1.15); ts.style.transform = `translateY(${(1 - outCubic(seg(t, 0.95, 1.15))) * 14}px)`;
   },
 };
@@ -382,7 +384,7 @@ const A09 = {
     <div class="rays"></div>
     <div class="gbox"><div class="gb-calf sil">${cowSVG({ breed: 'highland', age: 'calf', seed: 97 }, { w: 150, h: 130, sil: 'dark' })}</div><div class="gb-calf col">${cowSVG({ breed: 'highland', age: 'calf', seed: 97 }, { w: 150, h: 130 })}</div>
       <div class="gb-body"><span class="gb-grade">A</span></div><div class="gb-lid"></div></div>
-    <div class="reveal-name"><b>高地牛 #17</b><div class="chips">${tierChip(1)}${badge('calf', '小牛')}</div></div>${skipHint(true)}`),
+    <div class="reveal-name"><b>${cowName('highland', 17)}</b><div class="chips">${tierChip(1)}${badge('calf', T('stageCalf'))}</div></div>${skipHint(true)}`),
   frame(root, t) {
     const box = root.querySelector('.gbox'), lid = root.querySelector('.gb-lid'), rays = root.querySelector('.rays');
     const shake = t < 0.5 ? Math.sin(t * 46) * 8 * seg(t, 0.05, 0.3) : 0;

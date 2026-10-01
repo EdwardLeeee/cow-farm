@@ -1,11 +1,17 @@
-// 路由：?id=S03-02&w=390 畫一個狀態；?list=1 列出全部狀態給出圖腳本。
+// 路由：?id=S03-02&w=390 畫一個狀態；?list=1 列出全部狀態給出圖腳本；?lang=en｜th 換語言（預設繁中）。
 import { applyDevice } from './kit.js';
-import { STATES } from './states.js';
+import { loadLang } from './i18n.js';
 
 const q = new URLSearchParams(location.search);
 const w = +(q.get('w') || 390);
 const dev = applyDevice(w);
 const app = document.getElementById('app');
+// 先載入字串表，再載入各畫面（畫面模組的常數會用到字串）
+const lang = q.get('lang') || 'zh-Hant';
+await loadLang(lang);
+// 泰文：泰文字型接在中文字型後面（英文字母、數字照舊用中文字型裡的，泰文字才用 Noto Sans Thai）
+if (lang === 'th') document.documentElement.style.setProperty('--font-ui', '"Noto Sans CJK TC", "Noto Sans Thai", "Noto Sans TC", sans-serif');
+const { STATES } = await import('./states.js');
 
 async function settle() {
   await document.fonts.ready;
@@ -46,7 +52,7 @@ if (q.has('anim')) {
     const c = ph.querySelector('.content');
     h = Math.max(dev.h, Math.ceil(c.offsetTop + c.scrollHeight));
     ph.style.height = `${h}px`;
-    if (st.type === 'full') ph.insertAdjacentHTML('beforeend', `<div class="fold-line" style="top:${dev.h}px"><span>手機一個畫面到這裡</span></div>`);
+    if (st.type === 'full') ph.insertAdjacentHTML('beforeend', `<div class="fold-line" style="top:${dev.h}px" data-note><span>手機一個畫面到這裡</span></div>`);
     await settle();
   }
   if (st.type !== 'sheet') { window.__size = { w: dev.w, h }; window.__ready = true; }
