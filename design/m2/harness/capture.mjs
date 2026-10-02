@@ -18,14 +18,15 @@ const RAW = LANG === 'zh-Hant' ? join(ROOT, 'raw') : join(ROOT, 'raw', LANG);
 const LOCALE = { 'zh-Hant': 'zh-TW', en: 'en-US', th: 'th-TH' }[LANG] || 'zh-TW';
 const LQ = LANG === 'zh-Hant' ? '' : `&lang=${LANG}`;
 // 換行時要注意不能拆開的泰文詞：用詞表（docs/i18n/glossary.md）表格裡的詞，加上 th.json 的 24 種牛名（多半是外來字）
-function glossaryTerms() {
+// 字串表的外來字中間有 U+2060（看不見，擋住斷行），用詞表寫原文：這裡一律去掉 U+2060，measure 比對時再忽略 U+2060
+export function glossaryTerms() {
   const p = join(ROOT, '../../docs/i18n/glossary.md'), th = join(ROOT, 'i18n/th.json');
-  const out = new Set();
-  if (existsSync(th)) for (const [k, v] of Object.entries(JSON.parse(readFileSync(th, 'utf8')))) if (/^breed\.\w+\.name$/.test(k) && /[\u0E00-\u0E7F]/.test(v)) out.add(v);
+  const out = new Set(), add = (w) => out.add(w.replace(/\u2060/g, ''));
+  if (existsSync(th)) for (const [k, v] of Object.entries(JSON.parse(readFileSync(th, 'utf8')))) if (/^breed\.\w+\.name$/.test(k) && /[\u0E00-\u0E7F]/.test(v)) add(v);
   if (!existsSync(p)) return [...out];
   for (const line of readFileSync(p, 'utf8').split('\n')) {
     if (!line.startsWith('|')) continue;
-    for (const cell of line.split('|')) for (const w of cell.split(/[、，,／/（）()\s]+/)) if (/^[\u0E00-\u0E7F]{2,}$/.test(w)) out.add(w);
+    for (const cell of line.split('|')) for (const w of cell.split(/[、，,／/（）()\s]+/)) if (/^[\u0E00-\u0E7F\u2060]{2,}$/.test(w)) add(w);
   }
   return [...out].sort((a, b) => b.length - a.length);
 }
@@ -185,8 +186,12 @@ export function measure(terms = []) {
       tops.forEach((y, i) => { if (y == null) return; if (prev != null && y > prev + t.fontSize * 0.6) breaks.push(i); prev = y; });
       const bounds = new Set([...sg.segment(full)].map((s) => s.index));
       const midWord = breaks.filter((b) => node[b] === node[b - 1] && !bounds.has(b) && /[\u0E00-\u0E7FA-Za-z]/.test(full[b - 1] || '') && /[\u0E00-\u0E7FA-Za-z]/.test(full[b] || ''));
+      // 用詞表的詞：忽略 U+2060（畫面上的字可能在任兩個字之間夾著 U+2060），記下畫面上的原樣
       const split = [];
-      terms.forEach((w) => { for (let p = full.indexOf(w); p >= 0; p = full.indexOf(w, p + 1)) if (breaks.some((b) => b > p && b < p + w.length)) split.push(w); });
+      terms.forEach((w) => {
+        const re = new RegExp([...w.replace(/\u2060/g, '')].map((c) => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\u2060*'), 'g');
+        for (const m of full.matchAll(re)) if (breaks.some((b) => b > m.index && b < m.index + m[0].length)) split.push(m[0]);
+      });
       const view = [...sg.segment(full)].map((s) => s.segment).join('|');
       const breaksAt = breaks.slice().reverse().reduce((s, b) => s.slice(0, b) + '⏎' + s.slice(b), full); // ⏎ 是實際換行的地方
       thaiBreaks.push({ text: full.slice(0, 80), lines: t.lines, breaksAt: breaksAt.slice(0, 120), words: view.slice(0, 160), midWord: midWord.length, splitTerms: [...new Set(split)] });
