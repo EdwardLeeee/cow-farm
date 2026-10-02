@@ -64,7 +64,7 @@ const NAME1 = '小花的快樂牧場', NAME2 = '楓葉溪谷牧園';
 const OPT = {
   A: { price: 500, name: '固定 500 幣', file: '固定500幣' },
   B: { price: 1000, name: '固定 1,000 幣', file: '固定1000幣' },
-  C: { price: RANCH.level * 100, name: '依等級：等級 × 100 幣', file: '等級乘100', rule: `等級 × 100（現在 Lv ${RANCH.level}）`, after: '（等級 × 100）' },
+  C: { price: RANCH.level * 100, name: '依等級：等級 × 100 幣', file: '等級乘100', rule: `等級 × 100（現在 Lv ${RANCH.level}）` },
 };
 function keyboard(w) {
   const rows = [10, 9, 7].map((n) => `<div class="kb-row">${'<i></i>'.repeat(n)}</div>`).join('');
@@ -95,7 +95,8 @@ function profSheet({ name = RANCH.name, value = NAME1, price = 0, rule = '', err
     <div class="btn-row">${btn(t('cancel'))}${go}</div>
   </section>`;
 }
-const doneToast = (o) => toast('ok', `牧場名改好了！下次改名要 ${fmt(o.price)} 幣${o.after || ''}`);
+// 提示只寫價錢（算法寫在面板上；加上「（等級 × 100）」在 390 寬會從中間斷行）
+const doneToast = (o) => toast('ok', `牧場名改好了！下次改名要 ${fmt(o.price)} 幣`);
 // 牧場資料的各個狀態（價錢照選項 o）
 const ST = (o) => ({
   entry: { cap: '進入點', note: '頂列頭像的右下角多一枝小鉛筆；點頭像或牧場名，打開「牧場資料」', html: ranchPage(ctx), after: ring },
@@ -189,11 +190,14 @@ function pricesCard(sel, mk) {
     <p class="hint pr-base">${t('s06.baseLine', { milk: 12, beef: 12, rice: 5 })}</p>
   </article>`;
 }
+// mk：收購價（超級事件發生了＝牛奶 1.2、牛肉 24；預告的時候還沒開始，照平常的假資料）
 const MK_NEWS = { milk: { ...MARKET.milk, price: 1.2 }, beef: { ...MARKET.beef, price: 24 }, rice: { ...MARKET.rice } };
-function marketPhone(card, top) {
-  const content = `<div class="stack">${pricesCard('milk', MK_NEWS)}
+const MK_PLAIN = { milk: { ...MARKET.milk }, beef: { ...MARKET.beef }, rice: { ...MARKET.rice } };
+function marketPhone(card, top, mk = MK_NEWS) {
+  const sell = mk === MK_NEWS ? { qty: 130, avg: 1.2, total: 156, lots: 3 } : { qty: 130, avg: 14.8, total: 1924, lots: 3 }; // 後者跟 S06 一樣
+  const content = `<div class="stack">${pricesCard('milk', mk)}
     <div class="headline"><span class="hl-ic">${icon('news', 20)}</span><span class="hl-text">${newsTag(top)}${top.text}</span><span class="hl-when">${ago(top.when)}</span></div>
-    ${sellCard(MK_NEWS.milk, 'ok', { qty: 130, avg: 1.2, total: 156, lots: 3 })}${card}</div>`;
+    ${sellCard(mk.milk, 'ok', sell)}${card}</div>`;
   return { html: frame(dev, { tab: 'market', content }), after: (el) => { const c = el.querySelector('.content'), n = el.querySelector('.news-card'); c.scrollTop = n.offsetTop - 6; } };
 }
 // 牧場頁的提示 A：原本的大新聞提示卡（S03-15／16／17）換成超級的樣子
@@ -273,7 +277,7 @@ function r1203() {
 }
 function r1204(k) {
   const a = k === 'A', items = [EV.supBeef, EV.swanMilk, ...NORMAL], soon = [EV.swanAllSoon, ...NORMAL];
-  const now = marketPhone(newsCardDraft(k, items), EV.swanMilk), pre = marketPhone(newsCardDraft(k, soon), EV.swanAllSoon);
+  const now = marketPhone(newsCardDraft(k, items), EV.swanMilk), pre = marketPhone(newsCardDraft(k, soon), EV.swanAllSoon, MK_PLAIN);
   return board({
     id: `R12-04-新聞卡-${k}-${a ? '同一列換顏色' : '釘在最上面的大卡'}-390`, title: `04 市場的新聞卡　${k}：${a ? '留在原本的位置，那一則換顏色' : '釘在新聞卡最上面，變成大卡'}`,
     sub: '超級大事件：金色、「超級大事件」標籤；超級黑天鵝：深色、「超級黑天鵝」標籤。兩種都寫出幅度 +100%／−90%。',
