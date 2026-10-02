@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../theme/tokens.dart';
 import 'app_icon.dart';
+import 'press.dart';
 
 /// kit.css 的文字樣式。
 abstract final class KitText {
@@ -80,23 +81,29 @@ class AppButton extends StatelessWidget {
         if (block) Flexible(child: text) else text,
       ],
     );
+    final radius = BorderRadius.all(small ? AppRadii.r14 : AppRadii.r16);
     return Semantics(
       button: true,
       enabled: enabled,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
+      // 按下：大按鈕往下 3、小按鈕往下 2，陰影變 1（G-11、G-12）；停用和處理中不變
+      child: Pressable(
+        lift: small ? 3 : 4,
         onTap: enabled ? onPressed : null,
-        child: Container(
-          constraints: BoxConstraints(minHeight: small ? 44 : 48, minWidth: AppSizes.minTouch),
-          padding: EdgeInsets.symmetric(horizontal: small ? 12 : 16, vertical: 4),
-          alignment: block ? Alignment.center : null,
-          decoration: BoxDecoration(
-            color: bg,
-            border: Border.all(color: line, width: AppSizes.border),
-            borderRadius: BorderRadius.all(small ? AppRadii.r14 : AppRadii.r16),
-            boxShadow: [BoxShadow(color: line, offset: Offset(0, small ? 3 : 4))],
+        builder: (context, look) => PressTint(
+          tint: look.tint,
+          borderRadius: radius,
+          child: Container(
+            constraints: BoxConstraints(minHeight: small ? 44 : 48, minWidth: AppSizes.minTouch),
+            padding: EdgeInsets.symmetric(horizontal: small ? 12 : 16, vertical: 4),
+            alignment: block ? Alignment.center : null,
+            decoration: BoxDecoration(
+              color: bg,
+              border: Border.all(color: line, width: AppSizes.border),
+              borderRadius: radius,
+              boxShadow: [BoxShadow(color: line, offset: Offset(0, look.shadow))],
+            ),
+            child: content,
           ),
-          child: content,
         ),
       ),
     );

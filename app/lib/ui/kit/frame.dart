@@ -11,6 +11,7 @@ import '../../theme/tokens.dart';
 import '../../util/ranch_name.dart';
 import 'app_icon.dart';
 import 'cow_art.dart';
+import 'press.dart';
 
 /// 版面的固定尺寸（base.css）。
 abstract final class FrameSizes {
@@ -394,11 +395,15 @@ class AppTabBar extends StatelessWidget {
               child: Semantics(
                 button: true,
                 selected: t == active,
-                child: GestureDetector(
+                // 平的元件：按下蓋一層顏色（圓角 12，G-12）
+                child: Pressable(
                   key: Key('tab-${t.name}'),
-                  behavior: HitTestBehavior.opaque,
                   onTap: () => m.selectTab(t),
-                  child: _Tab(label: label(s, t), icon: t.name, on: t == active),
+                  builder: (context, look) => PressTint(
+                    tint: look.tint,
+                    borderRadius: const BorderRadius.all(AppRadii.r12),
+                    child: _Tab(label: label(s, t), icon: t.name, on: t == active),
+                  ),
                 ),
               ),
             ),
