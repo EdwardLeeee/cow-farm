@@ -12,6 +12,7 @@ import pytest
 from starlette.websockets import WebSocketDisconnect
 
 from conftest import Harness, new_rid
+from server.game import GameError
 from cowecon import DEFAULT
 from fakes import FakeApple, fake_services, fake_token
 
@@ -328,6 +329,17 @@ def test_delete_without_body(env):
     r = h.client.post("/v1/account/delete", headers=h.auth(tok))
     assert r.status_code == 200 and r.json()["deleted"] is True, r.text
     err(h.get("/v1/state", tok), 401, "unauthorized")
+
+
+def test_action_queued_during_delete_is_unauthorized(env):
+    """動作驗過 token、還在排隊等鎖時牧場被刪掉：回 401 unauthorized（協定 5.6），
+    不是協定錯誤碼表沒有的 player_not_found（404）。直接呼叫 run_action 模擬排在刪除後面的那個動作。"""
+    h, _apple = env
+    a = h.session()
+    assert h.post("/v1/account/delete", a["token"], {}).status_code == 200
+    with pytest.raises(GameError) as e:
+        h.client.portal.call(h.server.run_action, a["player_id"], lambda now: None, new_rid(), "collect")
+    assert (e.value.code, e.value.status) == ("unauthorized", 401)
 
 
 def test_deleted_ids_are_not_reused(db_dsn):
