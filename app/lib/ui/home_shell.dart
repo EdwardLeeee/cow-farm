@@ -16,6 +16,7 @@ import '../state/game_model.dart';
 import 'widgets/action_button.dart';
 import 'screens/codex_screen.dart';
 import 'screens/leaderboard_screen.dart';
+import 'settings/settings_page.dart';
 import 'shop/shop_page.dart';
 import 'start/start_flow.dart';
 import 'warehouse/warehouse_page.dart';
@@ -65,6 +66,9 @@ class _HomeShellState extends State<HomeShell> {
     if (m.maintenance != null || m.state == null || m.authLost != null) {
       // 維護中、token 失效（原型文字）：整頁，沒有頂列和分頁列
       page = AppFrame(hud: false, content: _content(m));
+    } else if (m.settingsView != null) {
+      // 設定（S13）：頂列的齒輪打開，整頁，沒有頂列和分頁列；關掉回到原本那一頁
+      page = const SettingsPage();
     } else if (m.detailCowKey case final key?) {
       // 牛的詳細（S04）：自己的外框，下面固定的按鈕區；上架面板、出貨確認疊在上面
       page = CowDetailPage(key: ValueKey('cow-$key'), cowKey: key);
@@ -87,10 +91,17 @@ class _HomeShellState extends State<HomeShell> {
     }
     final safe = MediaQuery.paddingOf(context);
     return PopScope(
-      canPop: m.detailCowKey == null && !m.penListOpen && !m.warehouseOpen && !(m.tab == AppTab.breed && m.studLogOpen),
+      canPop:
+          m.settingsView == null &&
+          m.detailCowKey == null &&
+          !m.penListOpen &&
+          !m.warehouseOpen &&
+          !(m.tab == AppTab.breed && m.studLogOpen),
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
-        if (m.detailCowKey != null) {
+        if (m.settingsView != null) {
+          m.settingsBack();
+        } else if (m.detailCowKey != null) {
           m.closeCow();
         } else if (m.tab == AppTab.breed && m.studLogOpen) {
           m.closeStudLog();

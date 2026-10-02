@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../l10n/l10n.dart';
 
-/// 手機上的偏好設定（語言、漲跌顏色；之後還有牧場面板收起、提示看過了沒）。這些不是帳，伺服器不用知道。
+/// 手機上的偏好設定（語言、漲跌顏色、音效；牧場面板收起、提示看過了沒）。這些不是帳，伺服器不用知道。
 /// 登入 token 不放這裡（T1：token 用 flutter_secure_storage，見 storage/token_store.dart）。
 abstract class PrefsStore {
   Future<String?> getString(String key);
@@ -50,12 +50,14 @@ class SettingsController extends ChangeNotifier {
   static const dockKey = 'cowfarm_dock_collapsed';
   static const swipeHintKey = 'cowfarm_swipe_hint_seen';
   static const bigNewsKey = 'cowfarm_big_news_seen';
+  static const soundKey = 'cowfarm_sound';
 
   AppLang? _chosenLang;
   bool? _upIsRed;
   bool _dockCollapsed = false;
   bool _swipeHintSeen = false;
   List<String> _bigNewsSeen = [];
+  bool _soundOn = true;
 
   /// 打開 app 時讀一次（main.dart 在 runApp 之前呼叫，第一個畫面就是對的語言）。
   Future<void> load() async {
@@ -66,6 +68,7 @@ class SettingsController extends ChangeNotifier {
     _swipeHintSeen = await _store.getString(swipeHintKey) == '1';
     final seen = await _store.getString(bigNewsKey);
     _bigNewsSeen = seen == null || seen.isEmpty ? [] : seen.split(',');
+    _soundOn = await _store.getString(soundKey) != '0';
     notifyListeners();
   }
 
@@ -88,6 +91,15 @@ class SettingsController extends ChangeNotifier {
     _upIsRed = red;
     await _store.setString(upColorKey, red ? 'red' : 'green');
     notifyListeners();
+  }
+
+  /// 音效開著（S13-01 的開關；預設開）。app 現在還沒有音效，之後加音效時照這個決定要不要播。
+  bool get soundOn => _soundOn;
+
+  Future<void> setSoundOn(bool on) async {
+    _soundOn = on;
+    notifyListeners();
+    await _store.setString(soundKey, on ? '1' : '0');
   }
 
   /// 牧場頁的面板收起來了（S03-11）。第一次打開是展開的，之後記住玩家上次的選擇（m3-backlog D27）。

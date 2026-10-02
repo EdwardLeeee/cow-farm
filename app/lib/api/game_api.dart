@@ -85,4 +85,9 @@ abstract class GameApi {
 
   /// 借種紀錄（協定 4.6）。
   Future<StudLog> studLog();
+
+  // ---- 帳號（協定第 5 節） ----
+  /// 刪除牧場（協定 5.6）。[requestId] 由呼叫的人給：沒收到回應、玩家再按一次時用同一個，
+  /// 第一次其實刪掉了的話，伺服器 10 分鐘內回第一次的回應（`deleted: true`），不是 401。
+  Future<void> deleteRanch({required String requestId});
 }

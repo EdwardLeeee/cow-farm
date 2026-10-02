@@ -535,6 +535,23 @@ class FakeGameApi implements GameApi {
       me: RankEntry(rank: 2, ranch: RanchRef.fromJson(ranchJson(id: 31, name: '晨光草原牧場')), score: 31000, isMe: true),
     );
   }
+
+  /// 刪除牧場時伺服器回的錯誤（例如連不上、500）；null 就成功。
+  Exception? deleteError;
+
+  /// 每次刪除送的 request_id（失敗後再按要用同一個）。
+  final deleteRequestIds = <String>[];
+
+  /// 設了就讓刪除等到 complete 才回（測試「刪除中」）。
+  Completer<void>? deleteGate;
+
+  @override
+  Future<void> deleteRanch({required String requestId}) async {
+    calls.add('delete');
+    deleteRequestIds.add(requestId);
+    await deleteGate?.future;
+    if (deleteError != null) throw deleteError!;
+  }
 }
 
 /// 假推播：測試直接控制連線狀態與訊息。

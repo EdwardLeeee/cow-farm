@@ -81,4 +81,16 @@ void main() {
     expect(Strings.of(after, listen: false).lang, AppLang.th);
     expect(Localizations.localeOf(after).languageCode, 'th');
   });
+
+  test('音效：預設開；關掉存起來，下次打開還是關的', () async {
+    final store = MemoryPrefsStore();
+    final s = SettingsController(store, deviceLocales: () => const [Locale('zh', 'TW')]);
+    await s.load();
+    expect(s.soundOn, isTrue);
+    await s.setSoundOn(false);
+    expect(store.values[SettingsController.soundKey], '0');
+    final again = SettingsController(store, deviceLocales: () => const [Locale('zh', 'TW')]);
+    await again.load();
+    expect(again.soundOn, isFalse);
+  });
 }

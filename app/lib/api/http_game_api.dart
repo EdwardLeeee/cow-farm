@@ -110,9 +110,9 @@ class HttpGameApi implements GameApi {
   Future<Map<String, dynamic>> _post(String path, Map<String, dynamic> body) =>
       _send(() => _client.post(_uri(path), headers: _headers, body: jsonEncode(body)));
 
-  /// 會改變狀態的 POST：產生一次 request_id，重送時沿用。
-  Future<Map<String, dynamic>> _mutate(String path, Map<String, dynamic> body) {
-    final payload = {...body, 'request_id': _uuid.v4()};
+  /// 會改變狀態的 POST：產生一次 request_id（[requestId] 給了就用它），重送時沿用。
+  Future<Map<String, dynamic>> _mutate(String path, Map<String, dynamic> body, {String? requestId}) {
+    final payload = {...body, 'request_id': requestId ?? _uuid.v4()};
     final encoded = jsonEncode(payload);
     return _send(() => _client.post(_uri(path), headers: _headers, body: encoded));
   }
@@ -209,4 +209,8 @@ class HttpGameApi implements GameApi {
 
   @override
   Future<StudLog> studLog() async => StudLog.fromJson(await _get('/v1/stud/log'));
+
+  @override
+  Future<void> deleteRanch({required String requestId}) =>
+      _mutate('/v1/account/delete', const {}, requestId: requestId);
 }
