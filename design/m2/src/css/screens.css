@@ -316,7 +316,8 @@
 .stud-row.on { background: #FFF1B8; box-shadow: 0 4px 0 var(--ink), 0 0 0 3px var(--yellow); }
 .sr-pic { flex: none; width: 60px; height: 60px; border-radius: 14px; background: #E4F4DA; border: 2px solid var(--ink); overflow: hidden; line-height: 0; display: grid; place-items: end center; }
 .sr-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.sr-name { font-size: 15px; font-weight: 900; line-height: 20px; white-space: nowrap; }
+/* 品種名＋公：放不下就換到第二行，不截、不蓋到右邊的借種費（英文、泰文的長品種名；繁中放得下，不會變。cow-app #102） */
+.sr-name { font-size: 15px; font-weight: 900; line-height: 20px; }
 .sr-owner { display: flex; align-items: baseline; min-width: 0; font-size: 12px; font-weight: 700; color: var(--ink-2); line-height: 17px; white-space: nowrap; }
 .so-k, .so-tag, .sr-owner .bot { flex: none; }
 .so-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
