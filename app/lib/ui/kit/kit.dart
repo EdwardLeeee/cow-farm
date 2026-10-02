@@ -49,6 +49,7 @@ class AppButton extends StatelessWidget {
     this.block = false,
     this.icon,
     this.busy = false,
+    this.wrap = false,
   });
 
   final String label;
@@ -59,6 +60,9 @@ class AppButton extends StatelessWidget {
   final String? icon;
   final bool busy;
 
+  /// 不是整排寬的按鈕，被擠的時候字可以換行（頁首右邊的按鈕，screens.css 第 1 條）；放得下就照自己的寬度。
+  final bool wrap;
+
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null && !busy;
@@ -68,8 +72,8 @@ class AppButton extends StatelessWidget {
     final text = Text(
       label,
       textAlign: TextAlign.center,
-      softWrap: block,
-      overflow: block ? null : TextOverflow.visible,
+      softWrap: block || wrap,
+      overflow: block || wrap ? null : TextOverflow.visible,
       style: AppText.style(small ? 14 : 16, weight: FontWeight.w900, color: fg, lineHeight: 20),
     );
     final content = Row(
@@ -78,7 +82,7 @@ class AppButton extends StatelessWidget {
       children: [
         if (busy) ...[const Spinner(), const SizedBox(width: 6)],
         if (!busy && icon != null) ...[AppIcon(icon!, size: small ? 18 : 22), const SizedBox(width: 6)],
-        if (block) Flexible(child: text) else text,
+        if (block || wrap) Flexible(child: text) else text,
       ],
     );
     final radius = BorderRadius.all(small ? AppRadii.r14 : AppRadii.r16);

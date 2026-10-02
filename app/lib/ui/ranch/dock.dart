@@ -10,6 +10,7 @@ import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
 import '../kit/app_icon.dart';
 import '../kit/kit.dart';
+import '../kit/meter.dart';
 import '../kit/press.dart';
 import 'scene.dart';
 
@@ -45,12 +46,16 @@ class Dock extends StatelessWidget {
     required this.pan,
     required this.onToggle,
     required this.collect,
+    this.onStorage,
   });
 
   final DockData data;
   final bool collapsed;
   final double pan;
   final VoidCallback onToggle;
+
+  /// 點倉庫卡：打開倉庫詳細頁（S05-02）。
+  final VoidCallback? onStorage;
 
   /// 收奶鈕（停用、轉圈由外面決定）。
   final Widget collect;
@@ -108,11 +113,15 @@ class Dock extends StatelessWidget {
         else ...[
           _BucketCard(data: data, collect: collect),
           const SizedBox(height: 8),
+          // .dock-row：倉庫、收購價兩張小卡（S05-01 只拍這一塊）
           IntrinsicHeight(
+            key: const Key('dock-row'),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(child: _StorageMini(data: data)),
+                Expanded(
+                  child: _StorageMini(data: data, onTap: onStorage),
+                ),
                 const SizedBox(width: 8),
                 Expanded(child: _MarketMini(data: data)),
               ],
@@ -176,7 +185,8 @@ class _TogglePill extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(12, 0, 8, 0),
         decoration: BoxDecoration(
           color: Colors.white,
-          border: Border.all(color: AppColors.ink, width: 2.5),
+          // CSS 寫 2.5px，boards 量出來是 2（Chrome 畫成 2px）；照核准的 boards
+          border: Border.all(color: AppColors.ink, width: 2),
           borderRadius: const BorderRadius.all(Radius.circular(15)),
           boxShadow: AppShadows.solid(look.shadow),
         ),
@@ -337,9 +347,10 @@ class _BucketSlim extends StatelessWidget {
 
 /// .card.mini.storage：倉庫的牛奶（用了幾 %、最舊一批的新鮮度）、牛肉、稻米。
 class _StorageMini extends StatelessWidget {
-  const _StorageMini({required this.data});
+  const _StorageMini({required this.data, this.onTap});
 
   final DockData data;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -350,6 +361,7 @@ class _StorageMini extends StatelessWidget {
     final fresh = w.worstFreshness;
     return _Mini(
       key: const Key('storage-mini'),
+      onTap: onTap,
       title: CardTitle(s.warehouseTitle),
       // 滿了：設計稿程式加了 err-text，但 .mini .cap 的顏色、粗細比較優先，核准的圖是灰色的字；照圖做
       caption: whFull
@@ -442,16 +454,18 @@ class _MarketMini extends StatelessWidget {
 
 /// .card.mini：標題列、三行。
 class _Mini extends StatelessWidget {
-  const _Mini({super.key, required this.title, required this.caption, required this.lines});
+  const _Mini({super.key, required this.title, required this.caption, required this.lines, this.onTap});
 
   final Widget title;
   final Widget caption;
   final List<Widget> lines;
 
-  @override
-  Widget build(BuildContext context) => Container(
+  /// 可以點（倉庫卡）：整張卡浮起，按下往下 3（G-13）。
+  final VoidCallback? onTap;
+
+  Widget _box(double shadow) => Container(
     padding: const EdgeInsets.fromLTRB(10, 6, 10, 7),
-    decoration: _card(AppColors.paper),
+    decoration: _card(AppColors.paper, shadow: shadow),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -467,6 +481,17 @@ class _Mini extends StatelessWidget {
       ],
     ),
   );
+
+  @override
+  Widget build(BuildContext context) {
+    if (onTap == null) return _box(4);
+    return Pressable(
+      lift: 4,
+      onTap: onTap,
+      builder: (context, look) =>
+          PressTint(tint: look.tint, borderRadius: const BorderRadius.all(AppRadii.r18), child: _box(look.shadow)),
+    );
+  }
 }
 
 /// .mini-line：圖示、名稱、數字、單位，右邊一個小欄位。窄手機字小一號，再窄就不放圖示（screens.css 的 @media）。
@@ -544,11 +569,11 @@ class _Trailing extends StatelessWidget {
 
 const _red = Color(0xFFD9443F);
 
-BoxDecoration _card(Color color) => BoxDecoration(
+BoxDecoration _card(Color color, {double shadow = 4}) => BoxDecoration(
   color: color,
   border: Border.all(color: AppColors.ink, width: AppSizes.border),
   borderRadius: const BorderRadius.all(AppRadii.r18),
-  boxShadow: AppShadows.solid(4),
+  boxShadow: AppShadows.solid(shadow),
 );
 
 /// 奶桶的瓶數：1000 以上寫整數加千分位，以下寫 1 位小數，.0 不寫（設計稿 oneDec）。
@@ -557,71 +582,6 @@ String oneDecimal(double v) {
   final t = (v * 10).round() / 10;
   final str = t.toStringAsFixed(1);
   return str.endsWith('.0') ? str.substring(0, str.length - 2) : str;
-}
-
-/// .card-title：小標籤（黃底；奶桶藍、收購價綠）。
-class CardTitle extends StatelessWidget {
-  const CardTitle(this.text, {super.key, this.color = AppColors.yellow});
-
-  final String text;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8),
-    decoration: BoxDecoration(
-      color: color,
-      border: Border.all(color: AppColors.ink, width: 2),
-      borderRadius: const BorderRadius.all(AppRadii.r10),
-    ),
-    child: Text(text, softWrap: false, style: AppText.style(13, weight: FontWeight.w900, lineHeight: 20)),
-  );
-}
-
-/// .bar：進度條（藍色、粗描邊，右緣一條深色線，上面一條白色反光）。
-class MeterBar extends StatelessWidget {
-  const MeterBar({super.key, required this.fraction, this.height = 14, this.fill = AppColors.blue2});
-
-  final double fraction;
-  final double height;
-  final Color fill;
-
-  @override
-  Widget build(BuildContext context) {
-    final f = fraction.clamp(0.0, 1.0);
-    return Container(
-      height: height,
-      decoration: BoxDecoration(
-        color: const Color(0xFFE6F3FC),
-        border: Border.all(color: AppColors.ink, width: 2.5),
-        borderRadius: const BorderRadius.all(Radius.circular(8)),
-      ),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.all(Radius.circular(5.5)),
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: FractionallySizedBox(
-            widthFactor: f,
-            heightFactor: 1,
-            child: Container(
-              decoration: BoxDecoration(
-                color: fill,
-                border: f >= 1 ? null : const Border(right: BorderSide(color: AppColors.ink, width: 2.5)),
-              ),
-              child: const Align(
-                alignment: Alignment.topCenter,
-                child: SizedBox(
-                  height: 3,
-                  width: double.infinity,
-                  child: ColoredBox(color: Color(0x8CFFFFFF)),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 /// 奶桶圖示，牛奶的水位跟著百分比（設計稿 s03.js 的 pailLevel，48×48 的座標）。

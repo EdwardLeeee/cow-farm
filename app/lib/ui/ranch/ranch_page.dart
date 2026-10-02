@@ -198,6 +198,7 @@ class _RanchPageState extends State<RanchPage> {
             pan: _pan,
             onToggle: () => settings.setDockCollapsed(!collapsed),
             collect: collectButton,
+            onStorage: m.openWarehouse,
           ),
         ),
       ],
@@ -641,7 +642,8 @@ class _BigNews extends StatelessWidget {
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      border: Border.all(color: AppColors.ink, width: 2.5),
+                      // CSS 寫 2.5px，boards 量出來是 2（Chrome 畫成 2px）；照核准的 boards
+                      border: Border.all(color: AppColors.ink, width: 2),
                       borderRadius: const BorderRadius.all(AppRadii.r16),
                     ),
                     child: AppIcon(c.wire, size: 34),

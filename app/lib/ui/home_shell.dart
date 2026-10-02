@@ -18,6 +18,7 @@ import 'screens/leaderboard_screen.dart';
 import 'screens/market_screen.dart';
 import 'screens/shop_screen.dart';
 import 'start/start_flow.dart';
+import 'warehouse/warehouse_page.dart';
 import 'widgets/ticker_builder.dart';
 
 /// 外框：照 M2 設計稿的頂列（G-02）、底部分頁列（G-01）。牧場分頁是正式的 S03；其他分頁先把 M1 的畫面放在內容區，
@@ -64,18 +65,20 @@ class _HomeShellState extends State<HomeShell> {
     if (m.maintenance != null || m.state == null || m.authLost != null) {
       // 維護中、token 失效（原型文字）：整頁，沒有頂列和分頁列
       page = AppFrame(hud: false, content: _content(m));
-    } else if (m.tab == AppTab.ranch && m.detailCowKey == null && !m.penListOpen) {
+    } else if (m.tab == AppTab.ranch && m.detailCowKey == null && !m.penListOpen && !m.warehouseOpen) {
       page = const RanchPage();
     } else {
       page = AppFrame(tab: m.tab, content: _content(m), contentPadding: EdgeInsets.zero);
     }
     final safe = MediaQuery.paddingOf(context);
     return PopScope(
-      canPop: m.detailCowKey == null && !m.penListOpen,
+      canPop: m.detailCowKey == null && !m.penListOpen && !m.warehouseOpen,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
         if (m.detailCowKey != null) {
           m.closeCow();
+        } else if (m.warehouseOpen) {
+          m.closeWarehouse();
         } else {
           m.closePenList();
         }
@@ -103,8 +106,8 @@ class _HomeShellState extends State<HomeShell> {
     if (m.state == null || m.authLost != null) return const _Loading();
     if (m.detailCowKey != null) return CowDetailScreen(cowKey: m.detailCowKey!);
     return switch (m.tab) {
-      // 牛舍清單（S03-07）
-      AppTab.ranch => const PenListPage(),
+      // 倉庫（S05-02）、牛舍清單（S03-07）
+      AppTab.ranch => m.warehouseOpen ? const WarehousePage() : const PenListPage(),
       AppTab.market => const MarketScreen(),
       AppTab.fields => const FieldsScreen(),
       AppTab.breed => const BreedScreen(),

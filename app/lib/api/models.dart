@@ -306,16 +306,54 @@ class Bucket {
   }
 }
 
+/// 倉庫裡的一批（協定 2.3 的 milk_lots、beef_lots、rice_lots）。
 class Lot {
-  const Lot({required this.qty, this.freshness, this.tier = 0});
+  const Lot({
+    required this.qty,
+    this.freshness,
+    this.tier = 0,
+    this.at,
+    this.spoilsAt,
+    this.cowId,
+    this.breed,
+    this.grade,
+    this.quality,
+    this.storageFactor,
+  });
   final double qty;
   final double? freshness; // 0–1，只有牛奶有
   final int tier;
+
+  /// 進倉庫的時間（遊戲時間）：牛奶 collected_at、牛肉 shipped_at、稻米 harvested_at。
+  final double? at;
+
+  /// 牛奶壞掉的時間（遊戲時間）。
+  final double? spoilsAt;
+
+  /// 牛肉：出貨的那頭牛（編號、品種；品種是 null 就只寫編號）。
+  final Object? cowId;
+  final String? breed;
+
+  /// 牛肉的評級 A／B／C。
+  final String? grade;
+
+  /// 稻米：存放折價（0.7–1）；牛肉：評級倍率 × 存放折價。
+  final double? quality;
+
+  /// 牛肉的存放折價。
+  final double? storageFactor;
 
   factory Lot.fromJson(Map<String, dynamic> j) => Lot(
     qty: _d(_pick(j, ['qty', 'kg', 'amount'])),
     freshness: _dn(_pick(j, ['freshness', 'fresh'])),
     tier: _i(_pick(j, ['tier'])),
+    at: _dn(_pick(j, ['collected_at', 'shipped_at', 'harvested_at'])),
+    spoilsAt: _dn(j['spoils_at']),
+    cowId: j['cow_id'],
+    breed: j['breed'] is String ? j['breed'] as String : null,
+    grade: j['grade'] is String ? j['grade'] as String : null,
+    quality: _dn(j['quality']),
+    storageFactor: _dn(j['storage_factor']),
   );
 }
 

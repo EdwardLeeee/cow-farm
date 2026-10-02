@@ -315,7 +315,8 @@ class Hud extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: const Color(0xFFFF6B5E),
-                      border: Border.all(color: AppColors.ink, width: 2.5),
+                      // CSS 寫 2.5px，boards 量出來是 2（Chrome 畫成 2px）；照核准的 boards
+                      border: Border.all(color: AppColors.ink, width: 2),
                     ),
                   ),
                 ),
@@ -428,17 +429,18 @@ class _Tab extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         if (on)
-          // margin-top: -6px：膠囊（28 + 上下 2 + 框 2.5×2 = 37 高）往上凸 6，排版只佔 31
+          // margin-top: -6px：膠囊（28 + 上下 2 + 框 2×2 = 36 高）往上凸 6，排版只佔 30
           SizedBox(
-            height: 37 - 6,
+            height: 36 - 6,
             child: OverflowBox(
-              maxHeight: 37,
+              maxHeight: 36,
               alignment: Alignment.bottomCenter,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFE2DA),
-                  border: Border.all(color: AppColors.ink, width: 2.5),
+                  // CSS 寫 2.5px，boards 量出來是 2（Chrome 畫成 2px）；照核准的 boards
+                  border: Border.all(color: AppColors.ink, width: 2),
                   borderRadius: const BorderRadius.all(Radius.circular(16)),
                   boxShadow: AppShadows.solid(2),
                 ),
