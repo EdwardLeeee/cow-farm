@@ -23,7 +23,9 @@ void main() {
 
   test('多一頭、少一頭時其他牛不動；新的牛拿第一個空位', () {
     final layout = HerdLayout();
-    final herd = [for (final id in [3, 5, 7, 8, 11, 12, 14, 15]) _cow(id)];
+    final herd = [
+      for (final id in [3, 5, 7, 8, 11, 12, 14, 15]) _cow(id),
+    ];
     final first = _slots(layout, herd);
 
     final more = _slots(layout, [...herd, _cow(99)]);
@@ -46,7 +48,9 @@ void main() {
 
   test('一直重算（每 5 秒校正一次）位置也不變', () {
     final layout = HerdLayout();
-    final herd = [for (final id in [1, 2, 3, 4, 5]) _cow(id)];
+    final herd = [
+      for (final id in [1, 2, 3, 4, 5]) _cow(id),
+    ];
     final a = _slots(layout, herd);
     final b = _slots(layout, herd.reversed.toList());
     for (final id in a.keys) {
