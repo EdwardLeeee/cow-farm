@@ -26,8 +26,8 @@ start)
   if alive; then echo "已經在跑（PID $(cat "$PID_FILE")）"; exit 0; fi
   if [ -n "${2:-}" ]; then export COWFARM_TIME_SCALE="$2"; fi
   avail="$(free -m | awk '/^Mem:/ {print $7}')"
-  if [ "$avail" -lt 2000 ] && [ "${COWFARM_FORCE:-0}" != "1" ]; then
-    echo "可用記憶體只有 ${avail} MB（< 2000 MB），先不啟動；確定要跑就加 COWFARM_FORCE=1" >&2
+  if [ "$avail" -lt 1000 ] && [ "${COWFARM_FORCE:-0}" != "1" ]; then  # 使用者 2026-10-03：不到 1 GB 才等
+    echo "可用記憶體只有 ${avail} MB（< 1000 MB），先不啟動；確定要跑就加 COWFARM_FORCE=1" >&2
     exit 3
   fi
   cd "$HERE"

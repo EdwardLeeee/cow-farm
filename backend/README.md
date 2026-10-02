@@ -39,7 +39,7 @@ python3 -m venv .venv
 
 ## 2. PostgreSQL
 
-**記憶體安全**（這台電腦 2026-09-30 因記憶體耗盡當機過）：先看 `free -m`，available 少於 2000 MB 就等一下。`pg.sh up` 也會檢查（加 `--force` 可以略過）。
+**記憶體安全**（這台電腦 2026-09-30 因記憶體耗盡當機過）：先看 `free -m`，available 少於 1000 MB 就等一下（使用者 2026-10-03 從 2000 MB 改成 1000 MB）。`pg.sh up` 也會檢查（加 `--force` 可以略過）。
 
 ```bash
 free -m
@@ -166,7 +166,7 @@ M4 以前的伺服器沒有 Apple、Google 的設定：綁定和找回回 `sign_
 ## 4. 測試
 
 ```bash
-free -m    # available ≥ 2000 MB 再跑；試玩或長時間跑的時候用 scripts/pg.sh status 看 PostgreSQL 的記憶體（上限 256 MB，大部分是可回收的檔案快取）
+free -m    # available ≥ 1000 MB 再跑；試玩或長時間跑的時候用 scripts/pg.sh status 看 PostgreSQL 的記憶體（上限 256 MB，大部分是可回收的檔案快取）
 scripts/pg.sh up
 systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 .venv/bin/python -m pytest -q
 ```

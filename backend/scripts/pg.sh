@@ -22,7 +22,7 @@ PORT="${COWFARM_PG_PORT:-55433}"
 IMAGE="${COWFARM_PG_IMAGE:-docker.io/library/postgres:17}"
 CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/cow-farm"
 ENV_FILE="$CONF_DIR/pg.env"
-MIN_AVAILABLE_MB="${COWFARM_MIN_AVAILABLE_MB:-2000}"
+MIN_AVAILABLE_MB="${COWFARM_MIN_AVAILABLE_MB:-1000}"  # 使用者 2026-10-03：不到 1 GB 才等
 
 exists_container() { podman container exists "$NAME"; }
 exists_volume() { podman volume exists "$VOLUME"; }
