@@ -4,7 +4,7 @@
 // 英文、泰文存到 raw/<語言>/（只量測，不送核准，D25）；缺翻譯的 key 用繁中顯示，記在 .json 的 missing。
 // 泰文另外檢查換行（用詞表）：會換行的泰文用 Intl.Segmenter 切詞，記下實際換行的位置（thaiBreaks）。
 //   換在詞中間（midWord）算錯；把用詞表裡的詞拆到兩行（splitTerms）要人看：複合詞（例 ตลาด|พ่อพันธุ์）可以，外來字（例 ออฟ|ไลน์）不行。
-// 記憶體：跑之前先看 free -m（available ≥ 2000 MB），用 systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 包起來。
+// 記憶體：跑之前先看 free -m（available 少於 1000 MB 就先等，使用者 2026-10-03），用 systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 包起來。
 import { chromium } from '@playwright/test';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { readFileSync, existsSync } from 'node:fs';

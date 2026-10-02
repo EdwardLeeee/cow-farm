@@ -35,4 +35,4 @@
 
 在 `design/artboards/m4-icon` 底下跑 `node harness/make.mjs export A4`，用 `design/m2` 的 Playwright。
 
-照記憶體規則：`free -m` 可用 2 GB 以上，用 `systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0` 包起來。
+照記憶體規則：`free -m` 可用少於 1 GB 就先等，用 `systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0` 包起來。

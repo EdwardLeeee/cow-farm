@@ -83,9 +83,11 @@ full('S17-01', '一般：田地場景與每塊田（長頁）', (ctx) => fieldsP
 part('S17-02', '空田：沒有能下田的耕牛時停用', '.field-card.empty', (ctx) => fieldsPage(ctx, { card: { noOx: true }, scrollTo: '.field-card.empty' }));
 full('S17-03', '選一頭耕牛下田', (ctx) => fieldsPage(ctx, {
   fields: [FIELDS[0], FIELDS[1], { ...FIELDS[2] }],
-  overlays: sheet({ title: t('pickOx', { n: 2 }), body: `<div class="list">
+  // 列出全部耕牛：能下田的（產量高的先）→ 在田裡的（田號小的先）→ 上架中的 → 小牛（快長大的先）；預選第一頭能下田的（cow-app #108，ceo 2026-10-03）
+  overlays: sheet({ cls: 'ox-pick', title: t('pickOx', { n: 2 }), body: `<div class="list" data-scroll>
     <button class="card ox-opt on">${cowSVG({ breed: 'milkTea', sex: 'bull', seed: 101 }, { w: 56, h: 56, pad: 2 })}<div class="grow"><b>${cowName('milkTea', 18)}</b><div class="chips">${tierChip(1)}<span class="hint">${t('fieldRate', { v: 14.3 })}</span></div></div><span class="pick-check static">${icon('ok', 24)}</span></button>
     <button class="card ox-opt off" disabled>${cowSVG({ breed: 'yellow', sex: 'bull', seed: 17 }, { w: 56, h: 56, pad: 2 })}<div class="grow"><b>${cowName('yellow', 2)}</b><div class="chips">${badge('working', t('s17.inField', { n: 1 }))}</div></div></button>
+    <button class="card ox-opt off" disabled>${cowSVG({ breed: 'highland', sex: 'cow' }, { w: 56, h: 56, pad: 2 })}<div class="grow"><b>${cowName('highland', 9)}</b><div class="chips">${badge('working', t('s17.inField', { n: 3 }))}</div></div></button>
     <button class="card ox-opt off" disabled>${cowSVG({ breed: 'yellow', age: 'calf', seed: 105 }, { w: 56, h: 56, pad: 2 })}<div class="grow"><b>${cowName('yellow', 19)}</b><div class="chips">${badge('calf', t('stageCalf'))}<span class="hint">${t('g.growsIn', { time: dur({ h: 1 }) })}</span></div></div></button></div>
     <div class="btn-row" style="margin-top:14px">${btn(t('cancel'))}${btn(t('g.assign'), { kind: 'green', ic: 'sprout' })}</div>` }),
 }));

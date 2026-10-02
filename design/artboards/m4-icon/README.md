@@ -45,5 +45,5 @@
 - `harness/make.mjs` 用 Playwright 截圖，在這個資料夾底下跑（用 `design/m2` 的 node_modules 和靜態伺服器）：
   - `node harness/make.mjs 1`、`node harness/make.mjs 2`：出第 1、2 輪的說明圖和總覽。
   - `node harness/make.mjs export A4`：把選定的方向匯出到 `design/m4/icon/`。
-  - 照記憶體規則：`free -m` 可用 2 GB 以上，用 `systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0` 包起來。
+  - 照記憶體規則：`free -m` 可用少於 1 GB 就先等，用 `systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0` 包起來。
 - 不畫 Apple、Google 的標誌；不沿用其他遊戲的名稱、畫風或畫面配置。
