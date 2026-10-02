@@ -73,7 +73,7 @@ void main() {
     await _scrollTo(tester, slider);
     await tester.pump();
     api.calls.clear();
-    // 每次都重新量滑桿的位置：試算中預估框變矮，捲到最底時內容會往下移（設計稿也是這樣，PR 內文有寫）
+    // 每次都重新量滑桿的位置（保險：版面變了也點得準）
     Offset at(double f) {
       final r = tester.getRect(slider);
       return Offset(r.left + r.width * f, r.center.dy);
@@ -101,6 +101,35 @@ void main() {
     await tester.pump();
     expect(tester.widget<Text>(find.byKey(const Key('sell-qty'))).data, '146');
     expect(api.calls.last, 'quote:milk:146.0');
+  });
+
+  testWidgets('試算中、失敗時預估框維持上一次的高度，捲到最底時畫面不會跳', (tester) async {
+    Screen.w390.apply(tester);
+    final api = MarketApi(answers: designAnswers);
+    await showMarket(tester, AppLang.zhHant, api: api);
+    final box = find.byKey(const Key('estimate'));
+    await _scrollTo(tester, box);
+    final okHeight = tester.getSize(box).height;
+    final slider = find.byKey(const Key('sell-slider'));
+    final sliderTop = tester.getTopLeft(slider).dy;
+
+    api.pending = true;
+    final r = tester.getRect(slider);
+    await tester.tapAt(Offset(r.left + r.width * 130 / 146, r.center.dy));
+    await tester.pump(SellCard.debounce);
+    await tester.pump();
+    expect(find.text(_zh.quoting), findsOneWidget);
+    expect(tester.getSize(box).height, okHeight);
+    expect(tester.getTopLeft(slider).dy, sliderTop, reason: '內容沒有往下跳');
+
+    api
+      ..pending = false
+      ..fail = true;
+    await tester.tapAt(Offset(r.left + r.width * 0.5, r.center.dy));
+    await tester.pump(SellCard.debounce);
+    await tester.pump();
+    expect(find.text(_zh.s06QuoteFailed), findsOneWidget);
+    expect(tester.getSize(box).height, okHeight);
   });
 
   testWidgets('伺服器說一次賣太多（warn_big_order）就提醒分批；沒說就不提醒', (tester) async {
