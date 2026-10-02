@@ -197,7 +197,7 @@ systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 .venv/bin/py
 
 經濟情境（`test_scenarios.py`，約 2.5 分鐘）的規模：10 人（seed 1–5）與 100 人（seed 1–3）各 30 天；大戶（100 人＋100 頭，倒貨／分批／一直囤）、大利多後恐慌賣（100 人）各 23 天；人少的一天（100 人）20 天。1,000 人 30 天預設不跑（`COWFARM_SCENARIO_1000=1` 才跑）；1,000 人的大戶與 10,000 人沒有在服務層重跑。服務層和研究模擬同一個 seed 逐數字相同（10 人 30 天、大戶倒貨、恐慌賣有測試比對），所以筆記裡 1,000／10,000 人的數字同樣適用。
 
-### 改到經濟引擎的行為時：CI 會紅在 `test_numbers_match_research_note`
+### 改到經濟引擎的參數或行為時：CI 會紅在 `test_numbers_match_research_note`
 
 `test_numbers_match_research_note` 用研究筆記 `docs/research/economy/out/goals.json` 的數字，比對服務層重跑 10 人（seed 1–5）30 天的結果（誤差 1e-12）：
 
@@ -206,11 +206,11 @@ systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 .venv/bin/py
 - 出借派的借種收入佔比
 - 六種玩法 30 天的總收入
 
-只有 `goals.json` 的參數指紋跟現在的 `cowecon/params.py` 一樣時才比，不一樣就 skip。
+`goals.json` 的參數指紋跟現在的 `cowecon/params.py` 不一樣時，這個測試直接失敗（2026-10-03 起；以前是 skip，改了參數 CI 照樣綠）。
 
 `test_identical_to_research_sim` 只證明伺服器和研究模擬兩邊一樣；兩邊共用 `cowecon`，所以改了引擎它還是會通過，看不出研究結果變了。真正擋下來的是上面這個測試。
 
-改到 `cowecon` 的行為（不只改 `params.py` 的數字；例如 #89 把公營種牛站改成缺哪種補哪種）時，照三步走：
+改到 `cowecon` 的參數或行為（例如 #89 把公營種牛站改成缺哪種補哪種、D33 新聞分四級）時，照三步走：
 
 1. 改引擎的人推修改、開 PR。PR 說明寫改了什麼行為，最好附上自己重跑一兩個情境的比對（`cd docs/research/economy && python -m sim.run --only base_10_s1,base_100_s1 --force`，各幾秒；重跑的檔案不要提交，比完用 `git checkout` 還原）。
 2. CI 會紅在 `test_numbers_match_research_note`。這是預期的，代表研究筆記的數字過期了。
