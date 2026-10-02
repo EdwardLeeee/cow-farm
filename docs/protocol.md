@@ -313,7 +313,7 @@ app 怎麼顯示：
  "stud": {"listings": [], "income": 0},
  "economy": {"tier_mult": [1.0, 1.3, 1.7, 2.5], "beef_grade_mult": {"A": 1.25, "B": 1.0, "C": 0.75}, "ox_rice_per_h": 11.0,
              "dairy_milk_per_h": 14.0, "calf_grow_h": [1.0, 2.0, 4.0, 8.0],
-             "peak_weight_kg": {"dairy": 250.0, "dual": 450.0, "beef": 800.0}, "bull_weight_mult": 1.1},
+             "peak_weight_kg": {"dairy": 250.0, "dual": 450.0, "beef": 800.0}, "bull_weight_mult": 1.1, "field_cap_h": 8.0},
  "account": {"links": []},
  "maintenance": null
 }
@@ -331,7 +331,7 @@ app 怎麼顯示：
 | `codex[]` | array | PR 4：已發現的品種 `{"breed", "found_at"}`，`found_at` 是第一次發現的遊戲時間（S09-03「第一次發現：{date}」）。牛一出生（或抽到、借種生下）就算發現，之後出貨也不會消失。共 24 種，沒出現在陣列裡的顯示剪影。「目前有 n 頭」由 app 數 `cows[]` |
 | `fields[]`、`rice` | | 田地（見下） |
 | `stud` | object | `listings` 自己上架的借種（形狀同 `GET /v1/stud` 的 `listings[]`）、`income` 借種收入累計（幣） |
-| `economy` | object | 經濟倍數，直接讀伺服器的參數（`params.py`），app 不要寫死：`tier_mult`（一般、優良、稀有、傳說：牛奶、牛肉的賣價倍率，也是耕牛的稻米產量倍率；S05「優良牛奶 ×1.3」、S09 品種卡）、`beef_grade_mult`（牛肉評級 A／B／C 的賣價倍率）、`ox_rice_per_h`（壯年一般耕牛每遊戲小時的稻米公斤數；某頭牛 = 這個 × `tier_mult` × 年齡曲線，現在的值看 `cows[].rice_per_h`）、`dairy_milk_per_h`（壯年母乳牛每遊戲小時產幾瓶；× 年齡曲線，稀有度不影響產量、只影響賣價；S09-03「產奶 14 瓶／時」）、`calf_grow_h`（小牛長大要幾遊戲小時，依稀有度 0–3；S08-06「小牛長大 1–4 小時」、S09-03）、`peak_weight_kg`（母牛的最佳體重，依用途，key 同 `cows[].type`：`dairy`、`dual`、`beef`；S09-03）、`bull_weight_mult`（公牛的體重 = 母牛 × 這個）。牛奶賣價 = 市價 × `tier_mult` × 新鮮度；牛肉 = 市價 × `beef_grade_mult` × `tier_mult` × 存放折價。**這些只是給畫面顯示的說明數字**：帳一律由伺服器算，app 不能拿它們自己算成交價或收入（手機不算帳；要價格用 `POST /v1/sell/quote`、`GET /v1/ship/preview`） |
+| `economy` | object | 經濟倍數，直接讀伺服器的參數（`params.py`），app 不要寫死：`tier_mult`（一般、優良、稀有、傳說：牛奶、牛肉的賣價倍率，也是耕牛的稻米產量倍率；S05「優良牛奶 ×1.3」、S09 品種卡）、`beef_grade_mult`（牛肉評級 A／B／C 的賣價倍率）、`ox_rice_per_h`（壯年一般耕牛每遊戲小時的稻米公斤數；某頭牛 = 這個 × `tier_mult` × 年齡曲線，現在的值看 `cows[].rice_per_h`）、`dairy_milk_per_h`（壯年母乳牛每遊戲小時產幾瓶；× 年齡曲線，稀有度不影響產量、只影響賣價；S09-03「產奶 14 瓶／時」）、`calf_grow_h`（小牛長大要幾遊戲小時，依稀有度 0–3；S08-06「小牛長大 1–4 小時」、S09-03）、`peak_weight_kg`（母牛的最佳體重，依用途，key 同 `cows[].type`：`dairy`、`dual`、`beef`；S09-03）、`bull_weight_mult`（公牛的體重 = 母牛 × 這個）、`field_cap_h`（一塊田最多存這頭耕牛**壯年**幾小時的產量：`fields[].capacity` = `ox_rice_per_h` × `tier_mult` × 這個，不乘年齡曲線。過了壯年、產量變少的耕牛要更久才長滿，例：產量剩 4 成時要 8 ÷ 0.4 = 20 小時；S17「最多存 8 小時的量」）。牛奶賣價 = 市價 × `tier_mult` × 新鮮度；牛肉 = 市價 × `beef_grade_mult` × `tier_mult` × 存放折價。**這些只是給畫面顯示的說明數字**：帳一律由伺服器算，app 不能拿它們自己算成交價或收入（手機不算帳；要價格用 `POST /v1/sell/quote`、`GET /v1/ship/preview`） |
 | `account` | object | PR 9：`links[]` 綁定的帳號 `{"provider": "apple"｜"google", "linked_at_real"}`。空陣列 = 還沒備份（頂列齒輪的小點 G-10、S13-01「還沒備份」） |
 | `maintenance` | object／null | PR 8：維護預告或維護中（第 6 節）；沒有是 null |
 
@@ -413,10 +413,10 @@ v2 拿掉的：`type_name`、`tier_name`、`ready_at`、`breed_ready`（看 `can
 | `index` | 田的編號（從 0 開始），派牛時用 |
 | `cow_id` | 在這塊田工作的耕牛；空田是 null |
 | `rice` | `server_time` 當下田裡長好、還沒收的稻米（公斤）。牛叫回來後，已經長好的留在田裡，收成時一起收 |
-| `capacity` | 這頭耕牛下田時，這塊田最多累積多少（公斤，長滿就停）；空田 null。畫面用 `rice ÷ capacity` 畫稻子的生長階段 |
-| `per_hour` | 這塊田現在每小時長多少（公斤）。app 用 `min(capacity, rice + per_hour × 經過的遊戲小時)` 推算 |
+| `capacity` | 這頭耕牛下田時，這塊田最多累積多少（公斤，長滿就停）；空田 null。= `economy.ox_rice_per_h` × `economy.tier_mult[這頭牛的 tier]` × `economy.field_cap_h`，用壯年的產量算、不乘年齡曲線，所以不會隨牛變老而變小。畫面用 `rice ÷ capacity` 畫稻子的生長階段 |
+| `per_hour` | 這塊田的耕牛現在每小時的產量（公斤；同那頭牛的 `cows[].rice_per_h`，這裡取到小數 6 位）；空田 0。**長滿了也不是 0**：長滿就停是 `capacity` 管的，有沒有長滿看 `rice ≥ capacity`。app 用 `min(capacity, rice + per_hour × 經過的遊戲小時)` 推算 |
 
-`rice`：`in_fields` 田裡長好還沒收的稻米、`stock` 倉庫裡的稻米、`per_hour` 田裡所有耕牛現在每小時產量。
+`rice`：`in_fields` 田裡長好還沒收的稻米、`stock` 倉庫裡的稻米、`per_hour` 所有有耕牛的田每小時產量加起來（= `fields[].per_hour` 的總和）。**長滿的田也算**（伺服器的 `farm.rice_rate`），所以有田長滿時，它比田裡實際還在長的量多。S17 田地頁的「每小時」要的是還在長的量：app 從 `fields[]` 加總還沒長滿（`rice < capacity`）的田的 `per_hour`。這是顯示用的推算：app 用上面的公式推算每塊田的 `rice`，兩次 `state` 之間有田長滿，「每小時」也會跟著變少。
 
 ### 2.4 `POST /v1/collect` 收奶
 
@@ -1063,3 +1063,4 @@ app 啟動時先打這個（還沒有 token 也能打），再決定要不要顯
 - 2026-10-02：2.3 節 `cows[].rice_per_h` 寫清楚：成年耕牛不管有沒有下田，都是「下田的話」每小時的產量（伺服器本來就這樣算，程式不變）。
 - 2026-10-02：3.7、4.3 節預覽加 `distribution[]`（每個品種的機率，S08-06、S18-06）；2.3 節 `economy` 加 `dairy_milk_per_h`、`calf_grow_h`、`peak_weight_kg`、`bull_weight_mult`（S08-06、S09-03；直接讀 params）。設計稿缺口清單第 1 類（1-1～1-3）。
 - 2026-10-02：1.6、第 4 節寫清楚公營種牛站：每種用途至少一頭（#89 起伺服器照這樣補）；基因照商店 C 級的機率抽，大多是一般公牛（約 3% 是優良以上）。欄位不變。
+- 2026-10-03：2.3 節 `economy` 加 `field_cap_h`（S17「最多存 8 小時的量」，直接讀 params）；寫清楚 `rice.per_hour`（所有有牛的田加起來，長滿的也算）、`fields[].per_hour`（長滿了也不是 0；有沒有長滿看 `rice ≥ capacity`）和 `fields[].capacity` 的算法（壯年產量，不乘年齡曲線）。伺服器的行為不變。

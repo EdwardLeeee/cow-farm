@@ -22,6 +22,7 @@ from cowecon.farm import (
     cow_rice_rate,
     cow_type,
     draw_beef_grade,
+    make_genotype,
     offspring_distribution,
     rare_mask,
     shop_draw,
@@ -156,6 +157,7 @@ def test_session_and_state_fields(h):
         "calf_grow_h": list(FP.tier_growth_h),
         "peak_weight_kg": dict(zip(TYPE_WIRE, FP.peak_weight_kg)),
         "bull_weight_mult": FP.bull_weight_mult,
+        "field_cap_h": FP.field_cap_h,
     }
     cows = {c["id"]: c for c in st["cows"]}
     assert len(cows) == 2
@@ -643,6 +645,44 @@ def test_field_flow(h):
         h.post("/v1/field/assign", tok, {"cow_id": ox["id"], "field": 1, "request_id": new_rid()}).json()["field"] == 1
     )
     assert h.post("/v1/upgrade", tok, {"kind": "field", "request_id": new_rid()}).status_code == 200  # upgrade 也能開田
+
+
+def test_field_capacity_and_per_hour_when_full(h):
+    """S17：田的容量 = economy 的 ox_rice_per_h × tier_mult × field_cap_h（壯年的產量，不乘年齡曲線）。
+    長滿就停，但 fields[].per_hour 不會變 0；rice.per_hour 是所有有牛的田加起來，長滿的也算（farm.rice_rate）。
+    有沒有長滿看 rice ≥ capacity（協定 2.3）。"""
+    tok = h.session()["token"]
+    st = state(h, tok)
+    starter = next(c for c in st["cows"] if c["bull"])  # 開局的小公牛是一般耕牛
+    h.advance(OB.starter_calf_remaining_s)
+    p = give(h, tok, coins=1_000_000, slots=10)
+    now = h.clock.now()
+    rare = Cow(p.farm._new_id(), make_genotype(1, [(1, 1), (1, 1), (0, 0)]), True, now, FP, adult_at=now)  # 稀有耕牛
+    p.farm.cows.append(rare)
+    assert rare.tier == 2
+    r = h.post("/v1/field/assign", tok, {"cow_id": rare.cid, "field": 0, "request_id": new_rid()}).json()
+    eco, f0 = r["state"]["economy"], r["fields"][0]
+    assert eco["field_cap_h"] == FP.field_cap_h
+    assert f0["capacity"] == round(eco["ox_rice_per_h"] * eco["tier_mult"][2] * eco["field_cap_h"], 2)
+    assert h.post("/v1/field/expand", tok, {"request_id": new_rid()}).status_code == 200
+    # 壯年（成年後 milk_prime_h 小時內）全速：field_cap_h 小時就長滿。多等 2 小時讓第 0 塊長滿，再派開局的耕牛去第 1 塊
+    assert FP.field_cap_h + 3 < FP.milk_prime_h
+    h.advance((FP.field_cap_h + 2) * 3600)
+    assert (
+        h.post("/v1/field/assign", tok, {"cow_id": starter["id"], "field": 1, "request_id": new_rid()}).status_code
+        == 200
+    )
+    h.advance(3600)
+    st = state(h, tok)
+    full, growing = st["fields"]
+    assert full["rice"] == pytest.approx(full["capacity"], abs=1e-6)  # 長滿就停
+    assert growing["rice"] < growing["capacity"]
+    cows = {c["id"]: c for c in st["cows"]}
+    for f in (full, growing):  # 長滿了 per_hour 也不是 0：就是那頭牛的 rice_per_h（取位不同）
+        assert f["per_hour"] > 0 and f["per_hour"] == pytest.approx(cows[f["cow_id"]]["rice_per_h"], abs=0.005)
+    assert st["rice"]["per_hour"] == pytest.approx(full["per_hour"] + growing["per_hour"], abs=1e-5)  # 長滿的也算
+    # S17「每小時」要的是還在長的量：app 只加 rice < capacity 的田，所以比 rice.per_hour 少
+    assert sum(f["per_hour"] for f in st["fields"] if f["rice"] < f["capacity"]) < st["rice"]["per_hour"]
 
 
 # ---------------------------------------------------------------------------
