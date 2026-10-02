@@ -21,6 +21,24 @@ export function applyDevice(w) {
   return d;
 }
 
+// 大標題（開場的遊戲名、維護中…，.splash-title .t）一行放不下就整個等比例縮小到放得下（ceo 2026-10-02）：
+// 字、外框、陰影、左右內距一起縮，上緣不動、左右置中，跟 app 的 FittedBox(fit: BoxFit.scaleDown) 一樣（cow-app #61）。
+// 繁中放得下，什麼都不改。畫完、字型載好之後才量（main.js）。
+export function fitTitles(root) {
+  let n = 0;
+  root.querySelectorAll('.splash-title').forEach((box) => {
+    const el = box.querySelector('.t');
+    if (!el) return;
+    const b = box.getBoundingClientRect(), r = el.getBoundingClientRect();
+    if (r.width <= b.width + 0.5) return;
+    const k = b.width / r.width, dx = b.left + b.width / 2 - (r.left + r.width / 2);
+    el.style.transformOrigin = '50% 0';
+    el.style.transform = `translateX(${dx}px) scale(${k})`;
+    n++;
+  });
+  return n;
+}
+
 const SB_ICONS = (c = '#111114') => `
 <svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true"><g fill="${c}"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg>
 <svg width="16" height="12" viewBox="0 0 16 12" aria-hidden="true"><g fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round"><path d="M1.5 4.2a9.5 9.5 0 0 1 13 0"/><path d="M4.2 7a5.6 5.6 0 0 1 7.6 0"/></g><circle cx="8" cy="10" r="1.6" fill="${c}"/></svg>

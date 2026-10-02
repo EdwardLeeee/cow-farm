@@ -90,6 +90,7 @@
   display: inline-block; font-size: 44px; font-weight: 900; line-height: 56px; letter-spacing: 4px; color: #FFFFFF;
   -webkit-text-stroke: 8px var(--ink); paint-order: stroke fill; text-shadow: 0 5px 0 var(--ink); padding: 0 8px;
 }
+.splash-title .t { white-space: nowrap; } /* 一定一行；放不下時 kit.js 的 fitTitles 整個等比例縮小（ceo 2026-10-02） */
 .splash-cows { position: absolute; left: 0; right: 0; top: calc(var(--H) * 0.2 + 78px); display: flex; justify-content: center; align-items: flex-end; gap: 0; }
 .splash-cows svg:last-child { margin-left: -18px; }
 .splash-ground { position: absolute; left: -20px; right: -20px; top: calc(var(--H) * 0.2 + 222px); bottom: -20px; background: #AEE594; border-top: 3px solid var(--ink); border-radius: 50% 50% 0 0 / 28px 28px 0 0; z-index: -0; }
