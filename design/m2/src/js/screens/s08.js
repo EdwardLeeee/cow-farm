@@ -28,6 +28,14 @@ const BULLS = () => [[cowById(14), ''], [cowById(5), 'listed'], [cowById(8), 'br
 const DAMS = () => [[cowById(3), ''], [cowById(7), ''], [cowById(12), ''], [cowById(11), ''], [cowById(9), 'working'], [cowById(15), 'calf']];
 
 // fee：卡片右上角整句費用（自己配種是 breedFree；借種是 s18.feeLine）；none：還沒選好時的提示
+// 小牛長大要幾小時：照這張卡可能生出的稀有度，取最短到最長；一樣長就只寫一個數字（ceo 2026-10-02；缺口清單 3-3）。
+// 一般 1、優良 2、稀有 4、傳說 8（backend/cowecon/params.py 的 tier_growth_h，協定 2.3 的 economy.calf_grow_h）
+const CALF_GROW_H = [1, 2, 4, 8];
+function growRange(rows) {
+  const hs = rows.map((r) => CALF_GROW_H[tierOf(BREEDS[r.breed])]);
+  const a = Math.min(...hs), b = Math.max(...hs);
+  return a === b ? t('hours', { h: a }) : t('s08.hoursRange', { a, b });
+}
 export function outcomeCard(st, { rows = OUTCOME, fee = t('breedFree'), title = t('s08.outcomeTitle'), feeLine = true, none = t('pickBoth') } = {}) {
   let body;
   if (st === 'none') body = `<div class="oc-empty">${icon('heart', 26)}<span>${none}</span></div>`;
@@ -40,7 +48,7 @@ export function outcomeCard(st, { rows = OUTCOME, fee = t('breedFree'), title = 
       return `<div class="oc-row"><span class="oc-pic">${cowSVG({ breed: r.breed, age: 'calf', seed: 90 + tier }, { w: 44, h: 44, pad: 2, sil: !found })}</span>
         <span class="oc-name">${found ? breedName(r.breed) : t('g.unknownBreed')}</span>${tierChip(tier)}${found ? '' : `<span class="badge new">${t('s08.notFound')}</span>`}<span class="num oc-p">${(r.p * 100).toFixed(r.p < 0.1 ? 2 : 1).replace(/\.?0+$/, '')}%</span></div>`;
     }).join('')}</div>
-    <div class="oc-foot"><span>${t('bullProbLine', { v: '<b class="num">50%</b>' })}</span><span>${t('s08.growRange', { v: `<b class="num">${t('s08.hoursRange', { a: 1, b: 4 })}</b>` })}</span></div>`;
+    <div class="oc-foot"><span>${t('bullProbLine', { v: '<b class="num">50%</b>' })}</span><span>${t('s08.growRange', { v: `<b class="num">${growRange(rows)}</b>` })}</span></div>`;
   }
   return `<article class="card outcome-card"><div class="card-head"><span class="card-title pink">${icon('heart', 16)}${title}</span>${feeLine ? `<span class="card-sub">${fee}</span>` : ''}</div>${body}</article>`;
 }
@@ -144,7 +152,7 @@ part18('S18-12', '借種費變了：公牛長大，價格跟剛剛看的不一�
 part18('S18-13', '名字最長：8 個中文字、16 個英文字母（量測用）', '.list', (ctx) => frame(ctx.dev, { tab: 'breed', content: `<div class="list">${[{ ...STUD[2], owner: LONG_NAMES.cjk, tag: '#5821' }, { ...STUD[4], owner: LONG_NAMES.latin, tag: '#0907' }, { ...STUD[0], owner: LONG_NAMES.cjk }].map((l) => studRow(l)).join('')}</div>` }));
 // 對方的牧場刪除了：借出、借入各一列（量長度用；借種費照 D26：娟珊公牛 233 公斤 × 2.75、夏洛來 440 公斤 × 2.75）
 part18('S18-14', '借種紀錄：對方的牧場刪除了（名字顯示「已刪除的牧場」）', '.list', (ctx) => frame(ctx.dev, { tab: 'breed', content: `<div class="list">${[
-  { dir: 'out', when: { m: 9, d: 27, time: '18:30' }, gone: true, cow: { breed: 'jersey', id: 9, bull: true }, price: 640 },
+  { dir: 'out', when: { m: 9, d: 27, time: '18:30' }, gone: true, cow: { breed: 'jersey', id: 9 }, price: 640 },
   { dir: 'in', when: { m: 9, d: 26, time: '07:45' }, gone: true, cow: { breed: 'charolais' }, price: 1210, calf: { breed: 'charolais', id: 7 } },
 ].map(logRow).join('')}</div>` }));
 full18('S18-11', '借種紀錄', (ctx) => frame(ctx.dev, { tab: 'breed', content: `<div class="stack">
@@ -167,10 +175,9 @@ function logRow(r) {
     <div class="grow"><b>${t(r.dir === 'out' ? 's18.lentTo' : 's18.borrowedFrom', { cow: logCow(r.cow), ranch })}</b><div class="hint">${dateText(r.when)}${r.calf ? t('g.sep') + t('s18.calfBorn', { cow: logCow(r.calf) }) : ''}</div></div>
     <span class="log-amt ${r.dir}">${t('costCoins', { v: `<b class="num">${r.dir === 'out' ? '+' : '−'}${fmt(r.price)}</b>` })}</span></article>`;
 }
-// 借種紀錄裡的牛：品種（公牛加「公牛」）＋編號（借入的公牛沒有編號）
+// 借種紀錄裡的牛：品種＋編號，跟其他畫面一樣（借入的公牛沒有編號）。紀錄裡的一定是公牛，不另外加「公牛」（ceo 2026-10-02）
 function logCow(c) {
-  const name = c.bull ? t('s18.bullName', { breed: breedName(c.breed) }) : breedName(c.breed);
-  return c.id ? `${name} #${c.id}` : name;
+  return c.id ? `${breedName(c.breed)} #${c.id}` : breedName(c.breed);
 }
 
 export const S08 = { id: 'S08', name: '配種', states: S };
