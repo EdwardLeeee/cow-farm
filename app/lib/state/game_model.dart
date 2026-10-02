@@ -156,8 +156,11 @@ class GameModel extends ChangeNotifier {
   // ---- 畫面導覽 ----
   AppTab tab = AppTab.ranch;
 
-  /// 牧場頁按「我的牛」開的牛舍清單（正式的 S03-07 在下一個 PR；現在先用 M1 的清單）。
+  /// 牧場頁按「我的牛」開的牛舍清單（S03-07）。
   bool penListOpen = false;
+
+  /// 牧場面板按倉庫卡開的倉庫詳細頁（S05-02）。
+  bool warehouseOpen = false;
 
   /// 牧場場景裡每頭牛的位置：這次打開 app 期間同一頭牛一直在同一個位置（ceo 2026-10-02）。只是顯示用。
   final herdLayout = HerdLayout();
@@ -571,6 +574,18 @@ class GameModel extends ChangeNotifier {
     tab = t;
     detailCowKey = null;
     penListOpen = false;
+    warehouseOpen = false;
+    _notify();
+  }
+
+  /// 倉庫詳細頁（S05-02，從牧場面板的倉庫卡打開）。
+  void openWarehouse() {
+    warehouseOpen = true;
+    _notify();
+  }
+
+  void closeWarehouse() {
+    warehouseOpen = false;
     _notify();
   }
 

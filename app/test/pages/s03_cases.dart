@@ -115,6 +115,11 @@ Map<String, dynamic> ranchState({
     'level': level,
     'level_progress': levelProgress ?? {'earned': 5120, 'level_at': 3500, 'next_at': 7500},
     'cows': herd,
+    'economy': {
+      'tier_mult': [1.0, 1.3, 1.7, 2.5],
+      'beef_grade_mult': {'A': 1.25, 'B': 1.0, 'C': 0.75},
+      'ox_rice_per_h': 11.0,
+    },
     'pen': {
       'slots': penSlots,
       'used': penUsed ?? herd.length,

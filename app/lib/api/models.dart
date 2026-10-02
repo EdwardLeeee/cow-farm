@@ -306,16 +306,54 @@ class Bucket {
   }
 }
 
+/// 倉庫裡的一批（協定 2.3 的 milk_lots、beef_lots、rice_lots）。
 class Lot {
-  const Lot({required this.qty, this.freshness, this.tier = 0});
+  const Lot({
+    required this.qty,
+    this.freshness,
+    this.tier = 0,
+    this.at,
+    this.spoilsAt,
+    this.cowId,
+    this.breed,
+    this.grade,
+    this.quality,
+    this.storageFactor,
+  });
   final double qty;
   final double? freshness; // 0–1，只有牛奶有
   final int tier;
+
+  /// 進倉庫的時間（遊戲時間）：牛奶 collected_at、牛肉 shipped_at、稻米 harvested_at。
+  final double? at;
+
+  /// 牛奶壞掉的時間（遊戲時間）。
+  final double? spoilsAt;
+
+  /// 牛肉：出貨的那頭牛（編號、品種；品種是 null 就只寫編號）。
+  final Object? cowId;
+  final String? breed;
+
+  /// 牛肉的評級 A／B／C。
+  final String? grade;
+
+  /// 稻米：存放折價（0.7–1）；牛肉：評級倍率 × 存放折價。
+  final double? quality;
+
+  /// 牛肉的存放折價。
+  final double? storageFactor;
 
   factory Lot.fromJson(Map<String, dynamic> j) => Lot(
     qty: _d(_pick(j, ['qty', 'kg', 'amount'])),
     freshness: _dn(_pick(j, ['freshness', 'fresh'])),
     tier: _i(_pick(j, ['tier'])),
+    at: _dn(_pick(j, ['collected_at', 'shipped_at', 'harvested_at'])),
+    spoilsAt: _dn(j['spoils_at']),
+    cowId: j['cow_id'],
+    breed: j['breed'] is String ? j['breed'] as String : null,
+    grade: j['grade'] is String ? j['grade'] as String : null,
+    quality: _dn(j['quality']),
+    storageFactor: _dn(j['storage_factor']),
   );
 }
 
@@ -420,6 +458,40 @@ class UpgradeInfo {
   }
 }
 
+/// 經濟倍數（協定 2.3 的 economy，直接讀伺服器的 params.py）。**只給畫面顯示**（例 S05「優良牛奶 ×1.3」），
+/// app 不能拿來自己算成交價或收入：要價格用 POST /v1/sell/quote、GET /v1/ship/preview。
+class Economy {
+  const Economy({this.tierMult = const [], this.beefGradeMult = const {}, this.oxRicePerH});
+
+  /// 一般、優良、稀有、傳說：牛奶、牛肉的賣價倍率，也是耕牛的稻米產量倍率。
+  final List<double> tierMult;
+
+  /// 牛肉評級 A／B／C 的賣價倍率。
+  final Map<String, double> beefGradeMult;
+
+  /// 壯年一般耕牛每遊戲小時的稻米公斤數。
+  final double? oxRicePerH;
+
+  /// 稀有度 [tier] 的倍率；沒有就是 null（畫面不寫倍數）。
+  double? tier(int tier) => tier >= 0 && tier < tierMult.length ? tierMult[tier] : null;
+
+  static Economy? fromJson(Object? v) {
+    if (v is! Map) return null;
+    final j = v.cast<String, dynamic>();
+    return Economy(
+      tierMult: [
+        for (final e in _l(j['tier_mult']))
+          if (e is num) e.toDouble(),
+      ],
+      beefGradeMult: {
+        for (final e in _m(j['beef_grade_mult']).entries)
+          if (e.value is num) e.key: (e.value as num).toDouble(),
+      },
+      oxRicePerH: _dn(j['ox_rice_per_h']),
+    );
+  }
+}
+
 /// 場主等級的進度（頂列經驗條）：這一級從 [levelAt] 開始，到 [nextAt] 升級；[earned] 是累積收入。
 class LevelProgress {
   const LevelProgress({this.earned = 0, this.levelAt = 0, this.nextAt = 0});
@@ -484,6 +556,7 @@ class GameState {
     this.stud = const StudInfo(),
     this.accountLinks = const [],
     this.maintenance,
+    this.economy,
   });
 
   final double serverTime; // 遊戲時間 Unix 秒
@@ -510,6 +583,9 @@ class GameState {
   /// 綁定的帳號；空的代表還沒備份（頂列齒輪的小點 G-10）。
   final List<AccountLink> accountLinks;
   final Maintenance? maintenance;
+
+  /// 經濟倍數（協定 2.3 的 economy）：只給畫面顯示說明數字，帳一律由伺服器算。舊的伺服器沒有，是 null。
+  final Economy? economy;
 
   double? gradePrice(String grade) {
     for (final g in shopGrades) {
@@ -559,6 +635,7 @@ class GameState {
       stud: StudInfo.fromJson(_m(j['stud'])),
       accountLinks: _l(account['links']).map((e) => AccountLink.fromJson(_m(e))).toList(),
       maintenance: Maintenance.fromJson(j['maintenance']),
+      economy: Economy.fromJson(j['economy']),
     );
   }
 }

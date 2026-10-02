@@ -52,6 +52,7 @@ class _PenListPageState extends State<PenListPage> {
             s.s03ExpandPen,
             key: const Key('expand-pen'),
             small: true,
+            wrap: true,
             kind: ButtonKind.primary,
             icon: 'plus',
             onPressed: () => m.selectTab(AppTab.shop),

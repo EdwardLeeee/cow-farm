@@ -16,7 +16,9 @@ class PageHead extends StatelessWidget {
   final Widget? action;
 
   @override
-  Widget build(BuildContext context) => Row(
+  Widget build(BuildContext context) => LayoutBuilder(builder: (context, c) => _row(context, c.maxWidth));
+
+  Widget _row(BuildContext context, double width) => Row(
     children: [
       if (onBack != null) ...[
         CircleIconButton(icon: 'back', label: Strings.of(context).back, onTap: onBack!),
@@ -38,8 +40,15 @@ class PageHead extends StatelessWidget {
           ],
         ),
       ),
-      // 右邊的按鈕照自己的寬度靠右，標題拿剩下的（.page-head .grow { flex: 1 }）
-      if (action != null) ...[const SizedBox(width: 8), action!],
+      // 右邊的按鈕照自己的寬度靠右，標題拿剩下的（.page-head .grow { flex: 1 }）；
+      // 英文、泰文太寬時按鈕最多佔一半、字換行，標題才不會被擠到從字的中間斷（screens.css 第 1 條）
+      if (action != null) ...[
+        const SizedBox(width: 8),
+        ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: width / 2),
+          child: action!,
+        ),
+      ],
     ],
   );
 }
