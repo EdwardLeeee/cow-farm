@@ -1,6 +1,6 @@
 # cow-farm 經濟模擬
 
-研究筆記：[`../2026-09-economy.md`](../2026-09-economy.md)（v0.2 在第 9 節）。這裡是程式與原始數據。v0.2 引擎給伺服器的變更清單：[`v0.2-engine-changes.md`](v0.2-engine-changes.md)。
+研究筆記：[`../2026-09-economy.md`](../2026-09-economy.md)（v0.2 在第 9 節；D26 借種費依體重在第 10 節，`out/` 現在是這一輪的結果）。這裡是程式與原始數據。v0.2 引擎給伺服器的變更清單：[`v0.2-engine-changes.md`](v0.2-engine-changes.md)。
 
 | 路徑 | 內容 |
 |---|---|
