@@ -1,4 +1,4 @@
-// S03 牧場（設計稿 boards/S03-牧場）和頂列、分頁列（G-01、G-02、G-03、G-10）的畫面狀態，S15-01 斷線。
+// S03 牧場（設計稿 boards/S03-牧場）和頂列、分頁列、牛的標籤（G-01、G-02、G-03、G-07、G-10）的畫面狀態，S15-01 斷線。
 // 假資料照設計稿 design/m2/src/js/fixtures.js：10 頭牛（2 頭去田裡）、奶桶 36.4／42、倉庫、收購價、第一則新聞。
 import 'package:cowfarm/api/breeds.dart';
 import 'package:cowfarm/api/models.dart';
@@ -7,12 +7,14 @@ import 'package:cowfarm/state/game_model.dart';
 import 'package:cowfarm/state/settings.dart';
 import 'package:cowfarm/theme/app_theme.dart';
 import 'package:cowfarm/theme/tokens.dart';
+import 'package:cowfarm/ui/kit/cow_bits.dart';
 import 'package:cowfarm/ui/kit/frame.dart';
 import 'package:cowfarm/ui/kit/kit.dart';
 import 'package:cowfarm/ui/ranch/dock.dart';
 import 'package:cowfarm/ui/ranch/scene.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
@@ -20,6 +22,7 @@ import '../fakes.dart';
 import 'page_case.dart';
 
 /// 一頭牛（協定 2.3 的形狀），品種照設計稿指定；用途、稀有度從品種表來。
+/// [value] 出貨估值、[rice] 在田裡每小時的稻米、[fee] 上架借種的借種費、[growMin] 小牛還要幾分鐘長大（時鐘倍率 1）。
 Map<String, dynamic> designCow(
   int id,
   String breed, {
@@ -27,9 +30,13 @@ Map<String, dynamic> designCow(
   String stage = 'adult',
   double milk = 0,
   double kg = 200,
+  double value = 2000,
   int? field,
+  double rice = 11,
   Object? listed,
+  int? fee,
   bool bred = false,
+  int growMin = 42,
 }) {
   final info = breedInfo(breed)!;
   final adult = stage != 'calf';
@@ -42,12 +49,12 @@ Map<String, dynamic> designCow(
     'stage': stage,
     'born_at': t0 - 36000,
     'age_h': 10.0,
-    'adult_at': adult ? t0 - 3600 : t0 + 42 * 60,
+    'adult_at': adult ? t0 - 3600 : t0 + growMin * 60,
     'milk_per_h': milk,
     'milk_frac': milk > 0 ? 1.0 : 0.0,
     'weight_kg': adult ? kg : 0,
     'beef_quality': 1.0,
-    'ship_value': adult ? 2000 : 0,
+    'ship_value': adult ? value : 0,
     'bred': bred,
     'working': field != null,
     'field': field,
@@ -55,25 +62,25 @@ Map<String, dynamic> designCow(
     'can_breed': adult && !bred && field == null && listed == null,
     'can_ship': adult && field == null && listed == null,
     'can_work': info.type == CowType.dual && adult && field == null && listed == null,
-    'rice_per_h': field != null ? 11.0 : 0,
+    'rice_per_h': field != null ? rice : 0,
     'grade_probs': adult ? {'A': 0.4, 'B': 0.44, 'C': 0.16} : null,
     'origin': 'start',
-    'stud_fee': null,
+    'stud_fee': fee == null ? null : {'price': fee, 'per_kg': 1.1, 'kg': kg, 'at_max': false},
   };
 }
 
-/// 設計稿的 10 頭牛（fixtures.js 的 COWS）：#2 耕牛、#9 高地牛在田裡，場景裡看不到。
+/// 設計稿的 10 頭牛（fixtures.js 的 COWS）：#2 耕牛、#9 高地牛在田裡，場景裡看不到；#5 上架借種。
 List<Map<String, dynamic>> designCows() => [
-  designCow(3, 'holstein', milk: 14, kg: 212),
-  designCow(7, 'jersey', milk: 14, kg: 196),
-  designCow(12, 'strawberry', milk: 14, kg: 174),
+  designCow(3, 'holstein', milk: 14, kg: 212, value: 2514),
+  designCow(7, 'jersey', milk: 14, kg: 196, value: 3102),
+  designCow(12, 'strawberry', milk: 14, kg: 174, value: 5520),
   designCow(15, 'holstein', stage: 'calf'),
-  designCow(2, 'yellow', bull: true, kg: 431, field: 0),
-  designCow(9, 'highland', kg: 377, field: 2),
-  designCow(5, 'angus', bull: true, kg: 790, listed: 7),
-  designCow(11, 'wagyu', kg: 612),
-  designCow(8, 'holstein', bull: true, stage: 'old', kg: 268, bred: true),
-  designCow(14, 'jersey', bull: true, kg: 205),
+  designCow(2, 'yellow', bull: true, kg: 431, value: 5108, field: 0, rice: 11),
+  designCow(9, 'highland', kg: 377, value: 5832, field: 2, rice: 14.3),
+  designCow(5, 'angus', bull: true, kg: 790, value: 9420, listed: 7, fee: 870),
+  designCow(11, 'wagyu', kg: 612, value: 10024),
+  designCow(8, 'holstein', bull: true, stage: 'old', kg: 268, value: 2810, bred: true),
+  designCow(14, 'jersey', bull: true, kg: 205, value: 3240),
 ];
 
 /// 設計稿 S03-01 的牧場：Lv 4（經驗 41%）、12,480 幣、牛舍 10／12、奶桶 36.4／42（每小時 42 瓶）、倉庫 225。
@@ -262,6 +269,37 @@ Widget _hudRow(HudData d, {bool dot = false}) => SizedBox(
 
 const _ranchHud = HudData(name: '晨光河畔牧場', level: 4, xp: 0.41, coins: 12480);
 
+/// 場景裡那頭牛現在用的圖（檔名有 _front_ 就是轉正面）。
+String sceneCowAsset(WidgetTester tester, Object id) {
+  final svg = tester.widget<SvgPicture>(
+    find.descendant(of: find.byKey(Key('scene-cow-$id')), matching: find.byType(SvgPicture)),
+  );
+  return (svg.bytesLoader as SvgAssetLoader).assetName;
+}
+
+/// 從牧場頁按「我的牛」打開牛舍清單（S03-07）。
+Future<void> openPenList(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('pen-pill')));
+  await tester.pump();
+}
+
+/// G-07 的一行（.g-line）：左邊 48 寬的小字說明（設計稿的註記，不翻譯），後面一排標籤。
+Widget _badgeLine(String note, List<Widget> chips) => Wrap(
+  spacing: 6,
+  runSpacing: 6,
+  crossAxisAlignment: WrapCrossAlignment.center,
+  children: [
+    SizedBox(
+      width: 48,
+      child: Text(
+        note,
+        style: AppText.style(12, weight: FontWeight.w700, color: AppColors.ink2),
+      ),
+    ),
+    ...chips,
+  ],
+);
+
 final s03Cases = <PageCase>[
   PageCase(
     'S03-01',
@@ -358,6 +396,57 @@ final s03Cases = <PageCase>[
     },
   ),
   PageCase(
+    'S03-06',
+    '點一頭牛：轉正面、跳出小名片',
+    (tester, lang) async {
+      await pumpAppIn(tester, await ranchModel(), lang, prefs: swipeHintSeen);
+      await tester.tap(find.byKey(const Key('scene-cow-12')));
+      await tester.pump();
+    },
+    check: (tester) {
+      final pop = find.byKey(const Key('cow-pop'));
+      expect(pop, findsOneWidget);
+      expect(find.descendant(of: pop, matching: find.text(_zh.cowName('strawberry', 12))), findsOneWidget);
+      expect(find.descendant(of: pop, matching: find.text(_zh.tierName(3))), findsOneWidget);
+      expect(find.text(_zh.s03PopMilk(tier: _zh.tierName(3), n: '14')), findsOneWidget);
+      expect(find.byKey(const Key('pop-detail')), findsOneWidget);
+      expect(sceneCowAsset(tester, 12), contains('_front_'), reason: '被點到的牛轉正面');
+      expect(sceneCowAsset(tester, 3), contains('_side_'), reason: '其他的牛不變');
+    },
+  ),
+  PageCase(
+    'S03-07',
+    '牛舍清單（長頁）',
+    (tester, lang) async {
+      await pumpAppIn(tester, await ranchModel(), lang, prefs: swipeHintSeen);
+      await openPenList(tester);
+      await growToFit(tester, find.byKey(const Key('pen-list')));
+    },
+    check: (tester) {
+      expect(find.text(_zh.cowsTitle), findsOneWidget);
+      expect(find.text(_zh.penSummary(used: 10, slots: 12)), findsOneWidget);
+      expect(find.byKey(const Key('expand-pen')), findsOneWidget);
+      for (var i = 0; i < 4; i++) {
+        expect(find.byKey(Key('filter-$i')), findsOneWidget);
+      }
+      for (final id in [3, 7, 12, 15, 2, 9, 5, 11, 8, 14]) {
+        expect(find.byKey(Key('cow-$id')), findsOneWidget);
+      }
+      final sep = _zh.gSep;
+      expect(find.text('${_zh.milkRate(v: '14')}$sep${_zh.weight(v: '212')}'), findsOneWidget);
+      expect(find.text(_zh.growUp(v: _zh.countdown(42 * 60))), findsOneWidget);
+      expect(find.text(_zh.s03MetaField(n: 1, rate: '11')), findsOneWidget);
+      expect(find.text(_zh.s03MetaField(n: 3, rate: '14.3')), findsOneWidget);
+      expect(find.text(_zh.s03MetaListed(price: '870')), findsOneWidget);
+      expect(find.text('${_zh.weight(v: '612')}$sep${_zh.s03MetaValue(v: '10,024')}'), findsOneWidget);
+      // #8：乳牛、公、一般、老牛、已配種
+      final row8 = find.byKey(const Key('cow-8'));
+      for (final t in [_zh.stageOld, _zh.badgeBred, _zh.tierName(0), _zh.bull]) {
+        expect(find.descendant(of: row8, matching: find.text(t)), findsOneWidget);
+      }
+    },
+  ),
+  PageCase(
     'S03-08',
     '一頭牛都沒有',
     (tester, lang) async => pumpAppIn(
@@ -404,6 +493,25 @@ final s03Cases = <PageCase>[
       expect(find.text(_zh.s03MilkFull), findsOneWidget);
       expect(find.text('70%'), findsNWidgets(2), reason: '牛奶、稻米比平常 +70%');
       expect(find.text('40%'), findsOneWidget, reason: '牛肉比平常 −40%');
+    },
+  ),
+  PageCase(
+    'S03-10',
+    '耕牛在田裡：清單顯示「工作中」、場景裡看不到',
+    (tester, lang) async {
+      await pumpAppIn(tester, await ranchModel(), lang, prefs: swipeHintSeen);
+      await openPenList(tester);
+      // 篩選「耕牛」：只剩在田裡的 #2、#9（設計稿這塊也只畫這兩列）
+      await tester.tap(find.byKey(const Key('filter-2')));
+      await tester.pump();
+    },
+    crop: find.byKey(const Key('pen-rows')),
+    check: (tester) {
+      final rows = find.byKey(const Key('pen-rows'));
+      expect(find.descendant(of: rows, matching: find.byType(CowRow)), findsNWidgets(2));
+      expect(find.descendant(of: rows, matching: find.text(_zh.badgeWorking)), findsNWidgets(2));
+      expect(find.text(_zh.s03MetaField(n: 1, rate: '11')), findsOneWidget);
+      expect(find.text(_zh.s03MetaField(n: 3, rate: '14.3')), findsOneWidget);
     },
   ),
   PageCase(
@@ -494,7 +602,7 @@ final s03Cases = <PageCase>[
               'commodity': 'beef',
               'targets': ['beef'],
               'direction': 'up',
-              'big': true,
+              'big': false, // 只看幅度 ≥ 20%，不看 big（ceo 2026-10-02）
               'time': t0 - 60,
               'announce_at': t0 - 60,
               'start_at': t0 - 60,
@@ -558,6 +666,47 @@ final s03Cases = <PageCase>[
     check: (tester) {
       expect(find.text('999,999'), findsOneWidget, reason: '一百萬以下寫完整的數字');
       expect(find.text('987.6萬'), findsOneWidget, reason: '一百萬以上寫「萬」');
+    },
+  ),
+  PageCase(
+    'G-07',
+    '牛的標籤：用途、稀有度、狀態',
+    (tester, lang) {
+      final s = Strings.forLang(lang);
+      return pumpSheet(tester, lang, [
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _badgeLine('用途', const [
+                UseChip(CowType.dairy),
+                UseChip(CowType.dual),
+                UseChip(CowType.beef),
+                SexText(bull: true),
+                SexText(bull: false),
+              ]),
+              const SizedBox(height: 8),
+              _badgeLine('稀有度', [for (var t = 0; t < 4; t++) TierChip(t)]),
+              const SizedBox(height: 8),
+              _badgeLine('狀態', [
+                CowBadge(BadgeKind.calf, s.stageCalf),
+                CowBadge(BadgeKind.old, s.stageOld),
+                CowBadge(BadgeKind.working, s.badgeWorking),
+                CowBadge(BadgeKind.listed, s.badgeListed),
+                CowBadge(BadgeKind.bred, s.badgeBred),
+              ]),
+            ],
+          ),
+        ),
+      ]);
+    },
+    crop: find.byKey(const Key('sheet')),
+    check: (tester) {
+      expect(find.byType(UseChip), findsNWidgets(3));
+      expect(find.byType(TierChip), findsNWidgets(4));
+      expect(find.byType(CowBadge), findsNWidgets(5));
+      expect(find.text(_zh.tierName(3)), findsOneWidget);
+      expect(find.text(_zh.badgeListed), findsOneWidget);
     },
   ),
   PageCase(

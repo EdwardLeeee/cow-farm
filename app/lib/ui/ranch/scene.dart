@@ -89,12 +89,15 @@ class CowPlacement {
 
 /// 牧場場景：背景加上牛。[onPan] 給了就可以左右拖動（拖動時回報新的 pan）。
 class RanchScene extends StatelessWidget {
-  const RanchScene({super.key, required this.cows, required this.pan, this.onPan, this.onTapCow});
+  const RanchScene({super.key, required this.cows, required this.pan, this.onPan, this.onTapCow, this.onTapEmpty});
 
   final List<SceneCow> cows;
   final double pan;
   final ValueChanged<double>? onPan;
   final ValueChanged<Cow>? onTapCow;
+
+  /// 點到場景的空地（不是牛）。
+  final VoidCallback? onTapEmpty;
 
   /// 後面（上面）的先畫，同一排從左到右（scene.js：依 depth、y 排序）。
   static List<SceneCow> paintOrder(List<SceneCow> cows) =>
@@ -119,10 +122,11 @@ class RanchScene extends StatelessWidget {
             ],
           ),
         );
-        if (onPan == null) return scene;
+        if (onPan == null && onTapEmpty == null) return scene;
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onHorizontalDragUpdate: (d) => onPan!((pan - d.delta.dx / fit.k).clamp(0.0, kMaxPan)),
+          onTap: onTapEmpty,
+          onHorizontalDragUpdate: onPan == null ? null : (d) => onPan!((pan - d.delta.dx / fit.k).clamp(0.0, kMaxPan)),
           child: scene,
         );
       },

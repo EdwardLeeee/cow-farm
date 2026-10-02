@@ -88,6 +88,19 @@ Future<void> pumpAppIn(WidgetTester tester, GameModel m, AppLang lang, {Map<Stri
   await tester.pump();
 }
 
+/// 長頁（設計稿的 tall，例 S03-07 牛舍清單）：把畫面拉高到 [scrollable] 不用捲就放得下，整頁一張拍下來。
+/// 頂列在最上面、分頁列在最下面，跟設計稿的長頁一樣。
+Future<void> growToFit(WidgetTester tester, Finder scrollable) async {
+  final position = tester
+      .state<ScrollableState>(find.descendant(of: scrollable, matching: find.byType(Scrollable)).first)
+      .position;
+  final extra = position.maxScrollExtent;
+  if (extra <= 0) return;
+  final view = tester.view;
+  view.physicalSize = Size(view.physicalSize.width, view.physicalSize.height + extra * view.devicePixelRatio);
+  await tester.pump();
+}
+
 /// 等圖片（牛的 SVG、圖示）真的載進來：讀檔是真的非同步，要離開測試的假時鐘等一下再重畫。
 Future<void> settleImages(WidgetTester tester) async {
   for (var i = 0; i < 3; i++) {
