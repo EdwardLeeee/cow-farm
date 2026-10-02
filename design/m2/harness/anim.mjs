@@ -1,7 +1,7 @@
 // M2 動畫出圖：每個動畫依 t 截圖。GIF 用的影格（DPR 1、每秒 15 格）、分鏡的關鍵影格（DPR 2）、減少動態的前後兩張（DPR 2）。
 // 用法：node harness/anim.mjs [A-01,A-02…] [語言]；之後跑 python3 harness/compose_anim.py 做 GIF、分鏡圖、減少動態圖。
 // 語言是 en 或 th 時只拍分鏡的關鍵影格（存到 raw/<語言>/anim/），並在最後一格跑 capture.mjs 的量測（泰文也檢查換行：斷在詞中間、拆開用詞表的詞；不做 GIF，不送核准，D25）。
-// 記憶體：跑之前先看 free -m（available ≥ 2000 MB），用 systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 包起來。
+// 記憶體：跑之前先看 free -m（available 少於 1000 MB 就先等，使用者 2026-10-03），用 systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 包起來。
 import { chromium } from '@playwright/test';
 import { mkdir, writeFile, rm } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';

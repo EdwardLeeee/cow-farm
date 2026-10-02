@@ -493,7 +493,8 @@
 .fc-head { display: flex; align-items: center; justify-content: space-between; }
 .fc-no { font-size: 16px; font-weight: 900; }
 .fc-ox { display: flex; align-items: center; gap: 8px; }
-.fc-ox svg { flex: none; background: #E4F4DA; border: 2px solid var(--ink); border-radius: 12px; }
+/* 淡綠底、框、圓角只給耕牛小圖；「叫回」按鈕裡的手掌是一般的圖示，跟 S04 的「叫回來」一樣（ceo 2026-10-03，cow-app #108） */
+.fc-ox > svg { flex: none; background: #E4F4DA; border: 2px solid var(--ink); border-radius: 12px; }
 .fc-ox b { font-size: 15px; line-height: 20px; }
 .fc-ox .chips { margin-top: 2px; }
 .fc-bar { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
@@ -836,3 +837,8 @@
 .badge.done { flex: none; gap: 2px; padding: 0 7px 0 5px; background: var(--green); }
 .my-rank.tight .badge.done { padding: 0 4px; }
 .my-rank.tight .badge.done .bt { display: none; }
+
+/* 選耕牛的面板（S17-03）：耕牛多時清單可以捲，面板最高到畫面的六成（cow-app #108，ceo 2026-10-03）。
+   清單留一點內距，選中那張的綠框和卡片的下陰影捲動時才不會被切掉 */
+.sheet.ox-pick { display: flex; flex-direction: column; max-height: calc(var(--H) * 0.6); }
+.sheet.ox-pick .list { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin: -3px -3px 0; padding: 3px 3px 6px; }

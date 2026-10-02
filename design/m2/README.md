@@ -151,7 +151,7 @@
 cd design/m2
 PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci
 node harness/cowcheck.mjs            # 第 11 輪定案的牛，SVG 必須一個字都不差
-free -m                              # available 要 2000 MB 以上
+free -m                              # available 少於 1000 MB 就先等（使用者 2026-10-03）
 systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 node harness/capture.mjs all 430,390,360,320
 systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 node harness/anim.mjs
 python3 harness/compose.py && python3 harness/compose_anim.py && python3 harness/summary.py
