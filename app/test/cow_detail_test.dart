@@ -129,9 +129,33 @@ void main() {
 
   testWidgets('沒有空田：「派去田裡」停用、說明；有空田就能按', (tester) async {
     Screen.w390.apply(tester);
-    await showCow(tester, AppLang.zhHant, detailCow(2), freeField: false);
+    await showCow(tester, AppLang.zhHant, detailCow(9), freeField: false);
     expect(_btn(tester, 'detail-assign').onPressed, isNull);
     expect(find.text(_zh.s04NoField), findsOneWidget);
+  });
+
+  testWidgets('公耕牛沒有空田：派去田裡停用、說明放在第一排下面，上架借種照樣能按', (tester) async {
+    Screen.w390.apply(tester);
+    await showCow(tester, AppLang.zhHant, detailCow(2), freeField: false);
+    expect(_btn(tester, 'detail-assign').onPressed, isNull);
+    expect(_btn(tester, 'detail-list').onPressed, isNotNull);
+    final note = tester.getRect(find.byKey(const Key('no-field')));
+    expect(note.top, greaterThan(tester.getRect(find.byKey(const Key('detail-list'))).bottom));
+    expect(note.bottom, lessThan(tester.getRect(find.byKey(const Key('detail-breed'))).top));
+  });
+
+  testWidgets('公耕牛上架中（S04-16）：按「下架」問伺服器；在田裡（S04-15）按「叫回來」', (tester) async {
+    Screen.w390.apply(tester);
+    final api = DetailApi(state: detailState(detailCow(2, listed: true)));
+    await showCow(tester, AppLang.zhHant, detailCow(2, listed: true), api: api);
+    await _tap(tester, 'detail-unlist');
+    expect(api.calls, contains('stud-unlist:8'));
+
+    api.stateJson = detailState(detailCow(2, field: 0));
+    await showCow(tester, AppLang.zhHant, detailCow(2, field: 0), api: api);
+    expect(find.text(_zh.s04RecallFirstOx(n: 1)), findsOneWidget);
+    await _tap(tester, 'detail-recall');
+    expect(api.calls, contains('field-recall:2'));
   });
 
   testWidgets('公牛上架（S04-04）：面板寫系統算的借種費；取消就關掉；確定才上架', (tester) async {

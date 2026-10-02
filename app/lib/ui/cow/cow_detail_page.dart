@@ -172,6 +172,9 @@ String originText(Strings s, String? origin) => switch (origin) {
 /// 每小時的產量：整數不寫小數點，不然一位（14、14.3）。
 String rateText(double v) => fmt(v, v % 1 == 0 ? 0 : 1);
 
+/// 公耕牛（成年、沒配過種的公耕牛）：可以下田，也可以上架借種，一共 4 個動作（D31，S04-14～16）。
+bool isStudOx(Cow cow, double now) => cow.bull && cow.type == CowType.dual && cow.isAdultAt(now) && !cow.bred;
+
 /// 自己上架的那一筆（state.stud.listings）。
 StudListing? _listingOf(GameModel m, Cow cow) =>
     cow.listed ? m.state?.stud.listings.where((l) => '${l.cowId}' == cow.key).firstOrNull : null;
@@ -190,7 +193,7 @@ class _DetailList extends StatelessWidget {
     // 橘字提醒：在田裡（S04-07）、已配種（S04-09）。上架中的公牛不放（D31：看「上架中」標籤和停用的按鈕就知道）；
     // 老牛配過種不加（S04-10 的設計稿：大圖下面已經有老牛的說明，配過種看標籤和按鈕）
     final note = cow.fieldIndex != null
-        ? s.recallFirst(n: cow.fieldIndex! + 1)
+        ? (isStudOx(cow, m.gameNow) ? s.s04RecallFirstOx : s.recallFirst)(n: cow.fieldIndex! + 1)
         : cow.bred && adult && cow.stage != CowStage.old
         ? s.s04NoteBred
         : null;
@@ -528,9 +531,60 @@ class _DetailActions extends StatelessWidget {
     final act = m.canAct;
     final top = <Widget>[];
     var space = 12.0; // 上面那一塊和下面那排按鈕的間距
+    // 派去田裡：要有空田（S04-13）
+    final free = m.state?.fields.any((f) => f.empty) ?? false;
+    final noField = Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Text(s.s04NoField, key: const Key('no-field'), textAlign: TextAlign.center, style: KitText.warn()),
+    );
     if (!adult) {
       top.add(Text(s.s04CalfHint, key: const Key('calf-hint'), textAlign: TextAlign.center, style: KitText.hint()));
       space = 8;
+    } else if (isStudOx(cow, now)) {
+      // 公耕牛（D31，S04-14～16）：第一排兩顆半寬。在田裡第一顆換成「叫回來」，上架中第二顆換成「下架」；
+      // 放不下（窄手機的英文、泰文）就一顆一排（BtnRow），內容區跟著讓位
+      final working = cow.fieldIndex != null;
+      top.add(
+        BtnRow(
+          children: [
+            if (working)
+              AppButton(
+                s.s04Recall,
+                key: const Key('detail-recall'),
+                icon: 'hand',
+                onPressed: act ? () async => onDone(await m.fieldRecall(cow)) : null,
+              )
+            else
+              AppButton(
+                s.gAssign,
+                key: const Key('detail-assign'),
+                kind: ButtonKind.green,
+                icon: 'sprout',
+                onPressed: act && free && cow.canWorkAt(now) ? () async => onDone(await m.fieldAssign(cow)) : null,
+              ),
+            if (cow.listed)
+              AppButton(
+                s.unlist,
+                key: const Key('detail-unlist'),
+                icon: 'tag',
+                onPressed: act ? () async => onDone(await m.studUnlist(_listingOf(m, cow)?.id ?? cow.listedId!)) : null,
+              )
+            else
+              AppButton(
+                s.s04ListStud,
+                key: const Key('detail-list'),
+                kind: ButtonKind.primary,
+                icon: 'tag',
+                onPressed: act && cow.canListAt(now) && cow.studFee != null ? onList : null,
+              ),
+          ],
+        ),
+      );
+      // 沒有空田（設計稿只畫了一顆的樣子，S04-13）：說明放在第一排下面
+      if (!working && !cow.listed && !free) {
+        top.add(noField);
+        space = 10;
+      }
     } else if (cow.fieldIndex != null) {
       top.add(
         AppButton(
@@ -553,8 +607,6 @@ class _DetailActions extends StatelessWidget {
         ),
       );
     } else if (cow.type == CowType.dual) {
-      // 派去田裡：要有空田（S04-13）
-      final free = m.state?.fields.any((f) => f.empty) ?? false;
       top.add(
         AppButton(
           s.gAssign,
@@ -566,12 +618,7 @@ class _DetailActions extends StatelessWidget {
         ),
       );
       if (!free) {
-        top.add(
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Text(s.s04NoField, key: const Key('no-field'), textAlign: TextAlign.center, style: KitText.warn()),
-          ),
-        );
+        top.add(noField);
         space = 10;
       }
     } else if (cow.bull && !cow.bred) {
