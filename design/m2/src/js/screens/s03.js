@@ -90,7 +90,8 @@ export function ranchPage(ctx, o = {}) {
   if (o.pop) {
     const a = sc.anchors[o.pop.id];
     const left = Math.max(12, Math.min(dev.w - 220, a.head[0] - 43));
-    over += `<div class="cow-pop" style="left:${left}px;top:${a.head[1] - 14}px;transform:translateY(-100%)">${o.pop.html}</div>`;
+    // data-foot：牛腳的位置；上面放不下時名片放到牛的下面（kit.js 的 placeCowPop）
+    over += `<div class="cow-pop" data-foot="${a.foot[1]}" data-hx="${a.head[0]}"${o.pop.noflip ? ' data-noflip' : ''} style="left:${left}px;top:${a.head[1] - 14}px;transform:translateY(-100%)">${o.pop.html}</div>`;
   }
   const pen = o.pen || PEN;
   const body = `
@@ -151,6 +152,18 @@ full('S03-06', '點一頭牛：轉正面、跳出小名片', (ctx) => {
     pop: { id: 12, html: `<div class="name">${cowName(c)}</div><div class="chips" style="margin-top:4px">${useChip('dairy')}<span class="use">${sexName('cow')}</span>${tierChip(3)}</div><div class="meta">${t('s03.popMilk', { tier: tierName(3), n: 14 })}</div>${btn(t('s03.popDetail'), { small: true, block: true, kind: 'primary' })}` },
   });
 });
+
+// ---------- 點後排的牛：名片的位置（2026-10-02 草稿：使用者核准前不放進 boards；只有繁中，合成時另外出一張「名片位置-狀態表」） ----------
+// 名片平常在頭頂上方 14、尖角朝下；上面放不下（名片上緣會碰到頂列：頂列下緣再留 6）就放到牛的下面（腳下 14）、尖角朝上
+const bullPop = (id) => {
+  const c = COWS.find((x) => x.id === id), b = BREEDS[c.breed];
+  return `<div class="name">${cowName(c)}</div><div class="chips" style="margin-top:4px">${useChip(b.use)}<span class="use">${sexName('bull')}</span>${tierChip(tierOf(b))}</div><div class="meta">${t('weight', { v: c.kg })}</div>${btn(t('s03.popDetail'), { small: true, block: true, kind: 'primary' })}`;
+};
+const tapBack = (ctx, id, noflip = false) => ranchPage(ctx, { herd: HERD.map((h) => (h.id === id ? { ...h, pose: 'front' } : h)), pop: { id, html: bullPop(id), noflip } });
+const popDraft = (id, name, render) => part(id, name, '.phone', render, { zhOnly: true, board: '名片位置-狀態表' });
+popDraft('S03-19', '點後排的牛：照原本的放法（頭頂上方），會蓋到頂列、跑馬燈和牛欄膠囊（只是對照）', (ctx) => tapBack(ctx, 14, true));
+popDraft('S03-20', '點後排的牛：上面放不下，名片放到牛的下面、尖角朝上', (ctx) => tapBack(ctx, 14));
+popDraft('S03-21', '點後排的牛（右邊那頭）：一樣放到牛的下面', (ctx) => tapBack(ctx, 8));
 
 function listPage(ctx, { cows = COWS, pen = PEN, filter = 0, tall = true, note = '' } = {}) {
   const content = `<div class="stack">
