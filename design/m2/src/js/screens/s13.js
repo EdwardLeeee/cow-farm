@@ -42,7 +42,9 @@ function backupPage(ctx, { bound = [], android = false, busy = false, ranch = RA
     ? `<p class="bk-lead">${t('s13.backup.done')}</p>`
     : `<p class="bk-lead">${t('s13.backup.lead')}</p><p class="warn-text note-line">${icon('warn', 18)}<span>${t('s13.backup.warn')}</span></p>`;
   const rows = bound.length ? `<article class="card bind-list">${bound.map((k) => `<div class="bind-row"><span class="set-ic">${icon('ok', 22)}</span><span class="set-label">${t('s13.backup.account', { name: SSO_NAME[k] })}<small>${t('s13.backup.boundOn', { date: t('date.ymd', { y: 2026, m: '10', d: '01' }) })}</small></span>${btn(t('s13.unbind'), { small: true })}</div>`).join('')}</article>` : '';
-  const more = !android && bound.length === 1 && bound[0] === 'apple' ? `<p class="hint">${t('s13.backup.addGoogle')}</p>` : '';
+  // 只綁了 Apple：iPhone 提醒以後換 Android 要再綁 Google；Android 本來就沒有 Apple 登入，提醒找回要用 Google（缺口清單 2-4）
+  const onlyApple = bound.length === 1 && bound[0] === 'apple';
+  const more = onlyApple ? `<p class="hint">${t(android ? 's13.backup.addGoogleAndroid' : 's13.backup.addGoogle')}</p>` : '';
   const area = busy ? `<div class="sso-area">${busyCard(t('s13.binding'))}</div>` : todo.length ? `<div class="sso-area">${ssoGroup(todo)}${privacy()}</div>` : '';
   const before = !bound.length && !busy ? `<p class="rule-line shop-rule">${icon('info', 18)}<span>${t('s13.backup.before')}</span></p>` : '';
   return page(ctx, t('s13.backup.title'), `${ranchCard(ranch, bound.length ? stOk() : stNo())}<div class="bk-body">${intro}${rows}${more}${area}${before}</div>`, { overlays });
@@ -94,6 +96,7 @@ p13('S13-13', '解除綁定的確認（唯一綁定的帳號多一句提醒）',
 p13('S13-14', '兩種帳號都綁了：各一列，沒有登入按鈕', '.bk-body', (ctx) => backupPage(ctx, { bound: ['apple', 'google'] }));
 p13('S13-15', '綁定中…（登入視窗關掉後，等伺服器回覆）', '.sso-area', (ctx) => backupPage(ctx, { busy: true }));
 p13('S13-16', 'Android 版：只綁了 Google 時，沒有 Apple 那一列也沒有 Apple 登入按鈕', '.bk-body', (ctx) => backupPage(ctx, { android: true, bound: ['google'] }));
+p13('S13-19', 'Android 版：只綁了 Apple，提醒再綁 Google', '.bk-body', (ctx) => backupPage(ctx, { android: true, bound: ['apple'] }), { board: '缺口-狀態表' });
 
 // ---------- 語言、漲跌顏色（D25） ----------
 // 選單用各自的文字寫；第一次打開跟著手機的語言（中文 → 繁中、泰文 → 泰文、其他 → 英文）
@@ -181,12 +184,17 @@ const errText = (key, p = {}) => t(key, { ...(p.n != null ? { n: fmt(p.n) } : {}
 const S16 = [];
 const f16 = (id, name, render, x = {}) => S16.push({ id, name, type: 'full', render, ...x });
 const p16 = (id, name, crop, render, x = {}) => S16.push({ id, name, type: 'part', crop, render, ...x });
-f16('S16-01', '伺服器維護中', (ctx) => frame(ctx.dev, { tab: null, hud: false, body: `<div class="splash"><div class="splash-title" style="top:calc(var(--H) * 0.12)"><span class="t" style="font-size:36px">${t('s16.title')}</span></div>
+// 維護中。eta：預計恢復的那一行（缺口清單 2-3：時間過了換成 s16.late；沒有時間就不顯示）
+const etaLine = (text) => `<p class="maint-time">${icon('clock', 18)}${text}</p>`;
+const maint = (ctx, eta) => frame(ctx.dev, { tab: null, hud: false, body: `<div class="splash"><div class="splash-title" style="top:calc(var(--H) * 0.12)"><span class="t" style="font-size:36px">${t('s16.title')}</span></div>
   <div class="splash-cows" style="top:calc(var(--H) * 0.12 + 70px)">${cowSVG({ breed: 'holstein' }, { w: 140, h: 140 })}<span class="tool-badge">${icon('tools', 44)}</span></div><div class="splash-ground" style="top:calc(var(--H) * 0.12 + 202px)"></div>
   <div class="splash-box" style="top:calc(var(--H) * 0.12 + 236px)"><article class="card" style="text-align:center"><b style="font-size:18px">${t('s16.lead')}</b>
-  <p class="maint-time">${icon('clock', 18)}${t('s16.eta', { date: t('date.mdw', { m: 10, d: 2, w: t('weekday.4'), time: '03:00' }) })}</p><p class="hint">${t('s16.body')}</p><div style="margin-top:12px">${btn(t('reload'), { kind: 'primary', block: true, ic: 'refresh' })}</div></article></div></div>` }));
+  ${eta}<p class="hint">${t('s16.body')}</p><div style="margin-top:12px">${btn(t('reload'), { kind: 'primary', block: true, ic: 'refresh' })}</div></article></div></div>` });
+f16('S16-01', '伺服器維護中', (ctx) => maint(ctx, etaLine(t('s16.eta', { date: t('date.mdw', { m: 10, d: 2, w: t('weekday.4'), time: '03:00' }) }))));
 p16('S16-02', '操作時伺服器錯誤（500）', '.toast', (ctx) => ranchPage(ctx, { overlays: toast('err', t('err.internal')) }));
 p16('S16-03', '錯誤文案總表（依錯誤碼）', '#crop', (ctx) => frame(ctx.dev, { tab: null, hud: false, content: `<div id="crop" class="err-table">${ERRORS.map(([code, k, key, p]) => `<div class="err-item"><code data-note>${code}</code><div class="g-toast">${toast(k, errText(key, p))}</div></div>`).join('')}</div>`, tall: true }), { tall: true });
+p16('S16-04', '維護超過預計的時間', '.splash-box', (ctx) => maint(ctx, etaLine(t('s16.late'))), { board: '缺口-狀態表' });
+p16('S16-05', '沒有預計恢復的時間', '.splash-box', (ctx) => maint(ctx, ''), { board: '缺口-狀態表' });
 
 export const S13M = { id: 'S13', name: '設定', states: S13 };
 export const S14M = { id: 'S14', name: '找回牧場', states: S14 };

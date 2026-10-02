@@ -152,6 +152,13 @@ full18('S18-11', '借種紀錄', (ctx) => frame(ctx.dev, { tab: 'breed', content
   <div class="filter" data-hscroll><button class="on">${t('g.all')}</button><button>${t('s18.out')}</button><button>${t('s18.in')}</button></div>
   <div class="list">${STUD_LOG.map(logRow).join('')}</div>
   <p class="hint" style="text-align:center">${t('s18.logKeep', { n: 30 })}</p></div>` }));
+// 借種紀錄是空的（缺口清單 2-2）：剛開始玩一定是空的；按「借出」「借入」篩選也可能沒有。樣子跟 S18-05 的空狀態一樣，三種篩選只差一句
+const LOG_EMPTY = [[0, 's18.logEmpty'], [1, 's18.logEmptyOut'], [2, 's18.logEmptyIn']];
+part18('S18-15', '借種紀錄是空的（全部、借出、借入）', '#crop', (ctx) => frame(ctx.dev, { tab: 'breed', content: `<div id="crop" class="stack">
+  <div class="page-head"><button class="icon-btn" aria-label="${t('back')}">${icon('back', 22)}</button><div class="grow"><h1>${t('s18.logTitle')}</h1><div class="sub">${t('s18.logIncome', { v: 0 })}</div></div></div>
+  ${LOG_EMPTY.map(([on, key]) => `<div class="filter" data-hscroll>${[t('g.all'), t('s18.out'), t('s18.in')].map((s, i) => `<button${i === on ? ' class="on"' : ''}>${s}</button>`).join('')}</div>
+  <article class="card"><div class="oc-empty"><span>${t(key)}</span></div></article>`).join('')}
+  <p class="hint" style="text-align:center">${t('s18.logKeep', { n: 30 })}</p></div>` }), { board: '缺口-狀態表' });
 
 // 借種紀錄的一列。gone：對方的牧場刪除了，紀錄照樣保留，對方的名字顯示「已刪除的牧場」（ceo 2026-10-02）
 function logRow(r) {

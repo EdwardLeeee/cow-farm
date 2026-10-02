@@ -93,17 +93,20 @@ function weeklyReset() {
 }
 // 排行榜的種類：key、名稱的 key、單位的 key
 const KINDS = [['networth', 'rankNetworth', 'g.coin'], ['collection', 'rankCollection', 's12.kinds'], ['weekly', 'rankWeekly', 'g.coin']];
-function rankRow(r, unit, me = false) {
+// 圖鑑榜發現 24 種的：分數前面加「完成」（企劃書 4.6；缺口清單 2-6）。done 只在 S12-08 打開，核准以後才套到全部
+const DONE_AT = 24;
+const doneBadge = () => `<span class="badge done">${icon('ok', 12)}<span class="bt">${t('s12.complete')}</span></span>`;
+function rankRow(r, unit, me = false, done = false) {
   const medal = r.rank <= 3 ? `<span class="medal m${r.rank}">${r.rank}</span>` : `<span class="rk num">${r.rank}</span>`;
-  return `<div class="rank-row${me ? ' me' : ''}">${medal}<div class="grow"><div class="rn">${r.bot ? `<span class="bot">${t('botPrefix')}</span>` : ''}<span class="rn-name">${r.name}</span><span class="tag">${r.tag}</span></div><div class="rl"><span class="lv num">${t('level', { lv: r.level })}</span>${me ? `<span class="badge new">${t('s12.me')}</span>` : ''}</div></div><b class="num rv">${compactBig(r.value)}<small>${unit}</small></b></div>`;
+  return `<div class="rank-row${me ? ' me' : ''}">${medal}<div class="grow"><div class="rn">${r.bot ? `<span class="bot">${t('botPrefix')}</span>` : ''}<span class="rn-name">${r.name}</span><span class="tag">${r.tag}</span></div><div class="rl"><span class="lv num">${t('level', { lv: r.level })}</span>${me ? `<span class="badge new">${t('s12.me')}</span>` : ''}</div></div>${done && r.value >= DONE_AT ? doneBadge() : ''}<b class="num rv">${compactBig(r.value)}<small>${unit}</small></b></div>`;
 }
-function rankPage(ctx, { kind = 0, me = null, state = '', rows = null, tall = false } = {}) {
+function rankPage(ctx, { kind = 0, me = null, state = '', rows = null, tall = false, done = false } = {}) {
   const [key, , uk] = KINDS[kind], unit = t(uk);
   let list = rows || RANK[key];
   if (me && me.rank <= list.length) list = list.map((r) => (r.rank === me.rank ? { ...me } : r));
   const body = state === 'loading' ? `<div class="oc-empty" style="min-height:160px"><span class="spinner"></span><span>${t('g.loading')}</span></div>`
     : state === 'failed' ? `<div class="oc-empty" style="min-height:160px;flex-direction:column"><span class="err-text">${icon('err', 20)} ${t('loadFailed')}</span>${btn(t('retry'), { small: true, ic: 'refresh' })}</div>`
-      : `<div class="rank-list">${list.map((r) => rankRow(r, unit, me && r.rank === me.rank)).join('')}</div>`;
+      : `<div class="rank-list">${list.map((r) => rankRow(r, unit, me && r.rank === me.rank, done)).join('')}</div>`;
   const myVal = me ? me : RANK.me[key];
   const content = `<div class="stack">
     ${seg([t('subCodex'), t('subRank')], 1)}
@@ -111,7 +114,7 @@ function rankPage(ctx, { kind = 0, me = null, state = '', rows = null, tall = fa
     <p class="hint">${key === 'weekly' ? t('s12.weeklyHint', weeklyReset()) : t(key === 'networth' ? 's12.networthHint' : 's12.collectionHint', { n: 24 })}${t('s12.pullHint')}</p>
     <article class="card rank-card">${body}</article>
   </div>`;
-  const my = `<div class="my-rank"><span class="k">${t('s12.myRank')}</span><b class="num">${state ? '—' : myVal && myVal.rank ? t('s12.rankN', { n: myVal.rank }) : t('notRanked')}</b><span class="grow"></span>${myVal && myVal.value != null && !state ? `<b class="num">${compactBig(myVal.value)}</b><small>${unit}</small>` : ''}</div>`;
+  const my = `<div class="my-rank"><span class="k">${t('s12.myRank')}</span><b class="num">${state ? '—' : myVal && myVal.rank ? t('s12.rankN', { n: myVal.rank }) : t('notRanked')}</b><span class="grow"></span>${myVal && myVal.value != null && !state ? `${done && myVal.value >= DONE_AT ? doneBadge() : ''}<b class="num">${compactBig(myVal.value)}</b><small>${unit}</small>` : ''}</div>`;
   return frame(ctx.dev, { tab: 'records', content, body: my, tall, contentCls: 'has-myrank' });
 }
 const S2 = [];
@@ -125,6 +128,9 @@ part12('S12-04', '自己沒上榜', '.my-rank', (ctx) => rankPage(ctx, { kind: 2
 part12('S12-05', '載入中', '.rank-card', (ctx) => rankPage(ctx, { kind: 0, state: 'loading' }));
 part12('S12-06', '載入失敗', '.rank-card', (ctx) => rankPage(ctx, { kind: 0, state: 'failed' }));
 full12('S12-07', '電腦玩家、名字最長（8 個中文字、16 個英文字母）、數字最大（量測用）', (ctx) => rankPage(ctx, { kind: 0, me: { rank: 12, name: RANCH.name, tag: RANCH.tag, level: 14, value: 98765432 }, rows: RANK.networth.map((r, i) => ({ ...r, name: [LONG_NAMES.cjk, LONG_NAMES.latin, '麥浪森林牧舍', '月牙石橋莊園', LONG_NAMES.cjk, '楓葉湖邊家園', LONG_NAMES.latin, '暖陽坡地牧野', '白雲谷地小屋', '青草松林牧園', '微風河畔牛舍', '晨光小丘農場'][i], level: 15 - Math.floor(i / 4), value: 999999999 - i * 12345678, bot: i % 3 === 1 })) }));
+
+// 圖鑑榜：發現 24 種的列和下面「我的名次」那一條，分數前面加「完成」。自己第 2 名、24 種
+full12('S12-08', '圖鑑榜：發現 24 種的加「完成」', (ctx) => rankPage(ctx, { kind: 1, done: true, me: { rank: 2, name: RANCH.name, tag: RANCH.tag, level: RANCH.level, value: 24 } }));
 
 export const S09 = { id: 'S09', name: '圖鑑', states: S };
 export const S12 = { id: 'S12', name: '排行榜', states: S2 };
