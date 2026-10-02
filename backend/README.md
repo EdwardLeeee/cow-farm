@@ -17,6 +17,7 @@ v0.1 的資料庫不相容，見「從舊資料庫升級」。
 | `server/views.py` | 把狀態變成協定的 JSON（協定 v2：不送中文顯示字，送代碼）。 |
 | `server/breeds.py` | 24 個品種代號（用途 × 特徵組合，跟設計稿 `breeds.js` 一樣）。 |
 | `server/ranchname.py` | 玩家自己取的牧場名：寬度、emoji、不能用的字元（協定 2.2 節）。 |
+| `server/accounts.py` | 帳號：驗 Apple／Google 的登入憑證、呼叫 Apple（換 refresh token、撤銷）、加密 refresh token、nonce 與換回憑單（協定第 5 節）。 |
 | `server/data/extended_pictographic.json` | emoji 的區間表（Unicode 13.0 emoji-data 的 Extended_Pictographic），`scripts/gen_name_tables.py` 產生。 |
 | `server/data/name_cases.json` | 牧場名規則的測試向量（給 app 和設計稿的 i18ncheck 跑），`tests/test_ranchname.py` 產生。 |
 | `server/data/ranch_words.json` | 電腦牧場名的詞庫（3 組 × 12 詞）。協定只送編號，app 用字串表 `namegen.*` 組；繁中跟字串表一樣（i18ncheck 會檢查）。 |
@@ -125,6 +126,21 @@ scripts/serve.sh start 144       # 建立新世界（30 位假玩家、公營種
 玩家的 token 會失效：app 收到 `401 unauthorized` 時顯示 S15-03，玩家重新開牧場（協定 2.1 節）。
 想留一份舊資料的話，清掉前先 `scripts/pg.sh dump cowfarm-old.dump`。
 
+### 帳號：Apple／Google 登入（協定第 5 節）
+
+M4 以前的伺服器沒有 Apple、Google 的設定：綁定和找回回 `sign_in_failed`（`not_configured`），其他照常。M4 由使用者照 ceo 的步驟在 Apple Developer、Google Cloud 建好以後，設這些環境變數（研究：`docs/research/2026-10-sso-verification.md`）：
+
+| 環境變數 | 內容 |
+|---|---|
+| `COWFARM_APPLE_CLIENT_IDS` | Apple 的 client_id（App ID：`com.oraclelee.cowfarm`），可以用逗號隔開好幾個 |
+| `COWFARM_GOOGLE_CLIENT_IDS` | Google 的 Web client ID（手機 app 拿 ID token 用的 server client ID） |
+| `COWFARM_APPLE_TEAM_ID`、`COWFARM_APPLE_KEY_ID`、`COWFARM_APPLE_KEY_FILE` | Team ID、金鑰 ID、.p8 檔的路徑（權限 600，不進 git） |
+| `COWFARM_TOKEN_KEY_FILE` | 加密 Apple refresh token 的金鑰檔；預設 `~/.config/cow-farm/token.key`。伺服器啟動時沒有就自動產生（權限 600），沒有 Apple 設定也會產生 |
+
+- 金鑰照 secrets-custody：`.p8` 和 `token.key` 都不進 git、不寫日誌，要另外備份。`token.key` 不見了，存著的 Apple refresh token 就解不開，那時只能請使用者自己到 Apple 帳號設定解除。
+- Apple 撤銷失敗（例如 Apple 連不上）會放在 `apple_revoke_queue`，伺服器每 60 個 tick 重試一次（1 分鐘起、每次加倍、最多 1 小時）；刪除牧場不會因此失敗（Apple TN3194）。
+- 刪除牧場是軟刪除：`players` 留一列只有編號和時間的空殼，名字、登入憑證、綁定、進度都刪掉；編號不會被新牧場重複使用。
+
 ### 維護（協定第 6 節）
 
 ```bash
@@ -168,6 +184,8 @@ systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 .venv/bin/py
 |---|---|---|
 | `test_persist.py` | cowecon 各類別（含田地、稻米、借種市場）存檔回復；同一個 seed「跑一半存檔、回復、再跑」＝「一路跑到底」（每個數字） | 否 |
 | `test_scenarios.py` | v0.2 經濟情境在服務層重跑並達到筆記的目標；和研究模擬逐數字相同（見下） | 否 |
+| `test_accounts_unit.py` | 帳號零件：真的驗證程式照官方步驟擋錯的 token（自己的金鑰）、呼叫 Apple 的請求格式（假的傳輸層）、金鑰檔權限、nonce、換回憑單 | 否 |
+| `test_accounts.py` | 帳號流程：nonce、綁定、換回、找回（舊手機 401／4401）、解除、軟刪除（空殼沒有個資）、Apple 撤銷重試、編號不重複使用 | 是 |
 | `test_ranchname.py` | 牧場名規則：寬度跟設計稿 `namewidth.js` 逐字相同、跟 Unicode 13.0 一致、emoji 與不能用的字元、測試向量檔 | 否 |
 | `test_views.py` | 協定 v2 的代碼對照：24 品種代號跟設計稿 `breeds.js` 一致、新聞代碼跟字串表 `news.*` 一致、電腦牧場名的詞庫編號組得回原名、公營種牛站的名字固定 | 否 |
 | `test_api.py` | 協定欄位、request_id 防重送（含抽牛、出貨、借種）、錢不夠、牛不存在、還沒長大、牛舍滿、格式錯誤、WebSocket 與 4401；v0.2：抽牛機率與引擎一致（含抽樣）、評級機率與抽法、配種一次、借種付款與小牛歸屬、田地流程、舊資料庫拒絕啟動；協定 v2：牧場物件、新聞代碼、24 品種圖鑑、舊存檔格式拒絕啟動、建立牧場的名字檢查與 request_id 重送、借種費（D26）與 price_changed、借種紀錄、維護（503、4503、腳本通知伺服器） | 是 |

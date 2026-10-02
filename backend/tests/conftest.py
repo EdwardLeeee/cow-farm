@@ -100,6 +100,7 @@ class Harness:
         clock_t: float = None,
         online_window_s: float = 30.0,
         web_dir: str = None,
+        accounts=None,
     ):
         from fastapi.testclient import TestClient
 
@@ -119,7 +120,11 @@ class Harness:
             online_window_s=online_window_s,
             web_dir=web_dir,
         )
-        self.app = create_app(self.cfg, clock=self.clock)
+        if accounts is None:  # 預設：Apple、Google 都還沒設定（不讀金鑰檔）；帳號測試傳假的進來（tests/fakes.py）
+            from server.accounts import AccountServices, JwksVerifier, NotConfiguredApple
+
+            accounts = AccountServices(verifier=JwksVerifier(), apple=NotConfiguredApple(), cipher=None)
+        self.app = create_app(self.cfg, clock=self.clock, accounts=accounts)
         self.server = self.app.state.server
         self.client = TestClient(self.app)
 

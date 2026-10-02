@@ -5,6 +5,10 @@ pydantic==2.13.5
 uvicorn==0.54.0
 websockets==16.1.1
 asyncpg==0.31.0
-# 測試
+# 帳號：驗 Apple／Google 的登入憑證、簽 Apple 的 client secret、加密 refresh token（docs/research/2026-10-sso-verification.md）
+pyjwt==2.15.1
+cryptography==50.0.2
+# 呼叫 Apple 的 REST API（換 refresh token、撤銷）；測試也用它打真的伺服器
 httpx==0.28.1
+# 測試
 pytest==9.1.1

@@ -28,7 +28,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from . import views as V
 from .config import Config
 from .game import GameError, Player, ship_value
-from .runtime import GameServer
+from .runtime import GameServer, token_hash
 from .store import Store
 
 log = logging.getLogger("cowfarm")
@@ -46,6 +46,35 @@ class _Req(BaseModel):
 
 class ActionReq(_Req):
     request_id: str
+
+
+class LinkReq(_Req):
+    provider: Literal["apple", "google"]
+    id_token: str
+    nonce: str
+    authorization_code: Optional[str] = None  # Apple 一定要；Google 不用
+    request_id: Optional[str] = None
+
+
+class UnlinkReq(_Req):
+    provider: Literal["apple", "google"]
+    request_id: Optional[str] = None
+
+
+class RecoverReq(_Req):
+    provider: Literal["apple", "google"]
+    id_token: str
+    nonce: str
+    request_id: Optional[str] = None
+
+
+class SwitchReq(_Req):
+    switch_ticket: str
+    request_id: Optional[str] = None
+
+
+class DeleteReq(_Req):
+    request_id: Optional[str] = None
 
 
 class SessionReq(_Req):
@@ -126,13 +155,13 @@ def _err(status: int, code: str, message: str, detail: Optional[dict] = None) ->
     return JSONResponse(body, status_code=status)
 
 
-def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, clock=None) -> FastAPI:
+def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, clock=None, accounts=None) -> FastAPI:
     from . import logsafe
 
     logsafe.install()
     cfg = cfg or Config.from_env()
     store = store or Store(cfg.pg_dsn)
-    server = GameServer(cfg, store, clock)
+    server = GameServer(cfg, store, clock, accounts)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -202,6 +231,7 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
     def state_of(p: Player, now: float) -> dict:
         st = V.state_view(server.game, server.game.players[p.pid], now, server.clock)
         st["maintenance"] = server.maintenance_view()  # 維護預告（協定 6.1 節）；沒有是 null
+        st["account"] = server.account_view(p.pid)  # 綁定的帳號（協定 2.3 節）
         return st
 
     def base(now: float) -> dict:
@@ -215,6 +245,101 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
         return {**base(now), "protocol": PROTOCOL_VERSION, "maintenance": server.maintenance_view()}
 
     # ---- 帳號 ----
+    # ---- 帳號：備份、找回、刪除牧場（協定第 5 節） ----
+    def _bearer(authorization: Optional[str]) -> Optional[str]:
+        if authorization and authorization.lower().startswith("bearer "):
+            return authorization[7:].strip()
+        return None
+
+    def _replay_key(endpoint: str, request_id: Optional[str], token: Optional[str]):
+        """帳號端點的 request_id 重送記錄（協定 5.0 節）：只在記憶體、10 分鐘。key 加上送來的 token 的雜湊（找回沒有
+        token，用 id_token），只拿到 request_id 的人對不上；換回、刪除成功後舊 token 已經失效，所以這兩個要先查這裡再驗 token。"""
+        if request_id is None:
+            return None
+        return (endpoint, _rid(request_id), token_hash(token) if token else b"")
+
+    def _replayed(key):
+        return server.accounts.replays.get(key) if key is not None else None
+
+    def _remember(key, response: dict) -> dict:
+        if key is not None:
+            server.accounts.replays.put(key, response)
+        return response
+
+    def _session_response(token: str, p: Player, created: bool) -> dict:
+        now = server.clock.now()
+        return {
+            **base(now),
+            "token": token,
+            "player_id": p.pid,
+            "ranch_name": p.name,
+            "created": created,
+            "state": state_of(p, now),
+        }
+
+    @app.post("/v1/account/nonce")
+    async def account_nonce():
+        """登入前先拿 nonce（協定 5.1 節）：只能用一次，10 分鐘有效。"""
+        nonce, exp = server.issue_nonce()
+        return {**base(server.clock.now()), "nonce": nonce, "expires_at_real": exp}
+
+    @app.post("/v1/account/link")
+    async def account_link(req: LinkReq, authorization: Optional[str] = Header(None)):
+        token = _bearer(authorization)
+        key = _replay_key("link", req.request_id, token)
+        prev = _replayed(key)
+        if prev is not None:
+            return prev
+        p = server.auth(token)
+        res = await server.link_account(p, req.provider, req.id_token, req.nonce, req.authorization_code)
+        return _remember(key, {**base(server.clock.now()), **res})
+
+    @app.post("/v1/account/unlink")
+    async def account_unlink(req: UnlinkReq, authorization: Optional[str] = Header(None)):
+        token = _bearer(authorization)
+        key = _replay_key("unlink", req.request_id, token)
+        prev = _replayed(key)
+        if prev is not None:
+            return prev
+        p = server.auth(token)
+        res = await server.unlink_account(p, req.provider)
+        return _remember(key, {**base(server.clock.now()), **res})
+
+    @app.post("/v1/account/recover")
+    async def account_recover(req: RecoverReq):
+        """找回牧場（不用 token；協定 5.5 節）。"""
+        # 回應裡有新的 token：只用 request_id 當 key 的話，拿到 request_id 的人亂寫一個 id_token 就能拿走（ceo 審查）
+        key = _replay_key("recover", req.request_id, req.id_token)
+        prev = _replayed(key)
+        if prev is not None:
+            return prev
+        token, p = await server.recover_account(req.provider, req.id_token, req.nonce)
+        return _remember(key, _session_response(token, p, False))
+
+    @app.post("/v1/account/switch")
+    async def account_switch(req: SwitchReq, authorization: Optional[str] = Header(None)):
+        """換回那個牧場（協定 5.3 節）。先查重送記錄再驗 token：成功後這支手機的 token 已經失效。"""
+        token = _bearer(authorization)
+        key = _replay_key("switch", req.request_id, token)
+        prev = _replayed(key)
+        if prev is not None:
+            return prev
+        p = server.auth(token)
+        new_token, target = await server.switch_ranch(p, req.switch_ticket)
+        return _remember(key, _session_response(new_token, target, False))
+
+    @app.post("/v1/account/delete")
+    async def account_delete(req: Optional[DeleteReq] = None, authorization: Optional[str] = Header(None)):
+        """刪除牧場（協定 5.6 節）。先查重送記錄再驗 token：成功後 token 已經失效，重送要拿到 deleted: true。"""
+        token = _bearer(authorization)
+        key = _replay_key("delete", req.request_id if req is not None else None, token)
+        prev = _replayed(key)
+        if prev is not None:
+            return prev
+        p = server.auth(token)
+        await server.delete_ranch(p)
+        return _remember(key, {**base(server.clock.now()), "deleted": True})
+
     @app.post("/v1/session")
     async def session(req: SessionReq):
         """建立牧場：取好名字才建立（協定 2.1 節）。"""

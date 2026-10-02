@@ -26,10 +26,10 @@
 | 13 | 借種費 | 主人從 300／800／2,000／5,000 選 | 系統依公牛現在的體重和稀有度算（D26）；借種要帶預覽看到的價格，變了回 `price_changed` | 6，已做 |
 | 14 | 借種紀錄 | 沒有 | `GET /v1/stud/log` | 7，已做 |
 | 15 | 維護 | 沒有 | `GET /v1/status`、`maintenance` 物件、503 `maintenance`、WS 4503 | 8，已做 |
-| 16 | 帳號 | 只有訪客 token | 拿 nonce、綁定、解除、找回、換回、刪除牧場（D22）；舊手機收到 `signed_in_elsewhere` | 9（9a 協定已定，9b 實作） |
+| 16 | 帳號 | 只有訪客 token | 拿 nonce、綁定、解除、找回、換回、刪除牧場（D22）；舊手機收到 `signed_in_elsewhere` | 9，已做 |
 | 17 | 遊戲時間 | 伺服器關著時暫停 | 倍率 1（正式版）照真實時間走，關機那段也算；試玩倍率照舊暫停 | 10，已做 |
 
-PR 3–8、10 已做；PR 9 還沒做（2026-10-02）。每個 PR 合併時更新這張表的「PR」欄。
+PR 3–10 都做完了（2026-10-02）。每個 PR 合併時更新這張表的「PR」欄。
 
 **存檔不相容**：PR 4 起存檔格式改變，舊的世界（v0.2）伺服器會拒絕啟動。原型階段直接清掉資料庫重來（`backend/README.md`）。
 
@@ -836,7 +836,9 @@ v2 拿掉 `price`（看 `fee.price`）、`type_name`、`tier_name`、`owner_id`�
 
 - 一般動作（1.3 節）的 request_id 記在資料庫，保存 7 天。
 - 建立牧場（2.1 節）的 request_id 記在資料庫，重送會發一個新的 token。
-- 這四個只記在伺服器的記憶體，伺服器重開就沒有了：裡面有新的 token，不寫進資料庫。換回、刪除成功以後舊 token 已經失效，所以伺服器先比對「request_id＋送來的 token」再驗 token，重送照樣拿得到第一次的回應。
+- 這四個只記在伺服器的記憶體，伺服器重開就沒有了：裡面有新的 token，不寫進資料庫。
+- 伺服器比對「request_id＋送來的 token」（找回沒有 token，比對 `id_token`），所以**重送要整個請求原封不動**。只有 request_id 一樣、token 或 `id_token` 不同，不算重送，照一般請求處理。
+- 換回、刪除成功以後舊 token 已經失效，所以這兩個先比對重送記錄再驗 token，重送照樣拿得到第一次的回應。
 
 ### 5.1 `POST /v1/account/nonce` 拿 nonce（不用 token）
 
@@ -1036,3 +1038,5 @@ app 啟動時先打這個（還沒有 token 也能打），再決定要不要顯
 - 2026-10-02：PR 8 做完第 0 節 15 項：`GET /v1/status`、`state.maintenance`、503 `maintenance`、WS `maintenance` 訊息與 4503；`backend/scripts/maint.py` 安排與結束維護。第一版不做維護前的提示畫面（ceo 2026-10-02），資料先給。
 - 2026-10-02：PR 10 做完第 0 節 17 項：倍率 1 時伺服器關著的那段照真實時間算（奶桶照樣累積、市場補跑 tick、電腦假玩家不補做）；試玩倍率照舊暫停。欄位不變。
 - 2026-10-02：PR 9a 修訂第 5 節（研究：`docs/research/2026-10-sso-verification.md`）：新增 `POST /v1/account/nonce`，綁定、找回要送 `nonce`；綁定、換回、找回、刪除可以帶 `request_id`（只記在記憶體，10 分鐘內回第一次的回應）；`sign_in_failed` 加 `nonce_invalid`、`not_configured`；刪除牧場改成軟刪除（只留沒有個資的編號）。
+- 2026-10-02：PR 9b 做完第 0 節 16 項（帳號：nonce、綁定、解除、找回、換回、刪除、`signed_in_elsewhere`、Apple 撤銷佇列）。欄位跟 9a 定的一樣。
+- 2026-10-02：PR 9b 審查：找回的重送改成比對 request_id＋`id_token`（5.0 節），只拿到 request_id 的人拿不到 token。整個請求原封不動的重送不受影響。
