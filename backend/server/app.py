@@ -252,8 +252,8 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
         return None
 
     def _replay_key(endpoint: str, request_id: Optional[str], token: Optional[str]):
-        """帳號端點的 request_id 重送記錄（協定 5.0 節）：只在記憶體、10 分鐘。key 加上送來的 token 的雜湊，
-        別人拿不到；換回、刪除成功後舊 token 已經失效，所以這兩個要先查這裡再驗 token。"""
+        """帳號端點的 request_id 重送記錄（協定 5.0 節）：只在記憶體、10 分鐘。key 加上送來的 token 的雜湊（找回沒有
+        token，用 id_token），只拿到 request_id 的人對不上；換回、刪除成功後舊 token 已經失效，所以這兩個要先查這裡再驗 token。"""
         if request_id is None:
             return None
         return (endpoint, _rid(request_id), token_hash(token) if token else b"")
@@ -308,7 +308,8 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
     @app.post("/v1/account/recover")
     async def account_recover(req: RecoverReq):
         """找回牧場（不用 token；協定 5.5 節）。"""
-        key = _replay_key("recover", req.request_id, None)
+        # 回應裡有新的 token：只用 request_id 當 key 的話，拿到 request_id 的人亂寫一個 id_token 就能拿走（ceo 審查）
+        key = _replay_key("recover", req.request_id, req.id_token)
         prev = _replayed(key)
         if prev is not None:
             return prev

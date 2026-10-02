@@ -65,6 +65,9 @@
   - Google Cloud：建登入用的用戶端（iOS、Android、伺服器）。做之前查官方文件：設定要不要經過 Google 審核。
   - Google 登入先在 Android 模擬器驗；使用者沒有 Android 手機，上架前的實機驗收另外安排。
   - Apple 的 server-to-server 通知（ceo 2026-10-02 同意，研究文件 docs/research/2026-10-sso-verification.md 5.4 節）：M4 有正式主機和 HTTPS 時，在 Apple Developer 登記通知網址；收到玩家停用我們的 app 或刪除 Apple 帳號的通知，就解除綁定、刪掉 refresh token。
+- 帳號伺服器的兩件事（PR 9b 審查，ceo 2026-10-02 記到 M4）：
+  - Apple／Google 連不上時（抓公鑰失敗、`/auth/token` 網路錯誤），伺服器現在回 `token_invalid`／`code_invalid`，app 會跟玩家說登入憑證有問題，其實是對方的伺服器掛了。評估要不要加一個 reason：會改協定，cow-ui 也要補文案。
+  - `POST /v1/account/nonce` 不用登入，伺服器最多記 2 萬個 nonce，有人狂打會把別人的 nonce 擠掉。選主機時在反向代理加流量限制。
 
 ## 不在第一版（試玩後，企劃書 v0.3 再決定）
 

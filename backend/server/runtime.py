@@ -995,7 +995,7 @@ class GameServer:
             await self.broadcast({"type": "news", **V.news_item(ev, self.clock.now())})
         if self.stats["ticks"] % 60 == 0:
             await self.store.prune(t_last - PRICE_PRUNE_S, stud_log_before=t_last - STUD_LOG_KEEP_DAYS * DAY)
-            await self.process_revocations()
+            self._spawn(self.process_revocations())  # 不等：Apple 連不上時一筆要等 15 秒逾時，市場不能跟著停
         return [d[0] for d in done]
 
     async def _tick_loop(self) -> None:

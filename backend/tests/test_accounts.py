@@ -180,8 +180,9 @@ def test_recover_signs_out_old_phone(env):
     with h.client.websocket_connect(f"/v1/ws?token={a['token']}") as ws:
         ws.receive_json()  # hello
         ws.receive_json()  # market
-        rid = new_rid()
-        r1 = recover(h, "google", "g-400", request_id=rid)
+        n = nonce(h)
+        first = {"provider": "google", "id_token": fake_token("g-400", n), "nonce": n, "request_id": new_rid()}
+        r1 = h.client.post("/v1/account/recover", json=first)
         assert r1.status_code == 200, r1.text
         rec = r1.json()
         assert rec["player_id"] == a["player_id"] and rec["state"]["ranch_name"] == "找回測試牧場"
@@ -197,15 +198,29 @@ def test_recover_signs_out_old_phone(env):
         with pytest.raises(WebSocketDisconnect) as exc:
             ws.receive_json()
         assert exc.value.code == 4401
-    # 同一個 request_id 重送：同一個回應（nonce 已經用掉了，不重送就要重新登入）
-    n = nonce(h)
-    again = {"provider": "google", "id_token": fake_token("g-400", n), "nonce": n, "request_id": rid}
-    assert h.client.post("/v1/account/recover", json=again).json() == rec
+    # 網路逾時重送：整個請求原封不動，拿到第一次的回應（nonce 雖然已經用掉，這是重送）
+    assert h.client.post("/v1/account/recover", json=first).json() == rec
     # 再找回一次（新的 request_id）：發新 token，上一支也登出
     rec2 = recover(h, "google", "g-400").json()
     assert rec2["token"] != rec["token"]
     err(h.get("/v1/state", rec["token"]), 401, "signed_in_elsewhere")
     assert state(h, rec2["token"])["player_id"] == a["player_id"]
+
+
+def test_recover_replay_needs_the_same_id_token(env):
+    """找回的重送要 request_id 和 id_token 都一樣（ceo 2026-10-02 審查）：只拿到 request_id 的人，
+    亂寫 id_token 或用自己的帳號，都拿不到上一次回應裡的 token，照一般找回處理。"""
+    h, _apple = env
+    a = h.session()
+    assert link(h, a["token"], "google", "g-410").status_code == 200
+    rid = new_rid()
+    first = recover(h, "google", "g-410", request_id=rid)
+    assert first.status_code == 200, first.text
+    forged = {"provider": "google", "id_token": "garbage", "nonce": nonce(h), "request_id": rid}
+    r = h.client.post("/v1/account/recover", json=forged)
+    assert err(r, 400, "sign_in_failed")["detail"]["reason"] == "token_invalid" and "token" not in r.json()
+    err(recover(h, "google", "g-nobody", request_id=rid), 404, "account_not_linked")
+    assert state(h, first.json()["token"])["player_id"] == a["player_id"]  # 第一次拿到的 token 沒被換掉
 
 
 def test_unlink_revokes_apple(env):

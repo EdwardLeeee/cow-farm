@@ -135,7 +135,7 @@ M4 以前的伺服器沒有 Apple、Google 的設定：綁定和找回回 `sign_
 | `COWFARM_APPLE_CLIENT_IDS` | Apple 的 client_id（App ID：`com.oraclelee.cowfarm`），可以用逗號隔開好幾個 |
 | `COWFARM_GOOGLE_CLIENT_IDS` | Google 的 Web client ID（手機 app 拿 ID token 用的 server client ID） |
 | `COWFARM_APPLE_TEAM_ID`、`COWFARM_APPLE_KEY_ID`、`COWFARM_APPLE_KEY_FILE` | Team ID、金鑰 ID、.p8 檔的路徑（權限 600，不進 git） |
-| `COWFARM_TOKEN_KEY_FILE` | 加密 Apple refresh token 的金鑰檔；預設 `~/.config/cow-farm/token.key`。有 Apple 設定時才會用到，沒有就自動產生（權限 600） |
+| `COWFARM_TOKEN_KEY_FILE` | 加密 Apple refresh token 的金鑰檔；預設 `~/.config/cow-farm/token.key`。伺服器啟動時沒有就自動產生（權限 600），沒有 Apple 設定也會產生 |
 
 - 金鑰照 secrets-custody：`.p8` 和 `token.key` 都不進 git、不寫日誌，要另外備份。`token.key` 不見了，存著的 Apple refresh token 就解不開，那時只能請使用者自己到 Apple 帳號設定解除。
 - Apple 撤銷失敗（例如 Apple 連不上）會放在 `apple_revoke_queue`，伺服器每 60 個 tick 重試一次（1 分鐘起、每次加倍、最多 1 小時）；刪除牧場不會因此失敗（Apple TN3194）。
