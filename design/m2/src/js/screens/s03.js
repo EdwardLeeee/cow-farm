@@ -189,6 +189,23 @@ part('S03-15', '大新聞提示：收購價大漲（只跳出一次）', '.big-n
     <div class="bn-main"><span class="bn-ic">${icon('beef', 34)}</span><div class="grow"><b>${t('news.beef_up.1')}</b><p>${t('s03.bigNewsBody', { name: t('beef'), chg: '<b class="up-text">+25%</b>', price: 15, unit: t('unitBeef') })}</p></div></div>
     ${btn(t('s03.bigNewsGo'), { kind: 'primary', block: true, ic: 'coin' })}</div>`,
 }));
+// ---------- 新文案（2026-10-02 草稿：使用者核准前不放進 boards；只有繁中，合成時另外出一張「新文案-狀態表」） ----------
+// 全部商品一起漲跌 20% 以上（新聞的 commodity 是 null、targets 有三種；漲跌幅 pct 只有一個）：
+// 說明句改成「全部商品的收購價 +22%」，不寫單一商品的名字和價格；圖示放三種商品。
+const bigNewsAll = (ctx, up) => ranchPage(ctx, {
+  overlays: `<div class="big-news card"><button class="bn-close" aria-label="${t('g.close')}">${icon('close', 18)}</button><span class="bn-tag">${t('s06.bigNews')}</span>
+    <div class="bn-main"><span class="bn-ic all">${icon('milk', 22)}${icon('beef', 22)}${icon('rice', 22)}</span><div class="grow"><b>${t(up ? 'news.all_up.1' : 'news.all_down.1')}</b><p>${t('s03.bigNewsAll', { chg: up ? '<b class="up-text">+22%</b>' : '<b class="down-text">−21%</b>' })}</p></div></div>
+    ${btn(t('s03.bigNewsGo'), { kind: 'primary', block: true, ic: 'coin' })}</div>`,
+});
+const draft = (id, name, crop, render) => part(id, name, crop, render, { zhOnly: true, board: '新文案-狀態表' });
+draft('S03-16', '大新聞提示：全部商品一起大漲（新文案）', '.big-news', (ctx) => bigNewsAll(ctx, true));
+draft('S03-17', '大新聞提示：全部商品一起大跌（新文案）', '.big-news', (ctx) => bigNewsAll(ctx, false));
+// 收奶時順便丟掉倉庫裡壞掉的牛奶（協定收奶回應的 spoiled 大於 0）
+draft('S03-18', '收奶成功，順便丟掉壞掉的牛奶（新文案）', '.toast', (ctx) => ranchPage(ctx, {
+  dock: { bucket: { qty: 0 }, milkLots: [{ qty: 36.4, tier: 0, fresh: 1 }, ...WAREHOUSE.milk.slice(0, 3)] },
+  overlays: toast('ok', t('collectedSpoiled', { v: 36.4, n: 2 })),
+}));
+
 full('S03-11', '收起來：奶桶、倉庫、收購價收成一條（收奶鈕留著）', (ctx) => ranchPage(ctx, { collapsed: true }));
 part('S03-12', '收起來的那一條：奶桶滿了、奶桶是 0', '#crop', (ctx) => frame(ctx.dev, { tab: null, hud: false, content: `<div id="crop" class="g-sheet slim-sheet">${dock({ collapsed: true, bucket: { qty: 42 } })}${dock({ collapsed: true, bucket: { qty: 0 } })}</div>` }));
 full('S03-13', '往右滑：牧場的另一邊（池塘、大樹）', (ctx) => ranchPage(ctx, { pan: WIDE - 390 }));
