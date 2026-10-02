@@ -186,6 +186,18 @@ void main() {
     expect(logCowText(_zh, 'chocolate', null), _zh.breedName('chocolate'));
   });
 
+  for (final (lang, gap) in [(AppLang.zhHant, ''), (AppLang.en, ' '), (AppLang.th, ' ')]) {
+    testWidgets('市場的公牛名（${lang.code}）：品種名和「公」${gap.isEmpty ? '連著寫' : '中間空一格'}（ceo 2026-10-02）', (tester) async {
+      Screen.w430.apply(tester);
+      final s = Strings.forLang(lang);
+      await showStud(tester, lang);
+      final row = find.byKey(const Key('stud-listing-41'));
+      await tester.scrollUntilVisible(row, 200, scrollable: studScrollable);
+      final name = '${s.breedName('holstein')}$gap${s.bull}';
+      expect(find.descendant(of: row, matching: find.text(name, findRichText: true)), findsOneWidget);
+    });
+  }
+
   testWidgets('公牛被借走時，WebSocket 通知顯示一則提示並重抓 state（G-05）', (tester) async {
     final (m, api, push) = await loadedModel();
     await pumpApp(tester, m);

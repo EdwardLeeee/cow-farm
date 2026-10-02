@@ -43,6 +43,11 @@ String fillTemplate(String template, Map<String, Object> params) =>
 
 final _placeholder = RegExp(r'\{(\w+)\}');
 
+/// 手機時區的兩個時刻差幾個日曆天（[at] 是 [now] 的前一天就是 1），決定寫「今天」「昨天」還是日期。
+/// 只看年月日、用 UTC 相減：當地的兩個午夜相減，遇到夏令時間切換那天只有 23 小時，inDays 會是 0（昨天變成「今天」）。
+int calendarDaysBetween(DateTime now, DateTime at) =>
+    DateTime.utc(now.year, now.month, now.day).difference(DateTime.utc(at.year, at.month, at.day)).inDays;
+
 /// 給畫面用的字串：`Strings.of(context).tabRanch`、`Strings.of(context).level(lv: 3)`。
 ///
 /// 每個 key 一個成員（gen/strings.g.dart）；品種、特徵、星期、取名詞庫這些「依資料組 key」的字用下面的方法。
@@ -141,6 +146,10 @@ class Strings extends GeneratedStrings {
   String maintenanceEta(DateTime local) => s16Eta(
     date: dateMdw(m: local.month, d: local.day, w: weekdayName(local.weekday), time: clock(local)),
   );
+
+  /// 品種名和後面的「公／母」之間（ceo 2026-10-02）：英文、泰文加一個一般空白（Holstein Bull、โฮลสไตน์ ตัวผู้）；
+  /// 繁中照設計稿不加（荷斯坦公）。兩段分開排（字級不同）的地方都用這個，不另外加字串。
+  String get breedSexGap => lang == AppLang.zhHant ? '' : ' ';
 
   /// 用途名：乳牛、耕牛、肉牛。
   String useName(CowType type) => switch (type) {
