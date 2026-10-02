@@ -329,7 +329,7 @@ app 怎麼顯示：
 | `codex[]` | array | PR 4：已發現的品種 `{"breed", "found_at"}`，`found_at` 是第一次發現的遊戲時間（S09-03「第一次發現：{date}」）。牛一出生（或抽到、借種生下）就算發現，之後出貨也不會消失。共 24 種，沒出現在陣列裡的顯示剪影。「目前有 n 頭」由 app 數 `cows[]` |
 | `fields[]`、`rice` | | 田地（見下） |
 | `stud` | object | `listings` 自己上架的借種（形狀同 `GET /v1/stud` 的 `listings[]`）、`income` 借種收入累計（幣） |
-| `economy` | object | 經濟倍數，直接讀伺服器的參數（`params.py`），app 不要寫死：`tier_mult`（一般、優良、稀有、傳說：牛奶、牛肉的賣價倍率，也是耕牛的稻米產量倍率；S05「優良牛奶 ×1.3」、S09 品種卡）、`beef_grade_mult`（牛肉評級 A／B／C 的賣價倍率）、`ox_rice_per_h`（壯年一般耕牛每遊戲小時的稻米公斤數；某頭牛 = 這個 × `tier_mult` × 年齡曲線，現在的值看 `cows[].rice_per_h`）。牛奶賣價 = 市價 × `tier_mult` × 新鮮度；牛肉 = 市價 × `beef_grade_mult` × `tier_mult` × 存放折價 |
+| `economy` | object | 經濟倍數，直接讀伺服器的參數（`params.py`），app 不要寫死：`tier_mult`（一般、優良、稀有、傳說：牛奶、牛肉的賣價倍率，也是耕牛的稻米產量倍率；S05「優良牛奶 ×1.3」、S09 品種卡）、`beef_grade_mult`（牛肉評級 A／B／C 的賣價倍率）、`ox_rice_per_h`（壯年一般耕牛每遊戲小時的稻米公斤數；某頭牛 = 這個 × `tier_mult` × 年齡曲線，現在的值看 `cows[].rice_per_h`）。牛奶賣價 = 市價 × `tier_mult` × 新鮮度；牛肉 = 市價 × `beef_grade_mult` × `tier_mult` × 存放折價。**這些只是給畫面顯示的說明數字**：帳一律由伺服器算，app 不能拿它們自己算成交價或收入（手機不算帳；要價格用 `POST /v1/sell/quote`、`GET /v1/ship/preview`） |
 | `account` | object | PR 9：`links[]` 綁定的帳號 `{"provider": "apple"｜"google", "linked_at_real"}`。空陣列 = 還沒備份（頂列齒輪的小點 G-10、S13-01「還沒備份」） |
 | `maintenance` | object／null | PR 8：維護預告或維護中（第 6 節）；沒有是 null |
 

@@ -62,6 +62,21 @@ def test_each_class_round_trips():
     assert Farm.from_dict(DEFAULT, rt(farm.to_dict())).to_dict() == farm.to_dict()
 
 
+def test_old_save_beef_lots_without_genes():
+    """新程式讀舊存檔：2026-10-02 之前的牛肉批次是 6 個元素、沒有基因。整個牧場讀得進來，
+    genes 是 None（state 的 breed 給 null），其他欄位不變；再存一次就是 7 個元素。"""
+    farm = Farm(DEFAULT, T0, random.Random(1))
+    farm.beef_lots.append(BeefLot(1, 250.0, 1.3, T0, 9, 0, 0b101101))
+    old = rt(farm.to_dict())
+    old["beef_lots"] = [x[:6] for x in old["beef_lots"]]  # 舊程式存的樣子
+    back = Farm.from_dict(DEFAULT, old)
+    assert back.beef_lots[0].genes is None
+    assert back.beef_lots[0].to_dict() == old["beef_lots"][0] + [None]
+    assert {k: v for k, v in rt(back.to_dict()).items() if k != "beef_lots"} == {
+        k: v for k, v in old.items() if k != "beef_lots"
+    }
+
+
 def test_rng_state_keeps_gauss_cache():
     r = random.Random(7)
     r.gauss(0, 1)  # 留下一個快取的常態亂數
