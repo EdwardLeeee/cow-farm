@@ -2,6 +2,7 @@
 // 只在本機拍，CI 不跑（沒給 SHOTS 就整個跳過）。在 app/ 底下：
 //   flutter test --dart-define=SHOTS=1 --dart-define=SHOTS_DIR=build/shots/<PR 編號> test/pages/shots_test.dart
 //   其他語言：--dart-define=SHOTS_LANGS=zh-Hant,en,th；只拍某些頁面：--dart-define=SHOTS_ONLY=S01,S02-03
+//   窄手機（看字有沒有被截掉；溢出測試只抓得到丟例外的溢出）：--dart-define=SHOTS_WIDTHS=430,390,360,320
 // 拍完用 python3 tool/shots_compare.py build/shots/<PR 編號> 跟設計稿並排。
 import 'dart:io';
 
@@ -15,24 +16,26 @@ final _shots = const String.fromEnvironment('SHOTS').isNotEmpty;
 const _dir = String.fromEnvironment('SHOTS_DIR', defaultValue: 'build/shots/local');
 const _langs = String.fromEnvironment('SHOTS_LANGS', defaultValue: 'zh-Hant');
 const _only = String.fromEnvironment('SHOTS_ONLY');
+const _widths = String.fromEnvironment('SHOTS_WIDTHS', defaultValue: '430,390');
 
 void main() {
   if (!_shots) {
     test('截圖只在本機拍（--dart-define=SHOTS=1）', () {}, skip: 'CI 不拍截圖');
     return;
   }
-  setUpAll(loadAppFonts);
+  setUpAll(loadAppAssets);
   final langs = [for (final code in _langs.split(',')) AppLang.fromCode(code.trim())!];
   final only = _only.isEmpty ? null : _only.split(',').map((s) => s.trim()).toList();
   final cases = [
     for (final c in pageCases)
       if (only == null || only.any(c.id.startsWith)) c,
   ];
+  final screens = [for (final w in _widths.split(',')) Screen.values.firstWhere((s) => s.label == w.trim())];
 
   test('要拍的頁面狀態', () => expect(cases, isNotEmpty, reason: 'pageCases 是空的，或 SHOTS_ONLY 沒對到'));
   for (final c in cases) {
     for (final lang in langs) {
-      for (final screen in [Screen.w430, Screen.w390]) {
+      for (final screen in screens) {
         testWidgets('${c.id} ${c.name}：${screen.label} ${lang.code}', (tester) async {
           screen.apply(tester, dpr: 2);
           await c.show(tester, lang);

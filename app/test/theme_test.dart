@@ -2,6 +2,7 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
+import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/theme/app_theme.dart';
 import 'package:cowfarm/theme/tokens.dart';
 import 'package:flutter/foundation.dart';
@@ -90,6 +91,31 @@ void main() {
       expect(thInk, greaterThan(0));
       expect(thWidth, isNot(closeTo(th.runes.length * 20.0, 0.5)));
     });
+  });
+
+  testWidgets('泰文牛名裡的 U+2060（字串表的 word joiner）：看不見、不佔寬度，也不會在牛名中間換行', (tester) async {
+    await tester.runAsync(() async {
+      await _loadFont(AppText.family, 'assets/fonts/NotoSansTC-VF.ttf');
+      await _loadFont(AppText.fallback.first, 'assets/fonts/NotoSansThai-VF.ttf');
+    });
+    final th = Strings.forLang(AppLang.th);
+    final name = th.breedName('holstein'); // โฮ⁠ลส⁠ไตน์
+    expect(name, contains('⁠'), reason: '字串表有 U+2060，app 不能把它拿掉');
+    final style = AppText.style(15, weight: FontWeight.w900);
+    TextPainter paint(String text, [double maxWidth = double.infinity]) => TextPainter(
+      text: TextSpan(text: text, style: style),
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: maxWidth);
+    // 看不見：寬度跟拿掉 U+2060 的同一個字一樣（沒有畫成方塊）
+    expect(paint(name).width, closeTo(paint(name.replaceAll('⁠', '')).width, 0.5));
+    // 不在牛名中間換行：寬度只放得下「前面的字 + 牛名的一部分」時，整個牛名換到下一行
+    final lead = '${th.cow}${th.gSep}';
+    final text = '$lead$name';
+    final narrow = paint('$lead${name.substring(0, 2)}').width + 1;
+    final lines = paint(text, narrow).computeLineMetrics();
+    expect(lines.length, greaterThan(1));
+    final secondLineStart = paint(text, narrow).getPositionForOffset(Offset(0, lines[0].height + 1)).offset;
+    expect(text.substring(secondLineStart), name, reason: '第二行要從牛名開頭開始');
   });
 
   test('字型的授權有放進第三方授權頁（OFL 1.1）', () async {

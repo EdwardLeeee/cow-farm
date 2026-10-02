@@ -67,6 +67,30 @@ Map<String, dynamic> _cow(
   };
 }
 
+/// 剛建好的牧場（伺服器 cowecon/params.py 的 OnboardingParams）：100 幣、奶桶裡 20 瓶、開局 1 小時產奶 ×5，
+/// 送一頭成年母乳牛（#1）和一頭還要 20 分鐘長大的公耕牛小牛（#2）。倍率 1（正式版），倒數就是現實時間。
+Map<String, dynamic> newRanchStateJson() => {
+  ...sampleStateJson(coins: 100),
+  'time_scale': 1,
+  'level': 1,
+  'level_progress': {'earned': 0, 'level_at': 0, 'next_at': 500},
+  'ranch_name': '小花的快樂牧場',
+  'cows': [
+    _cow(1, 'dairy', false, 0, milk: 6.0, weight: 120, shipValue: 1440),
+    _cow(2, 'dual', true, 0, stage: 'calf', adultAt: t0 + 20 * 60),
+  ],
+  'bucket': {
+    'qty': 20.0,
+    'capacity': 24.0,
+    'per_hour': 30.0,
+    'boost': {'mult': 5.0, 'until': t0 + 3600},
+  },
+  'codex': [
+    {'breed': 'holstein', 'found_at': t0},
+    {'breed': 'yellow', 'found_at': t0},
+  ],
+};
+
 /// 牧場物件（協定 1.6）。
 Map<String, dynamic> ranchJson({int? id, String? name, List<int>? words, int? level = 3}) => {
   'player_id': id,

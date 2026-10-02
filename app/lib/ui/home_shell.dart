@@ -15,6 +15,7 @@ import 'screens/leaderboard_screen.dart';
 import 'screens/market_screen.dart';
 import 'screens/ranch_screen.dart';
 import 'screens/shop_screen.dart';
+import 'start/start_flow.dart';
 import 'widgets/ticker_builder.dart';
 import 'widgets/top_bar.dart';
 
@@ -65,6 +66,8 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final m = context.watch<GameModel>();
+    // 還沒進牧場：S01 啟動與載入、S02 取名（正式畫面）
+    if (showsStartFlow(m)) return const StartFlow();
     return PopScope(
       canPop: m.detailCowKey == null,
       onPopInvokedWithResult: (didPop, _) {
@@ -125,7 +128,7 @@ class _Loading extends StatelessWidget {
   Widget build(BuildContext context) {
     final m = context.watch<GameModel>();
     final s = Strings.of(context);
-    // M1 的原型畫面：只用文字。正式的 S01、S02、S15-03、S14-05 在第 4 步照設計稿做。
+    // M1 的原型畫面：只用文字。正式的 S15-03、S14-05 照設計稿做（S01、S02 已經是正式畫面，在 start/）。
     final (String text, Widget? action) = switch (m) {
       GameModel(authLost: 'signed_in_elsewhere') => (
         s.s14ElsewhereTitle,
@@ -134,11 +137,6 @@ class _Loading extends StatelessWidget {
       GameModel(authLost: final String _) => (
         s.s15InvalidTitle,
         OutlinedButton(onPressed: m.startOver, child: Text(s.s14NewRanch)),
-      ),
-      GameModel(needsRanch: true) => (s.s02Title, null),
-      GameModel(startError: final ActionError e) when !m.starting => (
-        actionErrorText(context, e),
-        OutlinedButton(onPressed: m.start, child: Text(s.retry)),
       ),
       _ => (s.loadingFarm, null),
     };

@@ -22,15 +22,6 @@ const pendingPageIds = {
   'G-08',
   'G-09',
   'G-10',
-  'S01-01',
-  'S01-02',
-  'S01-03',
-  'S01-04',
-  'S02-01',
-  'S02-02',
-  'S02-03',
-  'S02-04',
-  'S02-05',
   'S03-01',
   'S03-02',
   'S03-03',
@@ -200,7 +191,7 @@ Set<String> scopePageIds() {
 }
 
 void main() {
-  setUpAll(loadAppFonts);
+  setUpAll(loadAppAssets);
 
   group('頁面 ID（design/m2/scope.md）', () {
     test('每個頁面 ID 不是有畫面狀態，就是在待做清單；做好的要從清單拿掉', () {
