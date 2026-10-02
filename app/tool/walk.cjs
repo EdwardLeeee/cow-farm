@@ -1,14 +1,17 @@
-// 整合走查（headless Chromium，v0.2 流程），每步截圖：
-//   收奶 → 賣奶 → 擴建 → 商店買 C 級 → 派耕牛下田 → 收成 → 賣稻米 → 上架公牛 → 借別人公牛配種 → 出貨看評級 → 排行榜
+// 整合走查（headless Chromium，正式畫面 + 還沒換掉的 M1 分頁），每步截圖：
+//   開新牧場（S02 取名、歡迎）→ 收奶 → 賣奶（S06）→ 擴建牛舍、加大奶桶（S10）→ 抽 C 級（S19）→
+//   等小牛長大 → 出貨（S04 → S07 → S20）→ 田地：派耕牛、收成（M1）→ 賣稻米 → 叫回耕牛 →
+//   借種：上架、借別人的公牛（M1）→ 圖鑑、排行榜（M1）
 //
-// 做法：打開 Flutter 網頁版的無障礙樹（flt-semantics），照按鈕與分頁的名稱操作；賣出滑桿點卡片右緣 = 全部賣出。
+// 做法：打開 Flutter 網頁版的無障礙樹（flt-semantics），照按鈕的名字操作。正式畫面的分頁也是按鈕；
+// M1 畫面裡的次分頁（自己配種／借種、圖鑑／排行榜）是 tab。頂列的金幣沒有名字，讀「設定」前面最後一個數字。
 // 用法（Node 18+；Playwright 只讀借用 connect4 已安裝的套件，瀏覽器用 ~/.cache/ms-playwright）：
 //   free -m   # available ≥ 2000 MB 再跑
 //   PLAYWRIGHT_MODULE=~/Desktop/connect4-web2-worktrees/mobile/frontend/node_modules/playwright \
 //     systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 \
-//     node app/tool/walk.cjs http://127.0.0.1:8787/ app/test_shots/v02
-// 每次都用新的瀏覽器設定檔，所以伺服器上會多一個新的訪客牧場。
-// 倍率 144 時整趟約 5–8 分鐘（大部分在等牛奶、稻米長出來換錢）。
+//     node app/tool/walk.cjs http://127.0.0.1:8790/ app/build/walk
+// 每次都用新的瀏覽器設定檔，所以伺服器上會多一個新的牧場（從 S02 取名開始）。不要對試玩的 8787 跑。
+// 倍率 144 時整趟約 5–10 分鐘（大部分在等牛奶、稻米長出來換錢）。
 // 環境變數：SHOT_PREFIX=xx-（截圖與紀錄檔名前綴）、EARN_LIMIT_S（每次「賺錢」最多等幾秒，預設 420）。
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const fs = require('fs');
@@ -26,9 +29,13 @@ const t0 = Date.now();
 const sec = () => ((Date.now() - t0) / 1000).toFixed(1);
 const log = [];
 const issues = [];
+const steps = [];
 const note = (s) => { const l = `[${sec()}] ${s}`; log.push(l); console.log(l); };
 const issue = (s) => { issues.push(s); note(`ISSUE: ${s}`); };
-const writeLog = () => fs.writeFileSync(`${shots}/${prefix}walk.log`, log.join('\n') + '\n\nISSUES:\n' + (issues.join('\n') || '(none)') + '\n');
+const writeLog = () => fs.writeFileSync(
+  `${shots}/${prefix}walk.log`,
+  `${log.join('\n')}\n\nSTEPS:\n${steps.join('\n')}\n\nISSUES:\n${issues.join('\n') || '(none)'}\n`,
+);
 
 (async () => {
   const browser = await chromium.launch({ headless: true, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
@@ -41,219 +48,299 @@ const writeLog = () => fs.writeFileSync(`${shots}/${prefix}walk.log`, log.join('
 
   // ---- 小工具 ----
   let n = 0;
-  const shot = async (name) => { n += 1; const f = `${prefix}${String(n).padStart(2, '0')}-${name}.png`; await page.screenshot({ path: `${shots}/${f}` }); note(`shot ${f}`); };
-  const leaves = () => page.evaluate(() => [...document.querySelectorAll('flt-semantics')].filter((e) => !e.querySelector('flt-semantics')).map((e) => (e.getAttribute('aria-label') || e.textContent || '').trim()).filter(Boolean));
-  const fullText = () => page.evaluate(() => [...document.querySelectorAll('flt-semantics')].map((e) => e.getAttribute('aria-label') || '').join('\n') + '\n' + (document.querySelector('flt-semantics-host')?.textContent || ''));
-  const coins = async () => { const m = (await fullText()).match(/金幣 ([\d,]+)/); return m ? Number(m[1].replace(/,/g, '')) : NaN; };
+  const shot = async (name) => { n += 1; const f = `${prefix}${String(n).padStart(2, '0')}-${name}.png`; await page.screenshot({ path: `${shots}/${f}` }); note(`shot ${f}`); return f; };
+  /// 無障礙樹的節點（照文件順序）：role、名字、停用。
+  const nodes = () => page.evaluate(() => [...document.querySelectorAll('flt-semantics')].map((e) => ({
+    role: e.getAttribute('role') || '',
+    label: (e.getAttribute('aria-label') || (e.querySelector('flt-semantics') ? '' : e.textContent) || '').trim(),
+    disabled: e.getAttribute('aria-disabled') === 'true',
+  })).filter((x) => x.label));
+  const labels = async () => (await nodes()).map((x) => x.label);
+  const fullText = async () => (await labels()).join('\n');
+  const coins = async () => {
+    const all = await nodes();
+    const end = all.findIndex((x) => x.role === 'button' && x.label === '設定');
+    const nums = all.slice(0, end < 0 ? 8 : end).map((x) => x.label).filter((l) => /^[\d,.]+萬?$/.test(l));
+    if (!nums.length) return NaN;
+    const l = nums[nums.length - 1];
+    return l.endsWith('萬') ? Math.round(parseFloat(l) * 10000) : Number(l.replace(/,/g, ''));
+  };
   const wait = (ms) => page.waitForTimeout(ms);
   const tap = async (loc) => { await loc.dispatchEvent('click'); };
-  const tab = async (name) => { await tap(page.getByRole('tab', { name, exact: true }).first()); await wait(700); };
-  const button = (name) => page.getByRole('button', { name });
+  const button = (name) => page.getByRole('button', { name, exact: typeof name === 'string' });
   const enabled = async (loc) => (await loc.count()) > 0 && (await loc.first().getAttribute('aria-disabled')) !== 'true';
+  const tab = async (name) => { await tap(button(name).last()); await wait(900); };
+  const subTab = async (name) => { await tap(page.getByRole('tab', { name, exact: true }).first()); await wait(900); };
   let before = [];
-  const mark = async () => { before = await leaves(); };
-  const snack = async () => {
-    await wait(900);
-    const t = await leaves();
-    return t.filter((x) => !before.includes(x) && !x.includes('\n') && !x.startsWith('遊戲時間') && !x.startsWith('金幣') && !x.startsWith('【')).join(' / ') || '(沒有新訊息)';
+  const mark = async () => { before = await labels(); };
+  /// 按下去之後多出來的字（提示、對話框）。
+  const news = async () => {
+    await wait(1000);
+    const now = await labels();
+    return now.filter((x) => !before.includes(x) && !x.includes('\n') && !/^[\d,.]+萬?$/.test(x)).slice(0, 6).join(' / ') || '(沒有新訊息)';
   };
   const tapIfEnabled = async (loc, what) => {
     if (!(await enabled(loc))) { issue(`${what}：按鈕停用或找不到（金幣 ${await coins()}）`); return false; }
     await mark(); await tap(loc.first());
-    note(`${what}：${await snack()}`);
+    note(`${what}：${await news()}`);
     return true;
   };
-  /// 點選清單中名稱完全相同的無障礙節點（chip、對話框選項）。
-  const tapLabel = (label) => page.evaluate((label) => {
-    const el = [...document.querySelectorAll('flt-semantics')].find((e) => !e.querySelector('flt-semantics') && (e.getAttribute('aria-label') || e.textContent || '').trim() === label);
-    if (!el) return false;
-    (el.closest('[flt-tappable]') || el).click();
+  const step = (name, ok, detail = '') => { steps.push(`${ok ? '過' : '沒過'}  ${name}${detail ? `：${detail}` : ''}`); note(`STEP ${ok ? 'OK' : 'FAIL'} ${name} ${detail}`); };
+  /// 點清單、對話框裡的一個選項（M1 畫面）：名字裡的空白、換行都當成一個空白比對。
+  const tapLabel = async (label) => {
+    const re = new RegExp(`^${label.trim().split(/\s+/).map((w) => w.replace(/[.*+?^${}()|[\]\\#]/g, '\\$&')).join('\\s+')}$`);
+    // M1 的選項有的是按鈕，有的是可以勾的（FilterChip 是 checkbox）：找得到哪一種就點哪一種
+    for (const role of ['button', 'checkbox', 'radio', 'option', 'tab']) {
+      const loc = page.getByRole(role, { name: re });
+      if (await loc.count()) { await tap(loc.last()); return true; }
+    }
+    const loc = page.getByText(re);
+    if (!(await loc.count())) return false;
+    await tap(loc.last());
     return true;
-  }, label);
+  };
 
-  // 賣出：市場 → 商品分頁 → 滑桿拉到最右（全部）→ 看試算 → 確認賣出
+  // 賣出：市場 → 點那一列商品 → 「全部」→ 「確認賣出」
   const sellAll = async (commodity, shotName) => {
     await tab('市場');
-    await tap(page.getByRole('tab', { name: commodity, exact: true }).first()).catch(() => {});
-    await wait(800);
-    const slider = page.getByRole('slider').first();
-    if ((await slider.count()) === 0) { note(`${commodity}：倉庫沒有可以賣的`); return false; }
-    const box = await slider.boundingBox();
-    await page.mouse.click(400, box.y + box.height / 2); // 滑桿的 semantics 框只有一小塊；點卡片右緣 = 最大值
-    await wait(1300);
+    await tap(button(new RegExp(`^${commodity}\\s`)).first()).catch(() => {});
+    await wait(1500);
     const ft = await fullText();
-    const avg = ft.match(/預估成交均價\s*([\d.]+ 幣／\S+)/);
-    const tot = ft.match(/預估總額 [\d,]+ 幣\s*市價 [\d.]+/);
-    note(`${commodity} 試算：均價 ${avg ? avg[1] : '?'}；${tot ? tot[0] : '?'}${ft.includes('一次賣太多') ? '；顯示「一次賣太多」' : ''}`);
-    if (!avg) issue(`${commodity}：試算沒有顯示均價`);
+    if (ft.includes(`倉庫裡沒有${commodity}可以賣`)) { note(`${commodity}：倉庫沒有可以賣的`); return false; }
+    await tap(button('全部')).catch(() => {});
+    await wait(1500);
+    const base = (ft.match(/平常（基本價）：[^\n]+/) || ['?'])[0];
+    if (base.includes('–')) issue(`市場「${base}」沒有基本價`);
+    const est = (await fullText()).match(/預估總額\n([\d,]+ 幣)/);
+    note(`${commodity} 試算：${est ? est[1] : '?'}；${base}`);
     if (shotName) await shot(shotName);
-    return tapIfEnabled(button(/^確認賣出/), `賣${commodity}`);
+    const c0 = await coins();
+    const ok = await tapIfEnabled(button(/^確認賣出/), `賣${commodity}`);
+    await wait(800);
+    note(`金幣 ${c0} → ${await coins()}`);
+    return ok;
   };
 
-  // 賺錢：收奶＋賣奶（有稻米也收成、賣掉）直到金幣 ≥ target
+  // 賺錢：收奶＋賣奶直到金幣 ≥ target
   const earnUntil = async (target) => {
     const st = Date.now();
     while ((await coins()) < target && Date.now() - st < earnLimitMs) {
       await tab('牧場');
-      await wait(15000);
-      await mark(); await tap(button('收奶'));
+      await wait(12000);
+      if (await enabled(button('收奶'))) await tap(button('收奶'));
       await wait(800);
       await sellAll('牛奶', '');
       note(`金幣 ${await coins()}（目標 ${target}）`);
     }
     if ((await coins()) < target) issue(`等了 ${earnLimitMs / 1000} 秒還賺不到 ${target}`);
+    return (await coins()) >= target;
   };
 
-  // 牛舍滿了就先擴建
-  const ensureSlot = async () => {
-    await tab('商店');
-    const ft = await fullText();
-    const pen = ft.match(/牛舍 (\d+) \/ (\d+) 格/);
-    if (!pen || Number(pen[1]) < Number(pen[2])) return;
-    const mm = ft.match(/\d+ → \d+ 格・([\d,]+) 幣/);
-    const cost = mm ? Number(mm[1].replace(/,/g, '')) : 600;
-    note(`牛舍滿了（${pen[1]}/${pen[2]}），先擴建，費用 ${cost}`);
-    await earnUntil(cost);
-    await tab('商店');
-    for (let i = 0; i < 20 && !(await enabled(button('擴建牛舍'))); i++) await wait(2000); // 第一次擴建要等開放
-    await tapIfEnabled(button('擴建牛舍'), '擴建');
+  /// 一列的價格鈕（設施、抽牛的卡片）：錢夠的時候是一顆獨立的按鈕（「280 幣」），跟列的名字 [title] 同一排；
+  /// 錢不夠（或牛舍滿了）時整列合成一顆停用的按鈕，名字從 [merged] 開始。
+  const rowButton = async (title, merged) => {
+    const m = button(merged);
+    if (await m.count()) return m.first();
+    const t = page.getByText(title, { exact: true });
+    if (!(await t.count())) return null;
+    const tb = await t.first().boundingBox();
+    const btns = page.getByRole('button', { name: /[\d,]+ 幣$/ });
+    for (let i = 0; i < (await btns.count()); i++) {
+      const bb = await btns.nth(i).boundingBox();
+      if (tb && bb && bb.y < tb.y + 80 && bb.y + bb.height > tb.y - 40) return btns.nth(i);
+    }
+    return null;
+  };
+  const rowPrice = async (loc) => {
+    const label = (await loc.getAttribute('aria-label')) || (await loc.textContent()) || '';
+    return Number(((label.match(/([\d,]+) 幣\s*$/) || [])[1] || '0').replace(/,/g, ''));
   };
 
-  // ---- 開始 ----
+  // 商店的設施（S10）：例「擴建牛舍」那一列的價格鈕
+  const upgrade = async (what) => {
+    const open = async () => { await tab('商店'); await tap(button('設施')); await wait(1200); };
+    await open();
+    let b = await rowButton(what, new RegExp(`^${what}\\s`));
+    const price = b ? await rowPrice(b) : 0;
+    if (!price) { issue(`${what}：找不到價格`); return false; }
+    if (!(await earnUntil(price))) return false;
+    await open();
+    for (let i = 0; i < 20; i++) { // 第一次擴建要等開放
+      b = await rowButton(what, new RegExp(`^${what}\\s`));
+      if (b && (await enabled(b))) break;
+      await wait(2000);
+    }
+    return b ? tapIfEnabled(b, what) : false;
+  };
+
+  // ---- 1. 開新牧場（S02 取名 → 歡迎）----
   await page.goto(url, { waitUntil: 'load' });
   await wait(7000);
   await page.evaluate(() => document.querySelector('flt-semantics-placeholder')?.click());
   await wait(1500);
-  if ((await leaves()).includes('連線中…')) issue('開啟 8.5 秒後仍顯示「連線中…」');
+  await shot('s02-name');
+  await tap(button('幫我想一個'));
+  await wait(600);
+  await mark(); await tap(button('就叫這個'));
+  await wait(4000);
+  const welcome = (await labels()).find((x) => x.startsWith('歡迎來到')) || '';
+  await shot('welcome');
+  step('開新牧場（取名、歡迎）', welcome !== '', welcome.replace(/\n/g, ' '));
+  await tap(button('進牧場')).catch(() => {});
+  await wait(2500);
+  if ((await labels()).includes('連線中…')) issue('進牧場後顯示「連線中…」');
   note(`初始金幣 ${await coins()}`);
-  await shot('start');
+  await shot('ranch');
 
-  // 1. 收奶
-  await tapIfEnabled(button('收奶'), '收奶');
+  // ---- 2. 收奶 ----
+  const collected = await tapIfEnabled(button('收奶'), '收奶');
   await shot('collect');
+  step('收奶', collected, (await labels()).find((x) => x.startsWith('收了')) || '');
 
-  // 2. 賣奶
+  // ---- 3. 賣奶（S06）----
+  const c3 = await coins();
   await sellAll('牛奶', 'sell-milk-quote');
   await shot('sold-milk');
+  step('賣奶（S06）', (await coins()) > c3, `金幣 ${c3} → ${await coins()}`);
 
-  // 3. 擴建
-  await ensureSlot();
-  await shot('expanded');
+  // ---- 4. 設施（S10）：擴建牛舍（開局牛舍是滿的）、加大奶桶 ----
+  const penOk = await upgrade('擴建牛舍');
+  await shot('pen-expanded');
+  step('擴建牛舍（S10）', penOk, (await labels()).find((x) => x.includes('升級完成')) || '');
+  const bucketOk = await upgrade('加大奶桶');
+  await shot('bucket-upgraded');
+  step('加大奶桶（S10）', bucketOk, (await labels()).find((x) => x.includes('升級完成')) || '');
 
-  // 4. 商店買 C 級
-  await earnUntil(900);
-  await tab('商店');
-  await wait(800);
-  note(`商店 C 級機率：${((await fullText()).match(/(用途|公母|稀有度)：[^\n]+/g) || []).slice(-3).join(' | ')}`);
-  if (await tapIfEnabled(button(/^買 C 級/), '買 C 級')) {
-    await wait(500);
-    note(`抽到：${(await leaves()).filter((x) => x.includes('抽到') || /（牛 #\d+）/.test(x)).join(' | ')}`);
-    await shot('shop-drawn');
-    await tap(button('好')).catch(() => {});
-    await wait(500);
-  } else {
-    await shot('shop');
+  // ---- 5. 抽 C 級（S19）----
+  let drawn = '';
+  if (await earnUntil(900)) {
+    await tab('商店');
+    await tap(button('抽牛'));
+    await wait(1500);
+    const buyC = await rowButton('C 級', /^C\s+C 級/);
+    if (buyC && (await tapIfEnabled(buyC, '抽 C 級'))) {
+      await wait(800);
+      drawn = (await labels()).find((x) => /^\S+ #\d+$/.test(x) && !before.includes(x)) || '';
+      await shot('shop-drawn');
+      await tap(button('好')).catch(() => {});
+      await wait(600);
+    }
   }
+  step('抽 C 級（S19）', drawn !== '', drawn);
 
-  // 5. 派耕牛下田（開局的公耕牛約 8 秒長大）
+  // ---- 6. 出貨（S04 → S07 → S20）：等抽到的小牛長大，從牛舍清單點它 ----
+  let shipped = '';
+  const openCowFromList = async (name) => {
+    await tab('牧場');
+    await tap(button(/^我的牛/));
+    await wait(1200);
+    const row = button(new RegExp(`^${name.replace(/[#()]/g, '\\$&')}\\s`));
+    if (!(await row.count())) return false;
+    await tap(row.first());
+    await wait(1200);
+    return true;
+  };
+  if (drawn) {
+    for (let i = 0; i < 12 && !shipped; i++) {
+      if (!(await openCowFromList(drawn))) { issue(`牛舍清單找不到 ${drawn}`); break; }
+      if (!(await enabled(button('出貨')))) {
+        note(`${drawn} 還不能出貨，等一下`);
+        await tap(button('返回')).catch(() => {});
+        await wait(8000);
+        continue;
+      }
+      await shot('cow-detail');
+      await tap(button('出貨'));
+      await wait(2500);
+      const conf = await fullText();
+      note(`出貨確認：${(conf.match(/[ABC] 級\n[\d.]+%/g) || []).map((x) => x.replace('\n', ' ')).join(' | ')}；${(conf.match(/期望收入[^\n]*/) || ['?'])[0]}`);
+      await shot('ship-confirm');
+      if (!(await enabled(button('確定出貨')))) { issue('出貨確認：「確定出貨」停用'); break; }
+      await mark(); await tap(button('確定出貨'));
+      await wait(2500);
+      const res = await fullText();
+      shipped = `${(res.match(/[^\n]*出貨評級/) || ['?'])[0]}；${(res.match(/[\d,.]+ 公斤牛肉放進倉庫了/) || ['?'])[0]}；${(res.match(/現在全部賣掉約 [\d,]+ 幣/) || ['?'])[0]}`;
+      await shot('ship-result');
+      await tap(button('好')).catch(() => {});
+      await wait(800);
+    }
+  }
+  step('出貨（S04 → S07 → S20）', shipped !== '', shipped);
+
+  // ---- 7. 田地（M1）：派耕牛、收成 ----
   await tab('田地');
-  let assigned = false;
-  for (let i = 0; i < 15 && !assigned; i++) {
-    await tap(button('派耕牛').first());
-    await wait(700);
-    const opts = (await leaves()).filter((x) => /^牛 #\d+\s+耕牛・/.test(x));
+  let assigned = '';
+  for (let i = 0; i < 10 && !assigned; i++) {
+    await mark();
+    await tap(button('派耕牛').first()).catch(() => {});
+    await wait(900);
+    const opts = (await labels()).filter((x) => /#\d+/.test(x) && x.includes('耕牛') && !before.includes(x));
     if (opts.length > 0) {
       await mark();
       await tapLabel(opts[0]);
-      note(`派耕牛 ${opts[0]}：${await snack()}`);
-      assigned = true;
+      note(`派耕牛 ${opts[0].replace(/\n/g, ' ')}：${await news()}`);
+      assigned = opts[0].replace(/\n/g, ' ');
     } else {
       await page.keyboard.press('Escape');
       await wait(3000);
     }
   }
-  if (!assigned) issue('沒有能下田的耕牛');
   await shot('field-assigned');
-
-  // 6. 收成（等稻米長一些）
+  step('派耕牛（M1 田地）', assigned !== '', assigned);
   await wait(20000);
   await tab('田地');
-  await tapIfEnabled(button(/^收成/), '收成');
+  const harvested = await tapIfEnabled(button(/^收成/), '收成');
   await shot('harvested');
+  step('收成（M1 田地）', harvested);
 
-  // 7. 賣稻米
+  // ---- 8. 賣稻米（S06）----
+  const c8 = await coins();
   await sellAll('稻米', 'sell-rice-quote');
   await shot('sold-rice');
+  step('賣稻米（S06）', (await coins()) > c8, `金幣 ${c8} → ${await coins()}`);
 
-  // 8. 上架公牛：先把耕牛叫回來（在田裡不能上架），再到借種頁上架（預設第一個價位）
+  // ---- 9. 借種（M1）：叫回耕牛（在田裡不能上架）→ 上架 → 借別人的公牛給自己的母牛 ----
   await tab('田地');
-  if (await enabled(button('叫回'))) await tapIfEnabled(button('叫回'), '叫回');
+  if (await enabled(button(/^叫回/))) await tapIfEnabled(button(/^叫回/), '叫回');
   await tab('配種');
-  await tab('借種');
+  await subTab('借種');
   await wait(1500);
-  if (await tapIfEnabled(button('上架'), '上架公牛')) await wait(500);
+  const listed = await tapIfEnabled(button(/^上架/), '上架公牛');
   await shot('stud-listed');
+  step('上架公牛（M1 借種）', listed);
 
-  // 9. 借別人公牛配種：確保牛舍有空位、金幣夠 → 選第一筆上架 → 選第一頭能配的母牛 → 看機率 → 借種
-  await ensureSlot();
-  await earnUntil(300);
+  await earnUntil(500);
   await tab('配種');
-  await tab('借種');
+  await subTab('借種');
   await wait(1500);
-  const ls = await leaves();
-  const cut = ls.indexOf('選自己的母牛');
-  const listingLabel = ls.find((x) => /・\S+・[\d,]+ 幣/.test(x) && x.includes('主人'));
-  const damLabel = ls.slice(cut + 1).find((x) => /^#\d+ 乳牛|^#\d+ 耕牛|^#\d+ 肉牛/.test(x) && !x.includes('（'));
-  note(`借種：選 ${listingLabel ? listingLabel.replace(/\n/g, ' ') : '(沒有上架)'}，母牛 ${damLabel || '(沒有)'}`);
-  if (listingLabel) await tapLabel(listingLabel);
-  await wait(500);
-  if (damLabel) await tapLabel(damLabel);
-  await wait(1500);
-  const ft = await fullText();
-  note(`借種預覽：${(ft.match(/費用 [\d,]+ 幣/) || ['?'])[0]}；${(ft.match(/小牛用途：[^\n]+/) || ['?'])[0]}`);
+  const ls = await labels();
+  const listing = ls.find((x) => /[\d,]+ 幣/.test(x) && x.includes('主人'));
+  const cut = ls.findIndex((x) => x.includes('選自己的母牛'));
+  const dam = ls.slice(cut + 1).find((x) => /#\d+/.test(x) && /乳牛|耕牛|肉牛/.test(x) && !x.includes('（'));
+  note(`借種：選 ${listing ? listing.replace(/\n/g, ' ') : '(沒有上架)'}，母牛 ${dam ? dam.replace(/\n/g, ' ') : '(沒有)'}`);
+  if (listing) await tapLabel(listing);
+  await wait(600);
+  if (dam) await tapLabel(dam);
+  await wait(2000);
   await shot('stud-preview');
-  await tapIfEnabled(button(/^借種（/), '借種');
+  const borrowed = await tapIfEnabled(button(/^借種（/), '借種');
+  await wait(1000);
   await shot('stud-borrowed');
+  step('借別人的公牛（M1 借種）', borrowed);
 
-  // 10. 出貨看評級：從牧場最後一頭牛往前找第一頭能出貨的
-  await tab('牧場');
-  const cards = await page.getByRole('button', { name: /^.*牛 #\d+/ }).all();
-  let shipped = false;
-  for (let i = cards.length - 1; i >= 0 && !shipped; i--) {
-    await tab('牧場');
-    const c = page.getByRole('button', { name: /^.*牛 #\d+/ }).nth(i);
-    if ((await c.count()) === 0) continue;
-    await tap(c);
-    await wait(700);
-    if (await enabled(button('出貨'))) {
-      await shot('cow-detail');
-      await tap(button('出貨').first());
-      await wait(1500);
-      const t = await fullText();
-      note(`出貨評級機率：${(t.match(/[ABC] 級 [\d.]+%　收入約 [\d,]+ 幣/g) || []).join(' | ')}`);
-      await shot('ship-grade-probs');
-      await mark(); await tap(button('確定'));
-      await wait(1500);
-      const r = await fullText();
-      note(`出貨結果：${(r.match(/評級：[ABC] 級/) || ['?'])[0]}；${(r.match(/[\d.]+ 公斤牛肉放進倉庫，現在全部賣掉約 [\d,]+ 幣/) || [''])[0]}`);
-      await shot('ship-result');
-      await tap(button('好')).catch(() => {});
-      shipped = true;
-    } else {
-      await tap(button('返回')).catch(() => {});
-      await wait(500);
-    }
-  }
-  if (!shipped) issue('找不到能出貨的牛');
-
-  // 11. 排行榜
+  // ---- 10. 圖鑑、排行榜（M1）----
   await tab('紀錄');
-  await tab('排行榜');
+  await subTab('圖鑑');
+  const dex = (await labels()).find((x) => x.startsWith('已發現')) || '';
+  await shot('codex');
+  step('圖鑑（M1 紀錄）', dex !== '', dex);
+  await subTab('排行榜');
   await wait(1500);
-  note(`排行榜：${((await fullText()).match(/我的名次：[^\n]+/) || ['?'])[0]}`);
+  const rank = ((await fullText()).match(/我的名次[^\n]*/) || [''])[0];
   await shot('leaderboard');
+  step('排行榜（M1 紀錄）', rank !== '', rank);
 
   writeLog();
   await browser.close();
-  console.log(`done, issues=${issues.length}`);
-})().catch((e) => { console.error(e); log.push(`FATAL ${e}`); writeLog(); process.exit(1); });
+  console.log(`done, steps ok=${steps.filter((s) => s.startsWith('過')).length}/${steps.length}, issues=${issues.length}`);
+})().catch((e) => { console.error(e); console.log(`FATAL ${e}`); log.push(`FATAL ${e}`); writeLog(); process.exit(1); });
