@@ -183,6 +183,26 @@ python3 tool/shots_compare.py build/shots/<PR 編號>   # 左邊設計稿、右�
   `cross-origin-run1/`、`cross-origin-run2-disconnect/`（第 2 輪途中伺服器被測試關掉：頂列顯示「連線中…」、
   按鈕全部停用，伺服器回來後自動重連）。
 
+## app 圖示（D32：娟珊的牛臉特寫）
+
+- 原圖在 `design/m4/icon/`（cow-ui 匯出，哪個檔給哪個平台見那裡的 README）。app 裡的圖示**不要手改**，都用
+  `tool/gen_icons.py` 從原圖產生（要 Pillow）：
+
+  ```bash
+  cd app
+  python3 tool/gen_icons.py
+  ```
+
+- 產生的檔案：
+  - iOS：`ios/Runner/Assets.xcassets/AppIcon.appiconset/`。1024 直接複製 `ios-1024.png`；其他尺寸從 1024 縮，不透明。
+  - Android 8 以上：adaptive icon（`mipmap-anydpi-v26/ic_launcher.xml`），前景、背景各 5 種密度
+    （`mipmap-*/ic_launcher_foreground.png`、`ic_launcher_background.png`）；xxxhdpi 直接複製 432 的原圖。
+  - Android 7 以下：`mipmap-*/ic_launcher.png`，前景疊背景、取中間看得到的 72dp，再縮成 48dp。
+  - 網頁版（內部試玩）：`web/favicon.png`、`web/icons/Icon-*.png` 直接複製。
+- `test/app_icon_test.dart` 檢查沒有漂移：iOS 的 1024、Android 的 432、網頁版的圖示跟原圖逐位元相同；
+  每個尺寸都在、大小對，iOS 不透明。
+- 還沒做：Android 13 的單色主題圖示、iOS 18 的深色和染色版本（design/m4/icon/README 的「還沒做」）。
+
 ## 手機實機（之後）
 
 - 真機 app 連區網 http 需要例外設定，照 T1 只在開發版加：

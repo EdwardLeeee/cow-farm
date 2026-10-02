@@ -3,9 +3,9 @@
     "short_name": "牛市牧場",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "牛市牧場 M1 連線原型（只用色塊和文字）",
+    "background_color": "#FFF3DC",
+    "theme_color": "#CDEBFF",
+    "description": "牛市牧場（內部試玩用的網頁版）",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
