@@ -52,10 +52,12 @@
   position: absolute; z-index: 40; width: 208px; padding: 10px 12px 12px; background: var(--paper); border: 3px solid var(--ink);
   border-radius: 18px; box-shadow: 0 4px 0 var(--ink);
 }
-.cow-pop::after { content: ""; position: absolute; left: 34px; bottom: -12px; width: 18px; height: 18px; background: var(--paper); border-right: 3px solid var(--ink); border-bottom: 3px solid var(--ink); transform: rotate(45deg); border-bottom-right-radius: 4px; }
+.cow-pop::after { content: ""; position: absolute; left: var(--tip, 34px); bottom: -12px; width: 18px; height: 18px; background: var(--paper); border-right: 3px solid var(--ink); border-bottom: 3px solid var(--ink); transform: rotate(45deg); border-bottom-right-radius: 4px; }
 .cow-pop .name { font-size: 17px; font-weight: 900; line-height: 22px; white-space: nowrap; }
 .cow-pop .meta { font-size: 13px; font-weight: 700; line-height: 19px; color: var(--ink-2); margin-top: 2px; white-space: nowrap; }
 .cow-pop .btn { margin-top: 8px; }
+/* 上面放不下時名片放到牛的下面，尖角在上面、朝上指著牛（kit.js 的 placeCowPop；使用者 2026-10-02 核准） */
+.cow-pop.below::after { top: -12px; bottom: auto; transform: rotate(225deg); }
 
 /* 頁首（沒有場景的頁面） */
 .page-head { display: flex; align-items: center; gap: 8px; }
