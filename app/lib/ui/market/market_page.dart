@@ -930,7 +930,6 @@ class NewsCard extends StatelessWidget {
         children: [
           _CardHead(
             title: CardTitle(s.newsTitle, color: const Color(0xFFFFC2B6), icon: 'news'),
-            sub: s.s06NewsFictional,
           ),
           if (items.isEmpty)
             Padding(
