@@ -10,6 +10,7 @@ import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
 import '../kit/app_icon.dart';
 import '../kit/kit.dart';
+import '../kit/press.dart';
 import 'scene.dart';
 
 /// 面板要顯示的數字（都來自伺服器的 state、行情；奶桶是平滑推算的顯示值）。
@@ -84,14 +85,15 @@ class Dock extends StatelessWidget {
                     child: Semantics(
                       button: true,
                       label: collapsed ? s.s03ExpandAria : s.s03CollapseAria,
-                      child: GestureDetector(
+                      // 按下：膠囊往下 1、陰影變 1（G-12）
+                      child: Pressable(
                         key: const Key('dock-toggle'),
-                        behavior: HitTestBehavior.opaque,
+                        lift: 2,
                         onTap: onToggle,
-                        child: Container(
+                        builder: (context, look) => Container(
                           constraints: const BoxConstraints(minWidth: 72),
                           alignment: Alignment.centerRight,
-                          child: _TogglePill(collapsed: collapsed),
+                          child: _TogglePill(collapsed: collapsed, look: look),
                         ),
                       ),
                     ),
@@ -158,33 +160,38 @@ class _PanIndicator extends StatelessWidget {
 
 /// .dt-pill：「收起 ⌄」「展開 ⌃」。
 class _TogglePill extends StatelessWidget {
-  const _TogglePill({required this.collapsed});
+  const _TogglePill({required this.collapsed, required this.look});
 
   final bool collapsed;
+  final PressLook look;
 
   @override
   Widget build(BuildContext context) {
     final s = Strings.of(context);
-    return Container(
-      height: 30,
-      padding: const EdgeInsets.fromLTRB(12, 0, 8, 0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppColors.ink, width: 2.5),
-        borderRadius: const BorderRadius.all(Radius.circular(15)),
-        boxShadow: AppShadows.solid(2),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            collapsed ? s.s03Expand : s.s03Collapse,
-            style: AppText.style(13, weight: FontWeight.w900, lineHeight: 18),
-          ),
-          const SizedBox(width: 2),
-          // 箭頭轉 90°（向下）；收起來時轉 −90°（向上）
-          Transform.rotate(angle: (collapsed ? -1 : 1) * math.pi / 2, child: const AppIcon('chevron', size: 14)),
-        ],
+    return PressTint(
+      tint: look.tint,
+      borderRadius: const BorderRadius.all(Radius.circular(15)),
+      child: Container(
+        height: 30,
+        padding: const EdgeInsets.fromLTRB(12, 0, 8, 0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: AppColors.ink, width: 2.5),
+          borderRadius: const BorderRadius.all(Radius.circular(15)),
+          boxShadow: AppShadows.solid(look.shadow),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              collapsed ? s.s03Expand : s.s03Collapse,
+              style: AppText.style(13, weight: FontWeight.w900, lineHeight: 18),
+            ),
+            const SizedBox(width: 2),
+            // 箭頭轉 90°（向下）；收起來時轉 −90°（向上）
+            Transform.rotate(angle: (collapsed ? -1 : 1) * math.pi / 2, child: const AppIcon('chevron', size: 14)),
+          ],
+        ),
       ),
     );
   }

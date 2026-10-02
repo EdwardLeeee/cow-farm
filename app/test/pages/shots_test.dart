@@ -10,6 +10,7 @@ import 'package:cowfarm/l10n/l10n.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'page_case.dart';
+import 'press_cases.dart';
 import 's03_cases.dart';
 
 /// 給了 SHOTS（任何值，例 1）才拍。bool.fromEnvironment 只認 true，所以讀字串。
@@ -28,7 +29,7 @@ void main() {
   final langs = [for (final code in _langs.split(',')) AppLang.fromCode(code.trim())!];
   final only = _only.isEmpty ? null : _only.split(',').map((s) => s.trim()).toList();
   final cases = [
-    for (final c in [...pageCases, ...herdShotCases])
+    for (final c in [...pageCases, ...herdShotCases, ...pressShotCases])
       if (only == null || only.any(c.id.startsWith)) c,
   ];
   final screens = [for (final w in _widths.split(',')) Screen.values.firstWhere((s) => s.label == w.trim())];

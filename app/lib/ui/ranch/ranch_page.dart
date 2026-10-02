@@ -15,6 +15,7 @@ import '../../theme/tokens.dart';
 import '../kit/app_icon.dart';
 import '../kit/frame.dart';
 import '../kit/kit.dart';
+import '../kit/press.dart';
 import '../widgets/action_button.dart';
 import 'dock.dart';
 import 'scene.dart';
@@ -441,29 +442,35 @@ class _PenPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = Strings.of(context);
     final m = context.read<GameModel>();
-    return GestureDetector(
+    // 按下：往下 2、陰影變 1（G-12）
+    return Pressable(
       key: const Key('pen-pill'),
+      lift: 3,
       onTap: m.openPenList,
-      child: Container(
-        constraints: const BoxConstraints(minHeight: 44),
-        padding: const EdgeInsets.fromLTRB(8, 0, 12, 0),
-        decoration: BoxDecoration(
-          color: used >= slots ? const Color(0xFFFFE1DB) : Colors.white,
-          border: Border.all(color: AppColors.ink, width: AppSizes.border),
-          borderRadius: const BorderRadius.all(AppRadii.r22),
-          boxShadow: AppShadows.solid(),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const AppIcon('barn', size: 22),
-            const SizedBox(width: 6),
-            Text(s.cowsTitle, style: AppText.style(14, weight: FontWeight.w900)),
-            const SizedBox(width: 6),
-            Text('$used / $slots', style: AppText.number(15)),
-            const SizedBox(width: 6),
-            const AppIcon('chevron', size: 16),
-          ],
+      builder: (context, look) => PressTint(
+        tint: look.tint,
+        borderRadius: const BorderRadius.all(AppRadii.r22),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 44),
+          padding: const EdgeInsets.fromLTRB(8, 0, 12, 0),
+          decoration: BoxDecoration(
+            color: used >= slots ? const Color(0xFFFFE1DB) : Colors.white,
+            border: Border.all(color: AppColors.ink, width: AppSizes.border),
+            borderRadius: const BorderRadius.all(AppRadii.r22),
+            boxShadow: AppShadows.solid(look.shadow),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const AppIcon('barn', size: 22),
+              const SizedBox(width: 6),
+              Text(s.cowsTitle, style: AppText.style(14, weight: FontWeight.w900)),
+              const SizedBox(width: 6),
+              Text('$used / $slots', style: AppText.number(15)),
+              const SizedBox(width: 6),
+              const AppIcon('chevron', size: 16),
+            ],
+          ),
         ),
       ),
     );
@@ -660,11 +667,15 @@ class _BigNews extends StatelessWidget {
             child: Semantics(
               button: true,
               label: s.gClose,
-              child: GestureDetector(
+              // 平的元件：按下蓋一層顏色（圓形，G-13）
+              child: Pressable(
                 key: const Key('big-news-close'),
-                behavior: HitTestBehavior.opaque,
                 onTap: onClose,
-                child: const SizedBox(width: 44, height: 44, child: Center(child: AppIcon('close', size: 18))),
+                builder: (context, look) => PressTint(
+                  tint: look.tint,
+                  shape: BoxShape.circle,
+                  child: const SizedBox(width: 44, height: 44, child: Center(child: AppIcon('close', size: 18))),
+                ),
               ),
             ),
           ),
