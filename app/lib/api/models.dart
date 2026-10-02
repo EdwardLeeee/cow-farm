@@ -691,11 +691,12 @@ class FieldInfo {
 
   bool get empty => cowId == null;
 
-  /// 經過 [elapsedS] 遊戲秒後田裡大概有多少（長滿就停）。
+  /// 經過 [elapsedS] 遊戲秒後田裡大概有多少（長滿就停）。已經比上限多的（叫回稀有耕牛後改派一般耕牛，S17-12）不會再長。
   double riceAfter(double elapsedS) {
-    final grown = rice + perHour * (elapsedS > 0 ? elapsedS : 0) / 3600;
     final cap = capacity;
-    return cap == null || cap < rice ? grown : (grown > cap ? cap : grown);
+    if (cap != null && rice >= cap) return rice;
+    final grown = rice + perHour * (elapsedS > 0 ? elapsedS : 0) / 3600;
+    return cap == null || grown < cap ? grown : cap;
   }
 
   factory FieldInfo.fromJson(Map<String, dynamic> j) => FieldInfo(
