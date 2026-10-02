@@ -9,10 +9,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import sim  # noqa: E402,F401  （把 backend/ 加進 sys.path）
 
-from cowecon import DEFAULT, HOUR, MINUTE, Exchange, Farm, StudMarket  # noqa: E402
+from cowecon import DEFAULT, HOUR, MINUTE, Exchange, Farm, StudListing, StudMarket  # noqa: E402
 from cowecon.farm import (  # noqa: E402
     Cow, beef_grade_probs, beef_weight, cow_milk_between, cow_rice_between, draw_beef_grade, field_cap_for,
-    make_genotype, rice_factor, shop_draw, shop_grade_distribution, shop_grade_tier_probs, stud_fee, tier_of,
+    make_genotype, rice_factor, shop_draw, shop_genotype, shop_grade_distribution, shop_grade_tier_probs, stud_fee,
+    tier_of,
 )
 
 T0 = 1791129600.0
@@ -217,6 +218,30 @@ class TestStudMarket(unittest.TestCase):
         self.assertEqual(b.coins, bc - price)
         sm.npc_refill(t, random.Random(4))
         self.assertEqual(sum(1 for l in sm.listings.values() if l.owner is None), FP.npc_stud_listings)
+
+    def test_npc_station_keeps_one_of_each_type(self):
+        """公營種牛站乳牛、耕牛、肉牛各一（協定第 4 節）：借走哪一頭就補哪一種，不是輪流補；
+        連續借走同一種用途好幾次，那種用途也一直補得回來（ceo 2026-10-02）。"""
+        sm, t, rng = self.sm, self.t, random.Random(4)
+
+        def station(m):
+            return sorted(lst.ctype for lst in m.listings.values() if lst.owner is None)
+
+        sm.npc_refill(t, rng)
+        self.assertEqual(station(sm), [0, 1, 2])
+        for ctype in (1, 1, 1, 2, 0, 0, 0):  # 連續借走耕牛三次、肉牛一次、乳牛三次：每次都補回同一種
+            lid = next(lst.lid for lst in sm.listings.values() if lst.owner is None and lst.ctype == ctype)
+            sm._remove(lid)  # 等於被借走：借種成功以後，伺服器和模擬都會呼叫 npc_refill
+            sm.npc_refill(t, rng)
+            self.assertEqual(station(sm), [0, 1, 2])
+        # 舊程式輪流補出來的偏一邊的站（肉牛、肉牛、耕牛）：下次補的時候補上缺的乳牛，暫時 4 筆
+        old = StudMarket(DEFAULT)
+        for ctype in (2, 2, 1):
+            old._add(StudListing(old._next_id, None, 0, shop_genotype(FP, ctype, rng), None, t))
+            old._next_id += 1
+        added = old.npc_refill(t, rng)
+        self.assertEqual([lst.ctype for lst in added], [0])
+        self.assertEqual(station(old), [0, 1, 2, 2])
 
     def test_unlist(self):
         o, sm, t = self.owner, self.sm, self.t
