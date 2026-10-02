@@ -28,8 +28,11 @@ def font(size):
         return ImageFont.load_default()
 
 
-# 後來加的局部狀態放在另一張狀態表（設計稿 s03.js 的 draft(...)：board '新文案-狀態表'）
-EXTRA_TABLES = {'S03-16': '新文案-狀態表', 'S03-17': '新文案-狀態表', 'S03-18': '新文案-狀態表'}
+# 後來加的局部狀態放在另一張狀態表（設計稿 s03.js 的 draft(...)、popDraft(...)：board '新文案-狀態表'、'名片位置-狀態表'）
+EXTRA_TABLES = {
+    'S03-16': '新文案-狀態表', 'S03-17': '新文案-狀態表', 'S03-18': '新文案-狀態表',
+    'S03-20': '名片位置-狀態表', 'S03-21': '名片位置-狀態表',
+}
 
 
 def find_board(page_id, width):

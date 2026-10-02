@@ -9,7 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'fakes.dart';
 import 'pages/page_case.dart';
-import 'pages/s03_cases.dart' show ranchModel, sceneCowAsset;
+import 'pages/s03_cases.dart' show popPlacer, ranchModel, sceneCowAsset;
 
 final _zh = Strings.forLang(AppLang.zhHant);
 
@@ -132,18 +132,12 @@ void main() {
     await tester.pump();
     expect(pop, findsNothing);
 
-    // 小牛（不產奶）：狀態看標籤「小牛」，不寫產量那一行（設計稿只畫了產奶的牛）。#2 在場景右半邊，一開始看不到
+    // 小牛：標籤「小牛」，那一行寫長大還要多久（ceo 2026-10-02）。#2 在場景右半邊，一開始看不到
     await tester.tap(find.byKey(const Key('scene-cow-3')));
     await tester.pump();
     expect(find.descendant(of: pop, matching: find.text(_zh.cowName(m.state!.cows[2].breed, 3))), findsOneWidget);
     expect(find.descendant(of: pop, matching: find.text(_zh.stageCalf)), findsOneWidget);
-    expect(
-      find.descendant(
-        of: pop,
-        matching: find.textContaining(_zh.growUp(v: '')),
-      ),
-      findsNothing,
-    );
+    expect(tester.widget<Text>(find.byKey(const Key('pop-meta'))).data, _zh.growUp(v: _zh.countdown(3600 / 144)));
     expect(sceneCowAsset(tester, 3), contains('_front_'));
     // 點名片本身（名字）：不會收起來（名片擋住，點不到後面的空地）
     await tester.tap(find.descendant(of: pop, matching: find.text(_zh.cowName(m.state!.cows[2].breed, 3))));
@@ -163,20 +157,21 @@ void main() {
     expect(m.detailCowKey, '1');
   });
 
-  testWidgets('後排的牛：小名片不會超出畫面上緣（320×568，設計稿沒畫到）', (tester) async {
+  testWidgets('後排的牛：名片上面放不下就放到牛腳下 14、尖角朝上（D30）', (tester) async {
     Screen.w320.apply(tester);
     await pumpAppIn(tester, await ranchModel(), AppLang.zhHant, prefs: swipeHintSeen);
-    // #8 在後排（場景 y 338），名片照設計稿會超出畫面上緣約 70；被面板蓋住點不到，直接呼叫點牛
+    // #8 在後排（場景 y 338），名片放在頭頂上方會碰到頂列；被面板蓋住點不到，直接呼叫點牛
     final scene = tester.widget<RanchScene>(find.byType(RanchScene));
-    scene.onTapCow!(scene.cows.firstWhere((c) => c.cow.id == 8).cow);
+    final back = scene.cows.firstWhere((c) => c.cow.id == 8);
+    scene.onTapCow!(back.cow);
     await tester.pump();
     final pop = tester.getRect(find.byKey(const Key('cow-pop')));
-    expect(pop.top, closeTo(Screen.w320.safeTop + 6, 0.01));
+    expect(popPlacer(tester).below, isTrue);
+    final fit = SceneFit(tester.getSize(find.byType(RanchScene)), 0);
+    final foot = CowPlacement.of(back, fit)!.foot;
+    expect(pop.top, closeTo(tester.getTopLeft(find.byType(RanchScene)).dy + foot.dy + 14, 0.01));
     expect(pop.width, 208);
-    // 前排的牛照設計稿：名片下緣在頭頂上方 14（尖角另外畫在下緣外面）
-    scene.onTapCow!(scene.cows.firstWhere((c) => c.cow.id == 3).cow);
-    await tester.pump();
-    expect(tester.getRect(find.byKey(const Key('cow-pop'))).top, greaterThan(Screen.w320.safeTop + 6));
+    // 前排的牛放得下就照舊在頭頂上方：S03-06（430）的頁面狀態檢查。320×568 很矮，前排的牛也可能放到下面
   });
 
   testWidgets('收奶（S03 的面板）：呼叫伺服器、顯示結果、再拿一次 state 校正', (tester) async {

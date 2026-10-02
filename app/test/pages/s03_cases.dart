@@ -11,6 +11,7 @@ import 'package:cowfarm/ui/kit/cow_bits.dart';
 import 'package:cowfarm/ui/kit/frame.dart';
 import 'package:cowfarm/ui/kit/kit.dart';
 import 'package:cowfarm/ui/ranch/dock.dart';
+import 'package:cowfarm/ui/ranch/ranch_page.dart';
 import 'package:cowfarm/ui/ranch/scene.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -203,6 +204,15 @@ Future<GameModel> ranchModel({
   }
   final (m, _, _) = await loadedModel(api: a, connected: connected);
   return m;
+}
+
+/// 名片的位置（ranch_page.dart 的 RenderPopPlacer）：從名片往上找。
+RenderPopPlacer popPlacer(WidgetTester tester) {
+  RenderObject? r = tester.renderObject(find.byKey(const Key('cow-pop')));
+  while (r != null && r is! RenderPopPlacer) {
+    r = r.parent;
+  }
+  return r! as RenderPopPlacer;
 }
 
 /// 收奶後伺服器回的結果：[collected] 瓶進了倉庫，奶桶剩 [left]；倉庫滿了就是 warehouse_full。
@@ -440,6 +450,9 @@ final s03Cases = <PageCase>[
       expect(find.descendant(of: pop, matching: find.text(_zh.tierName(3))), findsOneWidget);
       expect(find.text(_zh.s03PopMilk(tier: _zh.tierName(3), n: '14')), findsOneWidget);
       expect(find.byKey(const Key('pop-detail')), findsOneWidget);
+      // 前排放得下：照原本的放法，頭頂上方、尖角朝下對準牛頭（D30 不改 S03-06）
+      expect(popPlacer(tester).below, isFalse);
+      expect(popPlacer(tester).tip, 34);
       expect(sceneCowAsset(tester, 12), contains('_front_'), reason: '被點到的牛轉正面');
       expect(sceneCowAsset(tester, 3), contains('_side_'), reason: '其他的牛不變');
     },
@@ -693,6 +706,42 @@ final s03Cases = <PageCase>[
     crop: find.byKey(const Key('toast')),
     check: (tester) {
       expect(find.text(_zh.collectedSpoiled(v: '36.4', n: '2')), findsOneWidget);
+    },
+  ),
+  PageCase(
+    'S03-20',
+    '點後排的牛：上面放不下，名片放到牛的下面、尖角朝上',
+    (tester, lang) async {
+      await pumpAppIn(tester, await ranchModel(), lang, prefs: swipeHintSeen);
+      await tester.tap(find.byKey(const Key('scene-cow-14')));
+      await tester.pump();
+    },
+    check: (tester) {
+      final p = popPlacer(tester);
+      expect(p.below, isTrue, reason: '頭頂上方放不下（會碰到頂列）');
+      expect(p.tip, 34, reason: '名片沒被擋，尖角在原本的位置');
+      final pop = tester.getRect(find.byKey(const Key('cow-pop')));
+      expect(pop.top, greaterThan(tester.getRect(find.byKey(const Key('scene-cow-14'))).center.dy));
+      // 公牛的名片寫體重（ceo 2026-10-02，照 D30 狀態表）
+      expect(find.text(_zh.weight(v: '205')), findsOneWidget);
+    },
+  ),
+  PageCase(
+    'S03-21',
+    '點後排的牛（右邊那頭）：一樣放到牛的下面',
+    (tester, lang) async {
+      await pumpAppIn(tester, await ranchModel(), lang, prefs: swipeHintSeen);
+      await tester.tap(find.byKey(const Key('scene-cow-8')));
+      await tester.pump();
+    },
+    check: (tester) {
+      final p = popPlacer(tester);
+      expect(p.below, isTrue);
+      expect(p.tip, greaterThan(34), reason: '名片被擋在畫面裡，尖角往右移到對準那頭牛');
+      // 狀態標籤照留（scope.md S03-06：品種、稀有度、狀態）
+      final pop = find.byKey(const Key('cow-pop'));
+      expect(find.descendant(of: pop, matching: find.text(_zh.stageOld)), findsOneWidget);
+      expect(find.text(_zh.weight(v: '268')), findsOneWidget);
     },
   ),
   PageCase(

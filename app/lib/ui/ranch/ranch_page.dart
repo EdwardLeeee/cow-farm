@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 
 import '../../api/breeds.dart';
@@ -724,9 +725,9 @@ class _BigNews extends StatelessWidget {
   }
 }
 
-/// 牛的小名片（S03-06，.cow-pop）：在那頭牛頭頂上方 14，左右夾在螢幕左 12 到右 220 之間；下面一個小尖角對著牛。
-/// 設計稿沒畫到：後排的牛名片會超出畫面上緣（320×568 最多超出 70），所以名片的上緣最高到安全區下面 6，
-/// 這時名片會蓋到牛（先這樣做，等 cow-ui 定規則）。
+/// 牛的小名片（S03-06、S03-20、S03-21，.cow-pop；設計稿 kit.js 的 placeCowPop）：寬 208，左邊 = 頭的 x − 43
+/// （夾在螢幕左 12 到右 220 之間）。平常在頭頂上方 14、尖角朝下；名片上緣會碰到頂列（頂列下緣再留 6）時，
+/// 改放到牛腳下 14、尖角朝上（D30）。名片被擋在畫面裡時，尖角跟著移到對準那頭牛。
 class _CowPopAnchor extends StatelessWidget {
   const _CowPopAnchor({required this.cows, required this.cow, required this.pan});
 
@@ -742,8 +743,11 @@ class _CowPopAnchor extends StatelessWidget {
         builder: (context, c) {
           final p = CowPlacement.of(cows.firstWhere((x) => x.cow.id == cow.id), SceneFit(c.biggest, pan));
           if (p == null) return const SizedBox.shrink();
-          return CustomSingleChildLayout(
-            delegate: _PopLayout(head: p.head, minTop: safeTop + 6),
+          return _PopPlacer(
+            head: p.head,
+            foot: p.foot,
+            // 頂列在安全區下面 6、高 52；再留 6
+            limit: safeTop + 6 + FrameSizes.hud + 6,
             child: _CowPop(cow: cow),
           );
         },
@@ -752,22 +756,79 @@ class _CowPopAnchor extends StatelessWidget {
   }
 }
 
-/// 名片寬 208：左邊 = 頭的 x − 43（夾在 12 到 寬 − 220），下緣 = 頭頂 − 14，上緣不高過 [minTop]。
-class _PopLayout extends SingleChildLayoutDelegate {
-  _PopLayout({required this.head, required this.minTop});
+/// 擺名片、畫尖角：要先量名片的高，才知道上面放不放得下。
+class _PopPlacer extends SingleChildRenderObjectWidget {
+  const _PopPlacer({required this.head, required this.foot, required this.limit, required super.child});
 
   final Offset head;
-  final double minTop;
+  final Offset foot;
+  final double limit;
 
   @override
-  BoxConstraints getConstraintsForChild(BoxConstraints constraints) => BoxConstraints.tightFor(width: 208);
+  RenderPopPlacer createRenderObject(BuildContext context) => RenderPopPlacer(head, foot, limit);
 
   @override
-  Offset getPositionForChild(Size size, Size childSize) =>
-      Offset((head.dx - 43).clamp(12.0, size.width - 220), math.max(head.dy - 14 - childSize.height, minTop));
+  void updateRenderObject(BuildContext context, RenderPopPlacer renderObject) => renderObject
+    ..head = head
+    ..foot = foot
+    ..limit = limit;
+}
+
+/// 名片的位置（測試會讀 [below]、[tip]）。
+class RenderPopPlacer extends RenderShiftedBox {
+  RenderPopPlacer(this._head, this._foot, this._limit) : super(null);
+
+  static const width = 208.0;
+
+  Offset _head;
+  set head(Offset v) {
+    if (v == _head) return;
+    _head = v;
+    markNeedsLayout();
+  }
+
+  Offset _foot;
+  set foot(Offset v) {
+    if (v == _foot) return;
+    _foot = v;
+    markNeedsLayout();
+  }
+
+  double _limit;
+  set limit(double v) {
+    if (v == _limit) return;
+    _limit = v;
+    markNeedsLayout();
+  }
+
+  /// 放到牛的下面了（尖角朝上）。
+  bool below = false;
+
+  /// 尖角的方塊在框內往右多少（CSS 的 --tip，預設 34）。
+  double tip = 34;
 
   @override
-  bool shouldRelayout(_PopLayout oldDelegate) => oldDelegate.head != head || oldDelegate.minTop != minTop;
+  void performLayout() {
+    size = constraints.biggest;
+    final child = this.child;
+    if (child == null) return;
+    child.layout(const BoxConstraints.tightFor(width: width), parentUsesSize: true);
+    final left = math.max(12.0, math.min(size.width - 220, _head.dx - 43));
+    final above = _head.dy - 14 - child.size.height;
+    below = above < _limit - 0.5;
+    tip = math.max(18.0, math.min(width - 36, _head.dx - left - 9));
+    (child.parentData! as BoxParentData).offset = Offset(left, below ? _foot.dy + 14 : above);
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    final child = this.child;
+    if (child == null) return;
+    final at = offset + (child.parentData! as BoxParentData).offset;
+    context.paintChild(child, at);
+    // 尖角畫在名片上面，蓋掉框的一段
+    _paintTail(context.canvas, at, child.size, up: below, tip: tip);
+  }
 }
 
 class _CowPop extends StatelessWidget {
@@ -780,82 +841,76 @@ class _CowPop extends StatelessWidget {
     final m = context.read<GameModel>();
     final s = Strings.of(context);
     final id = cow.id is int ? cow.id as int : int.tryParse('${cow.id}') ?? 0;
-    // 設計稿只畫了產奶的牛：寫產量。其他的牛狀態看標籤（小牛、老牛、上架中、已配種），不另外寫一行（等 cow-ui 定）
+    // 名片那一行（ceo 2026-10-02）：產奶的母牛寫產量（S03-06）；小牛寫長大還要多久；
+    // 其他的牛（公牛、肉牛、耕牛、不產奶的老牛）寫體重，照 D30 狀態表上公牛的寫法
+    final adultAt = cow.adultAt;
     final meta = cow.milkPerH > 0
         ? s.s03PopMilk(tier: s.tierName((breedInfo(cow.breed)?.tier ?? cow.tier).clamp(0, 3)), n: rateNum(cow.milkPerH))
-        : null;
-    return CustomPaint(
+        : !cow.isAdultAt(m.gameNow) && adultAt != null
+        ? s.growUp(v: s.countdown((adultAt - m.gameNow) / m.timeScale))
+        : s.weight(v: fmt(cow.weightKg));
+    // .cow-pop 的框、圓角、陰影、內距跟 .card 一樣
+    return AppCard(
       key: const Key('cow-pop'),
-      // 尖角畫在名片上面，蓋掉下框的一段
-      foregroundPainter: _PopTail(),
-      // .cow-pop 的框、圓角、陰影、內距跟 .card 一樣
-      child: AppCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 名字放不下（英文「Strawberry Cow #12」）就換行，字級不變，編號才不會被截掉
-            Text(s.cowName(cow.breed, id), style: AppText.style(17, weight: FontWeight.w900, lineHeight: 22)),
-            const SizedBox(height: 4),
-            // 用途、公母、稀有度，再加上狀態（scope.md S03-06：品種、稀有度、狀態）
-            Wrap(
-              spacing: 4,
-              runSpacing: 4,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: cowChips(context, cow),
-            ),
-            if (meta != null) ...[
-              const SizedBox(height: 2),
-              Text(
-                meta,
-                style: AppText.style(13, weight: FontWeight.w700, color: AppColors.ink2, lineHeight: 19),
-              ),
-            ],
-            const SizedBox(height: 8),
-            AppButton(
-              s.s03PopDetail,
-              key: const Key('pop-detail'),
-              small: true,
-              block: true,
-              kind: ButtonKind.primary,
-              onPressed: () => m.openCow(cow.key),
-            ),
-          ],
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 名字放不下（英文「Strawberry Cow #12」）就換行，字級不變，編號才不會被截掉
+          Text(s.cowName(cow.breed, id), style: AppText.style(17, weight: FontWeight.w900, lineHeight: 22)),
+          const SizedBox(height: 4),
+          // 用途、公母、稀有度，再加上狀態（scope.md S03-06：品種、稀有度、狀態）
+          Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: cowChips(context, cow),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            meta,
+            key: const Key('pop-meta'),
+            style: AppText.style(13, weight: FontWeight.w700, color: AppColors.ink2, lineHeight: 19),
+          ),
+          const SizedBox(height: 8),
+          AppButton(
+            s.s03PopDetail,
+            key: const Key('pop-detail'),
+            small: true,
+            block: true,
+            kind: ButtonKind.primary,
+            onPressed: () => m.openCow(cow.key),
+          ),
+        ],
       ),
     );
   }
 }
 
-/// 小名片下面的尖角（.cow-pop::after）：一個方塊轉 45°，只有右邊和下面有 3 的框、右下角圓角 4。
-/// `* { box-sizing: border-box }` 管不到 ::after，所以方塊是內容 18 加框 3 = 21×21。
-/// 方塊的左邊在框內 34（外框往右 3 + 34），下緣在框內往下 12（外框下緣往下 9），
-/// 所以中心在外框左邊往右 47.5、外框下緣往上 1.5。方塊的底色蓋掉名片下框的一段，看起來是名片長出一個尖角。
-class _PopTail extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.save();
-    canvas.translate(3 + 34 + 10.5, size.height - 1.5);
-    canvas.rotate(math.pi / 4);
-    // 底色只畫到框線的中間：底色的鋸齒邊藏在框線底下，名片的下框上才不會多一條淡淡的邊
-    canvas.drawRRect(
-      RRect.fromRectAndCorners(const Rect.fromLTRB(-10.5, -10.5, 9, 9), bottomRight: const Radius.circular(2.5)),
-      Paint()..color = AppColors.paper,
-    );
-    // CSS 的框畫在方塊裡面：線的中心在邊往內 1.5，轉角的半徑 4 − 1.5
-    canvas.drawPath(
-      Path()
-        ..moveTo(9, -10.5)
-        ..lineTo(9, 6.5)
-        ..arcToPoint(const Offset(6.5, 9), radius: const Radius.circular(2.5))
-        ..lineTo(-10.5, 9),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3
-        ..color = AppColors.ink,
-    );
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(_PopTail oldDelegate) => false;
+/// 小名片的尖角（.cow-pop::after）：一個方塊轉 45°，只有右邊和下面有 3 的框、右下角圓角 4。
+/// `* { box-sizing: border-box }` 管不到 ::after，所以方塊是內容 18 加框 3 = 21×21，左邊在框內 [tip]（外框往右 3 + tip）。
+/// 朝下（平常）：下緣在框內往下 12（外框下緣往下 9），中心在外框下緣往上 1.5。
+/// 朝上（.cow-pop.below，放到牛的下面）：上緣在框內往上 12（外框上緣往上 9），中心在外框上緣往下 1.5，再多轉 180°。
+/// 方塊的底色蓋掉名片框的一段，看起來是名片長出一個尖角。
+void _paintTail(Canvas canvas, Offset card, Size size, {required bool up, required double tip}) {
+  canvas.save();
+  canvas.translate(card.dx + 3 + tip + 10.5, up ? card.dy + 1.5 : card.dy + size.height - 1.5);
+  canvas.rotate(up ? math.pi * 5 / 4 : math.pi / 4);
+  // 底色只畫到框線的中間：底色的鋸齒邊藏在框線底下，名片的框上才不會多一條淡淡的邊
+  canvas.drawRRect(
+    RRect.fromRectAndCorners(const Rect.fromLTRB(-10.5, -10.5, 9, 9), bottomRight: const Radius.circular(2.5)),
+    Paint()..color = AppColors.paper,
+  );
+  // CSS 的框畫在方塊裡面：線的中心在邊往內 1.5，轉角的半徑 4 − 1.5
+  canvas.drawPath(
+    Path()
+      ..moveTo(9, -10.5)
+      ..lineTo(9, 6.5)
+      ..arcToPoint(const Offset(6.5, 9), radius: const Radius.circular(2.5))
+      ..lineTo(-10.5, 9),
+    Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..color = AppColors.ink,
+  );
+  canvas.restore();
 }

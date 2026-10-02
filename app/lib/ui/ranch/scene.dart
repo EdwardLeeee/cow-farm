@@ -48,13 +48,16 @@ class SceneCow {
 
 /// 一頭牛畫在螢幕上的位置：圖、影子、頭頂（泡泡和小名片對齊這裡）。
 class CowPlacement {
-  CowPlacement._(this.name, this.mirror, this.image, this.shadow, this.head, this.unit);
+  CowPlacement._(this.name, this.mirror, this.image, this.shadow, this.head, this.foot, this.unit);
 
   final String name;
   final bool mirror;
   final Rect image;
   final Rect shadow;
   final Offset head;
+
+  /// 腳底（設計稿 scene.js 的 anchors.foot）：名片放到牛的下面時從這裡往下量（D30）。
+  final Offset foot;
 
   /// 圖上的 1 單位是螢幕上的幾點。
   final double unit;
@@ -83,7 +86,7 @@ class CowPlacement {
     final shadowCenter = Offset(feet.dx + (mirror ? -cx : cx) * s, feet.dy + 1 * fit.k);
     final shadow = Rect.fromCenter(center: shadowCenter, width: rx * 2 * s, height: ry * 2 * s);
     final head = Offset(feet.dx + (mirror ? -m.headTop.dx : m.headTop.dx) * s, feet.dy + m.headTop.dy * s);
-    return CowPlacement._(name, mirror, image, shadow, head, s);
+    return CowPlacement._(name, mirror, image, shadow, head, feet, s);
   }
 }
 
