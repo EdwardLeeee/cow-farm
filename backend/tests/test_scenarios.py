@@ -283,13 +283,25 @@ def test_numbers_match_research_note():
     if g.get("params_fingerprint") != H.DEFAULT.fingerprint():
         pytest.skip(f"goals.json 是參數 {g.get('params_fingerprint')} 跑的，現在是 {H.DEFAULT.fingerprint()}")
     with research_tunables(SB):
-        row = g["a_price"]["10"]
-        for cid in CIDS:
-            inside = min(
-                H.price_stats(ratios(H.ServiceWorld(H.base(10, s), s).run(), cid))["inside_soft_band"]
-                for s in SEEDS[10]
-            )
-            assert inside == pytest.approx(row[cid]["inside_min"], abs=1e-12), cid
+        worlds = [H.ServiceWorld(H.base(10, s), s).run() for s in SEEDS[10]]
+    # 1. 價格在 0.6–1.7 倍的時間比例（各 seed 最低）
+    row = g["a_price"]["10"]
+    for cid in CIDS:
+        inside = min(H.price_stats(ratios(w, cid))["inside_soft_band"] for w in worlds)
+        assert inside == pytest.approx(row[cid]["inside_min"], abs=1e-12), cid
+    # 2. 借種成交數（每天）和出借派借種收入佔比：report.py goal_stud 的各 seed 平均
+    days = worlds[0].n_days
+    stud = [H.stud_stats(w) for w in worlds]
+    pop = g["new_b_stud"]["pops"]["10"]
+    assert statistics.fmean(x["borrows"] for x in stud) / days == pytest.approx(pop["trades_per_day"], rel=1e-12)
+    assert statistics.fmean(x["lender_share"] for x in stud) == pytest.approx(pop["lender_income_share"], rel=1e-12)
+    # 3. 各玩法 30 天的總收入：report.py goal_b 的 total（各週各 seed 平均再加總）
+    per = [H.strategy_weeks(w) for w in worlds]
+    total = {
+        k: sum(statistics.fmean(p[k]["weeks"][i] for p in per) for i in range(len(per[0][k]["weeks"])))
+        for k in MB.PLAYER_STRATEGIES
+    }
+    assert total == pytest.approx(g["b_strategies"]["10"]["total"], rel=1e-12)
 
 
 @pytest.mark.skipif(
