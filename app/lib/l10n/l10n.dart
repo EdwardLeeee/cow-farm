@@ -125,14 +125,21 @@ class Strings extends GeneratedStrings {
     return dateMd(m: month!, d: day!, time: time);
   }
 
-  /// S16-01「預計 {date} 恢復」：月、日、星期與 24 小時制的時:分。[local] 是換成手機時區的時間。
+  /// 時刻（docs/i18n/glossary.md「格式」）：繁中 09:41、英文 9:41 AM、泰文 09:41 น.。[local] 是手機時區的時間。
+  /// 時刻不在字串表裡，由 app 依語言組。數字跟 AM／PM、น. 之間用不換行空格（U+00A0），不會被拆到兩行。
+  String clock(DateTime local) {
+    final mm = local.minute.toString().padLeft(2, '0');
+    final hh = local.hour.toString().padLeft(2, '0');
+    return switch (lang) {
+      AppLang.zhHant => '$hh:$mm',
+      AppLang.en => '${(local.hour + 11) % 12 + 1}:$mm\u00a0${local.hour < 12 ? 'AM' : 'PM'}',
+      AppLang.th => '$hh:$mm\u00a0น.',
+    };
+  }
+
+  /// S16-01「預計 {date} 恢復」：月、日、星期與時刻（[clock]）。[local] 是換成手機時區的時間。
   String maintenanceEta(DateTime local) => s16Eta(
-    date: dateMdw(
-      m: local.month,
-      d: local.day,
-      w: weekdayName(local.weekday),
-      time: '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}',
-    ),
+    date: dateMdw(m: local.month, d: local.day, w: weekdayName(local.weekday), time: clock(local)),
   );
 
   /// 用途名：乳牛、耕牛、肉牛。

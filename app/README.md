@@ -120,6 +120,35 @@ $LIMIT $F --suppress-analytics build web --release --no-wasm-dry-run   # 輸出�
   - 網頁版用目前網頁的同一個網域（網頁由伺服器在 `/` 提供），所以一般不用給。
   - 手機 app 用 `http://127.0.0.1:8787`，實機一定要給開發機的區網 IP。
 
+## 頁面狀態、截圖比對（第 4 步每個畫面 PR 都要）
+
+設計稿 `design/m2/scope.md` 的每個頁面 ID（S01-01…、G-01…、A-01…，共 179 個）都要有一個畫面狀態：
+
+- `test/pages/page_case.dart` 的 `pageCases`：每個狀態寫怎麼擺出來（假資料、語言、點到哪個畫面）、
+  擺好後檢查什麼；局部狀態另外給 `crop`（截圖只拍那一塊）。
+- `test/pages/pages_test.dart`（CI 會跑）：
+  - 430 繁中：擺出每個狀態，跑那個狀態自己的檢查。
+  - 360×800、320×568 × 繁中、英文、泰文：都不能溢出。
+  - 用 app 內建的字型量，泰文照實際斷行。手機尺寸和安全區跟設計稿的 `kit.js` 一樣，有測試比對。
+  - `pendingPageIds` 是還沒做的頁面 ID：
+    - 做好一個就加進 `pageCases`，並從清單拿掉；做好的還留在清單裡，測試會失敗。
+    - scope.md 有、但兩邊都沒有的 ID，測試也會失敗。
+- 截圖（只在本機拍，CI 不跑）：430、390 每點 2 像素，跟設計稿 boards 一樣。
+
+```bash
+cd app
+$LIMIT $F --suppress-analytics test --dart-define=SHOTS=1 --dart-define=SHOTS_DIR=build/shots/<PR 編號> \
+  test/pages/shots_test.dart          # 其他語言加 --dart-define=SHOTS_LANGS=zh-Hant,en,th；只拍某些加 SHOTS_ONLY=S01,S02-03
+python3 tool/shots_compare.py build/shots/<PR 編號>   # 左邊設計稿、右邊 app，寫到 build/shots/<PR 編號>/compare/
+```
+
+- 截圖不上傳（ceo 2026-10-02）。放在這個 worktree 的 `app/build/shots/<PR 編號>/`，合併前不要刪。
+- PR 內文寫三樣：
+  - 每個頁面 ID 的 430／390 比對結果：一致，或不一致加原因。
+  - 360／320 的溢出檢查結果。
+  - 截圖資料夾的路徑。
+- 時刻依語言（`Strings.clock`）：繁中 09:41、英文 9:41 AM、泰文 09:41 น.。數字跟 AM／PM、น. 之間是不換行空格。
+
 ## 跟伺服器一起試玩
 
 1. 照 `backend/README.md` 啟動伺服器，倍率 144（遊戲 1 天 = 現實 10 分鐘）：`COWFARM_TIME_SCALE=144`。

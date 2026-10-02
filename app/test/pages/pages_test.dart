@@ -1,0 +1,244 @@
+// 每個頁面 ID 的畫面狀態（page_case.dart 的 pageCases）：
+// - 430 繁中：擺出來、跑那個狀態自己的檢查；
+// - 360、320（最小的兩種手機）× 繁中、英文、泰文：不能溢出（溢出在測試裡會丟例外）。用 app 內建的字型量，泰文照實際斷行。
+// 另外檢查 design/m2/scope.md 的每個頁面 ID：不是有畫面狀態，就是還在待做清單。
+import 'dart:io';
+
+import 'package:cowfarm/l10n/l10n.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'page_case.dart';
+
+/// 還沒做的頁面 ID（第 4–6 步）。做好一個就加進 pageCases、從這裡拿掉：做好的還留在清單裡，測試會失敗。
+/// 這份清單只會越來越短；要加回來，PR 裡要寫原因。
+const pendingPageIds = {
+  'G-01',
+  'G-02',
+  'G-03',
+  'G-04',
+  'G-05',
+  'G-06',
+  'G-07',
+  'G-08',
+  'G-09',
+  'G-10',
+  'S01-01',
+  'S01-02',
+  'S01-03',
+  'S01-04',
+  'S02-01',
+  'S02-02',
+  'S02-03',
+  'S02-04',
+  'S02-05',
+  'S03-01',
+  'S03-02',
+  'S03-03',
+  'S03-04',
+  'S03-05',
+  'S03-06',
+  'S03-07',
+  'S03-08',
+  'S03-09',
+  'S03-10',
+  'S03-11',
+  'S03-12',
+  'S03-13',
+  'S03-14',
+  'S03-15',
+  'S04-01',
+  'S04-02',
+  'S04-03',
+  'S04-04',
+  'S04-05',
+  'S04-06',
+  'S04-07',
+  'S04-08',
+  'S04-09',
+  'S04-10',
+  'S04-11',
+  'S04-12',
+  'S04-13',
+  'S05-01',
+  'S05-02',
+  'S05-03',
+  'S05-04',
+  'S05-05',
+  'S06-01',
+  'S06-02',
+  'S06-03',
+  'S06-06',
+  'S06-08',
+  'S06-09',
+  'S06-10',
+  'S06-11',
+  'S06-12',
+  'S06-13',
+  'S06-14',
+  'S06-15',
+  'S06-16',
+  'S07-01',
+  'S07-02',
+  'S07-03',
+  'S07-04',
+  'S07-05',
+  'S08-01',
+  'S08-02',
+  'S08-03',
+  'S08-04',
+  'S08-05',
+  'S08-06',
+  'S08-07',
+  'S08-08',
+  'S08-09',
+  'S08-11',
+  'S09-01',
+  'S09-02',
+  'S09-03',
+  'S09-04',
+  'S09-05',
+  'S10-01',
+  'S10-02',
+  'S10-03',
+  'S10-04',
+  'S10-05',
+  'S11-01',
+  'S11-03',
+  'S11-04',
+  'S11-05',
+  'S12-01',
+  'S12-02',
+  'S12-03',
+  'S12-04',
+  'S12-05',
+  'S12-06',
+  'S12-07',
+  'S13-01',
+  'S13-02',
+  'S13-03',
+  'S13-04',
+  'S13-05',
+  'S13-06',
+  'S13-07',
+  'S13-08',
+  'S13-09',
+  'S13-10',
+  'S13-11',
+  'S13-12',
+  'S13-13',
+  'S13-14',
+  'S13-15',
+  'S13-16',
+  'S13-17',
+  'S13-18',
+  'S14-01',
+  'S14-02',
+  'S14-03',
+  'S14-04',
+  'S14-05',
+  'S14-06',
+  'S14-07',
+  'S14-08',
+  'S15-01',
+  'S15-02',
+  'S15-03',
+  'S15-04',
+  'S16-01',
+  'S16-02',
+  'S16-03',
+  'S17-01',
+  'S17-02',
+  'S17-03',
+  'S17-04',
+  'S17-05',
+  'S17-06',
+  'S17-07',
+  'S17-08',
+  'S17-09',
+  'S17-10',
+  'S17-11',
+  'S18-01',
+  'S18-02',
+  'S18-03',
+  'S18-04',
+  'S18-05',
+  'S18-06',
+  'S18-07',
+  'S18-08',
+  'S18-09',
+  'S18-10',
+  'S18-11',
+  'S18-12',
+  'S18-13',
+  'S18-14',
+  'S19-01',
+  'S19-02',
+  'S19-03',
+  'S19-04',
+  'S19-05',
+  'S20-01',
+  'S20-02',
+  'S20-03',
+  'A-01',
+  'A-02',
+  'A-03',
+  'A-04',
+  'A-05',
+  'A-06',
+  'A-07',
+  'A-08',
+  'A-09',
+  'A-10',
+  'A-11',
+  'A-12',
+};
+
+/// scope.md 表格裡的頁面 ID（每列第一欄）。
+Set<String> scopePageIds() {
+  final md = File('../design/m2/scope.md').readAsStringSync();
+  return {for (final m in RegExp(r'^\| (S\d{2}-\d{2}|G-\d{2}|A-\d{2}) ', multiLine: true).allMatches(md)) m[1]!};
+}
+
+void main() {
+  setUpAll(loadAppFonts);
+
+  group('頁面 ID（design/m2/scope.md）', () {
+    test('每個頁面 ID 不是有畫面狀態，就是在待做清單；做好的要從清單拿掉', () {
+      final scope = scopePageIds();
+      expect(scope, hasLength(179), reason: 'scope.md 改了頁面 ID：待做清單和 pageCases 要跟著改');
+      final done = {for (final c in pageCases) c.id};
+      expect(pageCases, hasLength(done.length), reason: '同一個頁面 ID 只能有一個狀態');
+      expect(done.intersection(pendingPageIds), isEmpty, reason: '做好的頁面 ID 要從待做清單拿掉');
+      expect(done.difference(scope), isEmpty, reason: 'scope.md 沒有這些頁面 ID');
+      expect(pendingPageIds.difference(scope), isEmpty, reason: '待做清單裡有 scope.md 沒有的頁面 ID');
+      expect(scope.difference(done).difference(pendingPageIds), isEmpty, reason: '沒有畫面狀態、也不在待做清單');
+    });
+
+    test('手機尺寸和安全區跟設計稿 kit.js 的 DEVICES 一樣', () {
+      final js = File('../design/m2/src/js/kit.js').readAsStringSync();
+      for (final s in Screen.values) {
+        final m = RegExp('${s.label}: \\{ w: (\\d+), h: (\\d+), top: (\\d+), bottom: (\\d+)').firstMatch(js);
+        expect(m, isNotNull, reason: 'kit.js 找不到 ${s.label}');
+        expect([for (var i = 1; i <= 4; i++) double.parse(m![i]!)], [s.width, s.height, s.safeTop, s.safeBottom]);
+      }
+    });
+  });
+
+  for (final c in pageCases) {
+    testWidgets('${c.id} ${c.name}：430 繁中', (tester) async {
+      Screen.w430.apply(tester);
+      await c.show(tester, AppLang.zhHant);
+      c.check?.call(tester);
+      expect(tester.takeException(), isNull);
+    });
+    for (final lang in AppLang.values) {
+      for (final screen in [Screen.w360, Screen.w320]) {
+        testWidgets('${c.id} ${c.name}：${screen.label} ${lang.code} 不溢出', (tester) async {
+          screen.apply(tester);
+          await c.show(tester, lang);
+          expect(tester.takeException(), isNull);
+        });
+      }
+    }
+  }
+}
