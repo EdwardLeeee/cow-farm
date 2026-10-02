@@ -94,6 +94,9 @@ class Strings extends GeneratedStrings {
   /// 星期：0 是星期日（跟 JavaScript 的 getDay() 一樣），Dart 的 DateTime.weekday 7 也是星期日。
   String weekdayName(int day) => byKey('weekday.${day % 7}');
 
+  /// 星期的全名（S12「每週一 00:00 重新計算」）：0 是星期日。
+  String weekdayFullName(int day) => byKey('weekdayFull.${day % 7}');
+
   /// 取名詞庫每組幾個詞（i18ncheck 檢查每種語言每組一樣多）。
   static const nameWordsPerGroup = 12;
 

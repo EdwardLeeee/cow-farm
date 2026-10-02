@@ -35,16 +35,14 @@ void main() {
           expect(tester.takeException(), isNull, reason: '${tab.name} $seg');
         }
       }
-      // 排行榜（S12）還是 M1 的 Tab：切過去，三個分頁各點一次
+      // 排行榜（S12）：總資產、圖鑑、本週收入各點一次
       if (tab == AppTab.records) {
         await tester.tap(find.byKey(const Key('seg-1')));
         await tester.pumpAndSettle();
-        final tabs = find.byType(Tab);
-        expect(tabs.evaluate().length, greaterThan(1), reason: '排行榜應該有三個分頁');
-        for (var i = 0; i < tabs.evaluate().length; i++) {
-          await tester.tap(tabs.at(i));
+        for (var i = 0; i < 3; i++) {
+          await tester.tap(find.byKey(Key('rank-kind-$i')));
           await tester.pumpAndSettle();
-          expect(tester.takeException(), isNull);
+          expect(tester.takeException(), isNull, reason: '排行榜第 $i 種');
         }
       }
     });

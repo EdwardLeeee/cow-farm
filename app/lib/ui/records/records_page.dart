@@ -1,4 +1,4 @@
-// 紀錄分頁：上面的分段鈕切「圖鑑」（S09，設計稿 s09.js；screens.css 的 .dex-*）和「排行榜」（S12，還是 M1 的畫面）。
+// 紀錄分頁：上面的分段鈕切「圖鑑」（S09，設計稿 s09.js；screens.css 的 .dex-*）和「排行榜」（S12，rank_page.dart）。
 // 圖鑑：已發現 n / 24、三種用途各 8 格（發現的是牛的正面小圖，沒發現的是深色剪影和「？？？」）；點一格看品種詳細
 // （S09-03 已發現：大圖、介紹、數值、怎麼配出來、第一次發現的日期；S09-04 還沒發現：剪影和提示）。
 import 'package:flutter/material.dart';
@@ -20,7 +20,7 @@ import '../kit/meter.dart';
 import '../kit/page_head.dart';
 import '../kit/press.dart';
 import '../kit/seg.dart';
-import '../screens/leaderboard_screen.dart';
+import 'rank_page.dart';
 
 /// 圖鑑的三種用途，照設計稿的順序（乳牛、耕牛、肉牛）。
 const _uses = [CowType.dairy, CowType.dual, CowType.beef];
@@ -37,20 +37,7 @@ class RecordsPage extends StatelessWidget {
       selected: m.recordsRank ? 1 : 0,
       onSelect: (i) => m.selectRecords(rank: i == 1),
     );
-    if (m.recordsRank) {
-      // 排行榜（S12）還是 M1 的畫面：分段鈕下面放 M1 的三個分頁
-      return AppFrame(
-        tab: AppTab.records,
-        contentPadding: EdgeInsets.zero,
-        content: Column(
-          children: [
-            Padding(padding: const EdgeInsets.fromLTRB(12, 4, 12, 0), child: seg),
-            const SizedBox(height: 12),
-            const Expanded(child: LeaderboardScreen()),
-          ],
-        ),
-      );
-    }
+    if (m.recordsRank) return RankPage(seg: seg);
     if (m.codexBreed case final breed?) return CodexDetailPage(key: ValueKey('codex-$breed'), breed: breed);
     return CodexPage(seg: seg);
   }
