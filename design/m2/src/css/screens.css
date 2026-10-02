@@ -743,6 +743,10 @@
 .bucket-card .bk-top { flex-wrap: wrap; }
 .bs-top { flex-wrap: wrap; }
 .up-card .up-lv { white-space: normal; }
+/* 設施列：中間那欄最長的一個字放不下時，價格鈕（或「已滿級」）換到下一行、靠右（cow-app #79）。繁中的字可以在任何字之間換行，不會觸發 */
+.up-card { flex-wrap: wrap; }
+.up-card > .grow { min-width: min-content; }
+.up-card > .btn, .up-card > .maxed { margin-left: auto; }
 @media (max-width: 339px) {
   /* 320 寬的機率卡：間距縮小；還是放不下時，稀有度、標籤、機率換到第二行，名字整個留在第一行（泰文外來字牛名不會被硬拆） */
   .oc-row { gap: 4px; padding-right: 8px; flex-wrap: wrap; }
