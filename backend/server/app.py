@@ -212,9 +212,12 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
 
     @app.exception_handler(StarletteHTTPException)
     async def _http(request: Request, exc: StarletteHTTPException):
-        codes = {404: ("not_found", "找不到這個網址"), 405: ("method_not_allowed", "不支援這個方法")}
-        code, msg = codes.get(exc.status_code, ("http_error", "請求失敗"))
-        return _err(exc.status_code, code, msg)
+        # 代碼都寫死在 _err 呼叫裡：tests/test_error_table.py 靠這個比對協定 1.4 節的錯誤碼表
+        if exc.status_code == 404:
+            return _err(404, "not_found", "找不到這個網址")
+        if exc.status_code == 405:
+            return _err(405, "method_not_allowed", "不支援這個方法")
+        return _err(exc.status_code, "http_error", "請求失敗")
 
     @app.exception_handler(Exception)
     async def _internal(request: Request, exc: Exception):

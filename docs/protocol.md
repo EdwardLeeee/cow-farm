@@ -106,6 +106,7 @@ PR 3–10 都做完了（2026-10-02）。每個 PR 合併時更新這張表的�
 | 404 | `not_linked` | 解除綁定時，這個牧場沒有綁這種帳號 | `provider` | `unknownError` | 9 |
 | 404 | `not_found` | 網址不存在 | | `unknownError` | |
 | 405 | `method_not_allowed` | 方法不對 | | `unknownError` | |
+| 4xx | `http_error` | 其他 HTTP 錯誤，狀態碼照原本的：請求本文讀不出來（例如不是 UTF-8，400）、`/v1` 以外的靜態檔案讀不到 | | `unknownError` | |
 | 409 | `not_enough_coins` | 金幣不夠 | `need`、`have`（整數） | `notEnoughCoins`（`{n}` = need − have） | |
 | 409 | `not_enough_stock` | 倉庫裡沒有這麼多牛奶／牛肉／稻米 | `have`、`want` | `err.not_enough_stock` | |
 | 409 | `pen_full` | 牛舍滿了（買牛、配種、借種都要有空格給小牛） | `slots` | `penFull` | |
@@ -1042,3 +1043,4 @@ app 啟動時先打這個（還沒有 token 也能打），再決定要不要顯
 - 2026-10-02：PR 9b 做完第 0 節 16 項（帳號：nonce、綁定、解除、找回、換回、刪除、`signed_in_elsewhere`、Apple 撤銷佇列）。欄位跟 9a 定的一樣。
 - 2026-10-02：PR 9b 審查：找回的重送改成比對 request_id＋`id_token`（5.0 節），只拿到 request_id 的人拿不到 token。整個請求原封不動的重送不受影響。
 - 2026-10-02：1.3 節補 request_id 的安全規則：用安全亂數產生的 UUID v4；建立牧場的 request_id 在 10 分鐘內等於請求的憑證，app、伺服器、反向代理都不把它和請求本文寫進日誌。ceo 裁示 `POST /v1/session` 的重送不改程式。欄位不變。
+- 2026-10-02：1.4 節錯誤碼表補上伺服器本來就會送的 `http_error`（其他 HTTP 錯誤，app 顯示 `unknownError`）。`tests/test_error_table.py` 自動比對這張表、伺服器程式和字串表。
