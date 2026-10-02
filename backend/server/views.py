@@ -204,18 +204,21 @@ def upgrades_view(p: Player, now: float) -> dict:
         },
         "bucket": {
             "level": f.bucket_level,
+            "max": fp.bucket_max_level,  # level 的上限（S10「第 n / max 級」）
             "cost": ci(bc),
             "capacity": r2(bucket_cap(fp, f.bucket_level)),
             "next_capacity": r2(bucket_cap(fp, f.bucket_level + 1)) if bc is not None else None,
         },
         "warehouse": {
             "level": f.wh_level,
+            "max": fp.wh_max_level,
             "cost": ci(wc),
             "capacity": r2(wh_cap(fp, f.wh_level)),
             "next_capacity": r2(wh_cap(fp, f.wh_level + 1)) if wc is not None else None,
         },
         "fresh": {
             "level": f.fresh_level,
+            "max": len(fp.fresh_costs),  # fresh_costs 是升到 1、2、3、4 級的費用
             "cost": ci(fc),
             "fresh_h": full_h,
             "half_h": half_h,
