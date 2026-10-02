@@ -136,6 +136,9 @@ final s05Cases = <PageCase>[
       );
       expect(find.text(_zh.s05CollectedAgo(ago: _zh.timeAgo(d: 4))), findsOneWidget, reason: '稻米超過一天寫天');
       expect(find.text(_zh.s05Stored(pct: 86)), findsOneWidget);
+      // 稀有度的賣價倍數（伺服器的 economy.tier_mult）
+      expect(find.text('${_zh.s05MilkName(tier: _zh.tierName(1))} ×1.3'), findsOneWidget);
+      expect(find.text('${_zh.s05MilkName(tier: _zh.tierName(3))} ×2.5'), findsOneWidget);
       expect(find.text(_zh.s05Stored(pct: 93)), findsOneWidget);
       expect(tester.widget<AppButton>(find.byKey(const Key('go-sell'))).onPressed, isNotNull);
     },

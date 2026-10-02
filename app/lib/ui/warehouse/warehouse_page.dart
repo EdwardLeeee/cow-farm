@@ -330,6 +330,7 @@ class _MilkLot extends StatelessWidget {
     // 快壞了：新鮮度低於 30%（ceo 2026-10-01）
     final bad = fresh < 0.3;
     final tier = lot.tier.clamp(0, 3);
+    final mult = context.read<GameModel>().state?.economy?.tier(tier);
     final collected = s.s05CollectedAgo(ago: ago.of(lot.at, days: false));
     return _Lot(
       key: bad ? const Key('lot-bad') : null,
@@ -337,8 +338,8 @@ class _MilkLot extends StatelessWidget {
       top: [
         ..._qty('milk', lot.qty, s.unitMilk),
         TierChip(tier),
-        // 稀有度的賣價倍數（×1.3）等伺服器給（協定還沒有），先只寫「優良牛奶」
-        _lotName(s.s05MilkName(tier: s.tierName(tier))),
+        // 稀有度的賣價倍數（×1.3）由伺服器給（協定 2.3 的 economy）；舊的伺服器沒有就只寫「優良牛奶」
+        _lotName([s.s05MilkName(tier: s.tierName(tier)), if (mult != null) '×${mult.toStringAsFixed(1)}'].join(' ')),
       ],
       badge: bad ? CowBadge(BadgeKind.full, s.s05Spoiling) : null,
       below: [

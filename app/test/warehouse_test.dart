@@ -5,7 +5,6 @@ import 'package:cowfarm/ui/kit/kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'fakes.dart';
 import 'pages/page_case.dart';
 import 'pages/s03_cases.dart';
 import 'pages/s05_cases.dart';
@@ -85,6 +84,13 @@ void main() {
     await tester.tap(sell);
     await tester.pump();
     expect(m.tab, AppTab.market);
+  });
+
+  testWidgets('舊的伺服器沒有 economy：只寫「優良牛奶」，不寫倍數（app 不自己寫死）', (tester) async {
+    final st = warehouseState()..remove('economy');
+    await _open(tester, st);
+    expect(find.text(_zh.s05MilkName(tier: _zh.tierName(1))), findsOneWidget);
+    expect(find.textContaining('×'), findsNothing);
   });
 
   testWidgets('出貨的牛沒有品種（舊的批次）：只寫編號', (tester) async {
