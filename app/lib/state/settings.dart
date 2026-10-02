@@ -47,15 +47,25 @@ class SettingsController extends ChangeNotifier {
 
   static const langKey = 'cowfarm_lang';
   static const upColorKey = 'cowfarm_up_color';
+  static const dockKey = 'cowfarm_dock_collapsed';
+  static const swipeHintKey = 'cowfarm_swipe_hint_seen';
+  static const bigNewsKey = 'cowfarm_big_news_seen';
 
   AppLang? _chosenLang;
   bool? _upIsRed;
+  bool _dockCollapsed = false;
+  bool _swipeHintSeen = false;
+  List<String> _bigNewsSeen = [];
 
   /// 打開 app 時讀一次（main.dart 在 runApp 之前呼叫，第一個畫面就是對的語言）。
   Future<void> load() async {
     _chosenLang = AppLang.fromCode(await _store.getString(langKey));
     final up = await _store.getString(upColorKey);
     _upIsRed = up == null ? null : up == 'red';
+    _dockCollapsed = await _store.getString(dockKey) == '1';
+    _swipeHintSeen = await _store.getString(swipeHintKey) == '1';
+    final seen = await _store.getString(bigNewsKey);
+    _bigNewsSeen = seen == null || seen.isEmpty ? [] : seen.split(',');
     notifyListeners();
   }
 
@@ -78,6 +88,35 @@ class SettingsController extends ChangeNotifier {
     _upIsRed = red;
     await _store.setString(upColorKey, red ? 'red' : 'green');
     notifyListeners();
+  }
+
+  /// 牧場頁的面板收起來了（S03-11）。第一次打開是展開的，之後記住玩家上次的選擇（m3-backlog D27）。
+  bool get dockCollapsed => _dockCollapsed;
+
+  Future<void> setDockCollapsed(bool collapsed) async {
+    _dockCollapsed = collapsed;
+    notifyListeners();
+    await _store.setString(dockKey, collapsed ? '1' : '0');
+  }
+
+  /// 第一次進牧場的「左右滑動」提示看過了（S03-14，只出現一次）。
+  bool get swipeHintSeen => _swipeHintSeen;
+
+  Future<void> markSwipeHintSeen() async {
+    _swipeHintSeen = true;
+    notifyListeners();
+    await _store.setString(swipeHintKey, '1');
+  }
+
+  /// 大新聞提示（S03-15）每則只跳出一次：記住最近 50 則看過的新聞 id。
+  bool bigNewsSeen(String id) => _bigNewsSeen.contains(id);
+
+  Future<void> markBigNewsSeen(String id) async {
+    if (_bigNewsSeen.contains(id)) return;
+    _bigNewsSeen = [..._bigNewsSeen, id];
+    if (_bigNewsSeen.length > 50) _bigNewsSeen = _bigNewsSeen.sublist(_bigNewsSeen.length - 50);
+    notifyListeners();
+    await _store.setString(bigNewsKey, _bigNewsSeen.join(','));
   }
 
   /// 手機的語言改了（app.dart 的 didChangeLocales 呼叫）：還沒選過語言的玩家要跟著換。

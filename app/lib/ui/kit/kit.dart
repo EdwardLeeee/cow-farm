@@ -251,14 +251,17 @@ enum ToastKind {
 
 /// .toast：膠囊形的提示（圖示＋一句話）。放在哪裡由用的地方決定。
 class ToastPill extends StatelessWidget {
-  const ToastPill(this.text, {super.key, this.kind = ToastKind.info});
+  const ToastPill(this.text, {super.key, this.kind = ToastKind.info, this.action});
 
   final String text;
   final ToastKind kind;
 
+  /// 右邊的按鈕（.toast.action-toast，例：倉庫滿了→「加大倉庫」）。
+  final Widget? action;
+
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.fromLTRB(10, 9, 16, 9),
+    padding: EdgeInsets.fromLTRB(10, 9, action == null ? 16 : 8, 9),
     decoration: BoxDecoration(
       color: kind.color,
       border: Border.all(color: AppColors.ink, width: AppSizes.border),
@@ -271,9 +274,24 @@ class ToastPill extends StatelessWidget {
         AppIcon(kind.icon, size: 22),
         const SizedBox(width: 8),
         Flexible(
-          child: Text(text, style: AppText.style(14, weight: FontWeight.w900, lineHeight: 20)),
+          child: Text(
+            text,
+            style: AppText.style(14, weight: FontWeight.w900, lineHeight: action == null ? 20 : 19),
+          ),
         ),
+        if (action != null) ...[const SizedBox(width: 8 + 2), action!],
       ],
     ),
   );
+}
+
+/// 把字串裡的佔位記號（\u0000）換成另一個樣式的字，例：「{v} 幣」的數字特粗大一號。
+List<InlineSpan> fillSpans(String text, TextStyle style, String value) {
+  final parts = text.split('\u0000');
+  return [
+    for (final (i, p) in parts.indexed) ...[
+      if (i > 0) TextSpan(text: value, style: style),
+      if (p.isNotEmpty) TextSpan(text: p),
+    ],
+  ];
 }

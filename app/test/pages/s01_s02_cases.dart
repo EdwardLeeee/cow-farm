@@ -6,6 +6,7 @@ import 'package:cowfarm/state/game_model.dart';
 import 'package:cowfarm/storage/token_store.dart';
 import 'package:cowfarm/theme/app_theme.dart';
 import 'package:cowfarm/theme/tokens.dart';
+import 'package:cowfarm/ui/kit/frame.dart';
 import 'package:cowfarm/ui/kit/kit.dart';
 import 'package:cowfarm/ui/start/namer.dart';
 import 'package:cowfarm/ui/start/start_flow.dart';

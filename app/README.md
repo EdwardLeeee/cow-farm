@@ -41,6 +41,8 @@
 | `lib/ui/` | 頂列、各分頁畫面（`screens/`）、共用元件（`widgets/`）；M1 的原型畫面照 M2 設計稿逐組換掉 |
 | `lib/ui/kit/` | M2 設計稿的共用元件（照 `kit.css`）：按鈕、卡片、對話框、轉圈、提示膠囊、圖示；`cow_art.dart` 畫牛（照設計稿 `cowSVG` 的擺法） |
 | `lib/ui/start/` | 進牧場之前的正式畫面：S01 啟動與載入、S02 取名與歡迎卡 |
+| `lib/ui/kit/frame.dart` | 每一頁的外框（照設計稿 `kit.js` 的 frame）：頂列（G-02）、內容區、底部分頁列（G-01）、斷線時的「連線中…」（S15-01） |
+| `lib/ui/ranch/` | S03 牧場：場景（`ranch.svg`＋牛，照 `scene.js` 的 fit）、牛的位置（`herd.dart`）、下面的面板（`dock.dart`）、牧場頁（`ranch_page.dart`） |
 | `lib/theme/` | 設計參數（顏色、尺寸、圓角、實心下陰影、文字樣式），照 M2 設計稿的 `base.css`、`kit.css`；`app_theme.dart` 是頁面底色、字型和字型授權 |
 | `assets/cows/`、`assets/ui/` | 牛、圖示、場景、卡車零件的 SVG 和描述檔（`cows.json`、`ui.json`），由 cow-ui 的 `design/m2/harness/assetexport.mjs` 產生，不要手改；執行時讀 SVG（T3）。`test/cow_assets_test.dart` 檢查檔案、雜湊和產生器有沒有漂移 |
 | `assets/fonts/` | 內建字型（T3）：Noto Sans TC 可變字型完整版（google/fonts 2.004-H2）、Noto Sans Thai 可變字型（2.002）、兩份 OFL 授權 |

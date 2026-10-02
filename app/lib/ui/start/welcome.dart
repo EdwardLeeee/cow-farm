@@ -157,14 +157,3 @@ class _CoinsAndMilk extends StatelessWidget {
     );
   }
 }
-
-/// 把字串裡的佔位記號（\u0000）換成另一個樣式的字，例：「{v} 幣」的數字特粗大一號。
-List<InlineSpan> fillSpans(String text, TextStyle style, String value) {
-  final parts = text.split('\u0000');
-  return [
-    for (final (i, p) in parts.indexed) ...[
-      if (i > 0) TextSpan(text: value, style: style),
-      if (p.isNotEmpty) TextSpan(text: p),
-    ],
-  ];
-}
