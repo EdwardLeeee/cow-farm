@@ -69,7 +69,11 @@
   - Apple／Google 連不上時（抓公鑰失敗、`/auth/token` 網路錯誤），伺服器現在回 `token_invalid`／`code_invalid`，app 會跟玩家說登入憑證有問題，其實是對方的伺服器掛了。評估要不要加一個 reason：會改協定，cow-ui 也要補文案。
   - `POST /v1/account/nonce` 不用登入，伺服器最多記 2 萬個 nonce，有人狂打會把別人的 nonce 擠掉。選主機時在反向代理加流量限制。
 - 部署時確認伺服器和反向代理都不記錄請求本文（request body）和 request_id（協定 1.3 節）。ceo 2026-10-02 裁示 `POST /v1/session` 的重送不改程式：request_id 在 10 分鐘內等於這個請求的憑證。M3 的伺服器程式沒有把 request_id 寫進日誌。
-- 反向代理的存取日誌不能記 `/v1/ws` 的查詢字串：WebSocket 的 token 放在網址的 `?token=`（協定第 7 節）。伺服器自己的日誌已經用 `server/logsafe.py` 把 `token=` 遮掉；nginx 預設的 `$request` 會記整個網址（cow-app 2026-10-02 在 app 的日誌發現同一件事，PR #58）。
+- WebSocket 的 token 不能進日誌（協定 1.3 節；cow-app 2026-10-02 在 #58 發現）：token 現在放在網址 `/v1/ws?token=…`，反向代理的存取紀錄預設會記完整網址（nginx 預設的 `$request`）。M4 選一個做法，現在不改程式：
+  - (a) 反向代理不記 `/v1/ws` 的查詢字串，或把 token 遮掉。
+  - (b) 改成連上以後，第一則訊息才送 token。手機 app 也可以用 header，但網頁版（只給內部試玩）的瀏覽器 WebSocket 不能自己加 header。
+  - 另外：伺服器現在就支援用子協定帶 token（協定第 7 節的 `["cowfarm.v1", "cowfarm.token." + token]`），瀏覽器也能用，網址上就沒有 token，只要 app 改；token 改放在 `Sec-WebSocket-Protocol` 標頭，反向代理預設不記標頭。
+  - 伺服器自己的日誌已經沒問題：不開存取日誌（`server/__main__.py` 的 `access_log=False`），WebSocket 握手那一行由 `server/logsafe.py` 遮成 `token=***`。2026-10-02 查 8787 的日誌：79 行握手都已遮掉，沒有 HTTP 存取紀錄。`tests/test_logsafe.py` 固定這兩點。
 
 ## 不在第一版（試玩後，企劃書 v0.3 再決定）
 
