@@ -91,7 +91,17 @@ class _RanchPageState extends State<RanchPage> {
     final mq = MediaQuery.of(context);
     final safe = mq.padding;
     final bucket = m.bucketNow;
-    final full = st.bucket.capacity > 0 && bucket >= st.bucket.capacity;
+    final data = DockData(
+      bucket: bucket,
+      bucketCap: st.bucket.capacity,
+      perHour: st.bucket.perHour,
+      timeScale: m.timeScale,
+      warehouse: st.warehouse,
+      quotes: m.market?.quotes ?? const {},
+      upIsRed: settings.upIsRed,
+    );
+    // 奶桶滿了：跟奶桶卡同一個判斷（百分比四捨五入到 100 就算滿），場景和面板才會一致
+    final full = data.full;
     final herd = m.herdLayout.place(st.cows);
     // 奶桶滿了：產奶的牛轉正面（D11），編號最小的那頭頭上冒泡泡（S03-02）
     final producers = [
@@ -105,15 +115,6 @@ class _RanchPageState extends State<RanchPage> {
     final shortScreen = mq.size.height < 700;
     final collapsed = settings.dockCollapsed || (empty && shortScreen);
     final bigNews = _bigNews(m, settings);
-    final data = DockData(
-      bucket: bucket,
-      bucketCap: st.bucket.capacity,
-      perHour: st.bucket.perHour,
-      timeScale: m.timeScale,
-      warehouse: st.warehouse,
-      quotes: m.market?.quotes ?? const {},
-      upIsRed: settings.upIsRed,
-    );
     final collectButton = AppButton(
       s.collect,
       key: const Key('collect'),

@@ -88,8 +88,9 @@ class _HomeShellState extends State<HomeShell> {
           body: Stack(
             children: [
               Positioned.fill(child: page),
+              // S15-04（原型）：照設計稿 .long-off 的位置，在「連線中…」膠囊下面（頂列下 56），不蓋到它
               if (m.maintenance == null && m.state != null)
-                Positioned(left: 0, right: 0, top: FrameSizes.contentTop(safe), child: const _LongOffline()),
+                Positioned(left: 12, right: 12, top: safe.top + FrameSizes.hud + 56, child: const _LongOffline()),
             ],
           ),
         ),
