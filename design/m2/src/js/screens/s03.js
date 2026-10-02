@@ -155,7 +155,7 @@ full('S03-06', '點一頭牛：轉正面、跳出小名片', (ctx) => {
 function listPage(ctx, { cows = COWS, pen = PEN, filter = 0, tall = true, note = '' } = {}) {
   const content = `<div class="stack">
     <div class="page-head"><button class="icon-btn" aria-label="${t('back')}">${icon('back', 22)}</button><div class="grow"><h1>${t('cowsTitle')}</h1><div class="sub">${t('penSummary', { used: pen.used, slots: pen.slots })}${pen.used >= pen.slots ? t('s03.penFullSuffix') : ''}</div></div>${btn(t('s03.expandPen'), { small: true, kind: 'primary', ic: 'plus' })}</div>
-    <div class="filter">${[t('g.all'), useName('dairy'), useName('draft'), useName('beef')].map((f, i) => `<button class="${i === filter ? 'on' : ''}">${f}</button>`).join('')}</div>
+    <div class="filter" data-hscroll>${[t('g.all'), useName('dairy'), useName('draft'), useName('beef')].map((f, i) => `<button class="${i === filter ? 'on' : ''}">${f}</button>`).join('')}</div>
     ${note}
     <div class="list">${cows.map(cowListRow).join('')}</div>
   </div>`;

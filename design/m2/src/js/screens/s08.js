@@ -149,7 +149,7 @@ part18('S18-14', '借種紀錄：對方的牧場刪除了（名字顯示「已�
 ].map(logRow).join('')}</div>` }));
 full18('S18-11', '借種紀錄', (ctx) => frame(ctx.dev, { tab: 'breed', content: `<div class="stack">
   <div class="page-head"><button class="icon-btn" aria-label="${t('back')}">${icon('back', 22)}</button><div class="grow"><h1>${t('s18.logTitle')}</h1><div class="sub">${t('s18.logIncome', { v: fmt(STUD_INCOME) })}</div></div></div>
-  <div class="filter"><button class="on">${t('g.all')}</button><button>${t('s18.out')}</button><button>${t('s18.in')}</button></div>
+  <div class="filter" data-hscroll><button class="on">${t('g.all')}</button><button>${t('s18.out')}</button><button>${t('s18.in')}</button></div>
   <div class="list">${STUD_LOG.map(logRow).join('')}</div>
   <p class="hint" style="text-align:center">${t('s18.logKeep', { n: 30 })}</p></div>` }));
 
