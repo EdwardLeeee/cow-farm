@@ -194,6 +194,9 @@ final s06Cases = <PageCase>[
     (tester, lang) async {
       await showMarket(tester, lang, commodity: Commodity.beef);
       await slideTo(tester, 236, 934);
+      // 拉滑桿時捲到了賣出面板；設計稿停在最上面（收購價、新聞、賣出面板的上半）
+      tester.state<ScrollableState>(marketScroll).position.jumpTo(0);
+      await tester.pump();
     },
     check: (tester) {
       expect(tester.widget<Text>(find.byKey(const Key('sell-qty'))).data, '236');

@@ -52,7 +52,6 @@ class AppButton extends StatelessWidget {
     this.small = false,
     this.block = false,
     this.icon,
-    this.leading,
     this.busy = false,
     this.wrap = false,
   });
@@ -63,9 +62,6 @@ class AppButton extends StatelessWidget {
   final bool small;
   final bool block;
   final String? icon;
-
-  /// 自己畫的圖示，取代 [icon]（例：田地卡片的「叫回」，手掌外面有一圈綠底圓框）。
-  final Widget? leading;
   final bool busy;
 
   /// 不是整排寬的按鈕，被擠的時候字可以換行（頁首右邊的按鈕，screens.css 第 1 條）；放得下就照自己的寬度。
@@ -89,10 +85,7 @@ class AppButton extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         if (busy) ...[const Spinner(), const SizedBox(width: 6)],
-        if (!busy && (leading != null || icon != null)) ...[
-          leading ?? AppIcon(icon!, size: small ? 18 : 22),
-          const SizedBox(width: 6),
-        ],
+        if (!busy && icon != null) ...[AppIcon(icon!, size: small ? 18 : 22), const SizedBox(width: 6)],
         if (block || wrap) Flexible(child: text) else text,
       ],
     );
@@ -472,11 +465,15 @@ class RenderBtnRow extends RenderBox
 
 /// .sheet 加 .backdrop：從下面滑上來的面板（暗幕、上緣 3px 框、上面兩個圓角 26、把手、標題）。點暗幕關掉。
 class AppSheet extends StatelessWidget {
-  const AppSheet({super.key, required this.title, required this.children, required this.onClose});
+  const AppSheet({super.key, required this.title, required this.children, required this.onClose, this.maxHeight});
 
   final String title;
   final List<Widget> children;
   final VoidCallback onClose;
+
+  /// 整個面板最高多高（含上緣的框和內距，跟 CSS 的 border-box 一樣）。有給的話，[children] 裡可以放 Flexible
+  /// （例：選耕牛的清單），放不下時由它縮、自己捲。
+  final double? maxHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -495,6 +492,7 @@ class AppSheet extends StatelessWidget {
           bottom: 0,
           child: Container(
             key: const Key('sheet'),
+            constraints: maxHeight == null ? null : BoxConstraints(maxHeight: maxHeight!),
             padding: EdgeInsets.fromLTRB(16, 10, 16, safe.bottom + 14),
             decoration: const BoxDecoration(
               color: AppColors.paper,
