@@ -47,7 +47,7 @@ class WarehousePage extends StatelessWidget {
           title: s.warehouseTitle,
           sub: s.gLevelN(n: st.upgrades[UpgradeKind.warehouse]?.level ?? 0),
           onBack: m.closeWarehouse,
-          // 加大倉庫：設施升級（S10）做好之前先到商店分頁；快滿、滿了的時候是黃色
+          // 加大倉庫：到商店的設施升級（S10）；快滿、滿了的時候是黃色
           action: AppButton(
             s.upWarehouse,
             key: const Key('upgrade-warehouse'),
@@ -55,7 +55,7 @@ class WarehousePage extends StatelessWidget {
             wrap: true,
             kind: full || pct >= 90 ? ButtonKind.primary : ButtonKind.normal,
             icon: 'plus',
-            onPressed: () => m.selectTab(AppTab.shop),
+            onPressed: () => m.openFacility(),
           ),
         ),
         const SizedBox(height: 12),

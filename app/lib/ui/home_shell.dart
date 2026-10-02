@@ -16,7 +16,7 @@ import 'screens/codex_screen.dart';
 import 'screens/cow_detail_screen.dart';
 import 'screens/fields_screen.dart';
 import 'screens/leaderboard_screen.dart';
-import 'screens/shop_screen.dart';
+import 'shop/shop_page.dart';
 import 'start/start_flow.dart';
 import 'warehouse/warehouse_page.dart';
 import 'widgets/ticker_builder.dart';
@@ -70,6 +70,9 @@ class _HomeShellState extends State<HomeShell> {
     } else if (m.tab == AppTab.market && m.detailCowKey == null) {
       // 市場（S06）：自己的外框，賣出的提示疊在最上面
       page = const MarketPage();
+    } else if (m.tab == AppTab.shop && m.detailCowKey == null) {
+      // 商店（S19 抽牛、S10 設施）：自己的外框，升級的提示疊在最上面
+      page = const ShopPage();
     } else {
       page = AppFrame(tab: m.tab, content: _content(m), contentPadding: EdgeInsets.zero);
     }
@@ -114,7 +117,7 @@ class _HomeShellState extends State<HomeShell> {
       AppTab.market => const SizedBox.shrink(), // 市場是自己的整頁（MarketPage），不會走到這裡
       AppTab.fields => const FieldsScreen(),
       AppTab.breed => const BreedScreen(),
-      AppTab.shop => const ShopScreen(),
+      AppTab.shop => const SizedBox.shrink(), // 商店是自己的整頁（ShopPage），不會走到這裡
       AppTab.records => const _Records(),
     };
   }

@@ -404,6 +404,9 @@ class _SellCardState extends State<SellCard> {
   int? _pos;
   Timer? _debounce;
   SellQuote? _quote;
+
+  /// 上一次成功的試算：試算中、失敗時撐住預估框的高度。
+  SellQuote? _lastQuote;
   bool _quoting = false;
   bool _failed = false;
   int _seq = 0;
@@ -459,6 +462,7 @@ class _SellCardState extends State<SellCard> {
     if (!mounted || seq != _seq) return; // 只採用最新一次
     setState(() {
       _quote = q;
+      _lastQuote = q ?? _lastQuote;
       _quoting = false;
       _failed = q == null;
     });
@@ -597,6 +601,7 @@ class _SellCardState extends State<SellCard> {
             quote: q,
             quoting: _quoting,
             failed: _failed,
+            previous: _lastQuote,
             onRetry: () => _requote(pos, inv, now: true),
           ),
           AppButton(
@@ -761,6 +766,8 @@ class _BigWarn extends StatelessWidget {
 }
 
 /// .est：試算中（轉圈）、試算失敗（重試）、試算完成（預估均價、預估總額、市價、成交價怎麼算）。
+/// 試算中、失敗時：有上一次的結果就用它撐住框的高度（看不見），轉圈、重試疊在中間，
+/// 捲到最底時畫面才不會跳（ceo 2026-10-02 同意，不改設計稿的樣子）；第一次試算還沒有結果就照設計稿至少 92 高。
 class _Estimate extends StatelessWidget {
   const _Estimate({
     required this.commodity,
@@ -768,6 +775,7 @@ class _Estimate extends StatelessWidget {
     required this.quoting,
     required this.failed,
     required this.onRetry,
+    this.previous,
   });
 
   final Commodity commodity;
@@ -776,10 +784,12 @@ class _Estimate extends StatelessWidget {
   final bool failed;
   final VoidCallback onRetry;
 
+  /// 上一次成功的試算（撐高度用）。
+  final SellQuote? previous;
+
   @override
   Widget build(BuildContext context) {
     final s = Strings.of(context);
-    final unit = s.unitOf(commodity);
     final q = quote;
     Widget box(Widget child, {bool center = false}) => Container(
       key: const Key('estimate'),
@@ -795,8 +805,29 @@ class _Estimate extends StatelessWidget {
       child: child,
     );
     final bold = AppText.style(14, weight: FontWeight.w900);
-    if (quoting) {
+    // 試算中、失敗：上一次的結果看不見但佔位子，內容疊在正中間
+    Widget held(Widget content) {
+      final prev = previous;
+      if (prev == null) return box(content, center: true);
       return box(
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            Visibility(
+              visible: false,
+              maintainSize: true,
+              maintainAnimation: true,
+              maintainState: true,
+              child: _okBody(s, prev, keys: false),
+            ),
+            content,
+          ],
+        ),
+      );
+    }
+
+    if (quoting) {
+      return held(
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -805,11 +836,10 @@ class _Estimate extends StatelessWidget {
             Text(s.quoting, style: bold),
           ],
         ),
-        center: true,
       );
     }
     if (failed || q == null) {
-      return box(
+      return held(
         Wrap(
           alignment: WrapAlignment.center,
           crossAxisAlignment: WrapCrossAlignment.center,
@@ -827,9 +857,14 @@ class _Estimate extends StatelessWidget {
             AppButton(s.retry, key: const Key('quote-retry'), small: true, icon: 'refresh', onPressed: onRetry),
           ],
         ),
-        center: true,
       );
     }
+    return box(_okBody(s, q));
+  }
+
+  /// 試算完成：預估均價、預估總額、市價、成交價怎麼算。[keys] 是 false 時不加 Key（撐高度的那一份）。
+  Widget _okBody(Strings s, SellQuote q, {bool keys = true}) {
+    final unit = s.unitOf(commodity);
     Widget row(String k, Text v) => _EstRow(
       label: Text(
         k,
@@ -842,39 +877,37 @@ class _Estimate extends StatelessWidget {
       Commodity.beef => s.s06MultBeef,
       Commodity.rice => s.s06MultRice,
     };
-    return box(
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          row(
-            s.estAvgPrice,
-            Text(
-              s.estAvgValue(avg: priceText(q.avgPrice), unit: unit),
-              key: const Key('est-avg'),
-              style: AppText.number(15, lineHeight: 24),
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        row(
+          s.estAvgPrice,
+          Text(
+            s.estAvgValue(avg: priceText(q.avgPrice), unit: unit),
+            key: keys ? const Key('est-avg') : null,
+            style: AppText.number(15, lineHeight: 24),
           ),
-          row(
-            s.s06EstTotalLabel,
-            Text(
-              s.costCoins(v: fmt(q.total)),
-              key: const Key('est-total'),
-              style: AppText.number(20, lineHeight: 24),
-            ),
+        ),
+        row(
+          s.s06EstTotalLabel,
+          Text(
+            s.costCoins(v: fmt(q.total)),
+            key: keys ? const Key('est-total') : null,
+            style: AppText.number(20, lineHeight: 24),
           ),
-          row(
-            s.s06MarketPrice,
-            Text(
-              s.gPricePer(price: priceText(q.marketPrice), unit: unit),
-              style: AppText.number(15, lineHeight: 24),
-            ),
+        ),
+        row(
+          s.s06MarketPrice,
+          Text(
+            s.gPricePer(price: priceText(q.marketPrice), unit: unit),
+            style: AppText.number(15, lineHeight: 24),
           ),
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Text(s.s06Formula(mult: mult), style: KitText.hint(size: 12, lineHeight: 17)),
-          ),
-        ],
-      ),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Text(s.s06Formula(mult: mult), style: KitText.hint(size: 12, lineHeight: 17)),
+        ),
+      ],
     );
   }
 }

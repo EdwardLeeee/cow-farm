@@ -47,7 +47,7 @@ class _PenListPageState extends State<PenListPage> {
           title: s.cowsTitle,
           sub: s.penSummary(used: pen.used, slots: pen.slots) + (pen.full ? s.s03PenFullSuffix : ''),
           onBack: m.closePenList,
-          // 擴建：設施升級（S10）做好之前先到商店分頁
+          // 擴建：到商店的設施升級（S10）
           action: AppButton(
             s.s03ExpandPen,
             key: const Key('expand-pen'),
@@ -55,7 +55,7 @@ class _PenListPageState extends State<PenListPage> {
             wrap: true,
             kind: ButtonKind.primary,
             icon: 'plus',
-            onPressed: () => m.selectTab(AppTab.shop),
+            onPressed: () => m.openFacility(),
           ),
         ),
         const SizedBox(height: 12),

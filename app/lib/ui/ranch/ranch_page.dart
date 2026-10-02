@@ -81,7 +81,7 @@ class _RanchPageState extends State<RanchPage> {
             kind: ButtonKind.primary,
             onPressed: () {
               setState(() => _toast = null);
-              m.selectTab(AppTab.shop); // 設施升級（S10）做好之前先到商店分頁
+              m.openFacility(); // 到商店的設施升級（S10）
             },
           ),
         ),
@@ -187,7 +187,13 @@ class _RanchPageState extends State<RanchPage> {
             left: 24,
             right: 24,
             top: top + 112,
-            child: _EmptyRanch(onShop: () => m.selectTab(AppTab.shop)),
+            child: _EmptyRanch(
+              // 去商店抽牛（S19）
+              onShop: () {
+                m.selectShop(facility: false);
+                m.selectTab(AppTab.shop);
+              },
+            ),
           ),
         if (showSwipeHint)
           Positioned(

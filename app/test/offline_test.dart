@@ -22,25 +22,31 @@ void main() {
     await tester.pump();
     expect(api.calls, isNot(contains('collect')));
 
-    // 商店的按鈕也停用
+    // 商店的按鈕也停用（抽牛 S19、設施 S10）
+    AppButton btn(String key) => tester.widget<AppButton>(find.byKey(Key(key)));
     await tester.tap(find.byKey(const Key('tab-shop')));
     await tester.pump();
-    expect(_btn(tester, 'buy-grade-C').onPressed, isNull);
-    expect(_btn(tester, 'up-bucket').onPressed, isNull);
+    await tester.pump();
+    expect(btn('buy-C').onPressed, isNull);
+    await tester.tap(find.byKey(const Key('seg-1')));
+    await tester.pump();
+    expect(btn('up-bucket').onPressed, isNull);
 
     // 連回來
     push.isConnected = true;
     await tester.pump();
     await tester.pump();
     expect(find.text(S.connecting), findsNothing);
-    expect(_btn(tester, 'buy-grade-C').onPressed, isNotNull);
-    expect(_btn(tester, 'up-bucket').onPressed, isNotNull);
+    expect(btn('up-bucket').onPressed, isNotNull);
+    await tester.tap(find.byKey(const Key('seg-0')));
+    await tester.pump();
+    expect(btn('buy-C').onPressed, isNotNull);
 
     // 又斷線
     push.isConnected = false;
     await tester.pump();
     expect(find.text(S.connecting), findsOneWidget);
-    expect(_btn(tester, 'buy-grade-C').onPressed, isNull);
+    expect(btn('buy-C').onPressed, isNull);
   });
 
   testWidgets('斷線時市場的賣出按鈕與牛的出貨按鈕也停用', (tester) async {

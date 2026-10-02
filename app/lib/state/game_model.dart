@@ -165,6 +165,9 @@ class GameModel extends ChangeNotifier {
   /// 市場選中的商品（S06：收購價那張卡點一列，賣出面板就換成那一種）。
   Commodity marketCommodity = Commodity.milk;
 
+  /// 商店顯示「設施」（S10）還是「抽牛」（S19）。
+  bool shopFacility = false;
+
   /// 牧場場景裡每頭牛的位置：這次打開 app 期間同一頭牛一直在同一個位置（ceo 2026-10-02）。只是顯示用。
   final herdLayout = HerdLayout();
   String? detailCowKey;
@@ -579,6 +582,18 @@ class GameModel extends ChangeNotifier {
     penListOpen = false;
     warehouseOpen = false;
     _notify();
+  }
+
+  /// 商店換「抽牛」或「設施」（S19、S10）。
+  void selectShop({required bool facility}) {
+    shopFacility = facility;
+    _notify();
+  }
+
+  /// 到商店的設施升級（S10）：擴建牛舍、加大倉庫的按鈕都到這裡。
+  void openFacility() {
+    shopFacility = true;
+    selectTab(AppTab.shop);
   }
 
   /// 市場換一種商品（S06）。
