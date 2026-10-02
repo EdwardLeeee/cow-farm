@@ -341,6 +341,21 @@ class TestNewsTiers(unittest.TestCase):
         got = {f: ex.inject_event(("milk",), f, T0 + HOUR, HOUR).tier for f in (1.1, 0.88, 1.4, 0.6, 2.0, 0.1)}
         self.assertEqual(got, {1.1: "normal", 0.88: "normal", 1.4: "big", 0.6: "big", 2.0: "super", 0.1: "crash"})
 
+    def test_deviation_halves_each_half_life(self):
+        """偏離量照半衰期減半（ceo 2026-10-03）：倍數 = 1 + d × 2^(−t/半衰期)，ramp 內 d 線性漲到全幅。
+        所以 +100% 和 −90% 的面積幾乎抵銷（+1.44、−1.30 × 半衰期），平均價格不會因為新聞偏低。"""
+        ex = Exchange(DEFAULT, 1, T0, events_enabled=False)
+        hl = 4 * HOUR
+        for f in (2.0, 0.1, 1.3, 0.7):
+            ev = ex.inject_event(("milk",), f, T0, hl)
+            peak = T0 + ev.ramp_s
+            self.assertAlmostEqual(math.exp(ev.log_effect(T0 + ev.ramp_s / 2)), 1 + (f - 1) / 2)  # ramp 一半
+            self.assertAlmostEqual(math.exp(ev.log_effect(peak)), f)
+            self.assertAlmostEqual(math.exp(ev.log_effect(peak + hl)), 1 + (f - 1) / 2)
+            self.assertAlmostEqual(math.exp(ev.log_effect(peak + 2 * hl)), 1 + (f - 1) / 4)
+            area = sum(math.exp(ev.log_effect(peak + (i + 0.5) * 60)) - 1 for i in range(int(ev.end_at - peak) // 60)) * 60
+            self.assertAlmostEqual(area / hl, (f - 1) / math.log(2), delta=0.03)  # 面積 = d × 半衰期 ÷ ln2
+
     def test_super_and_crash_show_without_rebound(self):
         """+100%、−90% 真的出得來，而且新聞不會把雜訊推成反方向（D33 以前軟邊界連新聞一起算：+100% 只到 1.6 倍、
         黑天鵝被硬邊界卡在 0.45 倍，雜訊 x 被推到 +1.35，新聞退掉以後價格反而漲到 1.2 倍）。"""

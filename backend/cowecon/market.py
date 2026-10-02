@@ -442,7 +442,7 @@ class MarketEvent:
         "eid",
         "targets",
         "factor",
-        "log_mag",
+        "dev",
         "announce_at",
         "start_at",
         "ramp_s",
@@ -470,7 +470,7 @@ class MarketEvent:
         self.eid = eid
         self.targets = tuple(targets)
         self.factor = factor
-        self.log_mag = math.log(factor)
+        self.dev = factor - 1.0  # 全幅時的偏離量（+1.0 = 變兩倍，−0.9 = 剩一成）
         self.announce_at = announce_at
         self.start_at = start_at
         self.ramp_s = ramp_s
@@ -482,12 +482,15 @@ class MarketEvent:
         self.rare = self.tier != "normal"
 
     def log_effect(self, t: float) -> float:
+        """t 時這則新聞對價格的影響（對數；Exchange 把每則加起來 = 倍數相乘，再夾 total_cap）。
+        偏離量照半衰期減半：倍數 = 1 + dev × g，開始後 ramp_s 內 g 從 0 線性漲到 1，之後每個半衰期減半
+        （ceo 2026-10-03，D33）。以前是倍數本身照對數消退（factor^g）：−90% 回到平常比 +100% 慢得多，
+        兩種一樣多時平均價格偏低 2–5%；現在 +100%、−90% 的面積是 +1.44、−1.30（× 半衰期）。"""
         if t <= self.start_at or t >= self.end_at:
             return 0.0
         s = t - self.start_at
-        if s < self.ramp_s:
-            return self.log_mag * s / self.ramp_s
-        return self.log_mag * 2.0 ** (-(s - self.ramp_s) / self.half_life_s)
+        g = s / self.ramp_s if s < self.ramp_s else 2.0 ** (-(s - self.ramp_s) / self.half_life_s)
+        return math.log1p(self.dev * g)
 
     def to_dict(self) -> dict:
         """摘要（模擬報表用）。存檔回復用 to_state()。"""
@@ -524,7 +527,7 @@ class MarketEvent:
         ev.eid = d["id"]
         ev.targets = tuple(d["targets"])
         ev.factor = d["factor"]
-        ev.log_mag = math.log(ev.factor)
+        ev.dev = ev.factor - 1.0
         ev.announce_at = d["announce_at"]
         ev.start_at = d["start_at"]
         ev.ramp_s = d["ramp_s"]
