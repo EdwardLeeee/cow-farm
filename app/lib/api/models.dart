@@ -892,6 +892,71 @@ class StudMarket {
   );
 }
 
+/// `GET /v1/stud/log` 借種紀錄（協定 4.6，S18-11）：借出、借入，新的在前，只留最近 [keepDays] 遊戲天。
+class StudLog {
+  const StudLog({this.keepDays = 30, this.incomeTotal = 0, this.entries = const []});
+  final int keepDays;
+
+  /// 借出收入累計（全部時間，= state.stud.income）。
+  final double incomeTotal;
+  final List<StudLogEntry> entries;
+
+  factory StudLog.fromJson(Map<String, dynamic> j) => StudLog(
+    keepDays: _i(j['keep_days'], 30),
+    incomeTotal: _d(j['income_total']),
+    entries: [for (final e in _l(j['entries'])) StudLogEntry.fromJson(_m(e))],
+  );
+}
+
+/// 借種紀錄的一筆。
+class StudLogEntry {
+  const StudLogEntry({
+    required this.out,
+    required this.time,
+    required this.price,
+    required this.bullBreed,
+    this.bullId,
+    this.calfId,
+    this.calfBreed,
+    this.ranch,
+  });
+
+  /// 借出（別人借了我的公牛）；false 是借入（我借別人的公牛）。
+  final bool out;
+
+  /// 遊戲時間。
+  final double time;
+
+  /// 借出是收到的、借入是付出的（幣）。
+  final int price;
+  final String bullBreed;
+
+  /// 公牛的編號：只有借出時有（自己牧場的牛，可能已經出貨了）。
+  final Object? bullId;
+
+  /// 借入時生下的小牛；借出時 null。
+  final Object? calfId;
+  final String? calfBreed;
+
+  /// 對方的牧場（含公營種牛站）；對方的牧場已經刪除時是 null（顯示「已刪除的牧場」）。
+  final RanchRef? ranch;
+
+  factory StudLogEntry.fromJson(Map<String, dynamic> j) {
+    final bull = _m(j['bull']);
+    final calf = j['calf'] is Map ? _m(j['calf']) : null;
+    return StudLogEntry(
+      out: j['kind'] == 'out',
+      time: _d(j['t']),
+      price: _i(j['price']),
+      bullBreed: '${bull['breed'] ?? ''}',
+      bullId: bull['id'],
+      calfId: calf?['id'],
+      calfBreed: calf == null ? null : '${calf['breed'] ?? ''}',
+      ranch: RanchRef.fromJson(j['ranch']),
+    );
+  }
+}
+
 // ---------------------------------------------------------------------------
 // 帳號
 // ---------------------------------------------------------------------------

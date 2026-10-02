@@ -82,4 +82,7 @@ abstract class GameApi {
 
   /// 借種：[price] 是預覽看到的借種費（fee.price）；這一刻的價格不一樣就回 409 price_changed（detail.price）。
   Future<BreedResult> studBorrow(Object listingId, Object dam, {required int price});
+
+  /// 借種紀錄（協定 4.6）。
+  Future<StudLog> studLog();
 }

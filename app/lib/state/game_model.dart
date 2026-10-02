@@ -769,6 +769,7 @@ class GameModel extends ChangeNotifier {
   Future<ShipPreview?> shipPreview(Cow cow) => _read(() => api.shipPreview(cow.id));
   Future<ShopInfo?> shopInfo() => _read(api.shop);
   Future<StudMarket?> studMarket() => _read(api.stud);
+  Future<StudLog?> studLog() => _read(api.studLog);
   Future<BreedPreview?> studPreview(StudListing listing, Cow dam) => _read(() => api.studPreview(listing.id, dam.id));
 
   /// 田裡現在大概有多少稻米（顯示用推算，長滿就停）。

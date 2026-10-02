@@ -206,4 +206,7 @@ class HttpGameApi implements GameApi {
   @override
   Future<BreedResult> studBorrow(Object listingId, Object dam, {required int price}) async =>
       BreedResult.fromJson(await _mutate('/v1/stud/borrow', {'listing_id': listingId, 'dam': dam, 'price': price}));
+
+  @override
+  Future<StudLog> studLog() async => StudLog.fromJson(await _get('/v1/stud/log'));
 }

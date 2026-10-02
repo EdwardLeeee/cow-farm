@@ -454,6 +454,15 @@ class FakeGameApi implements GameApi {
     },
   ];
 
+  /// 借種紀錄（GET /v1/stud/log 的回應）。
+  Map<String, dynamic> studLogJson = {'keep_days': 30, 'income_total': 1100, 'entries': []};
+
+  @override
+  Future<StudLog> studLog() async {
+    calls.add('stud-log');
+    return StudLog.fromJson(studLogJson);
+  }
+
   @override
   Future<StudMarket> stud() async {
     calls.add('stud');
