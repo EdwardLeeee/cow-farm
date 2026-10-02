@@ -81,8 +81,9 @@ Map<String, dynamic> designCalf() => {
   'adult_at': t0 + 7056,
 };
 
-/// 配好以後的牧場：娟珊 #14、荷斯坦 #3 配過種了，多了小牛 #16。
-Map<String, dynamic> bredState() => breedState(
+/// 配好以後的牧場：娟珊 #14、荷斯坦 #3 配過種了，多了小牛 #16。[penSlots] 是牛舍格數。
+Map<String, dynamic> bredState({int penSlots = 12}) => breedState(
+  penSlots: penSlots,
   cows: [
     for (final c in designCows())
       if (c['id'] == 3 || c['id'] == 14) {...c, 'bred': true, 'can_breed': false} else c,

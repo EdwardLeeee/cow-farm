@@ -158,12 +158,13 @@ Map<String, dynamic> studCalf() => {
   'origin': 'stud',
 };
 
-/// 借到以後：付了 1,820 幣，荷斯坦 #3 配過種了，多了小牛 #16。
-Map<String, dynamic> borrowedState() {
+/// 借到以後：付了 1,820 幣，荷斯坦 #3 配過種了，多了小牛 #16。[penSlots] 是牛舍格數。
+Map<String, dynamic> borrowedState({int penSlots = 12}) {
   final base = studState();
   return {
     ...studState(
       coins: 12480 - 1820,
+      penSlots: penSlots,
       cows: [
         for (final c in base['cows'] as List)
           if ((c as Map)['id'] == 3) {...c.cast<String, dynamic>(), 'bred': true, 'can_breed': false} else c,

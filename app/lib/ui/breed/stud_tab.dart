@@ -250,9 +250,11 @@ class _StudTabState extends State<StudTab> {
     final outcome = _fetch.state(m, picked: listing != null && dam != null, shown: preview);
     // 借種費：預覽的是這一刻的價格（公牛長大會漲），還沒有預覽就看市場列表的
     final price = preview?.fee?.price ?? listing?.price;
-    final notes = listing == null
+    // 剛借到（已借種）不放提醒：新小牛可能剛好把牛舍佔滿、錢也可能不夠再借，成功下面跳橘字像是失敗（設計稿 S18-09
+    // 沒有；ceo 2026-10-02）。換選別的、清掉剛借到的那一筆以後照常提醒
+    final notes = listing == null || done != null
         ? const <String>[]
-        : studNotes(s, m, preview: done == null && outcome == OutcomeState.ok ? preview : null, dam: dam, price: price);
+        : studNotes(s, m, preview: outcome == OutcomeState.ok ? preview : null, dam: dam, price: price);
     if (done == null &&
         preview != null &&
         preview.blockers.any((b) => b.code == 'listing_gone') &&

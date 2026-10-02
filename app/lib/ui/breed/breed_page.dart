@@ -151,12 +151,11 @@ class _BreedPageState extends State<BreedPage> {
 
     final preview = done?.preview ?? _fetch.value;
     final outcome = _fetch.state(m, picked: sire != null && dam != null, shown: preview);
-    final notes = breedNotes(
-      s,
-      m,
-      preview: outcome == OutcomeState.ok && done == null ? preview : null,
-      pair: [?sire, ?dam],
-    );
+    // 剛配好（已配種）不放提醒：新小牛可能剛好把牛舍佔滿，成功下面跳「牛舍滿了」像是失敗（設計稿 S08-09 沒有；
+    // ceo 2026-10-02）。換選別的、清掉剛配好的那一對以後照常提醒
+    final notes = done != null
+        ? const <String>[]
+        : breedNotes(s, m, preview: outcome == OutcomeState.ok ? preview : null, pair: [?sire, ?dam]);
     final canBreed =
         done == null && outcome == OutcomeState.ok && preview!.canBreed && notes.isEmpty && m.canAct && !_breeding;
     final calf = done == null ? null : (byKey(done.calf?.key) ?? done.calf);
