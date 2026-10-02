@@ -85,6 +85,24 @@ void main() {
     expect(zh.cowName('holstein', 12), '${zh.breedName('holstein')} #12');
   });
 
+  test('時刻依語言（glossary.md「格式」）：繁中 09:41、英文 9:41 AM、泰文 09:41 น.；中午 12 點、半夜 0 點', () {
+    final zh = Strings.forLang(AppLang.zhHant), en = Strings.forLang(AppLang.en), th = Strings.forLang(AppLang.th);
+    const nb = '\u00a0'; // 不換行空格：數字跟 AM／PM、น. 不會被拆到兩行
+    for (final (h, m, zhText, enText, thText) in [
+      (9, 41, '09:41', '9:41${nb}AM', '09:41${nb}น.'),
+      (0, 0, '00:00', '12:00${nb}AM', '00:00${nb}น.'),
+      (12, 0, '12:00', '12:00${nb}PM', '12:00${nb}น.'),
+      (12, 59, '12:59', '12:59${nb}PM', '12:59${nb}น.'),
+      (13, 5, '13:05', '1:05${nb}PM', '13:05${nb}น.'),
+      (23, 59, '23:59', '11:59${nb}PM', '23:59${nb}น.'),
+    ]) {
+      final t = DateTime(2026, 10, 2, h, m);
+      expect(zh.clock(t), zhText);
+      expect(en.clock(t), enText);
+      expect(th.clock(t), thText);
+    }
+  });
+
   test('第一次打開依手機語言：中文 → 繁中、泰文 → 泰文、其他 → 英文（D25）', () {
     expect(AppLang.forDevice(const [Locale('zh', 'TW')]), AppLang.zhHant);
     expect(AppLang.forDevice(const [Locale('zh', 'CN')]), AppLang.zhHant);

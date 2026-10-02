@@ -103,7 +103,7 @@ void main() {
     });
   });
 
-  test('維護預計恢復時間（S16-01，ends_at_real 換成手機時區後）：月、日、星期、24 小時制的時:分', () {
+  test('維護預計恢復時間（S16-01，ends_at_real 換成手機時區後）：月、日、星期、依語言的時刻', () {
     final fri = DateTime(2026, 10, 2, 3, 0); // 星期五
     expect(
       zh.maintenanceEta(fri),
@@ -112,9 +112,11 @@ void main() {
       ),
     );
     expect(zh.maintenanceEta(fri), contains('10 月 2 日（五）03:00'));
+    final en = Strings.forLang(AppLang.en);
+    expect(en.maintenanceEta(fri), contains('3:00\u00a0AM'));
     // Dart 的星期日是 7，字串表是 weekday.0
     final th = Strings.forLang(AppLang.th);
-    expect(th.maintenanceEta(DateTime(2026, 10, 4, 15, 5)), contains('${th.byKey('weekday.0')} 4/10 15:05'));
+    expect(th.maintenanceEta(DateTime(2026, 10, 4, 15, 5)), contains('${th.byKey('weekday.0')} 4/10 15:05\u00a0น.'));
   });
 
   test('新聞標題用代碼查字串表；字串表還沒有的新代碼回空字串，不讓畫面壞掉', () {
