@@ -142,6 +142,7 @@ def warehouse_view(p: Player, now: float) -> dict:
             {
                 "qty": r6(l.qty),
                 "tier": l.tier,
+                "breed": breed_of_genes(l.genes) if l.genes is not None else None,  # 舊存檔的批次沒有基因
                 "cow_id": l.cow_id,
                 "shipped_at": l.t,
                 "quality": round(f.beef_lot_mult(l, now) / fp.tier_mult[l.tier], 4),
@@ -338,6 +339,16 @@ def state_view(game: Game, p: Player, now: float, clock) -> dict:
             "listings": [listing_view(game, l, p.pid, now) for l in game.stud.owner_listings(p.pid)],
             "income": int(round(p.stud_income)),
         },
+        "economy": economy_view(f.fp),
+    }
+
+
+def economy_view(fp) -> dict:
+    """S05「優良牛奶 ×1.3」、S09 品種卡用的倍數（協定 2.3 節）：直接讀 params，app 不寫死經濟參數。"""
+    return {
+        "tier_mult": list(fp.tier_mult),  # 一般、優良、稀有、傳說：牛奶、牛肉的賣價倍率，也是耕牛的稻米產量倍率
+        "beef_grade_mult": dict(zip(GRADE_NAMES, fp.beef_grade_mult)),
+        "ox_rice_per_h": fp.rice_per_h[OX],  # 壯年耕牛每遊戲小時的稻米公斤數（× tier_mult × 年齡曲線）
     }
 
 

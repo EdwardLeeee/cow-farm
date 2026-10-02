@@ -129,6 +129,11 @@ def test_session_and_state_fields(h):
     assert st["upgrades"]["field"]["cost"] == int(round(h.server.game.players[s["player_id"]].farm.next_field_cost()))
     assert st["rice"] == {"in_fields": 0.0, "stock": 0.0, "per_hour": 0.0}
     assert set(st["stud"]) == {"listings", "income"} and st["stud"]["listings"] == []  # D26：不再選價位
+    assert st["economy"] == {  # S05、S09 的倍數：直接讀 params，app 不寫死
+        "tier_mult": list(FP.tier_mult),
+        "beef_grade_mult": dict(zip("ABC", FP.beef_grade_mult)),
+        "ox_rice_per_h": FP.rice_per_h[1],
+    }
     cows = {c["id"]: c for c in st["cows"]}
     assert len(cows) == 2
     for c in cows.values():
@@ -451,6 +456,7 @@ def test_ship_grade_probs_and_draw_match_engine(h):
     assert [r["grade_probs"][g] for g in "ABC"] == pytest.approx(probs, abs=1e-6)
     lot = r["state"]["warehouse"]["beef_lots"][0]
     assert lot["grade"] == expected
+    assert lot["breed"] == cow["breed"] and lot["cow_id"] == cow["id"]  # S05-02「荷斯坦 #4 出貨」
     s = h.post("/v1/sell", tok, {"commodity": "beef", "qty": lot["qty"], "request_id": new_rid()}).json()
     assert s["total"] == pytest.approx(r["beef"]["value_estimate"], abs=1)
 

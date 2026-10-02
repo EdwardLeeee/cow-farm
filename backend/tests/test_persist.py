@@ -34,7 +34,7 @@ def test_each_class_round_trips():
         if i % 17 == 0:
             farm.sell_all_milk(ex.markets["milk"], t)
     farm.lots.append(Lot(2, 12.5, t))
-    farm.beef_lots.append(BeefLot(1, 250.0, 1.3, t, 9, 0))
+    farm.beef_lots.append(BeefLot(1, 250.0, 1.3, t, 9, 0, 0b101101))
     farm.rice_lots.append(RiceLot(40.5, t))
     farm.fields.append(Field(t, -1, 3.25))
 
@@ -46,6 +46,9 @@ def test_each_class_round_trips():
     assert Lot.from_dict(rt(lot.to_dict())).to_dict() == lot.to_dict()
     bl = farm.beef_lots[-1]
     assert BeefLot.from_dict(rt(bl.to_dict())).to_dict() == bl.to_dict()
+    assert BeefLot.from_dict(rt(bl.to_dict())).genes == 0b101101
+    old = BeefLot.from_dict([1, 250.0, 1.3, t, 9, 0])  # 2026-10-02 之前的存檔：6 個元素、沒有基因
+    assert old.genes is None and old.grade == 0 and old.cow_id == 9
     rl = farm.rice_lots[-1]
     assert RiceLot.from_dict(rt(rl.to_dict())).to_dict() == rl.to_dict()
     fl = farm.fields[-1]

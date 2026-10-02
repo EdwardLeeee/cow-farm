@@ -483,24 +483,43 @@ class Lot:
 
 class BeefLot:
     """倉庫裡的一批牛肉（出貨一頭牛 = 一批）。mult = 評級倍率 × 稀有度倍率（v0.1 是肉質 × 稀有度）；
-    grade：0 A、1 B、2 C（−1 = 舊存檔沒有評級）；qty 單位是公斤。"""
+    grade：0 A、1 B、2 C（−1 = 舊存檔沒有評級）；qty 單位是公斤。
+    genes：出貨那頭牛的基因（伺服器拿來顯示品種；None = 2026-10-02 之前出貨的，存檔裡沒有）。"""
 
-    __slots__ = ("tier", "qty", "mult", "t", "cow_id", "grade")
+    __slots__ = ("tier", "qty", "mult", "t", "cow_id", "grade", "genes")
 
-    def __init__(self, tier: int, qty: float, mult: float, t: float, cow_id: int = 0, grade: int = -1):
+    def __init__(
+        self,
+        tier: int,
+        qty: float,
+        mult: float,
+        t: float,
+        cow_id: int = 0,
+        grade: int = -1,
+        genes: Optional[int] = None,
+    ):
         self.tier = tier
         self.qty = qty
         self.mult = mult
         self.t = t
         self.cow_id = cow_id
         self.grade = grade
+        self.genes = genes
 
     def to_dict(self) -> list:
-        return [self.tier, self.qty, self.mult, self.t, self.cow_id, self.grade]
+        return [self.tier, self.qty, self.mult, self.t, self.cow_id, self.grade, self.genes]
 
     @classmethod
     def from_dict(cls, d: Sequence) -> "BeefLot":
-        return cls(d[0], d[1], d[2], d[3], d[4] if len(d) > 4 else 0, d[5] if len(d) > 5 else -1)
+        return cls(
+            d[0],
+            d[1],
+            d[2],
+            d[3],
+            d[4] if len(d) > 4 else 0,
+            d[5] if len(d) > 5 else -1,
+            d[6] if len(d) > 6 else None,  # 舊存檔是 6 個元素
+        )
 
 
 class RiceLot:
@@ -1004,7 +1023,7 @@ class Farm:
         self.advance(now)
         w = beef_weight(self.fp, cow, now)
         g, mult = self._grade_mult(cow, now, rng)
-        lot = BeefLot(cow.tier, w, mult, now, cow.cid, g)
+        lot = BeefLot(cow.tier, w, mult, now, cow.cid, g, cow.g)
         self.cows.remove(cow)
         self.beef_lots.append(lot)
         self._record(now, "ship", 0.0, w)

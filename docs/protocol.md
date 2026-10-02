@@ -297,7 +297,7 @@ app 怎麼顯示：
             "boost": {"mult": 5.0, "until": 1791133200.0}},
  "warehouse": {"capacity": 150.0, "used": 0.0, "milk_total": 0.0, "beef_total": 40.439815,
    "milk_lots": [],
-   "beef_lots": [{"qty": 40.439815, "tier": 0, "cow_id": 1, "shipped_at": 1791141900.0, "quality": 0.75, "storage_factor": 1.0, "grade": "C"}],
+   "beef_lots": [{"qty": 40.439815, "tier": 0, "breed": "holstein", "cow_id": 1, "shipped_at": 1791141900.0, "quality": 0.75, "storage_factor": 1.0, "grade": "C"}],
    "rice_total": 33.0, "rice_lots": [{"qty": 33.0, "harvested_at": 1791141900.0, "quality": 1.0}]},
  "pen": {"slots": 6, "used": 3, "next_cost": 280, "next_open_at": null, "max_slots": 40},
  "upgrades": {
@@ -311,6 +311,7 @@ app 怎麼顯示：
  "fields": [{"index": 0, "cow_id": 2, "rice": 33.0, "capacity": 88.0, "per_hour": 11.0}],
  "rice": {"in_fields": 33.0, "stock": 0.0, "per_hour": 11.0},
  "stud": {"listings": [], "income": 0},
+ "economy": {"tier_mult": [1.0, 1.3, 1.7, 2.5], "beef_grade_mult": {"A": 1.25, "B": 1.0, "C": 0.75}, "ox_rice_per_h": 11.0},
  "account": {"links": []},
  "maintenance": null
 }
@@ -328,6 +329,7 @@ app 怎麼顯示：
 | `codex[]` | array | PR 4：已發現的品種 `{"breed", "found_at"}`，`found_at` 是第一次發現的遊戲時間（S09-03「第一次發現：{date}」）。牛一出生（或抽到、借種生下）就算發現，之後出貨也不會消失。共 24 種，沒出現在陣列裡的顯示剪影。「目前有 n 頭」由 app 數 `cows[]` |
 | `fields[]`、`rice` | | 田地（見下） |
 | `stud` | object | `listings` 自己上架的借種（形狀同 `GET /v1/stud` 的 `listings[]`）、`income` 借種收入累計（幣） |
+| `economy` | object | 經濟倍數，直接讀伺服器的參數（`params.py`），app 不要寫死：`tier_mult`（一般、優良、稀有、傳說：牛奶、牛肉的賣價倍率，也是耕牛的稻米產量倍率；S05「優良牛奶 ×1.3」、S09 品種卡）、`beef_grade_mult`（牛肉評級 A／B／C 的賣價倍率）、`ox_rice_per_h`（壯年一般耕牛每遊戲小時的稻米公斤數；某頭牛 = 這個 × `tier_mult` × 年齡曲線，現在的值看 `cows[].rice_per_h`）。牛奶賣價 = 市價 × `tier_mult` × 新鮮度；牛肉 = 市價 × `beef_grade_mult` × `tier_mult` × 存放折價 |
 | `account` | object | PR 9：`links[]` 綁定的帳號 `{"provider": "apple"｜"google", "linked_at_real"}`。空陣列 = 還沒備份（頂列齒輪的小點 G-10、S13-01「還沒備份」） |
 | `maintenance` | object／null | PR 8：維護預告或維護中（第 6 節）；沒有是 null |
 
@@ -382,7 +384,7 @@ v2 拿掉的：`type_name`、`tier_name`、`ready_at`、`breed_ready`（看 `can
 | `milk_total` | 可以賣的牛奶（瓶，不含壞掉的） |
 | `beef_total` | 牛肉（公斤） |
 | `milk_lots[]` | 每次收奶一批：`qty`、`tier`、`collected_at`、`freshness`（0–1，賣價乘上它；0 = 壞掉，下次收奶或賣出時丟掉）、`fresh_until`（新鮮度開始下降的時間）、`spoils_at`（壞掉的時間） |
-| `beef_lots[]` | 每出貨一頭一批：`qty`（公斤）、`tier`、`cow_id`、`shipped_at`、`grade`（`A`／`B`／`C`）、`quality`（現在的賣價倍率，不含稀有度：評級倍率 × 倉庫衰減）、`storage_factor`（倉庫衰減那一部分） |
+| `beef_lots[]` | 每出貨一頭一批：`qty`（公斤）、`tier`、`breed`（出貨那頭牛的品種代號，同 `cows[].breed`；2026-10-02 加這個欄位之前出貨的批次是 `null`，app 只寫「#編號 出貨」）、`cow_id`、`shipped_at`、`grade`（`A`／`B`／`C`）、`quality`（現在的賣價倍率，不含稀有度：評級倍率 × 倉庫衰減）、`storage_factor`（倉庫衰減那一部分） |
 | `rice_total` | 稻米（公斤） |
 | `rice_lots[]` | 每次收成一批：`qty`（公斤）、`harvested_at`、`quality`（0.7–1，賣價乘上它：收成後 72 遊戲小時內 1，之後慢慢降到 0.7，不會壞） |
 
@@ -1046,3 +1048,5 @@ app 啟動時先打這個（還沒有 token 也能打），再決定要不要顯
 - 2026-10-02：1.3 節補 request_id 的安全規則：用安全亂數產生的 UUID v4；建立牧場的 request_id 在 10 分鐘內等於請求的憑證，app、伺服器、反向代理都不把它和請求本文寫進日誌。ceo 裁示 `POST /v1/session` 的重送不改程式。欄位不變。
 - 2026-10-02：1.4 節錯誤碼表補上伺服器本來就會送的 `http_error`（其他 HTTP 錯誤，app 顯示 `unknownError`）。`tests/test_error_table.py` 自動比對這張表、伺服器程式和字串表。
 - 2026-10-02：1.3 節、第 7 節補：token 跟 request_id 一樣不能寫進日誌，包括 `/v1/ws` 網址上的 token（cow-app 在 #58 發現 app 的連線錯誤日誌會帶出網址）。欄位不變。
+- 2026-10-02：2.3 節 `warehouse.beef_lots[]` 加 `breed`（出貨那頭牛的品種代號，S05-02「荷斯坦 #4 出貨」用；之前出貨的批次是 `null`）。存檔格式不變。
+- 2026-10-02：2.3 節 state 加 `economy`（`tier_mult`、`beef_grade_mult`、`ox_rice_per_h`，S05、S09 的倍數用；直接讀 params）。
