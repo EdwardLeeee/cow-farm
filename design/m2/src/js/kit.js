@@ -97,6 +97,24 @@ export function fitMiniLines(root) {
   return n;
 }
 
+// 牧場點牛的小名片（.cow-pop）平常在頭頂上方 14、尖角朝下；上面放不下（名片上緣會碰到頂列：頂列下緣再留 6）
+// 就放到牛的下面（腳下 14）、尖角朝上（使用者 2026-10-02 核准，cow-app #70）。前排的牛放得下，不變。
+export function placeCowPop(root) {
+  let n = 0;
+  const hud = root.querySelector('.hud');
+  if (!hud) return 0;
+  const limit = hud.getBoundingClientRect().bottom + 6;
+  root.querySelectorAll('.cow-pop[data-foot]').forEach((p) => {
+    // 名片被擋在畫面裡（靠右的牛）時，尖角跟著牛頭移動；沒被擋住時本來就對準（左 34 px），不改
+    const tip = Math.max(18, Math.min(p.offsetWidth - 36, +p.dataset.hx - p.offsetLeft - 9));
+    if (Math.abs(tip - 34) > 0.5) { p.style.setProperty('--tip', `${tip}px`); n++; }
+    if (p.hasAttribute('data-noflip') || p.getBoundingClientRect().top >= limit - 0.5) return;
+    p.style.top = `${+p.dataset.foot + 14}px`; p.style.transform = 'none'; p.classList.add('below');
+    n++;
+  });
+  return n;
+}
+
 // 開場（S01）的版本號一律在框的下面（ceo 2026-10-02，跟 app #61 一樣）：平常在最下面（安全區上面 12 px）；
 // 框太高、版本號會被蓋住時，接在框下面 12 px，整頁變長、可以往下捲，多出來的部分是草地。
 export function placeVersion(root) {
