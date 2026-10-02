@@ -60,7 +60,7 @@ export function sellCard(m, st = 'ok', { qty, avg, total, lots } = {}) {
 }
 
 export function newsCard(items = NEWS) {
-  return `<article class="card news-card"><div class="card-head"><span class="card-title coral">${icon('news', 18)}${t('newsTitle')}</span><span class="card-sub">${t('s06.newsFictional')}</span></div>
+  return `<article class="card news-card"><div class="card-head"><span class="card-title coral">${icon('news', 18)}${t('newsTitle')}</span></div>
     ${items.length ? `<div class="news-list">${items.map((n) => `<div class="news-item">
       <div class="n-tags"><span class="n-tag">${newsTag(n)}</span>${n.big ? `<span class="badge full">${t('s06.bigNews')}</span>` : ''}${n.upcoming ? `<span class="badge new">${t('s06.upcoming')}</span>` : ''}<span class="n-dir ${n.dir}">${icon(n.dir === 'up' ? 'up' : 'down', 11)}${t(n.dir === 'up' ? 's06.up' : 's06.down')}</span><span class="n-when">${ago(n.when)}</span></div>
       <p class="n-text">${newsText(n)}</p></div>`).join('')}</div>` : `<p class="hint" style="padding:10px 2px 2px">${t('noNews')}</p>`}
