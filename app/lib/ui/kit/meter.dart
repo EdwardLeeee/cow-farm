@@ -6,13 +6,14 @@ import 'app_icon.dart';
 
 /// .card-title：小標籤（黃底；奶桶藍、收購價綠）。
 class CardTitle extends StatelessWidget {
-  const CardTitle(this.text, {super.key, this.color = AppColors.yellow, this.icon});
+  const CardTitle(this.text, {super.key, this.color = AppColors.yellow, this.icon, this.iconSize = 18});
 
   final String text;
   final Color color;
 
-  /// 字前面的圖示（18，倉庫的牛奶、牛肉、稻米）。
+  /// 字前面的圖示（倉庫的牛奶、牛肉、稻米是 18；市場收購價的金幣是 16）。
   final String? icon;
+  final double iconSize;
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +27,14 @@ class CardTitle extends StatelessWidget {
       ),
       child: icon == null
           ? label
-          : Row(mainAxisSize: MainAxisSize.min, children: [AppIcon(icon!, size: 18), const SizedBox(width: 4), label]),
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AppIcon(icon!, size: iconSize),
+                const SizedBox(width: 4),
+                label,
+              ],
+            ),
     );
   }
 }

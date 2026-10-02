@@ -15,6 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 's01_s02_cases.dart';
 import 's03_cases.dart';
 import 's05_cases.dart';
+import 's06_cases.dart';
 
 /// 手機的尺寸與安全區，跟設計稿 design/m2/src/js/kit.js 的 DEVICES 一樣（pages_test 會比對）。
 enum Screen {
@@ -64,7 +65,7 @@ class PageCase {
 }
 
 /// 全部的頁面狀態。第 4 步每做好一組畫面，就把它的狀態加進來，並從 pages_test.dart 的待做清單拿掉。
-final List<PageCase> pageCases = [...startCases, ...s03Cases, ...s05Cases];
+final List<PageCase> pageCases = [...startCases, ...s03Cases, ...s05Cases, ...s06Cases];
 
 /// 載入 app 內建的字型和牛的圖的量測（cows.json）。測試環境預設不載字型，字會畫成方塊，量不準寬度，也看不出泰文怎麼斷行。
 Future<void> loadAppAssets() async {

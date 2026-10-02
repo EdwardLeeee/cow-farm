@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../l10n/l10n.dart';
 import '../l10n/strings.dart';
 import 'kit/frame.dart';
+import 'market/market_page.dart';
 import 'ranch/pen_list.dart';
 import 'ranch/ranch_page.dart';
 import '../state/game_model.dart';
@@ -15,7 +16,6 @@ import 'screens/codex_screen.dart';
 import 'screens/cow_detail_screen.dart';
 import 'screens/fields_screen.dart';
 import 'screens/leaderboard_screen.dart';
-import 'screens/market_screen.dart';
 import 'screens/shop_screen.dart';
 import 'start/start_flow.dart';
 import 'warehouse/warehouse_page.dart';
@@ -67,6 +67,9 @@ class _HomeShellState extends State<HomeShell> {
       page = AppFrame(hud: false, content: _content(m));
     } else if (m.tab == AppTab.ranch && m.detailCowKey == null && !m.penListOpen && !m.warehouseOpen) {
       page = const RanchPage();
+    } else if (m.tab == AppTab.market && m.detailCowKey == null) {
+      // 市場（S06）：自己的外框，賣出的提示疊在最上面
+      page = const MarketPage();
     } else {
       page = AppFrame(tab: m.tab, content: _content(m), contentPadding: EdgeInsets.zero);
     }
@@ -108,7 +111,7 @@ class _HomeShellState extends State<HomeShell> {
     return switch (m.tab) {
       // 倉庫（S05-02）、牛舍清單（S03-07）
       AppTab.ranch => m.warehouseOpen ? const WarehousePage() : const PenListPage(),
-      AppTab.market => const MarketScreen(),
+      AppTab.market => const SizedBox.shrink(), // 市場是自己的整頁（MarketPage），不會走到這裡
       AppTab.fields => const FieldsScreen(),
       AppTab.breed => const BreedScreen(),
       AppTab.shop => const ShopScreen(),

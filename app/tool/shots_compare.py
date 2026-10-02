@@ -28,12 +28,20 @@ def font(size):
         return ImageFont.load_default()
 
 
+# 後來加的局部狀態放在另一張狀態表（設計稿 s03.js 的 draft(...)：board '新文案-狀態表'）
+EXTRA_TABLES = {'S03-16': '新文案-狀態表', 'S03-17': '新文案-狀態表', 'S03-18': '新文案-狀態表'}
+
+
 def find_board(page_id, width):
     """整頁狀態的設計稿；沒有就用那個畫面的局部狀態表。回傳 (路徑, 是不是整頁)。"""
     full = glob.glob(os.path.join(BOARDS, '*', f'M2-{page_id}-*-{width}.png'))
     if full:
         return full[0], True
     screen = page_id.split('-')[0]
+    if page_id in EXTRA_TABLES:
+        extra = glob.glob(os.path.join(BOARDS, '*', f'M2-{screen}-{EXTRA_TABLES[page_id]}-{width}.png'))
+        if extra:
+            return extra[0], False
     table = glob.glob(os.path.join(BOARDS, '*', f'M2-{screen}-表-*-{width}.png'))
     return (table[0], False) if table else (None, False)
 

@@ -56,11 +56,16 @@ void main() {
     );
     expect(breedBtn.onPressed, isNull);
 
+    // 市場（S06）：確認賣出、¼½全部都停用
     await tester.tap(find.byKey(const Key('tab-market')));
     await tester.pump();
-    await tester.ensureVisible(find.byKey(const Key('sell-confirm-milk')));
-    expect(_btn(tester, 'sell-confirm-milk').onPressed, isNull);
-    final slider = tester.widget<Slider>(find.byKey(const Key('sell-slider-milk')));
-    expect(slider.onChanged, isNull);
+    await tester.pump();
+    final confirm = find.byKey(const Key('sell-confirm'));
+    await tester.scrollUntilVisible(confirm, 150, scrollable: find.byType(Scrollable).first);
+    expect(tester.widget<AppButton>(confirm).onPressed, isNull);
+    final qty = tester.widget<Text>(find.byKey(const Key('sell-qty'))).data;
+    await tester.tap(find.byKey(const Key('sell-chip-1')));
+    await tester.pump();
+    expect(tester.widget<Text>(find.byKey(const Key('sell-qty'))).data, qty, reason: '斷線時按了不會變');
   });
 }

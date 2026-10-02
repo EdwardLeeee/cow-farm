@@ -18,9 +18,18 @@ void main() {
       await tester.pump();
       await tester.pump();
       expect(tester.takeException(), isNull);
+      // 市場（S06）：三種商品各點一次
+      if (tab == AppTab.market) {
+        for (final c in ['milk', 'beef', 'rice']) {
+          await tester.tap(find.byKey(Key('price-$c')));
+          await tester.pump();
+          await tester.pump();
+          expect(tester.takeException(), isNull, reason: c);
+        }
+      }
       // 次分頁也看一次
       final tabs = find.byType(Tab);
-      if (tab == AppTab.market || tab == AppTab.breed || tab == AppTab.records) {
+      if (tab == AppTab.breed || tab == AppTab.records) {
         expect(tabs.evaluate().length, greaterThan(1), reason: '${tab.name} 應該有次分頁');
       }
       for (var i = 0; i < tabs.evaluate().length; i++) {

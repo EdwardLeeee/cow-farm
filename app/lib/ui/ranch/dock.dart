@@ -433,9 +433,8 @@ class _MarketMini extends StatelessWidget {
 
   /// 比平常（基本價）高或低幾 %，四捨五入到整數；0 就寫「平常」（fixtures.js 的 vsBase）。
   Widget _vsNormal(Strings s, Quote q) {
-    final ratio = q.ratio ?? (q.basePrice != null && q.basePrice! > 0 ? q.price / q.basePrice! : null);
-    if (ratio == null) return const SizedBox.shrink();
-    final v = ((ratio - 1) * 100).round();
+    final v = q.vsBasePct;
+    if (v == null) return const SizedBox.shrink();
     if (v == 0) {
       return Text(
         s.s03Normal,
