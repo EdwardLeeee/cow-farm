@@ -12,11 +12,37 @@ import 'package:flutter_test/flutter_test.dart';
 import 'fakes.dart';
 import 'pages/page_case.dart';
 
+final _zh = Strings.forLang(AppLang.zhHant);
+
 GameModel _fresh() =>
     GameModel(api: FakeGameApi(), push: FakePush(), tokens: MemoryTokenStore(), now: FakeClock().call, uiTick: null);
 
 void main() {
   setUpAll(loadAppAssets);
+
+  // iPhone（加到主畫面開）回報「一點輸入框就跳掉」：鍵盤一開，S02 換成鍵盤的版面，名字卡（連同輸入框）被拆掉重做，
+  // 焦點掉了、鍵盤收起來，版面又換回去，只能用「幫我想一個」。名字卡要在鍵盤開關時保持同一個（ceo 2026-10-03）
+  testWidgets('S02：沒有鍵盤時點輸入框，鍵盤打開、版面換掉以後焦點還在，打得進字', (tester) async {
+    Screen.w430.apply(tester);
+    await pumpAppIn(tester, _fresh()..needsRanch = true, AppLang.zhHant);
+    final input = find.byKey(const Key('ranch-name'));
+    EditableText editable() =>
+        tester.widget<EditableText>(find.descendant(of: input, matching: find.byType(EditableText)));
+    await tester.tap(input);
+    await tester.pump();
+    expect(editable().focusNode.hasFocus, isTrue);
+    expect(find.text(_zh.s02SameName), findsOneWidget, reason: '還沒有鍵盤：同名的說明還在');
+
+    tester.view.viewInsets = FakeViewPadding(bottom: 336 * tester.view.devicePixelRatio);
+    await tester.pump();
+    await tester.pump();
+    expect(find.text(_zh.s02SameName), findsNothing, reason: '換成鍵盤的版面（牛和說明收起來）');
+    expect(editable().focusNode.hasFocus, isTrue, reason: '輸入框沒有被拆掉重做，焦點還在');
+    expect(tester.testTextInput.hasAnyClients, isTrue, reason: '鍵盤還接著');
+    tester.testTextInput.enterText('晨光牧場');
+    await tester.pump();
+    expect(editable().controller.text, '晨光牧場');
+  });
 
   for (final lang in AppLang.values) {
     for (final screen in Screen.values) {
