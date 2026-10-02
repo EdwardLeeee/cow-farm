@@ -340,9 +340,21 @@ class GameModel extends ChangeNotifier {
   }
 
   void _setState(GameState s) {
+    final before = state?.level;
     state = s;
     _stateAt = _now();
     if (s.ranchName != null && s.ranchName!.isNotEmpty) ranchName = s.ranchName!;
+    // 等級比上一次高：要慶祝（S11-01）。剛打開、剛開新牧場（之前沒有 state）不算；一次升好幾級只記最後那一級
+    if (before != null && s.level > before) levelUp = (level: s.level, levelAt: s.levelProgress.levelAt);
+  }
+
+  /// 剛升級、還沒按「好」的慶祝（S11-01）：升到幾級、這一級的門檻（累積收入）。
+  ({int level, double levelAt})? levelUp;
+
+  /// 按了慶祝卡的「好」。
+  void dismissLevelUp() {
+    levelUp = null;
+    _notify();
   }
 
   /// 可以打要 token 的 API：有 token、token 沒失效、沒有在維護。
