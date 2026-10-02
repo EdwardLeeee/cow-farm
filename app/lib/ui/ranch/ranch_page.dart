@@ -24,6 +24,7 @@ import '../widgets/action_button.dart';
 import '../widgets/ticker_builder.dart';
 import 'dock.dart';
 import 'pen_list.dart';
+import 'ranch_game.dart';
 import 'scene.dart';
 
 class RanchPage extends StatefulWidget {
@@ -35,6 +36,9 @@ class RanchPage extends StatefulWidget {
 
 class _RanchPageState extends State<RanchPage> {
   double _pan = 0;
+
+  /// 畫牛的 Flame 遊戲（A-11、A-07）：泡泡和小名片從這裡知道停下來的牛走到哪裡。
+  final _game = RanchGame();
 
   /// 被點到的牛（S03-06：轉正面、跳出小名片）。
   Object? _popId;
@@ -158,6 +162,7 @@ class _RanchPageState extends State<RanchPage> {
     return AppFrame(
       tab: AppTab.ranch,
       scene: RanchScene(
+        game: _game,
         cows: cows,
         pan: _pan,
         onPan: (p) {
@@ -168,7 +173,7 @@ class _RanchPageState extends State<RanchPage> {
         onTapCow: (c) => setState(() => _popId = _popId == c.id ? null : c.id),
         onTapEmpty: _popId == null ? null : () => setState(() => _popId = null),
       ),
-      underlays: [if (bubbleCow != null) _BubbleAnchor(cows: cows, cow: bubbleCow, pan: _pan)],
+      underlays: [if (bubbleCow != null) _BubbleAnchor(cows: cows, cow: bubbleCow, pan: _pan, game: _game)],
       body: [
         if (news != null)
           Positioned(
@@ -219,7 +224,7 @@ class _RanchPageState extends State<RanchPage> {
         ),
       ],
       overlays: [
-        if (popCow != null) _CowPopAnchor(cows: cows, cow: popCow, pan: _pan),
+        if (popCow != null) _CowPopAnchor(cows: cows, cow: popCow, pan: _pan, game: _game),
         if (bigNews != null)
           Positioned(
             left: 16,
@@ -272,11 +277,12 @@ class _Toast {
 
 /// 「奶桶滿了」泡泡（.bubble）：在那頭牛的頭頂上方，跟著場景左右捲。
 class _BubbleAnchor extends StatelessWidget {
-  const _BubbleAnchor({required this.cows, required this.cow, required this.pan});
+  const _BubbleAnchor({required this.cows, required this.cow, required this.pan, required this.game});
 
   final List<SceneCow> cows;
   final Cow cow;
   final double pan;
+  final RanchGame game;
 
   @override
   Widget build(BuildContext context) => Positioned.fill(
@@ -285,7 +291,8 @@ class _BubbleAnchor extends StatelessWidget {
         builder: (context, c) {
           final fit = SceneFit(c.biggest, pan);
           final sc = cows.firstWhere((x) => x.cow.id == cow.id);
-          final p = CowPlacement.of(sc, fit);
+          // 牛轉正面時停在走到的地方
+          final p = CowPlacement.of(sc, fit, dx: game.dxOf(cow.id));
           if (p == null) return const SizedBox.shrink();
           // left: 頭頂 x、top: 頭頂 y − 4，再往上移自己的高度、置中（translate(-50%, -100%)），margin-top −8
           return Stack(
@@ -730,11 +737,12 @@ class _BigNews extends StatelessWidget {
 /// （夾在螢幕左 12 到右 220 之間）。平常在頭頂上方 14、尖角朝下；名片上緣會碰到頂列（頂列下緣再留 6）時，
 /// 改放到牛腳下 14、尖角朝上（D30）。名片被擋在畫面裡時，尖角跟著移到對準那頭牛。
 class _CowPopAnchor extends StatelessWidget {
-  const _CowPopAnchor({required this.cows, required this.cow, required this.pan});
+  const _CowPopAnchor({required this.cows, required this.cow, required this.pan, required this.game});
 
   final List<SceneCow> cows;
   final Cow cow;
   final double pan;
+  final RanchGame game;
 
   @override
   Widget build(BuildContext context) {
@@ -742,7 +750,11 @@ class _CowPopAnchor extends StatelessWidget {
     return Positioned.fill(
       child: LayoutBuilder(
         builder: (context, c) {
-          final p = CowPlacement.of(cows.firstWhere((x) => x.cow.id == cow.id), SceneFit(c.biggest, pan));
+          final p = CowPlacement.of(
+            cows.firstWhere((x) => x.cow.id == cow.id),
+            SceneFit(c.biggest, pan),
+            dx: game.dxOf(cow.id),
+          );
           if (p == null) return const SizedBox.shrink();
           return _PopPlacer(
             head: p.head,

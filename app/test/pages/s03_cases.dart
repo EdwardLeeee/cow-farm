@@ -11,11 +11,12 @@ import 'package:cowfarm/ui/kit/cow_bits.dart';
 import 'package:cowfarm/ui/kit/frame.dart';
 import 'package:cowfarm/ui/kit/kit.dart';
 import 'package:cowfarm/ui/ranch/dock.dart';
+import 'package:cowfarm/ui/ranch/ranch_game.dart';
 import 'package:cowfarm/ui/ranch/ranch_page.dart';
 import 'package:cowfarm/ui/ranch/scene.dart';
+import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
@@ -309,13 +310,19 @@ Widget _hudRow(HudData d, {bool dot = false}) => SizedBox(
 
 const _ranchHud = HudData(name: '晨光河畔牧場', level: 4, xp: 0.41, coins: 12480);
 
+/// 牧場場景裡畫牛的 Flame 遊戲（A-11、A-07）。
+RanchGame ranchGame(WidgetTester tester) =>
+    tester.widget<GameWidget<RanchGame>>(find.byType(GameWidget<RanchGame>)).game!;
+
+/// 場景裡那頭牛現在畫在螢幕的哪裡；不在場景裡（去田裡了）是 null。
+Rect? sceneCowRect(WidgetTester tester, Object id) =>
+    ranchGame(tester).cowRect(id)?.shift(tester.getTopLeft(find.byType(RanchScene)));
+
+/// 點場景裡的那頭牛：牛畫在 Flame 裡，照它現在的位置點（前面有別頭牛擋住就是點到那頭）。
+Future<void> tapSceneCow(WidgetTester tester, Object id) => tester.tapAt(sceneCowRect(tester, id)!.center);
+
 /// 場景裡那頭牛現在用的圖（檔名有 _front_ 就是轉正面）。
-String sceneCowAsset(WidgetTester tester, Object id) {
-  final svg = tester.widget<SvgPicture>(
-    find.descendant(of: find.byKey(Key('scene-cow-$id')), matching: find.byType(SvgPicture)),
-  );
-  return (svg.bytesLoader as SvgAssetLoader).assetName;
-}
+String sceneCowAsset(WidgetTester tester, Object id) => 'assets/cows/svg/${ranchGame(tester).artOf(id)}.svg';
 
 /// 從牧場頁按「我的牛」打開牛舍清單（S03-07）。
 Future<void> openPenList(WidgetTester tester) async {
@@ -356,7 +363,8 @@ final s03Cases = <PageCase>[
       expect(find.text('10 / 12'), findsOneWidget);
       expect(find.byKey(const Key('ticker')), findsOneWidget);
       // 場景裡有 8 頭牛：去田裡的 #2、#9 不在
-      expect(find.byKey(const Key('scene-cow-2')), findsNothing);
+      expect(ranchGame(tester).cowRect(2), isNull);
+      expect(ranchGame(tester).cowRect(9), isNull);
       expect(find.byType(OfflinePill), findsNothing);
     },
   ),
@@ -440,7 +448,7 @@ final s03Cases = <PageCase>[
     '點一頭牛：轉正面、跳出小名片',
     (tester, lang) async {
       await pumpAppIn(tester, await ranchModel(), lang, prefs: swipeHintSeen);
-      await tester.tap(find.byKey(const Key('scene-cow-12')));
+      await tapSceneCow(tester, 12);
       await tester.pump();
     },
     check: (tester) {
@@ -713,7 +721,7 @@ final s03Cases = <PageCase>[
     '點後排的牛：上面放不下，名片放到牛的下面、尖角朝上',
     (tester, lang) async {
       await pumpAppIn(tester, await ranchModel(), lang, prefs: swipeHintSeen);
-      await tester.tap(find.byKey(const Key('scene-cow-14')));
+      await tapSceneCow(tester, 14);
       await tester.pump();
     },
     check: (tester) {
@@ -721,7 +729,7 @@ final s03Cases = <PageCase>[
       expect(p.below, isTrue, reason: '頭頂上方放不下（會碰到頂列）');
       expect(p.tip, 34, reason: '名片沒被擋，尖角在原本的位置');
       final pop = tester.getRect(find.byKey(const Key('cow-pop')));
-      expect(pop.top, greaterThan(tester.getRect(find.byKey(const Key('scene-cow-14'))).center.dy));
+      expect(pop.top, greaterThan(sceneCowRect(tester, 14)!.center.dy));
       // 公牛的名片寫體重（ceo 2026-10-02，照 D30 狀態表）
       expect(find.text(_zh.weight(v: '205')), findsOneWidget);
     },
@@ -731,7 +739,7 @@ final s03Cases = <PageCase>[
     '點後排的牛（右邊那頭）：一樣放到牛的下面',
     (tester, lang) async {
       await pumpAppIn(tester, await ranchModel(), lang, prefs: swipeHintSeen);
-      await tester.tap(find.byKey(const Key('scene-cow-8')));
+      await tapSceneCow(tester, 8);
       await tester.pump();
     },
     check: (tester) {

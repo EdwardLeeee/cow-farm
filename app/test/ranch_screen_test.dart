@@ -11,7 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'fakes.dart';
 import 'pages/page_case.dart';
-import 'pages/s03_cases.dart' show popPlacer, ranchModel, sceneCowAsset;
+import 'pages/s03_cases.dart' show popPlacer, ranchModel, sceneCowAsset, tapSceneCow;
 
 final _zh = Strings.forLang(AppLang.zhHant);
 
@@ -150,17 +150,17 @@ void main() {
     expect(pop, findsNothing);
 
     // 產奶的母牛：寫產量（稀有度一般）
-    await tester.tap(find.byKey(const Key('scene-cow-1')));
+    await tapSceneCow(tester, 1);
     await tester.pump();
     expect(pop, findsOneWidget);
     expect(find.text(_zh.s03PopMilk(tier: _zh.tierName(0), n: '14')), findsOneWidget);
     // 再點同一頭：收起來
-    await tester.tap(find.byKey(const Key('scene-cow-1')));
+    await tapSceneCow(tester, 1);
     await tester.pump();
     expect(pop, findsNothing);
 
     // 小牛：標籤「小牛」，那一行寫長大還要多久（ceo 2026-10-02）。#2 在場景右半邊，一開始看不到
-    await tester.tap(find.byKey(const Key('scene-cow-3')));
+    await tapSceneCow(tester, 3);
     await tester.pump();
     expect(find.descendant(of: pop, matching: find.text(_zh.cowName(m.state!.cows[2].breed, 3))), findsOneWidget);
     expect(find.descendant(of: pop, matching: find.text(_zh.stageCalf)), findsOneWidget);
@@ -177,7 +177,7 @@ void main() {
     expect(pop, findsNothing);
 
     // 看詳細：打開那頭牛（M1 的詳細資料）
-    await tester.tap(find.byKey(const Key('scene-cow-1')));
+    await tapSceneCow(tester, 1);
     await tester.pump();
     await tester.tap(find.byKey(const Key('pop-detail')));
     await tester.pump();

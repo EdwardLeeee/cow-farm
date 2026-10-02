@@ -30,6 +30,8 @@ dependencies:
   shared_preferences: ^2.5.0
   # 牛、圖示、場景是 cow-ui 匯出的 SVG，執行時讀（T3；ceo 2026-10-02：不在建置時轉換）。
   flutter_svg: ^2.3.0
+  # 牧場場景（D4、T3）：牛走動（A-11）、轉身（A-07）。版本同 T2 的測試版。
+  flame: 1.38.2
 
 dev_dependencies:
   flutter_test:
