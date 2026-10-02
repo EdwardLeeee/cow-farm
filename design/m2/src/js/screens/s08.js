@@ -158,7 +158,7 @@ part18('S18-15', '借種紀錄是空的（全部、借出、借入）', '#crop',
   <div class="page-head"><button class="icon-btn" aria-label="${t('back')}">${icon('back', 22)}</button><div class="grow"><h1>${t('s18.logTitle')}</h1><div class="sub">${t('s18.logIncome', { v: 0 })}</div></div></div>
   ${LOG_EMPTY.map(([on, key]) => `<div class="filter" data-hscroll>${[t('g.all'), t('s18.out'), t('s18.in')].map((s, i) => `<button${i === on ? ' class="on"' : ''}>${s}</button>`).join('')}</div>
   <article class="card"><div class="oc-empty"><span>${t(key)}</span></div></article>`).join('')}
-  <p class="hint" style="text-align:center">${t('s18.logKeep', { n: 30 })}</p></div>` }), { board: '缺口-狀態表' });
+  <p class="hint" style="text-align:center">${t('s18.logKeep', { n: 30 })}</p></div>` }), { board: '空紀錄-狀態表' });
 
 // 借種紀錄的一列。gone：對方的牧場刪除了，紀錄照樣保留，對方的名字顯示「已刪除的牧場」（ceo 2026-10-02）
 function logRow(r) {

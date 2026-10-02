@@ -93,15 +93,15 @@ function weeklyReset() {
 }
 // 排行榜的種類：key、名稱的 key、單位的 key
 const KINDS = [['networth', 'rankNetworth', 'g.coin'], ['collection', 'rankCollection', 's12.kinds'], ['weekly', 'rankWeekly', 'g.coin']];
-// 圖鑑榜發現 24 種的：分數前面加「完成」（企劃書 4.6；缺口清單 2-6）。done 只在 S12-08 打開，核准以後才套到全部
+// 圖鑑榜發現 24 種的：分數前面加綠色「完成」，下面「我的名次」那一條也有（企劃書 4.6；缺口清單 2-6，使用者 2026-10-02 核准，D31）
 const DONE_AT = 24;
 const doneBadge = () => `<span class="badge done">${icon('ok', 12)}<span class="bt">${t('s12.complete')}</span></span>`;
 function rankRow(r, unit, me = false, done = false) {
   const medal = r.rank <= 3 ? `<span class="medal m${r.rank}">${r.rank}</span>` : `<span class="rk num">${r.rank}</span>`;
   return `<div class="rank-row${me ? ' me' : ''}">${medal}<div class="grow"><div class="rn">${r.bot ? `<span class="bot">${t('botPrefix')}</span>` : ''}<span class="rn-name">${r.name}</span><span class="tag">${r.tag}</span></div><div class="rl"><span class="lv num">${t('level', { lv: r.level })}</span>${me ? `<span class="badge new">${t('s12.me')}</span>` : ''}</div></div>${done && r.value >= DONE_AT ? doneBadge() : ''}<b class="num rv">${compactBig(r.value)}<small>${unit}</small></b></div>`;
 }
-function rankPage(ctx, { kind = 0, me = null, state = '', rows = null, tall = false, done = false } = {}) {
-  const [key, , uk] = KINDS[kind], unit = t(uk);
+function rankPage(ctx, { kind = 0, me = null, state = '', rows = null, tall = false } = {}) {
+  const [key, , uk] = KINDS[kind], unit = t(uk), done = key === 'collection';
   let list = rows || RANK[key];
   if (me && me.rank <= list.length) list = list.map((r) => (r.rank === me.rank ? { ...me } : r));
   const body = state === 'loading' ? `<div class="oc-empty" style="min-height:160px"><span class="spinner"></span><span>${t('g.loading')}</span></div>`
@@ -130,7 +130,7 @@ part12('S12-06', '載入失敗', '.rank-card', (ctx) => rankPage(ctx, { kind: 0,
 full12('S12-07', '電腦玩家、名字最長（8 個中文字、16 個英文字母）、數字最大（量測用）', (ctx) => rankPage(ctx, { kind: 0, me: { rank: 12, name: RANCH.name, tag: RANCH.tag, level: 14, value: 98765432 }, rows: RANK.networth.map((r, i) => ({ ...r, name: [LONG_NAMES.cjk, LONG_NAMES.latin, '麥浪森林牧舍', '月牙石橋莊園', LONG_NAMES.cjk, '楓葉湖邊家園', LONG_NAMES.latin, '暖陽坡地牧野', '白雲谷地小屋', '青草松林牧園', '微風河畔牛舍', '晨光小丘農場'][i], level: 15 - Math.floor(i / 4), value: 999999999 - i * 12345678, bot: i % 3 === 1 })) }));
 
 // 圖鑑榜：發現 24 種的列和下面「我的名次」那一條，分數前面加「完成」。自己第 2 名、24 種
-full12('S12-08', '圖鑑榜：發現 24 種的加「完成」', (ctx) => rankPage(ctx, { kind: 1, done: true, me: { rank: 2, name: RANCH.name, tag: RANCH.tag, level: RANCH.level, value: 24 } }));
+full12('S12-08', '圖鑑榜：發現 24 種的加「完成」', (ctx) => rankPage(ctx, { kind: 1, me: { rank: 2, name: RANCH.name, tag: RANCH.tag, level: RANCH.level, value: 24 } }));
 
 export const S09 = { id: 'S09', name: '圖鑑', states: S };
 export const S12 = { id: 'S12', name: '排行榜', states: S2 };

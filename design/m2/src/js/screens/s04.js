@@ -69,8 +69,8 @@ full('S04-04', '上架借種：借種費由系統算', (ctx) => detailPage(ctx, 
       <div class="btn-row" style="margin-top:14px">${btn(t('cancel'))}${btn(t('s04.listConfirm', { price: fmt(FEE5) }), { kind: 'primary' })}</div>`,
   }),
 }));
+// 上架中的公牛不放橘色提醒（使用者 2026-10-02：「不用跟使用者講這個機制」，D31）；狀態看名字下面的「上架中」標籤和停用的按鈕
 full('S04-05', '公牛上架中', (ctx) => detailPage(ctx, cowById(5), {
-  note: t('unlistFirst', { price: fmt(FEE5) }),
   buttons: `${btn(t('unlist'), { ic: 'tag', block: true })}<div class="btn-row" style="margin-top:12px">${breedBtn(true)}${shipBtn(true)}</div>`,
 }));
 const idleOx = { ...cowById(2), field: null };
@@ -90,7 +90,7 @@ full('S04-11', '這頭牛已經不在了', (ctx) => frame(ctx.dev, { tab: 'ranch
   <article class="card">${empty({ pic: cowSVG({ breed: 'holstein' }, { w: 120, h: 120, sil: true }), t1: t('s04.goneTitle'), t2: t('s04.goneBody'), action: btn(t('s04.backRanch'), { kind: 'primary' }) })}</article></div>` }));
 part('S04-12', '斷線：按鈕全部停用', '.detail-actions', (ctx) => detailPage(ctx, cowById(3), { offline: true, buttons: `<div class="btn-row">${breedBtn(true)}${shipBtn(true)}</div>` }));
 part('S04-13', '耕牛：沒有空田，派不出去', '.detail-actions', (ctx) => detailPage(ctx, idleOx, { buttons: `${btn(t('g.assign'), { kind: 'green', ic: 'sprout', block: true, disabled: true })}<p class="warn-text" style="margin-top:8px;text-align:center">${t('s04.noField')}</p><div class="btn-row" style="margin-top:10px">${breedBtn(false)}${shipBtn(false)}</div>` }));
-// 公耕牛（成年、沒配過種）：可以下田，也可以上架借種，一共 4 個動作。第一排兩顆半寬：派去田裡（或叫回來）、上架借種（或下架）；第二排照舊（缺口清單 2-1）
+// 公耕牛（成年、沒配過種）：可以下田，也可以上架借種，一共 4 個動作。第一排兩顆半寬：派去田裡（或叫回來）、上架借種（或下架）；第二排照舊（缺口清單 2-1，D31）
 const oxRow = (a, b) => `<div class="btn-row">${a}${b}</div><div class="btn-row" style="margin-top:12px">`;
 const FEE2 = studFee(idleOx.kg, 0);
 full('S04-14', '公耕牛：沒下田、沒上架', (ctx) => detailPage(ctx, idleOx, { buttons: `${oxRow(btn(t('g.assign'), { kind: 'green', ic: 'sprout' }), btn(t('s04.listStud'), { kind: 'primary', ic: 'tag' }))}${breedBtn(false)}${shipBtn(false)}</div>` }));
@@ -99,7 +99,6 @@ full('S04-15', '公耕牛：在田裡工作', (ctx) => detailPage(ctx, cowById(2
   buttons: `${oxRow(btn(t('s04.recall'), { ic: 'hand' }), btn(t('s04.listStud'), { kind: 'primary', ic: 'tag', disabled: true }))}${breedBtn(true)}${shipBtn(true)}</div>`,
 }));
 full('S04-16', '公耕牛：上架中', (ctx) => detailPage(ctx, { ...idleOx, listed: FEE2 }, {
-  note: t('s04.unlistFirstOx', { price: fmt(FEE2) }),
   buttons: `${oxRow(btn(t('g.assign'), { kind: 'green', ic: 'sprout', disabled: true }), btn(t('unlist'), { ic: 'tag' }))}${breedBtn(true)}${shipBtn(true)}</div>`,
 }));
 

@@ -98,6 +98,6 @@ full('S17-09', '收成成功', (ctx) => fieldsPage(ctx, { stock: 361, fields: [{
 part('S17-10', '開新田：金幣不夠、已經 12 塊', '#crop', (ctx) => frame(ctx.dev, { tab: 'fields', content: `<div id="crop" class="stack">${btn(t('expandField', { cost: fmt(FIELD_UP.cost) }), { block: true, ic: 'plus', disabled: true })}<p class="warn-text" style="text-align:center">${t('notEnoughCoins', { n: fmt(FIELD_UP.cost - 3200) })}</p>${btn(t('s17.maxFields', { n: 12 }), { block: true, disabled: true })}</div>`, hud: { coins: 3200 } }));
 part('S17-11', '開新田成功', '.toast', (ctx) => fieldsPage(ctx, { hud: { coins: RANCH.coins - FIELD_UP.cost }, fields: [...FIELDS, { index: 3, cow: null, rice: 0 }], overlays: toast('ok', t('fieldExpanded', { n: 4 })) }));
 // 第 1 塊田：之前的稀有耕牛長了 120 公斤，叫回後改派一般耕牛（上限 88 公斤），伺服器不會再長
-part('S17-12', '田裡剩的稻米比這頭牛的上限多', '.field-card', (ctx) => fieldsPage(ctx, { fields: [{ ...FIELDS[0], rice: 120 }, FIELDS[1], FIELDS[2]], scrollTo: '.field-card' }), { board: '缺口-狀態表' });
+part('S17-12', '田裡剩的稻米比這頭牛的上限多', '.field-card', (ctx) => fieldsPage(ctx, { fields: [{ ...FIELDS[0], rice: 120 }, FIELDS[1], FIELDS[2]], scrollTo: '.field-card' }), { board: '剩的稻米-狀態表' });
 
 export default { id: 'S17', name: '田地', states: S };
