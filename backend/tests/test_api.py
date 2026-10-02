@@ -324,6 +324,23 @@ def test_request_id_replay_shop_and_ship(h):
 # ---------------------------------------------------------------------------
 # 錯誤：錢不夠、牛不存在、牛舍滿、還沒長大
 # ---------------------------------------------------------------------------
+def test_upgrade_max_level(h):
+    """S10「第 n / max 級」：max 直接讀 params；升到最高級以後 cost 是 null，再升回 409 max_level。"""
+    tok = h.session()["token"]
+    up = state(h, tok)["upgrades"]
+    assert (up["bucket"]["max"], up["warehouse"]["max"], up["fresh"]["max"]) == (
+        FP.bucket_max_level,
+        FP.wh_max_level,
+        len(FP.fresh_costs),
+    )
+    give(h, tok, coins=sum(FP.fresh_costs))
+    for _ in FP.fresh_costs:
+        assert h.post("/v1/upgrade", tok, {"kind": "fresh", "request_id": new_rid()}).status_code == 200
+    fresh = state(h, tok)["upgrades"]["fresh"]
+    assert fresh["level"] == fresh["max"] and fresh["cost"] is None and fresh["next_fresh_h"] is None
+    err(h.post("/v1/upgrade", tok, {"kind": "fresh", "request_id": new_rid()}), 409, "max_level")
+
+
 def test_not_enough_coins(h):
     tok = h.session()["token"]
     e = err(h.post("/v1/upgrade", tok, {"kind": "fresh", "request_id": new_rid()}), 409, "not_enough_coins")

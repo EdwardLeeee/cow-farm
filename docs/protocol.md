@@ -302,9 +302,9 @@ app 怎麼顯示：
  "pen": {"slots": 6, "used": 3, "next_cost": 280, "next_open_at": null, "max_slots": 40},
  "upgrades": {
   "pen": {"level": 0, "cost": 280, "next_open_at": null, "slots": 6, "next_slots": 7},
-  "bucket": {"level": 0, "cost": 200, "capacity": 28.0, "next_capacity": 42.0},
-  "warehouse": {"level": 0, "cost": 300, "capacity": 150.0, "next_capacity": 225.0},
-  "fresh": {"level": 0, "cost": 1500, "fresh_h": 6.0, "half_h": 48.0, "next_fresh_h": 9.0, "next_half_h": 60.0},
+  "bucket": {"level": 0, "max": 16, "cost": 200, "capacity": 28.0, "next_capacity": 42.0},
+  "warehouse": {"level": 0, "max": 14, "cost": 300, "capacity": 150.0, "next_capacity": 225.0},
+  "fresh": {"level": 0, "max": 4, "cost": 1500, "fresh_h": 6.0, "half_h": 48.0, "next_fresh_h": 9.0, "next_half_h": 60.0},
   "field": {"level": 0, "cost": 1800, "count": 1, "max": 12}},
  "shop": {"grades": [{"grade": "A", "price": 3200}, {"grade": "B", "price": 1700}, {"grade": "C", "price": 900}]},
  "codex": [{"breed": "holstein", "found_at": 1791129600.0}, {"breed": "yellow", "found_at": 1791129600.0}],
@@ -399,6 +399,7 @@ v2 拿掉的：`type_name`、`tier_name`、`ready_at`、`breed_ready`（看 `can
 | `pen.next_open_at` | 下次可以擴建的遊戲時間；`null` = 已經開放（只有第一次擴建要等到教學第 15 分鐘） |
 | `upgrades.<kind>.cost` | 下一級的費用；`null` = 已滿級。kind 是 `pen`、`bucket`、`warehouse`、`fresh`、`field` |
 | `upgrades.<kind>.level` | 目前等級（`pen` 是擴建過幾次；`field` 是開過幾塊新田） |
+| `upgrades.bucket`／`warehouse`／`fresh` 的 `max` | 最高等級（`level` 的上限，直接讀伺服器的參數）。S10「第 {n} / {max} 級」（`s10.levelOf`）。`level == max` 時 `cost` 是 `null`。`field` 的 `max` 意思不同，見下 |
 | `upgrades.bucket`／`warehouse` | `capacity` 目前容量、`next_capacity` 升級後容量 |
 | `upgrades.fresh` | 冷藏：`fresh_h` 牛奶維持 100% 的小時數、`half_h` 降到 50% 的小時數，`next_*` 是升級後 |
 | `upgrades.field` | 田地：`count` 目前幾塊、`max` 上限、`cost` 再開一塊的價格 |
@@ -1050,3 +1051,4 @@ app 啟動時先打這個（還沒有 token 也能打），再決定要不要顯
 - 2026-10-02：1.3 節、第 7 節補：token 跟 request_id 一樣不能寫進日誌，包括 `/v1/ws` 網址上的 token（cow-app 在 #58 發現 app 的連線錯誤日誌會帶出網址）。欄位不變。
 - 2026-10-02：2.3 節 `warehouse.beef_lots[]` 加 `breed`（出貨那頭牛的品種代號，S05-02「荷斯坦 #4 出貨」用；之前出貨的批次是 `null`）。存檔格式不變。
 - 2026-10-02：2.3 節 state 加 `economy`（`tier_mult`、`beef_grade_mult`、`ox_rice_per_h`，S05、S09 的倍數用；直接讀 params）。
+- 2026-10-02：2.3 節 `upgrades.bucket`、`warehouse`、`fresh` 加 `max`（最高等級；S10「第 1 / 4 級」用）。
