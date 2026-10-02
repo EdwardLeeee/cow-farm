@@ -294,7 +294,8 @@ async function run(filter, widths) {
     await lp.waitForFunction(() => window.__ready === true, null, { timeout: 20000 });
     const all = await lp.evaluate(() => window.__states);
     await lp.context().close();
-    const want = !filter ? all : all.filter((s) => filter.split(',').some((f) => s.id === f || s.id.startsWith(f)));
+    const want = (!filter ? all : all.filter((s) => filter.split(',').some((f) => s.id === f || s.id.startsWith(f))))
+      .filter((s) => LANG === 'zh-Hant' || !s.zhOnly); // 只有繁中的（例如按下狀態表）：英文、泰文不量
     // 大張的表（例如 S09-05 24 種全圖）：不是手機畫面，只出一張 DPR 2（給使用者核准外型用，只有繁中）
     for (const s of want.filter((x) => x.type === 'sheet' && LANG === 'zh-Hant')) {
       const ctx = await browser.newContext({ viewport: { width: s.viewport.w, height: s.viewport.h }, deviceScaleFactor: 2, locale: 'zh-TW', colorScheme: 'light', reducedMotion: 'reduce' });
@@ -348,7 +349,7 @@ async function run(filter, widths) {
         const m = await page.evaluate(measure, terms).catch((e) => ({ error: String(e) }));
         if (/crash/i.test(m.error || '')) throw new Error(m.error);
         if (m.error) errors.push('量測失敗：' + m.error.split('\n')[0]);
-        const meta = { id: s.id, name: s.name, note: s.note || '', screen: s.screen, screenName: s.screenName, type: s.type, tall: !!s.tall, width: w, uiLang: LANG, errors, ...m };
+        const meta = { id: s.id, name: s.name, note: s.note || '', screen: s.screen, screenName: s.screenName, type: s.type, tall: !!s.tall, ...(s.board ? { board: s.board } : {}), width: w, uiLang: LANG, errors, ...m };
         await writeFile(`${base}.json`, JSON.stringify(meta, null, 1));
         page.off('pageerror', onErr); page.off('console', onCon);
         const issues = ['clipped', 'outside', 'wrapped', 'overlaps', 'smallTargets', 'unsafe'].map((k) => (meta[k] || []).length);
