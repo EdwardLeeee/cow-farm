@@ -109,7 +109,7 @@
 ## 指令
 
 這台電腦記憶體有限：`flutter test`、`flutter build web`、headless Chromium 之前先看 `free -m`，
-available 少於 2000 MB 就等；指令用 `systemd-run` 限制記憶體，一次只跑一個。
+available 少於 1000 MB 就等（使用者 2026-10-03）；指令用 `systemd-run` 限制記憶體，一次只跑一個。
 
 ```bash
 cd app
@@ -174,7 +174,7 @@ python3 tool/shots_compare.py build/shots/<PR 編號>   # 左邊設計稿、右�
 - 在真的伺服器上跑（同源 `/`，伺服器設 `COWFARM_WEB_DIR=app/build/web`）：
 
   ```bash
-  free -m   # available ≥ 2000 MB 再跑
+  free -m   # available ≥ 1000 MB 再跑
   PLAYWRIGHT_MODULE=~/Desktop/connect4-web2-worktrees/mobile/frontend/node_modules/playwright \
     systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 \
     node app/tool/walk.cjs http://127.0.0.1:8787/ app/test_shots/v02
