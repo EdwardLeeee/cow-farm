@@ -122,6 +122,7 @@
 - 看別的語言：網址加 `&lang=en` 或 `&lang=th`。缺的 key 用繁中顯示，記在 `window.__i18n.missing()`，量測報告會列出來。泰文的字型是 Noto Sans Thai（接在中文字型後面：英文字母、數字跟繁中一樣）。
 - 數字縮寫：繁中用「萬」「億」；英文、泰文用 K、M（`Intl.NumberFormat` 的 compact）。
 - 給 cow-app 的 strings.dart 對照表、錯誤碼文案、「幫我想一個」的取名詞庫（`namegen.*`）、電腦牧場名的做法：`i18n/README.md`。
+- **改了 `i18n/` 的任何一個字串表，同一個 PR 要重產 app 的 `app/lib/l10n/gen/strings.g.dart`**：在 `app/` 跑 `dart run tool/gen_l10n.dart`（照記憶體規則用 systemd-run 包起來）。app 的 `test/l10n_test.dart` 會比對，沒重產 CI 會紅。這個檔是 cow-ui 唯一會改的 app 檔案（ceo 2026-10-02）。
 
 ## 匯出給 app 的牛和素材（ceo 2026-10-02，選項 2；格式跟 cow-app 商量好）
 
