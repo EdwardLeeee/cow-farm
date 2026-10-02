@@ -101,9 +101,9 @@ const Map<String, List<String>> kPlaceholders = {
   's04.feeHowMax': ['kg', 'rate', 'tier'],
   's04.listTitle': ['cow'],
   's04.listConfirm': ['price'],
-  'unlistFirst': ['price'],
   'recallFirst': ['n'],
   'cowTitle': ['id'],
+  's04.recallFirstOx': ['n'],
   's08.probFailedRetry': ['n'],
   'bullProbLine': ['v'],
   's08.growRange': ['v'],
@@ -501,7 +501,6 @@ const Map<String, String> _zhHant = {
   's04.listTitle': '{cow} 上架借種',
   's04.listHint': '別人付這個錢借你的公牛配種；錢給你，小牛歸對方。借出去就算這頭公牛這輩子的那一次配種。',
   's04.listConfirm': '上架（{price} 幣）',
-  'unlistFirst': '上架借種中（{price} 幣，跟著體重自動漲），先下架才能出貨或配種',
   'unlist': '下架',
   'g.assign': '派去田裡',
   'recallFirst': '在第 {n} 塊田工作，先叫回來才能出貨或配種',
@@ -516,6 +515,7 @@ const Map<String, String> _zhHant = {
   's04.goneBody': '可能已經出貨了，或在另一支手機上處理過。',
   's04.backRanch': '回牧場',
   's04.noField': '沒有空田：先開新田，或叫回別的耕牛',
+  's04.recallFirstOx': '在第 {n} 塊田工作，先叫回來才能出貨、配種或上架',
   'breedFree': '費用 免費（自己的公母）',
   's08.outcomeTitle': '可能生出的小牛',
   'pickBoth': '請選一頭公牛和一頭母牛',
@@ -576,6 +576,9 @@ const Map<String, String> _zhHant = {
   's18.borrowedFrom': '{cow} 借自 {ranch}',
   's18.calfBorn': '生下 {cow}',
   's18.logKeep': '只保留最近 {n} 天的紀錄。',
+  's18.logEmpty': '還沒有借種紀錄',
+  's18.logEmptyOut': '還沒有借出的紀錄',
+  's18.logEmptyIn': '還沒有借入的紀錄',
   's18.bullName': '{breed}公牛',
   'g.growsIn': '{time}後長大',
   'fieldName': '第 {n} 塊田',
@@ -634,6 +637,7 @@ const Map<String, String> _zhHant = {
   'rankWeekly': '本週收入',
   's12.kinds': '種',
   's12.me': '我',
+  's12.complete': '完成',
   's12.weeklyHint': '每週{w} {time} 重新計算。',
   's12.networthHint': '金幣＋庫存照市價估＋牛的估值。',
   's12.collectionHint': '發現的品種數，最多 {n} 種。',
@@ -666,6 +670,7 @@ const Map<String, String> _zhHant = {
   'date.ymd': '{y}/{m}/{d}',
   's13.unbind': '解除',
   's13.backup.addGoogle': '以後可能換 Android 手機的話，再綁一個 Google 帳號。',
+  's13.backup.addGoogleAndroid': '在 Android 手機找回牧場要用 Google 帳號，建議再綁一個 Google 帳號。',
   's13.binding': '綁定中…',
   's13.backup.before': '之前備份過？用同一個帳號登入，就能換回舊牧場。',
   's13.del.word': '刪除',
@@ -741,6 +746,7 @@ const Map<String, String> _zhHant = {
   's16.title': '維護中',
   's16.lead': '伺服器正在維護',
   's16.eta': '預計 {date} 恢復',
+  's16.late': '比預計的時間晚一點，請再等一下',
   'date.mdw': '{m} 月 {d} 日（{w}）{time}',
   'weekday.0': '日',
   'weekday.1': '一',
@@ -974,7 +980,7 @@ const Map<String, String> _en = {
   'pickForBreed': 'Breed this one',
   'ship': 'Ship',
   's07.kgBeef': '~{kg} kg of beef',
-  's07.beefPrice': 'Beef now {price} coins/kg',
+  's07.beefPrice': 'Beef now {price} coins/⁠kg',
   'loadingPreview': 'Getting grade odds…',
   's07.probFailed': 'Couldn\'t load grade odds',
   'g.grade': 'Grade {g}',
@@ -1077,15 +1083,15 @@ const Map<String, String> _en = {
   'commodityTag': '[{name}] ',
   'bothTag': '[All] ',
   's03.swipeHint': 'Swipe sideways to see the whole ranch',
-  's03.metaField': 'Field {n} · Rice {rate} kg/h',
+  's03.metaField': 'Field {n} · Rice {rate} kg/⁠h',
   's03.metaListed': 'Listed for stud: {price} coins',
-  'milkRate': 'Milk {v} btl/h',
+  'milkRate': 'Milk {v} btl/⁠h',
   'weight': 'Weight {v} kg',
   's03.metaValue': 'Value ~{v} coins',
   'collected': 'Collected {v} btl of milk, now in storage',
   'collectedSpoiled': 'Collected {v} btl of milk, tossed {n} btl that spoiled',
   's03.partial': 'Storage full! Collected {n} btl.\n{left} btl still in the bucket',
-  's03.popMilk': '{tier} milk {n} btl/h',
+  's03.popMilk': '{tier} milk {n} btl/⁠h',
   's03.popDetail': 'Details',
   'penSummary': 'Barn {used} / {slots}',
   's03.penFullSuffix': ' (full)',
@@ -1097,7 +1103,7 @@ const Map<String, String> _en = {
   'g.close': 'Close',
   's06.bigNews': 'Big news',
   'news.beef_up.1': 'BBQ season kicks off',
-  's03.bigNewsBody': '{name} price {chg}, now {price} coins/{unit}',
+  's03.bigNewsBody': '{name} price {chg}, now {price} coins/⁠{unit}',
   's03.bigNewsAll': 'All prices {chg}',
   's03.bigNewsGo': 'Go to Market',
   's06.vsSame': 'Same as usual',
@@ -1106,8 +1112,8 @@ const Map<String, String> _en = {
   's06.loading': 'Getting prices…',
   's06.title': 'Current prices',
   's06.tapToSell': 'Tap a row to sell',
-  'priceUnit': 'coins/{unit}',
-  's06.baseLine': 'Usual (base) prices: milk {milk} coins/btl, beef {beef} coins/kg, rice {rice} coins/kg',
+  'priceUnit': 'coins/⁠{unit}',
+  's06.baseLine': 'Usual (base) prices: milk {milk} coins/⁠btl, beef {beef} coins/⁠kg, rice {rice} coins/⁠kg',
   's06.multMilk': 'market price × rarity × freshness',
   's06.multBeef': 'market price × grade × rarity × storage discount',
   's06.multRice': 'market price × storage discount',
@@ -1118,10 +1124,10 @@ const Map<String, String> _en = {
   'quoting': 'Estimating…',
   's06.quoteFailed': 'Estimate failed',
   'estAvgPrice': 'Est. average price',
-  'estAvgValue': '{avg} coins/{unit}',
+  'estAvgValue': '{avg} coins/⁠{unit}',
   's06.estTotalLabel': 'Est. total',
   's06.marketPrice': 'Market price',
-  'g.pricePer': '{price} coins/{unit}',
+  'g.pricePer': '{price} coins/⁠{unit}',
   's06.formula': 'Sale price = {mult}',
   's06.lots': ' (lots: {n})',
   's06.qty': 'Amount',
@@ -1138,9 +1144,9 @@ const Map<String, String> _en = {
   's04.age': 'Age',
   's04.growIn': 'Grows up in',
   'g.milk': 'Milk',
-  'g.perHourMilk': 'btl/h',
+  'g.perHourMilk': 'btl/⁠h',
   'g.plow': 'Plowing',
-  'g.perHourRice': 'kg rice/h',
+  'g.perHourRice': 'kg rice/⁠h',
   's04.useBeef': 'Most beef',
   's04.useBreed': 'Breeding',
   's04.weight': 'Weight',
@@ -1158,12 +1164,11 @@ const Map<String, String> _en = {
   's04.oldNote': 'Senior: past its prime, its output and beef quality slowly drop',
   's04.listStud': 'List for stud',
   's04.studFee': 'Stud fee',
-  's04.feeHowGrow': '{tier} ({rate} coins/kg) × {kg} kg. Rises as it grows.',
-  's04.feeHowMax': '{tier} ({rate} coins/kg) × {kg} kg. Fully grown.',
+  's04.feeHowGrow': '{tier} ({rate} coins/⁠kg) × {kg} kg. Rises as it grows.',
+  's04.feeHowMax': '{tier} ({rate} coins/⁠kg) × {kg} kg. Fully grown.',
   's04.listTitle': 'List {cow} for stud',
   's04.listHint': 'Others pay this fee to breed with your bull. You get the coins; they get the calf. Lending counts as this bull\'s one breeding.',
   's04.listConfirm': 'List ({price} coins)',
-  'unlistFirst': 'Listed for stud ({price} coins, rises with weight). Unlist it to ship or breed.',
   'unlist': 'Unlist',
   'g.assign': 'Send to field',
   'recallFirst': 'Working in Field {n}. Call it back to ship or breed.',
@@ -1178,6 +1183,7 @@ const Map<String, String> _en = {
   's04.goneBody': 'It may have been shipped, or handled on another phone.',
   's04.backRanch': 'Back to ranch',
   's04.noField': 'No free field: open a new one or call back another ox',
+  's04.recallFirstOx': 'Working in Field {n}. Call it back to ship, breed, or list it.',
   'breedFree': 'Fee: free (your own cows)',
   's08.outcomeTitle': 'Possible calves',
   'pickBoth': 'Pick a bull and a cow',
@@ -1238,6 +1244,9 @@ const Map<String, String> _en = {
   's18.borrowedFrom': '{cow} borrowed from {ranch}',
   's18.calfBorn': 'Born: {cow}',
   's18.logKeep': 'Keeps a {n}-day history.',
+  's18.logEmpty': 'No stud history yet',
+  's18.logEmptyOut': 'Nothing lent yet',
+  's18.logEmptyIn': 'Nothing borrowed yet',
   's18.bullName': '{breed} bull',
   's18.deletedRanch': 'Deleted ranch',
   'g.growsIn': 'Grows up in {time}',
@@ -1248,7 +1257,7 @@ const Map<String, String> _en = {
   'noOx': 'No adult oxen available',
   'assignOx': 'Send an ox',
   's17.full': 'Full',
-  'fieldRate': '{v} kg/h',
+  'fieldRate': '{v} kg/⁠h',
   'recall': 'Call back',
   'fieldFull': 'Full! Harvest now. It won\'t grow more until you do.',
   's17.fullIn': 'Full in ~{time} (holds up to {h}h of rice)',
@@ -1297,6 +1306,7 @@ const Map<String, String> _en = {
   'rankWeekly': 'This week',
   's12.kinds': 'found',
   's12.me': 'You',
+  's12.complete': 'Complete',
   's12.weeklyHint': 'Resets every {w} at {time}.',
   's12.networthHint': 'Coins + stock at market price + cow value.',
   's12.collectionHint': 'Breeds found, out of {n}.',
@@ -1329,6 +1339,7 @@ const Map<String, String> _en = {
   'date.ymd': '{m}/{d}/{y}',
   's13.unbind': 'Unlink',
   's13.backup.addGoogle': 'If you might switch to Android later, link a Google Account too.',
+  's13.backup.addGoogleAndroid': 'On Android, you recover your ranch with a Google Account, so link one too.',
   's13.binding': 'Linking…',
   's13.backup.before': 'Backed up before? Sign in with the same account to switch back to your old ranch.',
   's13.del.word': 'DELETE',
@@ -1404,6 +1415,7 @@ const Map<String, String> _en = {
   's16.title': 'Under maintenance',
   's16.lead': 'The server is under maintenance',
   's16.eta': 'Expected back {date}',
+  's16.late': 'Taking a bit longer than expected. Please wait a little longer.',
   'date.mdw': '{w} {m}/{d} {time}',
   'weekday.0': 'Sun',
   'weekday.1': 'Mon',
@@ -1825,7 +1837,6 @@ const Map<String, String> _th = {
   's04.listTitle': 'ลงประกาศ {cow} เป็นพ่อพันธุ์',
   's04.listHint': 'คนอื่นจ่ายเงินจำนวนนี้เพื่อยืมวัวตัวผู้ของคุณไปผสมพันธุ์ เงินเป็นของคุณ ลูกวัวเป็นของอีกฝ่าย การให้ยืมนับเป็นการผสมพันธุ์ครั้งเดียวในชีวิตของวัวตัวนี้',
   's04.listConfirm': 'ลงประกาศ ({price} เหรียญ)',
-  'unlistFirst': 'ลงประกาศพ่อพันธุ์อยู่ ({price} เหรียญ ขึ้นเองตามน้ำหนัก) ต้องถอนประกาศก่อนจึงจะส่งขายหรือผสมพันธุ์ได้',
   'unlist': 'ถอนประกาศ',
   'g.assign': 'ส่งไปไถนา',
   'recallFirst': 'กำลังไถนาอยู่ที่แปลงที่ {n} ต้องเรียกกลับก่อนจึงจะส่งขายหรือผสมพันธุ์ได้',
@@ -1840,6 +1851,7 @@ const Map<String, String> _th = {
   's04.goneBody': 'อาจถูกส่งขายไปแล้ว หรือมีการจัดการจากมือถือเครื่องอื่น',
   's04.backRanch': 'กลับฟาร์ม',
   's04.noField': 'ไม่มีแปลงนาว่าง: เปิดแปลงใหม่ หรือเรียกวัวงานตัวอื่นกลับก่อน',
+  's04.recallFirstOx': 'กำลังไถนาอยู่ที่แปลงที่ {n} ต้องเรียกกลับก่อนจึงจะส่งขาย ผสมพันธุ์ หรือลงประกาศพ่อพันธุ์ได้',
   'breedFree': 'ค่าใช้จ่าย ฟรี (วัวของตัวเอง)',
   's08.outcomeTitle': 'ลูกวัวที่อาจเกิด',
   'pickBoth': 'เลือกวัวตัวผู้และวัวตัวเมียอย่างละตัว',
@@ -1900,6 +1912,9 @@ const Map<String, String> _th = {
   's18.borrowedFrom': 'ยืม {cow} จาก {ranch}',
   's18.calfBorn': 'เกิดลูกวัว {cow}',
   's18.logKeep': 'เก็บประวัติไว้แค่ {n} วันล่าสุด',
+  's18.logEmpty': 'ยังไม่มีประวัติการยืม',
+  's18.logEmptyOut': 'ยังไม่มีประวัติการให้ยืม',
+  's18.logEmptyIn': 'ยังไม่มีประวัติการยืมมา',
   's18.bullName': '{breed} ตัวผู้',
   's18.deletedRanch': 'ฟาร์มที่ถูกลบแล้ว',
   'g.growsIn': 'จะโตในอีก {time}',
@@ -1959,6 +1974,7 @@ const Map<String, String> _th = {
   'rankWeekly': 'รายได้สัปดาห์นี้',
   's12.kinds': 'สายพันธุ์',
   's12.me': 'ฉัน',
+  's12.complete': 'ครบ',
   's12.weeklyHint': 'คำนวณใหม่ทุกวัน{w} เวลา {time}',
   's12.networthHint': 'เหรียญ + สินค้าในโกดังคิดตามราคาตลาด + มูลค่าวัว',
   's12.collectionHint': 'จำนวนสายพันธุ์ที่พบ สูงสุด {n} สายพันธุ์',
@@ -1991,6 +2007,7 @@ const Map<String, String> _th = {
   'date.ymd': '{d}/{m}/{y}',
   's13.unbind': 'เลิกผูก',
   's13.backup.addGoogle': 'ถ้าอาจเปลี่ยนไปใช้มือถือ Android ในอนาคต ให้ผูกบัญชี Google เพิ่มอีกบัญชี',
+  's13.backup.addGoogleAndroid': 'บนมือถือ Android ต้องใช้บัญชี Google กู้คืนฟาร์ม แนะนำให้ผูกบัญชี Google เพิ่มอีกบัญชี',
   's13.binding': 'กำลังผูกบัญชี…',
   's13.backup.before': 'เคยสำรองไว้แล้ว? ลงชื่อเข้าใช้ด้วยบัญชีเดิม ก็เปลี่ยนกลับไปฟาร์มเดิมได้',
   's13.del.word': 'ลบ',
@@ -2066,6 +2083,7 @@ const Map<String, String> _th = {
   's16.title': 'ปิดปรับปรุง',
   's16.lead': 'เซิร์ฟเวอร์กำลังปิดปรับปรุง',
   's16.eta': 'คาดว่าจะกลับมาเปิด {date}',
+  's16.late': 'ใช้เวลานานกว่าที่คาดไว้นิดหน่อย กรุณารออีกสักครู่',
   'date.mdw': '{w} {d}/{m} {time}',
   'weekday.0': 'อา.',
   'weekday.1': 'จ.',
@@ -3161,9 +3179,6 @@ abstract class GeneratedStrings {
   /// `s04.listConfirm`：上架（{price} 幣）
   String s04ListConfirm({required Object price}) => fill('s04.listConfirm', {'price': price});
 
-  /// `unlistFirst`：上架借種中（{price} 幣，跟著體重自動漲），先下架才能出貨或配種
-  String unlistFirst({required Object price}) => fill('unlistFirst', {'price': price});
-
   /// `unlist`：下架
   String get unlist => table['unlist']!;
 
@@ -3205,6 +3220,9 @@ abstract class GeneratedStrings {
 
   /// `s04.noField`：沒有空田：先開新田，或叫回別的耕牛
   String get s04NoField => table['s04.noField']!;
+
+  /// `s04.recallFirstOx`：在第 {n} 塊田工作，先叫回來才能出貨、配種或上架
+  String s04RecallFirstOx({required Object n}) => fill('s04.recallFirstOx', {'n': n});
 
   /// `breedFree`：費用 免費（自己的公母）
   String get breedFree => table['breedFree']!;
@@ -3386,6 +3404,15 @@ abstract class GeneratedStrings {
   /// `s18.logKeep`：只保留最近 {n} 天的紀錄。
   String s18LogKeep({required Object n}) => fill('s18.logKeep', {'n': n});
 
+  /// `s18.logEmpty`：還沒有借種紀錄
+  String get s18LogEmpty => table['s18.logEmpty']!;
+
+  /// `s18.logEmptyOut`：還沒有借出的紀錄
+  String get s18LogEmptyOut => table['s18.logEmptyOut']!;
+
+  /// `s18.logEmptyIn`：還沒有借入的紀錄
+  String get s18LogEmptyIn => table['s18.logEmptyIn']!;
+
   /// `s18.bullName`：{breed}公牛
   String s18BullName({required Object breed}) => fill('s18.bullName', {'breed': breed});
 
@@ -3560,6 +3587,9 @@ abstract class GeneratedStrings {
   /// `s12.me`：我
   String get s12Me => table['s12.me']!;
 
+  /// `s12.complete`：完成
+  String get s12Complete => table['s12.complete']!;
+
   /// `s12.weeklyHint`：每週{w} {time} 重新計算。
   String s12WeeklyHint({required Object time, required Object w}) => fill('s12.weeklyHint', {'time': time, 'w': w});
 
@@ -3655,6 +3685,9 @@ abstract class GeneratedStrings {
 
   /// `s13.backup.addGoogle`：以後可能換 Android 手機的話，再綁一個 Google 帳號。
   String get s13BackupAddGoogle => table['s13.backup.addGoogle']!;
+
+  /// `s13.backup.addGoogleAndroid`：在 Android 手機找回牧場要用 Google 帳號，建議再綁一個 Google 帳號。
+  String get s13BackupAddGoogleAndroid => table['s13.backup.addGoogleAndroid']!;
 
   /// `s13.binding`：綁定中…
   String get s13Binding => table['s13.binding']!;
@@ -3880,6 +3913,9 @@ abstract class GeneratedStrings {
 
   /// `s16.eta`：預計 {date} 恢復
   String s16Eta({required Object date}) => fill('s16.eta', {'date': date});
+
+  /// `s16.late`：比預計的時間晚一點，請再等一下
+  String get s16Late => table['s16.late']!;
 
   /// `date.mdw`：{m} 月 {d} 日（{w}）{time}
   String dateMdw({required Object d, required Object m, required Object time, required Object w}) => fill('date.mdw', {'d': d, 'm': m, 'time': time, 'w': w});

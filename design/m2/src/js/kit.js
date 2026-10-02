@@ -115,6 +115,45 @@ export function placeCowPop(root) {
   return n;
 }
 
+// 出貨評級的大框（S20、A-10）：字放不下（框 116 寬，左右各留 6）時，整組等比例縮小，跟 app 的 FittedBox 一樣（ceo 2026-10-02，cow-app #85 量到英文「Grade B」蓋到框線）。
+// 繁中「A 級」、泰文「เกรด A」放得下，不會變
+export function fitGrade(root) {
+  let n = 0;
+  root.querySelectorAll('.grade-big').forEach((g) => {
+    const kids = [...g.children];
+    if (!kids.length) return;
+    const rs = kids.map((k) => k.getBoundingClientRect());
+    const wNow = Math.max(...rs.map((r) => r.right)) - Math.min(...rs.map((r) => r.left)), avail = g.clientWidth - 12;
+    if (wNow <= avail + 0.5) return;
+    const s = document.createElement('span');
+    s.className = 'gb-fit';
+    kids.forEach((k) => s.appendChild(k));
+    g.appendChild(s);
+    s.style.zoom = String(avail / s.offsetWidth);
+    n++;
+  });
+  return n;
+}
+
+// 牛的詳細下面的動作區比預留的高（窄手機上一排兩顆放不下換成一顆一排、說明字換行）時，
+// 內容區的底部照動作區實際的高度往上推，最下面的內容才捲得到（缺口清單 2-1 公耕牛的兩顆半寬按鈕）。
+// 只差動作區上面那條 2 px 虛線的不算，所以繁中 430、390 不會變
+export function fitActions(root) {
+  const a = root.querySelector('.detail-actions'), c = root.querySelector('.content.has-actions');
+  if (!a || !c) return 0;
+  if (c.getBoundingClientRect().bottom - a.getBoundingClientRect().top <= 3) return 0;
+  c.style.bottom = `calc(var(--safe-bottom) + var(--tab-h) + ${a.offsetHeight}px)`;
+  return 1;
+}
+
+// 排行榜下面「我的名次」那一條放不下時（泰文窄手機加了「完成」以後），「完成」只留打勾（缺口清單 2-6；繁中、英文不會變）
+export function fitMyRank(root) {
+  const b = root.querySelector('.my-rank');
+  if (!b || !b.querySelector('.badge.done') || b.scrollWidth <= b.clientWidth + 0.5) return 0;
+  b.classList.add('tight');
+  return 1;
+}
+
 // 開場（S01）的版本號一律在框的下面（ceo 2026-10-02，跟 app #61 一樣）：平常在最下面（安全區上面 12 px）；
 // 框太高、版本號會被蓋住時，接在框下面 12 px，整頁變長、可以往下捲，多出來的部分是草地。
 export function placeVersion(root) {

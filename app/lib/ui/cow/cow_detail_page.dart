@@ -187,13 +187,10 @@ class _DetailList extends StatelessWidget {
     final m = context.watch<GameModel>();
     final s = Strings.of(context);
     final adult = cow.isAdultAt(m.gameNow);
-    final fee = _listingOf(m, cow)?.fee.price ?? cow.studFee?.price;
-    // 橘字提醒：在田裡（S04-07）、上架中（S04-05）、已配種（S04-09）。
+    // 橘字提醒：在田裡（S04-07）、已配種（S04-09）。上架中的公牛不放（D31：看「上架中」標籤和停用的按鈕就知道）；
     // 老牛配過種不加（S04-10 的設計稿：大圖下面已經有老牛的說明，配過種看標籤和按鈕）
     final note = cow.fieldIndex != null
         ? s.recallFirst(n: cow.fieldIndex! + 1)
-        : cow.listed
-        ? s.unlistFirst(price: fee == null ? '–' : fmt(fee))
         : cow.bred && adult && cow.stage != CowStage.old
         ? s.s04NoteBred
         : null;

@@ -244,7 +244,8 @@ final s04Cases = <PageCase>[
     '公牛上架中',
     (tester, lang) => showCow(tester, lang, detailCow(5, listed: true)),
     check: (tester) {
-      expect(find.text(_zh.unlistFirst(price: '870')), findsOneWidget);
+      // 上架中的公牛不放橘字提醒（D31）
+      expect(find.byKey(const Key('detail-note')), findsNothing);
       expect(find.text(_zh.badgeListed), findsOneWidget);
       expect(_btn(tester, 'detail-unlist').onPressed, isNotNull);
       expect(_btn(tester, 'detail-breed').onPressed, isNull);
