@@ -1,12 +1,17 @@
 import 'package:cowfarm/api/breeds.dart';
+import 'package:cowfarm/api/models.dart';
 import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'fakes.dart';
+import 'pages/page_case.dart';
 
 void main() {
+  // app 的字型：沒載入時測試用的方塊字每個字一樣寬（1 個字級），320 寬的頂列會被撐爆
+  setUpAll(loadAppAssets);
+
   testWidgets('圖鑑（S09）：24 格，已發現 2 種；點一格看品種詳細，返回鍵、返回鈕回到列表', (tester) async {
     final (m, _, _) = await loadedModel();
     await pumpApp(tester, m);
@@ -35,6 +40,32 @@ void main() {
     await tester.tap(find.byKey(const Key('btn-back')));
     await tester.pump();
     expect(m.codexBreed, isNull);
+  });
+
+  testWidgets('圖鑑：畫面 339 寬以下一排 3 格，以上 4 格；品種名不換行（screens.css 的 @media、.dex-name）', (tester) async {
+    final zh = Strings.forLang(AppLang.zhHant);
+    final dairy = [
+      for (final b in kCodexOrder)
+        if (breedInfo(b)?.type == CowType.dairy) b,
+    ];
+    for (final (screen, cols) in [(Screen.w320, 3), (Screen.w360, 4)]) {
+      final (m, _, _) = await loadedModel();
+      await pumpApp(tester, m);
+      screen.apply(tester); // pumpApp 固定 430 寬，之後才換成要測的寬度
+      m.selectTab(AppTab.records);
+      await tester.pump();
+      final first = tester.getRect(find.byKey(Key('codex-${dairy[0]}')));
+      final next = tester.getRect(find.byKey(Key('codex-${dairy[cols]}')));
+      expect(next.top, greaterThan(first.bottom), reason: '${screen.label}：第 ${cols + 1} 格換到下一排');
+      expect(next.left, first.left, reason: screen.label);
+      final last = tester.getRect(find.byKey(Key('codex-${dairy[cols - 1]}')));
+      expect(last.top, first.top, reason: '${screen.label}：第 $cols 格還在第一排');
+      final name = find.descendant(
+        of: find.byKey(Key('codex-${dairy[0]}')),
+        matching: find.text(zh.breedName(dairy[0])),
+      );
+      expect(tester.widget<Text>(name).softWrap, isFalse);
+    }
   });
 
   testWidgets('排行榜：三個分頁、自己的名次、電腦假玩家標「電腦」', (tester) async {
