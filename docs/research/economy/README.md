@@ -26,7 +26,7 @@ python3 -m unittest
 
 # 2. 全部情境（36 個）。v0.2.1 實測：一次一個、nice 19，20:13–20:32 共約 19 分鐘；
 #    10,000 人 30 天那個 493 秒、單一行程最多約 260 MB。
-#    這台電腦 2026-09-30 因記憶體用光當機過：先看 free -m，available 少於 2000 MB 就等一下；
+#    這台電腦 2026-09-30 因記憶體用光當機過：先看 free -m，available 少於 1000 MB 就等一下（使用者 2026-10-03 從 2000 改成 1000）；
 #    用 systemd-run 限制記憶體，一次只跑一個：
 free -m
 systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 nice -n 19 python3 -m sim.run --force --jobs 1
