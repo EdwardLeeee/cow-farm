@@ -33,7 +33,7 @@ from cowecon.farm import (
 )
 from cowecon.params import HEADLINES
 from server.breeds import ALL as ALL_BREEDS
-from server.breeds import BREEDS
+from server.breeds import BREEDS, breed_id
 from server.game import TYPE_WIRE, Game, GameError, week_id, week_start
 from server.names import load_words, station_words
 
@@ -76,6 +76,24 @@ def give(h, tok, coins=None, slots=None):
     if slots is not None:
         p.farm.slots = slots
     return p
+
+
+def check_offspring_distribution(pv):
+    """配種、借種預覽的 distribution（協定 3.7、4.3；S08-06、S18-06 一列一個品種）：p 加總是 1；
+    依 tier、type、bull 加總後跟 tier_probs、type_probs、bull_prob 一樣；形狀跟商店（3.5）一樣。"""
+    rows = pv["distribution"]
+    assert rows and sum(r["p"] for r in rows) == pytest.approx(1.0, abs=1e-12)
+    tiers, types, bull = [0.0] * 4, {t: 0.0 for t in TYPE_WIRE}, 0.0
+    for r in rows:
+        assert set(r) == {"type", "bull", "traits", "tier", "breed", "p"} and r["p"] > 0
+        assert r["tier"] == bin(r["traits"]).count("1") and r["breed"] == breed_id(
+            TYPE_WIRE.index(r["type"]), r["traits"]
+        )
+        tiers[r["tier"]] += r["p"]
+        types[r["type"]] += r["p"]
+        bull += r["p"] if r["bull"] else 0.0
+    assert tiers == pytest.approx(pv["tier_probs"], abs=1e-12)
+    assert types == pytest.approx(pv["type_probs"], abs=1e-12) and bull == pytest.approx(pv["bull_prob"], abs=1e-12)
 
 
 def expected_fee(h, pid, cow_id):
@@ -134,6 +152,10 @@ def test_session_and_state_fields(h):
         "tier_mult": list(FP.tier_mult),
         "beef_grade_mult": dict(zip("ABC", FP.beef_grade_mult)),
         "ox_rice_per_h": FP.rice_per_h[1],
+        "dairy_milk_per_h": FP.milk_per_h[0],
+        "calf_grow_h": list(FP.tier_growth_h),
+        "peak_weight_kg": dict(zip(TYPE_WIRE, FP.peak_weight_kg)),
+        "bull_weight_mult": FP.bull_weight_mult,
     }
     cows = {c["id"]: c for c in st["cows"]}
     assert len(cows) == 2
@@ -536,6 +558,7 @@ def test_breed_once_and_free(h):
     for (t, _m), pr in offspring_distribution(sire_g, dam_g).items():
         types[t] += pr
     assert pv["type_probs"] == pytest.approx({TYPE_WIRE[i]: types[i] for i in range(3)})
+    check_offspring_distribution(pv)
     coins0 = state(h, tok)["coins"]
     r = h.post("/v1/breed", tok, {"sire": bull["id"], "dam": cow["id"], "request_id": new_rid()})
     assert r.status_code == 200, r.text
@@ -683,6 +706,7 @@ def test_stud_borrow_pays_owner_and_calf_goes_to_borrower(h):
             pa.farm.cow_by_id(bull["id"]).g, h.server.game.players[sb["player_id"]].farm.cow_by_id(dam["id"]).g
         )
     )
+    check_offspring_distribution(pv)
     a_coins, b_cows = state(h, a)["coins"], len(state(h, b)["cows"])
     rid = new_rid()
     r1 = h.post("/v1/stud/borrow", b, {"listing_id": lst["id"], "dam": dam["id"], "price": price, "request_id": rid})

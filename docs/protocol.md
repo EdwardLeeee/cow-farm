@@ -311,7 +311,9 @@ app 怎麼顯示：
  "fields": [{"index": 0, "cow_id": 2, "rice": 33.0, "capacity": 88.0, "per_hour": 11.0}],
  "rice": {"in_fields": 33.0, "stock": 0.0, "per_hour": 11.0},
  "stud": {"listings": [], "income": 0},
- "economy": {"tier_mult": [1.0, 1.3, 1.7, 2.5], "beef_grade_mult": {"A": 1.25, "B": 1.0, "C": 0.75}, "ox_rice_per_h": 11.0},
+ "economy": {"tier_mult": [1.0, 1.3, 1.7, 2.5], "beef_grade_mult": {"A": 1.25, "B": 1.0, "C": 0.75}, "ox_rice_per_h": 11.0,
+             "dairy_milk_per_h": 14.0, "calf_grow_h": [1.0, 2.0, 4.0, 8.0],
+             "peak_weight_kg": {"dairy": 250.0, "dual": 450.0, "beef": 800.0}, "bull_weight_mult": 1.1},
  "account": {"links": []},
  "maintenance": null
 }
@@ -329,7 +331,7 @@ app 怎麼顯示：
 | `codex[]` | array | PR 4：已發現的品種 `{"breed", "found_at"}`，`found_at` 是第一次發現的遊戲時間（S09-03「第一次發現：{date}」）。牛一出生（或抽到、借種生下）就算發現，之後出貨也不會消失。共 24 種，沒出現在陣列裡的顯示剪影。「目前有 n 頭」由 app 數 `cows[]` |
 | `fields[]`、`rice` | | 田地（見下） |
 | `stud` | object | `listings` 自己上架的借種（形狀同 `GET /v1/stud` 的 `listings[]`）、`income` 借種收入累計（幣） |
-| `economy` | object | 經濟倍數，直接讀伺服器的參數（`params.py`），app 不要寫死：`tier_mult`（一般、優良、稀有、傳說：牛奶、牛肉的賣價倍率，也是耕牛的稻米產量倍率；S05「優良牛奶 ×1.3」、S09 品種卡）、`beef_grade_mult`（牛肉評級 A／B／C 的賣價倍率）、`ox_rice_per_h`（壯年一般耕牛每遊戲小時的稻米公斤數；某頭牛 = 這個 × `tier_mult` × 年齡曲線，現在的值看 `cows[].rice_per_h`）。牛奶賣價 = 市價 × `tier_mult` × 新鮮度；牛肉 = 市價 × `beef_grade_mult` × `tier_mult` × 存放折價。**這些只是給畫面顯示的說明數字**：帳一律由伺服器算，app 不能拿它們自己算成交價或收入（手機不算帳；要價格用 `POST /v1/sell/quote`、`GET /v1/ship/preview`） |
+| `economy` | object | 經濟倍數，直接讀伺服器的參數（`params.py`），app 不要寫死：`tier_mult`（一般、優良、稀有、傳說：牛奶、牛肉的賣價倍率，也是耕牛的稻米產量倍率；S05「優良牛奶 ×1.3」、S09 品種卡）、`beef_grade_mult`（牛肉評級 A／B／C 的賣價倍率）、`ox_rice_per_h`（壯年一般耕牛每遊戲小時的稻米公斤數；某頭牛 = 這個 × `tier_mult` × 年齡曲線，現在的值看 `cows[].rice_per_h`）、`dairy_milk_per_h`（壯年母乳牛每遊戲小時產幾瓶；× 年齡曲線，稀有度不影響產量、只影響賣價；S09-03「產奶 14 瓶／時」）、`calf_grow_h`（小牛長大要幾遊戲小時，依稀有度 0–3；S08-06「小牛長大 1–4 小時」、S09-03）、`peak_weight_kg`（母牛的最佳體重，依用途，key 同 `cows[].type`：`dairy`、`dual`、`beef`；S09-03）、`bull_weight_mult`（公牛的體重 = 母牛 × 這個）。牛奶賣價 = 市價 × `tier_mult` × 新鮮度；牛肉 = 市價 × `beef_grade_mult` × `tier_mult` × 存放折價。**這些只是給畫面顯示的說明數字**：帳一律由伺服器算，app 不能拿它們自己算成交價或收入（手機不算帳；要價格用 `POST /v1/sell/quote`、`GET /v1/ship/preview`） |
 | `account` | object | PR 9：`links[]` 綁定的帳號 `{"provider": "apple"｜"google", "linked_at_real"}`。空陣列 = 還沒備份（頂列齒輪的小點 G-10、S13-01「還沒備份」） |
 | `maintenance` | object／null | PR 8：維護預告或維護中（第 6 節）；沒有是 null |
 
@@ -556,6 +558,10 @@ v2 拿掉的：`type_name`、`tier_name`、`ready_at`、`breed_ready`（看 `can
 {"server_time": 1791130860.0, "real_time": 1790736268.39, "time_scale": 144.0,
  "sire": 2, "dam": 1,
  "tier_probs": [1.0, 0.0, 0.0, 0.0], "type_probs": {"dairy": 0.5, "dual": 0.5, "beef": 0.0}, "bull_prob": 0.5,
+ "distribution": [{"type": "dairy", "bull": false, "traits": 0, "tier": 0, "breed": "holstein", "p": 0.25},
+                  {"type": "dairy", "bull": true, "traits": 0, "tier": 0, "breed": "holstein", "p": 0.25},
+                  {"type": "dual", "bull": false, "traits": 0, "tier": 0, "breed": "yellow", "p": 0.25},
+                  {"type": "dual", "bull": true, "traits": 0, "tier": 0, "breed": "yellow", "p": 0.25}],
  "can_breed": true, "blockers": []}
 ```
 
@@ -564,6 +570,7 @@ v2 拿掉的：`type_name`、`tier_name`、`ready_at`、`breed_ready`（看 `can
 | `tier_probs` | 小牛稀有度 0–3 的精確機率（依父母基因算出，合計 1） |
 | `type_probs` | 小牛用途的機率（乳牛 × 肉牛 = 全部耕牛） |
 | `bull_prob` | 小牛是公牛的機率（0.5） |
+| `distribution[]` | 完整分布：每種（用途、公母、特徵組合 `traits`）的機率，形狀同商店（3.5）的 `distribution`：`type`、`bull`、`traits`、`tier`、`breed`、`p`。只列機率大於 0 的，合計 1；依 `tier`、`type`、`bull` 加總就是上面三個欄位。S08-06、S18-06「可能生出的小牛」一列一個品種：同一個 `breed` 的公母兩列加起來 |
 | `can_breed` | 現在能不能配 |
 | `blockers[]` | 不能配的原因 `{"code", "message", …}`：`cow_not_adult`（`cow_id`、`until`）、`already_bred`（`cow_id`）、`cow_in_field`、`cow_listed`、`pen_full` |
 
@@ -754,10 +761,11 @@ v2 拿掉 `price`（看 `fee.price`）、`type_name`、`tier_name`、`owner_id`�
 {"server_time": 1791141900.0, "real_time": 1790771411.09, "time_scale": 144.0, "listing_id": 5, "dam": 1,
  "fee": {"price": 530, "per_kg": 1.1, "kg": 480.11, "at_max": false},
  "tier_probs": [1.0, 0.0, 0.0, 0.0], "type_probs": {"dairy": 0.5, "dual": 0.5, "beef": 0.0}, "bull_prob": 0.5,
+ "distribution": [{"type": "dairy", "bull": false, "traits": 0, "tier": 0, "breed": "holstein", "p": 0.25}, "…"],
  "can_borrow": true, "blockers": []}
 ```
 
-- 機率欄位同 `breed/preview`。`blockers[]`：`own_listing`、`cow_not_adult`、`already_bred`、`cow_in_field`、`cow_listed`、`pen_full`、`not_enough_coins`（`need`、`have`）、`listing_gone`。
+- 機率欄位（`tier_probs`、`type_probs`、`bull_prob`、`distribution[]`）同 `breed/preview`（3.7）。`blockers[]`：`own_listing`、`cow_not_adult`、`already_bred`、`cow_in_field`、`cow_listed`、`pen_full`、`not_enough_coins`（`need`、`have`）、`listing_gone`。
 - PR 6：`fee` 取代 v1 的 `price`。借種時把 `fee.price` 原樣送回。
 
 ### 4.4 `POST /v1/stud/borrow` 借種
@@ -1053,3 +1061,4 @@ app 啟動時先打這個（還沒有 token 也能打），再決定要不要顯
 - 2026-10-02：2.3 節 state 加 `economy`（`tier_mult`、`beef_grade_mult`、`ox_rice_per_h`，S05、S09 的倍數用；直接讀 params）。
 - 2026-10-02：2.3 節 `upgrades.bucket`、`warehouse`、`fresh` 加 `max`（最高等級；S10「第 1 / 4 級」用）。
 - 2026-10-02：2.3 節 `cows[].rice_per_h` 寫清楚：成年耕牛不管有沒有下田，都是「下田的話」每小時的產量（伺服器本來就這樣算，程式不變）。
+- 2026-10-02：3.7、4.3 節預覽加 `distribution[]`（每個品種的機率，S08-06、S18-06）；2.3 節 `economy` 加 `dairy_milk_per_h`、`calf_grow_h`、`peak_weight_kg`、`bull_weight_mult`（S08-06、S09-03；直接讀 params）。設計稿缺口清單第 1 類（1-1～1-3）。
