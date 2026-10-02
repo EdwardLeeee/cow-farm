@@ -854,6 +854,7 @@ def test_stud_unlist_and_npc_listings(h):
     market = h.get("/v1/stud", a).json()
     npc = [x for x in market["listings"] if x["owner"]["player_id"] is None]
     assert len(npc) >= FP.npc_stud_listings
+    assert {h.server.game.stud.listings[x["id"]].ctype for x in npc} == {0, 1, 2}  # 乳牛、耕牛、肉牛各一（協定第 4 節）
     now = h.clock.now()
     for x in npc:  # 公營種牛站：用那種用途公牛的最佳體重算（一般公牛：乳牛 300、耕牛 540、肉牛 970）
         lst_e = h.server.game.stud.listings[x["id"]]

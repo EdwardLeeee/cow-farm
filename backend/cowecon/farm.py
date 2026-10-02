@@ -1326,7 +1326,6 @@ class StudMarket:
         self.p = params
         self.listings: Dict[int, StudListing] = {}
         self._next_id = 1
-        self._npc_type = 0  # 公營種牛站輪流上架的用途
         self._npc_count = 0
         self._index: Dict[Tuple[int, int], List[int]] = {}  # (用途, 稀有度) → 上架編號（價格會變，用的時候現算）
 
@@ -1445,12 +1444,21 @@ class StudMarket:
 
     # ---- 電腦假玩家 ----
     def npc_refill(self, now: float, rng: random.Random) -> List[StudListing]:
-        """公營種牛站的上架少於 npc_stud_listings 筆時補上（用途輪流，C 級基因：大多是一般公牛）。"""
+        """公營種牛站：乳牛、耕牛、肉牛每種至少一筆，而且總共至少 npc_stud_listings 筆（協定第 4 節）。
+        缺哪種用途補哪種（站上最少的用途先補，一樣少就照乳牛、耕牛、肉牛的順序）。C 級基因：大多是一般公牛。
+        2026-10-02 以前是用途輪流補，借走哪一種都補下一個輪到的，站上可能一陣子沒有某種用途；那時存下來的
+        偏一邊的站（例如肉牛、肉牛、耕牛），下次呼叫就會補上缺的用途（暫時多一筆）。"""
         fp = self.p.farm
         added = []
-        while self._npc_count < fp.npc_stud_listings:
-            g = shop_genotype(fp, self._npc_type, rng)
-            self._npc_type = (self._npc_type + 1) % 3
+        while True:
+            have = [0, 0, 0]
+            for l in self.listings.values():
+                if l.owner is None:
+                    have[l.ctype] += 1
+            if self._npc_count >= fp.npc_stud_listings and min(have) > 0:
+                break
+            ctype = min(range(3), key=lambda i: (have[i], i))
+            g = shop_genotype(fp, ctype, rng)  # 亂數用量跟用途無關，換了補法也不會打亂之後的亂數
             lst = StudListing(self._next_id, None, 0, g, None, now)  # 沒有真的牛：借種費用最佳體重算
             self._next_id += 1
             self._add(lst)
@@ -1461,15 +1469,13 @@ class StudMarket:
     def to_dict(self) -> dict:
         return {
             "next_id": self._next_id,
-            "npc_type": self._npc_type,
             "listings": [l.to_dict() for l in self.listings.values()],
         }
 
     @classmethod
     def from_dict(cls, params: EconomyParams, d: dict) -> "StudMarket":
         m = cls(params)
-        m._next_id = d["next_id"]
-        m._npc_type = d.get("npc_type", 0)
+        m._next_id = d["next_id"]  # 舊存檔還有 npc_type（以前輪流補的位置），現在用不到
         for x in d["listings"]:
             m._add(StudListing.from_dict(x))
         return m
