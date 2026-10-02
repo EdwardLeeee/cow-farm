@@ -2,6 +2,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import '../../theme/tokens.dart';
 import 'app_icon.dart';
@@ -148,6 +149,7 @@ class AppDialog extends StatelessWidget {
     // 上下留一樣多（安全區比較大的那邊），對話框才會在整個畫面的正中間；太高時可以捲
     final v = pad.top > pad.bottom ? pad.top : pad.bottom;
     final card = Container(
+      key: const Key('dialog'),
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
       decoration: BoxDecoration(
         color: AppColors.paper,
@@ -171,14 +173,7 @@ class AppDialog extends StatelessWidget {
             style: AppText.style(14, weight: FontWeight.w700, lineHeight: 21),
             child: body,
           ),
-          if (buttons.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                for (final (i, b) in buttons.indexed) ...[if (i > 0) const SizedBox(width: 10), Expanded(child: b)],
-              ],
-            ),
-          ],
+          if (buttons.isNotEmpty) ...[const SizedBox(height: 16), BtnRow(children: buttons)],
         ],
       ),
     );
@@ -305,4 +300,288 @@ List<InlineSpan> fillSpans(String text, TextStyle style, String value) {
       if (p.isNotEmpty) TextSpan(text: p),
     ],
   ];
+}
+
+/// .btn-row：並排的按鈕（每顆 flex: 1、間距 10）。放不下時換到下一排、撐滿整排（screens.css 第 12 條：英文、泰文放不下才換行）。
+/// 跟 CSS 的 flex-wrap 一樣：每顆最窄是自己的字不換行的寬度；一排放得下就平分，有一顆比平分還寬就照它的寬、其他的分剩下的。
+class BtnRow extends MultiChildRenderObjectWidget {
+  const BtnRow({super.key, required super.children, this.gap = 10});
+
+  final double gap;
+
+  @override
+  RenderBtnRow createRenderObject(BuildContext context) => RenderBtnRow(gap);
+
+  @override
+  void updateRenderObject(BuildContext context, RenderBtnRow renderObject) => renderObject.gap = gap;
+}
+
+class BtnRowParentData extends ContainerBoxParentData<RenderBox> {}
+
+class RenderBtnRow extends RenderBox
+    with
+        ContainerRenderObjectMixin<RenderBox, BtnRowParentData>,
+        RenderBoxContainerDefaultsMixin<RenderBox, BtnRowParentData> {
+  RenderBtnRow(this._gap);
+
+  double _gap;
+  double get gap => _gap;
+  set gap(double v) {
+    if (v == _gap) return;
+    _gap = v;
+    markNeedsLayout();
+  }
+
+  @override
+  void setupParentData(RenderBox child) {
+    if (child.parentData is! BtnRowParentData) child.parentData = BtnRowParentData();
+  }
+
+  List<RenderBox> get _kids {
+    final out = <RenderBox>[];
+    var c = firstChild;
+    while (c != null) {
+      out.add(c);
+      c = childAfter(c);
+    }
+    return out;
+  }
+
+  /// 分排：一排的最窄寬度加間距超過 [width] 就換下一排（第一顆一定放得下）。
+  List<List<int>> _lines(List<double> mins, double width) {
+    final lines = <List<int>>[];
+    var used = 0.0;
+    for (var i = 0; i < mins.length; i++) {
+      if (lines.isEmpty || used + gap + mins[i] > width + 0.01) {
+        lines.add([i]);
+        used = mins[i];
+      } else {
+        lines.last.add(i);
+        used += gap + mins[i];
+      }
+    }
+    return lines;
+  }
+
+  /// 一排裡每顆的寬：平分；比平分的寬還窄不下去的照自己的最窄寬度，剩下的再平分（CSS flex: 1 的最小寬度）。
+  List<double> _widths(List<double> mins, double width) {
+    final free = width - gap * (mins.length - 1);
+    final out = List<double?>.filled(mins.length, null);
+    while (true) {
+      final open = [
+        for (var i = 0; i < mins.length; i++)
+          if (out[i] == null) i,
+      ];
+      if (open.isEmpty) break;
+      final left =
+          free -
+          [
+            for (var i = 0; i < mins.length; i++)
+              if (out[i] != null) out[i]!,
+          ].fold(0.0, (a, b) => a + b);
+      final share = left / open.length;
+      final frozen = [
+        for (final i in open)
+          if (mins[i] > share) i,
+      ];
+      if (frozen.isEmpty) {
+        for (final i in open) {
+          out[i] = math.max(0, share);
+        }
+        break;
+      }
+      for (final i in frozen) {
+        out[i] = mins[i];
+      }
+    }
+    return [for (final w in out) w!];
+  }
+
+  Size _layout(BoxConstraints constraints, {required bool dry}) {
+    final kids = _kids;
+    final width = constraints.maxWidth;
+    if (kids.isEmpty || !width.isFinite) return constraints.smallest;
+    final mins = [for (final c in kids) c.getMaxIntrinsicWidth(double.infinity)];
+    var y = 0.0;
+    for (final (n, line) in _lines(mins, width).indexed) {
+      final widths = _widths([for (final i in line) mins[i]], width);
+      // 一排的高是最高的那顆，其他的撐到一樣高（align-items: stretch）
+      final height = [
+        for (final (j, i) in line.indexed)
+          dry
+              ? kids[i].getDryLayout(BoxConstraints.tightFor(width: widths[j])).height
+              : (kids[i]..layout(BoxConstraints.tightFor(width: widths[j]), parentUsesSize: true)).size.height,
+      ].reduce(math.max);
+      if (n > 0) y += gap;
+      var x = 0.0;
+      for (final (j, i) in line.indexed) {
+        if (!dry) {
+          kids[i].layout(BoxConstraints.tightFor(width: widths[j], height: height));
+          (kids[i].parentData! as BtnRowParentData).offset = Offset(x, y);
+        }
+        x += widths[j] + gap;
+      }
+      y += height;
+    }
+    return constraints.constrain(Size(width, y));
+  }
+
+  @override
+  Size computeDryLayout(BoxConstraints constraints) => _layout(constraints, dry: true);
+
+  @override
+  void performLayout() => size = _layout(constraints, dry: false);
+
+  @override
+  double computeMinIntrinsicWidth(double height) =>
+      _kids.fold(0.0, (a, c) => math.max(a, c.getMaxIntrinsicWidth(double.infinity)));
+
+  @override
+  double computeMaxIntrinsicWidth(double height) {
+    final kids = _kids;
+    if (kids.isEmpty) return 0;
+    return kids.fold(0.0, (a, c) => a + c.getMaxIntrinsicWidth(double.infinity)) + gap * (kids.length - 1);
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) => defaultPaint(context, offset);
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) =>
+      defaultHitTestChildren(result, position: position);
+}
+
+/// .sheet 加 .backdrop：從下面滑上來的面板（暗幕、上緣 3px 框、上面兩個圓角 26、把手、標題）。點暗幕關掉。
+class AppSheet extends StatelessWidget {
+  const AppSheet({super.key, required this.title, required this.children, required this.onClose});
+
+  final String title;
+  final List<Widget> children;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final safe = MediaQuery.paddingOf(context);
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: onClose,
+            child: const ColoredBox(color: AppColors.backdrop),
+          ),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: Container(
+            key: const Key('sheet'),
+            padding: EdgeInsets.fromLTRB(16, 10, 16, safe.bottom + 14),
+            decoration: const BoxDecoration(
+              color: AppColors.paper,
+              border: Border(
+                top: BorderSide(color: AppColors.ink, width: AppSizes.border),
+              ),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 44,
+                    height: 5,
+                    margin: const EdgeInsets.only(bottom: 10),
+                    decoration: const BoxDecoration(
+                      color: AppColors.disabledLine,
+                      borderRadius: BorderRadius.all(Radius.circular(3)),
+                    ),
+                  ),
+                ),
+                Text(title, style: AppText.style(18, weight: FontWeight.w900, lineHeight: 24)),
+                const SizedBox(height: 10),
+                ...children,
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 一行不換行的字，照 Chrome（Linux）排 CSS line-height 的方式定高度和基線。設計稿是 Chrome 畫的；同一行有大小不同的字
+/// （例：「14 <small>瓶／時</small>」）或字比行高大的時候，Flutter 的排法會差 1 px 左右，版面跟著偏。
+/// Chrome 的算法：每段字的 ascent、descent 各自四捨五入（descent 被捨去時從 ascent 借 1 給 descent）；行高多出來（或不夠）的
+/// 部分，上面放 floor(一半)、其餘放下面；整行的上緣取各段最高的、下緣取最低的，也算進外層的字（CSS 的 strut）。
+/// 字型是 Noto Sans CJK 的 hhea（ascent 1.16、descent 0.288 字級）。
+/// 只排一行；[wrap] 的話，一行放不下（英文、泰文的窄手機）就照一般的字換行。
+class CssLine extends StatelessWidget {
+  const CssLine(this.span, {super.key, this.textKey, this.wrap = false});
+
+  final TextSpan span;
+  final Key? textKey;
+  final bool wrap;
+
+  /// 這一行在 Chrome 的（基線以上、基線以下）。
+  static (double, double) metrics(TextSpan span) {
+    var above = 0.0, below = 0.0;
+    void add(TextStyle s) {
+      final size = s.fontSize;
+      if (size == null) return;
+      var asc = (size * 1.16).roundToDouble(), desc = (size * 0.288).roundToDouble();
+      if (desc < size * 0.288 && asc >= 1) {
+        desc += 1;
+        asc -= 1;
+      }
+      final h = s.height;
+      if (h != null) {
+        final leading = h * size - (asc + desc);
+        final top = (leading / 2).floorToDouble();
+        asc += top;
+        desc += leading - top;
+      }
+      above = math.max(above, asc);
+      below = math.max(below, desc);
+    }
+
+    void visit(InlineSpan s, TextStyle? inherited) {
+      final style = inherited == null ? s.style : inherited.merge(s.style);
+      if (s is! TextSpan || style == null) return;
+      if (inherited == null || (s.text ?? '').isNotEmpty) add(style);
+      for (final c in s.children ?? const <InlineSpan>[]) {
+        visit(c, style);
+      }
+    }
+
+    visit(span, null);
+    return (above, below);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final (above, below) = metrics(span);
+    Widget line() => SizedBox(
+      height: above + below,
+      child: Baseline(
+        baseline: above,
+        baselineType: TextBaseline.alphabetic,
+        child: Text.rich(span, key: textKey, softWrap: false),
+      ),
+    );
+    if (!wrap) return line();
+    return LayoutBuilder(
+      builder: (context, c) {
+        final p = TextPainter(
+          text: span,
+          textDirection: Directionality.of(context),
+          textScaler: MediaQuery.textScalerOf(context),
+        )..layout();
+        final fits = p.width <= c.maxWidth + 0.5;
+        p.dispose();
+        return fits ? line() : Text.rich(span, key: textKey);
+      },
+    );
+  }
 }

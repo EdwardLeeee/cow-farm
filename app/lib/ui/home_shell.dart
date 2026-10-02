@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../l10n/l10n.dart';
 import '../l10n/strings.dart';
+import 'cow/cow_detail_page.dart';
 import 'kit/frame.dart';
 import 'market/market_page.dart';
 import 'ranch/pen_list.dart';
@@ -13,7 +14,6 @@ import '../state/game_model.dart';
 import 'widgets/action_button.dart';
 import 'screens/breed_screen.dart';
 import 'screens/codex_screen.dart';
-import 'screens/cow_detail_screen.dart';
 import 'screens/fields_screen.dart';
 import 'screens/leaderboard_screen.dart';
 import 'shop/shop_page.dart';
@@ -65,12 +65,15 @@ class _HomeShellState extends State<HomeShell> {
     if (m.maintenance != null || m.state == null || m.authLost != null) {
       // 維護中、token 失效（原型文字）：整頁，沒有頂列和分頁列
       page = AppFrame(hud: false, content: _content(m));
-    } else if (m.tab == AppTab.ranch && m.detailCowKey == null && !m.penListOpen && !m.warehouseOpen) {
+    } else if (m.detailCowKey case final key?) {
+      // 牛的詳細（S04）：自己的外框，下面固定的按鈕區；上架面板、出貨確認疊在上面
+      page = CowDetailPage(key: ValueKey('cow-$key'), cowKey: key);
+    } else if (m.tab == AppTab.ranch && !m.penListOpen && !m.warehouseOpen) {
       page = const RanchPage();
-    } else if (m.tab == AppTab.market && m.detailCowKey == null) {
+    } else if (m.tab == AppTab.market) {
       // 市場（S06）：自己的外框，賣出的提示疊在最上面
       page = const MarketPage();
-    } else if (m.tab == AppTab.shop && m.detailCowKey == null) {
+    } else if (m.tab == AppTab.shop) {
       // 商店（S19 抽牛、S10 設施）：自己的外框，升級的提示疊在最上面
       page = const ShopPage();
     } else {
@@ -110,7 +113,6 @@ class _HomeShellState extends State<HomeShell> {
     if (m.maintenance != null) return const _Maintenance();
     // 玩到一半 token 失效（401、WebSocket 4401）也要換成 S15-03／S14-05，不能留在牧場畫面
     if (m.state == null || m.authLost != null) return const _Loading();
-    if (m.detailCowKey != null) return CowDetailScreen(cowKey: m.detailCowKey!);
     return switch (m.tab) {
       // 倉庫（S05-02）、牛舍清單（S03-07）
       AppTab.ranch => m.warehouseOpen ? const WarehousePage() : const PenListPage(),

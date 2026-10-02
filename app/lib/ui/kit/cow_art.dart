@@ -1,10 +1,13 @@
 // 牛的圖：cow-ui 從設計稿的牛產生器匯出的 SVG（app/assets/cows/，T3：執行時讀，不在建置時轉）。
 // 擺法照設計稿 design/m2/src/js/kit.js 的 cowSVG：整隻牛縮放到放得進 w×h（四邊留 pad），腳底貼齊底下的留邊、左右置中。
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+
+import '../../theme/tokens.dart';
 
 /// 一張牛圖的量測（cows.json 的 images）：SVG 的 viewBox 原點在腳底中間，往上是負的；四邊各留 4。
 class CowImageMeta {
@@ -191,4 +194,56 @@ class CowFace extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 牛的淺色剪影（設計稿 kit.js 的 cowSVG 加 sil: true）：整隻牛填 #C2B3A6，中間一個白字、深色描邊的「？」
+/// （字級是高的 0.42、基線在高的 0.62、描邊 max(1.5, 高 × 0.03)）。找不到這頭牛（S04-11）用。
+class CowSilhouette extends StatelessWidget {
+  const CowSilhouette({super.key, required this.breed, this.bull = false, required this.size});
+
+  final String breed;
+  final bool bull;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => SizedBox.square(
+    dimension: size,
+    child: Stack(
+      children: [
+        ColorFiltered(
+          colorFilter: const ColorFilter.mode(Color(0xFFC2B3A6), BlendMode.srcIn),
+          child: CowPicture(breed: breed, bull: bull, width: size, height: size),
+        ),
+        Positioned.fill(child: CustomPaint(painter: _QuestionMark(size))),
+      ],
+    ),
+  );
+}
+
+class _QuestionMark extends CustomPainter {
+  _QuestionMark(this.h);
+
+  final double h;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final style = AppText.style((h * 0.42).roundToDouble(), weight: FontWeight.w900);
+    // paint-order: stroke：先畫描邊、再把白字蓋上去
+    final stroke = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = math.max(1.5, h * 0.03)
+      ..color = AppColors.ink2;
+    for (final s in [style.copyWith(foreground: stroke), style.copyWith(color: const Color(0xFFFFFFFF))]) {
+      final p = TextPainter(
+        text: TextSpan(text: '？', style: s),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      final base = p.computeDistanceToActualBaseline(TextBaseline.alphabetic);
+      p.paint(canvas, Offset((size.width - p.width) / 2, h * 0.62 - base));
+      p.dispose();
+    }
+  }
+
+  @override
+  bool shouldRepaint(_QuestionMark oldDelegate) => oldDelegate.h != h;
 }

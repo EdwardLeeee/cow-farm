@@ -1,6 +1,5 @@
-// 牧場分頁：S03 牧場頁（收奶、點牛的小名片）、S03-07 牛舍清單，和從清單打開的牛的詳細資料（M1 原型，S04 會換掉）。
+// 牧場分頁：S03 牧場頁（收奶、點牛的小名片）、S03-07 牛舍清單，和從清單打開牛的詳細資料（S04 的測試在 cow_detail_test）。
 import 'package:cowfarm/l10n/l10n.dart';
-import 'package:cowfarm/l10n/strings.dart';
 import 'package:cowfarm/state/game_model.dart';
 import 'package:cowfarm/ui/kit/cow_bits.dart';
 import 'package:cowfarm/ui/kit/kit.dart';
@@ -11,12 +10,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'fakes.dart';
 import 'pages/page_case.dart';
 import 'pages/s03_cases.dart' show ranchModel, sceneCowAsset;
-
-FilledButton _btn(WidgetTester tester, String key) =>
-    tester.widget<FilledButton>(find.descendant(of: find.byKey(Key(key)), matching: find.byType(FilledButton)));
-
-OutlinedButton _outlined(WidgetTester tester, String key) =>
-    tester.widget<OutlinedButton>(find.descendant(of: find.byKey(Key(key)), matching: find.byType(OutlinedButton)));
 
 final _zh = Strings.forLang(AppLang.zhHant);
 
@@ -226,88 +219,31 @@ void main() {
     expect(find.textContaining('24 / 24', findRichText: true), findsOneWidget);
   });
 
-  testWidgets('出貨（S20）：先顯示各評級機率與收入，確定後揭曉評級', (tester) async {
-    final (m, api, _) = await loadedModel();
+  testWidgets('牛舍清單點一頭牛：打開那頭牛的詳細資料（S04），返回回到清單', (tester) async {
+    final (m, _, _) = await loadedModel();
     await pumpApp(tester, m);
-
     await _openCow(tester, '1');
-    expect(find.text('出貨估值 約 1,440 幣'), findsOneWidget);
+    expect(m.detailCowKey, '1');
+    expect(find.byKey(const Key('cow-detail')), findsOneWidget);
     expect(find.byKey(const Key('detail-grade-probs')), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('detail-ship')));
+    expect(tester.widget<AppButton>(find.byKey(const Key('detail-ship'))).onPressed, isNotNull);
+    await tester.tap(find.byKey(const Key('btn-back')));
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(api.calls, contains('ship-preview:1'));
-    expect(find.byKey(const Key('ship-confirm-body')), findsOneWidget);
-    expect(find.text('A 級 13.7%　收入約 1,800 幣'), findsOneWidget);
-    expect(find.text('B 級 49.3%　收入約 1,440 幣'), findsOneWidget);
-    expect(find.text('C 級 37.0%　收入約 1,080 幣'), findsOneWidget);
-    expect(find.text('期望收入 約 1,440 幣'), findsOneWidget);
-    expect(api.calls.where((c) => c.startsWith('ship:')), isEmpty);
-
-    await tester.tap(find.byKey(const Key('ship-confirm')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(api.calls, contains('ship:1'));
-    expect(find.byKey(const Key('ship-result')), findsOneWidget);
-    expect(find.text('評級：A 級'), findsOneWidget);
-    expect(find.text('120.0 公斤牛肉放進倉庫，現在全部賣掉約 1,800 幣。'), findsOneWidget);
-    await tester.tap(find.byKey(const Key('ship-result-ok')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('ship-result')), findsNothing);
     expect(m.detailCowKey, isNull);
+    expect(find.byKey(const Key('pen-list')), findsOneWidget);
   });
 
-  testWidgets('小牛不能出貨', (tester) async {
+  testWidgets('小牛不能出貨、在田裡的耕牛不能出貨也不能配種（詳細的測試在 cow_detail_test）', (tester) async {
     final (m, _, _) = await loadedModel();
     await pumpApp(tester, m);
     await _openCow(tester, '3');
-    expect(_btn(tester, 'detail-ship').onPressed, isNull);
-    expect(find.text(S.shipNotAdult), findsOneWidget);
-    expect(find.byKey(const Key('detail-grow')), findsOneWidget);
-  });
-
-  testWidgets('田裡工作中的耕牛：不能出貨、不能配種，可以叫回', (tester) async {
-    final (m, api, _) = await loadedModel();
-    await pumpApp(tester, m);
+    expect(tester.widget<AppButton>(find.byKey(const Key('detail-ship'))).onPressed, isNull);
+    expect(find.text(_zh.shipNotAdult), findsOneWidget);
+    m.closeCow();
+    await tester.pump();
     await _openCow(tester, '4');
-    expect(find.text('在第 1 塊田工作'), findsOneWidget);
-    expect(find.text(S.recallFirst), findsOneWidget);
-    expect(_btn(tester, 'detail-ship').onPressed, isNull);
-    expect(_outlined(tester, 'detail-breed').onPressed, isNull);
-    await tester.tap(find.byKey(const Key('detail-recall')));
-    await tester.pump();
-    await tester.pump();
-    expect(api.calls, contains('field-recall:4'));
-  });
-
-  testWidgets('已配種的牛不能再選去配種', (tester) async {
-    final (m, _, _) = await loadedModel();
-    await pumpApp(tester, m);
-    await _openCow(tester, '5');
-    expect(find.byKey(const Key('detail-bred')), findsOneWidget);
-    expect(_outlined(tester, 'detail-breed').onPressed, isNull);
-  });
-
-  testWidgets('公牛可以從詳細資料上架借種（借種費由系統算，D26）', (tester) async {
-    final (m, api, _) = await loadedModel();
-    await pumpApp(tester, m);
-    await _openCow(tester, '2');
-    await tester.ensureVisible(find.byKey(const Key('detail-list')));
-    await tester.tap(find.byKey(const Key('detail-list')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(api.calls, contains('stud-list:2'));
-  });
-
-  testWidgets('「選這頭去配種」切到配種頁並選好', (tester) async {
-    final (m, _, _) = await loadedModel();
-    await pumpApp(tester, m);
-    await _openCow(tester, '1');
-    await tester.tap(find.byKey(const Key('detail-breed')));
-    await tester.pump();
-    expect(m.tab, AppTab.breed);
-    expect(m.breedDamKey, '1');
-    expect(find.text(S.pickSire), findsOneWidget);
+    expect(find.text(_zh.recallFirst(n: 1)), findsOneWidget);
+    expect(tester.widget<AppButton>(find.byKey(const Key('detail-ship'))).onPressed, isNull);
+    expect(tester.widget<AppButton>(find.byKey(const Key('detail-breed'))).onPressed, isNull);
   });
 }

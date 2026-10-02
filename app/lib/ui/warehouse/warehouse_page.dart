@@ -10,13 +10,11 @@ import '../../state/game_model.dart';
 import '../../theme/tokens.dart';
 import '../kit/app_icon.dart';
 import '../kit/cow_bits.dart';
+import '../kit/grade.dart';
 import '../kit/kit.dart';
 import '../kit/meter.dart';
 import '../kit/page_head.dart';
 import '../widgets/ticker_builder.dart';
-
-/// 牛肉評級的底色（設計稿 s04.js 的 GRADE_BG）。
-const kGradeColors = {'A': Color(0xFFFFD45E), 'B': Color(0xFFCFE6FF), 'C': Color(0xFFFFD9C2)};
 
 class WarehousePage extends StatelessWidget {
   const WarehousePage({super.key});
@@ -434,25 +432,4 @@ class _RiceLot extends StatelessWidget {
       below: [_lotSub(s.s05CollectedAgo(ago: ago.of(lot.at)))],
     );
   }
-}
-
-/// .gchip：牛肉評級（26×26、圓角 9；A 黃、B 藍、C 橘）。
-class GradeChip extends StatelessWidget {
-  const GradeChip(this.grade, {super.key});
-
-  final String grade;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 26,
-    height: 26,
-    alignment: Alignment.center,
-    decoration: BoxDecoration(
-      color: kGradeColors[grade] ?? Colors.white,
-      // CSS 寫 2.5px，boards 量出來是 2（Chrome 畫成 2px）；照核准的 boards
-      border: Border.all(color: AppColors.ink, width: 2),
-      borderRadius: const BorderRadius.all(Radius.circular(9)),
-    ),
-    child: Text(grade, style: AppText.style(14, weight: FontWeight.w900, lineHeight: 18)),
-  );
 }

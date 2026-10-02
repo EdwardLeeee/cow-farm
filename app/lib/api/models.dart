@@ -215,7 +215,7 @@ class Cow {
   final bool? serverCanBreed; // 伺服器的 can_breed（沒給是 null）
   final bool? serverCanShip;
   final bool? serverCanWork;
-  final double ricePerH; // 在田裡時每小時產稻米
+  final double ricePerH; // 耕牛下田的話每小時產的稻米（沒下田也給，協定 2.3）
   final Map<String, double>? gradeProbs; // 現在出貨評到 A／B／C 的機率；小牛 null
   final String? origin; // start／A／B／C／breed／stud
 
@@ -223,6 +223,9 @@ class Cow {
   final StudFee? studFee;
 
   String get key => '$id';
+
+  /// 畫面上「品種名 #編號」的編號，也拿來挑花色（T3）。
+  int get number => id is int ? id as int : int.tryParse('$id') ?? 0;
 
   bool get working => fieldIndex != null;
   bool get listed => listedId != null;
