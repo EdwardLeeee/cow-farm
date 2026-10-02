@@ -588,3 +588,24 @@ class CssLine extends StatelessWidget {
     );
   }
 }
+
+/// 2px 的淡色虛線上緣（.link-row、.detail-actions 的 border-top: 2px dashed）：線段 6、間隔約 4，頭尾都是完整的線段。
+class DashedTopLine extends CustomPainter {
+  const DashedTopLine();
+
+  static const _dash = 6.0, _gap = 4.0;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final n = ((w + _gap) / (_dash + _gap)).floor().clamp(1, 1 << 20);
+    final gap = n > 1 ? (w - n * _dash) / (n - 1) : 0.0;
+    final paint = Paint()..color = AppColors.lineSoft;
+    for (var i = 0; i < n; i++) {
+      canvas.drawRect(Rect.fromLTWH(i * (_dash + gap), 0, _dash, 2), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(DashedTopLine oldDelegate) => false;
+}

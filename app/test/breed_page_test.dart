@@ -5,7 +5,7 @@ import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
 import 'package:cowfarm/ui/breed/breed_page.dart';
 import 'package:cowfarm/ui/kit/kit.dart';
-import 'package:cowfarm/ui/screens/stud_screen.dart';
+import 'package:cowfarm/ui/breed/stud_tab.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -161,13 +161,13 @@ void main() {
     final m = await showBreed(tester, AppLang.zhHant);
     await _tap(tester, 'seg-1');
     expect(m.breedStud, isTrue);
-    expect(find.byType(StudView), findsOneWidget);
+    expect(find.byType(StudTab), findsOneWidget);
 
     m.selectForBreeding(m.state!.cowById('14')!);
     await tester.pump();
     await tester.pump();
     expect(m.breedStud, isFalse);
-    expect(find.byType(StudView), findsNothing);
+    expect(find.byType(StudTab), findsNothing);
     expect(_card(tester, 'sire-14').on, isTrue);
   });
 

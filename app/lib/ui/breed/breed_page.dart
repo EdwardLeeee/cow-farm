@@ -1,5 +1,5 @@
 // S08 配種（設計稿 s08.js 的 breedPage、pickCard、outcomeCard、calfCard；screens.css 的 .rule-line、.pick-row、.pick、
-// .pick-empty、.outcome-card、.oc-row、.oc-foot、.calf-card）。上面切換「自己配種」和「借種」（S18 還沒做，先放 M1 的畫面）。
+// .pick-empty、.outcome-card、.oc-row、.oc-foot、.calf-card）。上面切換「自己配種」和「借種」（S18，stud_tab.dart）。
 // 能不能配看伺服器的 can_breed 和預覽的 blockers；可能生出的小牛和機率是伺服器給的（distribution[]），手機不算。
 import 'dart:async';
 import 'dart:math' as math;
@@ -23,11 +23,12 @@ import '../kit/meter.dart';
 import '../kit/note_line.dart';
 import '../kit/press.dart';
 import '../kit/seg.dart';
-import '../screens/stud_screen.dart';
 import '../widgets/action_button.dart';
 import '../widgets/ticker_builder.dart';
+import 'stud_log_page.dart';
+import 'stud_tab.dart';
 
-/// 配種頁（S08）。「借種」那一邊（S18）先放 M1 的畫面。
+/// 配種頁：自己配種（S08）；「借種」那一邊（S18）是 [StudTab]、借種紀錄是 [StudLogPage]。
 class BreedPage extends StatefulWidget {
   const BreedPage({super.key});
 
@@ -39,12 +40,7 @@ class BreedPage extends StatefulWidget {
 }
 
 class _BreedPageState extends State<BreedPage> {
-  // 機率預覽：選好的那一對（「公牛|母牛」）、結果、讀取中、失敗（3 秒後自動再試）
-  String? _pair;
-  BreedPreview? _preview;
-  bool _loading = false;
-  bool _failed = false;
-  Timer? _retry;
+  late final _fetch = PreviewFetcher(isMounted: () => mounted, setState: setState);
 
   /// 剛配好的那一對（S08-09）：照樣顯示成選好的、留著剛剛的機率，按鈕換成「已配種」，下面放新小牛。換選別的牛才清掉；
   /// 離開這一頁也就沒了（新小牛在牛舍清單看得到）。
@@ -58,7 +54,7 @@ class _BreedPageState extends State<BreedPage> {
 
   @override
   void dispose() {
-    _retry?.cancel();
+    _fetch.dispose();
     _toastTimer?.cancel();
     _scroll.dispose();
     super.dispose();
@@ -69,36 +65,6 @@ class _BreedPageState extends State<BreedPage> {
     setState(() => _toast = (kind: kind, text: text));
     _toastTimer = Timer(const Duration(milliseconds: 2500), () {
       if (mounted) setState(() => _toast = null);
-    });
-  }
-
-  /// 在 build 裡呼叫：選好的那一對換了就重抓機率；斷線時不抓，連回來（模型通知、重畫）再抓。
-  void _ensurePreview(GameModel m, Cow? sire, Cow? dam) {
-    final pair = sire == null || dam == null ? null : '${sire.key}|${dam.key}';
-    if (pair != _pair) {
-      _pair = pair;
-      _preview = null;
-      _loading = false;
-      _failed = false;
-      _retry?.cancel();
-    }
-    if (pair == null || _done != null || _preview != null || _loading || _failed || !m.online) return;
-    _loading = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted || _pair != pair) return;
-      final p = await m.breedPreview(sire!, dam!);
-      if (!mounted || _pair != pair) return;
-      setState(() {
-        _loading = false;
-        _preview = p;
-        _failed = p == null;
-      });
-      if (p == null) {
-        _retry?.cancel();
-        _retry = Timer(BreedPage.retryAfter, () {
-          if (mounted && _pair == pair) setState(() => _failed = false);
-        });
-      }
     });
   }
 
@@ -124,7 +90,7 @@ class _BreedPageState extends State<BreedPage> {
       // 伺服器說不能配（例：別的手機剛配過）：重抓機率，下面的提醒照最新的原因
       setState(() {
         _breeding = false;
-        _pair = null;
+        _fetch.invalidate();
       });
       if (err case ApiActionError(:final error) when error.maintenance || error.unauthorized) return;
       _showToast(ToastKind.err, actionErrorTextWith(s, m, err));
@@ -164,19 +130,8 @@ class _BreedPageState extends State<BreedPage> {
       selected: m.breedStud ? 1 : 0,
       onSelect: (i) => m.selectBreed(stud: i == 1),
     );
-    if (m.breedStud) {
-      return AppFrame(
-        tab: AppTab.breed,
-        contentPadding: EdgeInsets.zero,
-        content: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(padding: const EdgeInsets.fromLTRB(12, 4, 12, 0), child: seg),
-            const Expanded(child: StudView()),
-          ],
-        ),
-      );
-    }
+    // 借種（S18）：市場、我的公牛；按「借種紀錄」開紀錄頁（S18-11）
+    if (m.breedStud) return m.studLogOpen ? const StudLogPage() : StudTab(seg: seg);
 
     final st = m.state!;
     final now = m.gameNow;
@@ -187,18 +142,15 @@ class _BreedPageState extends State<BreedPage> {
     // 選過、後來不能配了（配過種、下田、上架）的就當作沒選
     if (done == null && sire != null && !sire.canBreedAt(now)) sire = null;
     if (done == null && dam != null && !dam.canBreedAt(now)) dam = null;
-    _ensurePreview(m, sire, dam);
+    _fetch.ensure(
+      m,
+      sire == null || dam == null ? null : '${sire.key}|${dam.key}',
+      () => m.breedPreview(sire!, dam!),
+      hold: done != null,
+    );
 
-    final preview = done?.preview ?? _preview;
-    final outcome = sire == null || dam == null
-        ? OutcomeState.none
-        : preview != null
-        ? OutcomeState.ok
-        : !m.online
-        ? OutcomeState.offline
-        : _failed
-        ? OutcomeState.failed
-        : OutcomeState.quoting;
+    final preview = done?.preview ?? _fetch.value;
+    final outcome = _fetch.state(m, picked: sire != null && dam != null, shown: preview);
     final notes = breedNotes(
       s,
       m,
@@ -288,6 +240,66 @@ class _BreedPageState extends State<BreedPage> {
       ],
     );
   }
+}
+
+/// 機率預覽（S08 配種、S18 借種共用）：選好的那一對（[key]）換了就重抓；失敗了 [BreedPage.retryAfter] 後自動再試；
+/// 斷線時不抓，連回來（模型通知、重畫）再抓。在 build 裡呼叫 [ensure]。
+class PreviewFetcher {
+  PreviewFetcher({required this.isMounted, required this.setState});
+
+  final bool Function() isMounted;
+  final void Function(VoidCallback) setState;
+
+  String? key;
+  BreedPreview? value;
+  bool failed = false;
+  bool _loading = false;
+  Timer? _retry;
+
+  void dispose() => _retry?.cancel();
+
+  /// 下一次 [ensure] 重抓（例：配種、借種失敗後看最新的原因）。
+  void invalidate() => key = null;
+
+  /// [newKey] 是 null 代表還沒選好；[hold] 時不抓（例：剛配好，留著剛剛的機率）。
+  void ensure(GameModel m, String? newKey, Future<BreedPreview?> Function() fetch, {bool hold = false}) {
+    if (newKey != key) {
+      key = newKey;
+      value = null;
+      failed = false;
+      _loading = false;
+      _retry?.cancel();
+    }
+    if (newKey == null || hold || value != null || _loading || failed || !m.online) return;
+    _loading = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!isMounted() || key != newKey) return;
+      final p = await fetch();
+      if (!isMounted() || key != newKey) return;
+      setState(() {
+        _loading = false;
+        value = p;
+        failed = p == null;
+      });
+      if (p == null) {
+        _retry?.cancel();
+        _retry = Timer(BreedPage.retryAfter, () {
+          if (isMounted() && key == newKey) setState(() => failed = false);
+        });
+      }
+    });
+  }
+
+  /// 機率卡的狀態。[picked] 是兩邊都選好了；[shown] 是要顯示的機率（剛配好時是留著的那一份）。
+  OutcomeState state(GameModel m, {required bool picked, BreedPreview? shown}) => !picked
+      ? OutcomeState.none
+      : (shown ?? value) != null
+      ? OutcomeState.ok
+      : !m.online
+      ? OutcomeState.offline
+      : failed
+      ? OutcomeState.failed
+      : OutcomeState.quoting;
 }
 
 /// 機率卡下面的橘字提醒（S08-07、S08-08）：伺服器的 blockers 一個一行，照協定的順序（設計稿缺口清單 3-1）；

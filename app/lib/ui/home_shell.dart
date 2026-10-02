@@ -84,11 +84,13 @@ class _HomeShellState extends State<HomeShell> {
     }
     final safe = MediaQuery.paddingOf(context);
     return PopScope(
-      canPop: m.detailCowKey == null && !m.penListOpen && !m.warehouseOpen,
+      canPop: m.detailCowKey == null && !m.penListOpen && !m.warehouseOpen && !(m.tab == AppTab.breed && m.studLogOpen),
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
         if (m.detailCowKey != null) {
           m.closeCow();
+        } else if (m.tab == AppTab.breed && m.studLogOpen) {
+          m.closeStudLog();
         } else if (m.warehouseOpen) {
           m.closeWarehouse();
         } else {
