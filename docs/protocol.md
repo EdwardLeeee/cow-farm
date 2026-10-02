@@ -68,6 +68,7 @@ PR 3–10 都做完了（2026-10-02）。每個 PR 合併時更新這張表的�
 - 下面這些**必須**帶 `request_id`（UUID 字串）：`POST /v1/collect`、`/v1/sell`、`/v1/ship`、`/v1/breed`、`/v1/upgrade`、`/v1/shop/buy`、`/v1/field/assign`、`/v1/field/recall`、`/v1/field/harvest`、`/v1/field/expand`、`/v1/stud/list`、`/v1/stud/unlist`、`/v1/stud/borrow`。
 - `POST /v1/session` 可以帶（建議帶），規則見 2.1 節。帳號的綁定、換回、找回、刪除也可以帶，規則不一樣，見 5.0 節。
 - 每個「使用者動作」產生一個新的 UUID；網路逾時要重送時，**用同一個 request_id** 重送。
+- request_id 要用**安全亂數**產生的 UUID v4（Dart `uuid` 套件的 v4 預設用 `Random.secure`）。建立牧場（2.1 節）在 10 分鐘內只憑 request_id 重送，就會拿到那個牧場的新 token，所以 request_id 在這段時間等於這個請求的憑證：app、伺服器、反向代理都**不能把 request_id 和請求本文寫進日誌**（當機回報、除錯紀錄也一樣）。
 - 同一位玩家、同一個 request_id 重送：伺服器不再執行，直接回傳**第一次的回應本文**（HTTP 200，內容逐字相同，包括當時的 `server_time`）。重送拿到的 `state` 可能是舊的，之後請再 `GET /v1/state`。
 - 只記住**成功**的結果。失敗（4xx）沒有改變任何狀態，用同一個 request_id 重送會重新判斷。
 - 同一個 request_id 拿去做別種動作：回 `409 request_id_reused`。
@@ -226,7 +227,7 @@ app 怎麼顯示：
 | `created` | 這次有沒有建立新牧場（重送時是 false，見下） |
 
 - 錯誤：`invalid_name`（2.2 節）、`bad_request`（沒有 `ranch_name` 或不是字串）。失敗時什麼都沒建立。
-- `request_id`（選填，建議帶）：網路逾時重送時用同一個。10 分鐘內（現實時間）同一個 request_id 重送：回**同一個牧場**（名字以第一次為準），發一個新的 token，前一次的 token 作廢（反正手機沒收到），`created` 是 false。不帶就每次都建新牧場。
+- `request_id`（選填，建議帶）：網路逾時重送時用同一個。10 分鐘內（現實時間）同一個 request_id 重送：回**同一個牧場**（名字以第一次為準），發一個新的 token，前一次的 token 作廢（反正手機沒收到），`created` 是 false。不帶就每次都建新牧場。這 10 分鐘內 request_id 等於這個牧場的憑證，產生和保管的規則見 1.3 節。
 - 收到 `401 unauthorized`（例如資料庫清掉了）：app 顯示 S15-03，玩家選「找回我的牧場」或「開新牧場」。
 
 ### 2.2 牧場名的規則（D23；PR 5）
@@ -1040,3 +1041,4 @@ app 啟動時先打這個（還沒有 token 也能打），再決定要不要顯
 - 2026-10-02：PR 9a 修訂第 5 節（研究：`docs/research/2026-10-sso-verification.md`）：新增 `POST /v1/account/nonce`，綁定、找回要送 `nonce`；綁定、換回、找回、刪除可以帶 `request_id`（只記在記憶體，10 分鐘內回第一次的回應）；`sign_in_failed` 加 `nonce_invalid`、`not_configured`；刪除牧場改成軟刪除（只留沒有個資的編號）。
 - 2026-10-02：PR 9b 做完第 0 節 16 項（帳號：nonce、綁定、解除、找回、換回、刪除、`signed_in_elsewhere`、Apple 撤銷佇列）。欄位跟 9a 定的一樣。
 - 2026-10-02：PR 9b 審查：找回的重送改成比對 request_id＋`id_token`（5.0 節），只拿到 request_id 的人拿不到 token。整個請求原封不動的重送不受影響。
+- 2026-10-02：1.3 節補 request_id 的安全規則：用安全亂數產生的 UUID v4；建立牧場的 request_id 在 10 分鐘內等於請求的憑證，app、伺服器、反向代理都不把它和請求本文寫進日誌。ceo 裁示 `POST /v1/session` 的重送不改程式。欄位不變。
