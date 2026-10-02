@@ -146,7 +146,7 @@ export const STUD_INCOME = 1160;
 export const STUD_LOG = [
   { dir: 'out', when: { day: 'today', time: '09:12' }, who: '星河松林牧舍 #3310', cow: { breed: 'angus', id: 5 }, price: 870 },
   { dir: 'in', when: { day: 'yesterday', time: '21:40' }, who: '楓葉花田乳坊 #5821', cow: { breed: 'chocolate' }, price: 1820, calf: { breed: 'chocolate', id: 14 } },
-  { dir: 'out', when: { m: 9, d: 29, time: '13:05' }, who: '暖陽原野農場 #0907', cow: { breed: 'holstein', id: 8, bull: true }, price: 290 },
+  { dir: 'out', when: { m: 9, d: 29, time: '13:05' }, who: '暖陽原野農場 #0907', cow: { breed: 'holstein', id: 8 }, price: 290 },
   { dir: 'in', when: { m: 9, d: 28, time: '20:18' }, who: '麥浪溪谷牧園', bot: true, cow: { breed: 'holstein' }, price: 300, calf: { breed: 'holstein', id: 10 } },
 ];
 // 名字最長（量測用；D23：中文最多 8 個字、英文字母最多 16 個）

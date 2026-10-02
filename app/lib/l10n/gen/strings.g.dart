@@ -122,7 +122,6 @@ const Map<String, List<String>> kPlaceholders = {
   's18.borrowedFrom': ['cow', 'ranch'],
   's18.calfBorn': ['cow'],
   's18.logKeep': ['n'],
-  's18.bullName': ['breed'],
   'g.growsIn': ['time'],
   'fieldName': ['n'],
   's17.leftover': ['kg'],
@@ -579,7 +578,6 @@ const Map<String, String> _zhHant = {
   's18.logEmpty': '還沒有借種紀錄',
   's18.logEmptyOut': '還沒有借出的紀錄',
   's18.logEmptyIn': '還沒有借入的紀錄',
-  's18.bullName': '{breed}公牛',
   'g.growsIn': '{time}後長大',
   'fieldName': '第 {n} 塊田',
   's17.leftover': '牛叫回來了，田裡還有 {kg} 公斤稻米，收成時一起收。',
@@ -1247,7 +1245,6 @@ const Map<String, String> _en = {
   's18.logEmpty': 'No stud history yet',
   's18.logEmptyOut': 'Nothing lent yet',
   's18.logEmptyIn': 'Nothing borrowed yet',
-  's18.bullName': '{breed} bull',
   's18.deletedRanch': 'Deleted ranch',
   'g.growsIn': 'Grows up in {time}',
   'fieldName': 'Field {n}',
@@ -1915,7 +1912,6 @@ const Map<String, String> _th = {
   's18.logEmpty': 'ยังไม่มีประวัติการยืม',
   's18.logEmptyOut': 'ยังไม่มีประวัติการให้ยืม',
   's18.logEmptyIn': 'ยังไม่มีประวัติการยืมมา',
-  's18.bullName': '{breed} ตัวผู้',
   's18.deletedRanch': 'ฟาร์มที่ถูกลบแล้ว',
   'g.growsIn': 'จะโตในอีก {time}',
   'fieldName': 'แปลงที่ {n}',
@@ -3412,9 +3408,6 @@ abstract class GeneratedStrings {
 
   /// `s18.logEmptyIn`：還沒有借入的紀錄
   String get s18LogEmptyIn => table['s18.logEmptyIn']!;
-
-  /// `s18.bullName`：{breed}公牛
-  String s18BullName({required Object breed}) => fill('s18.bullName', {'breed': breed});
 
   /// `g.growsIn`：{time}後長大
   String gGrowsIn({required Object time}) => fill('g.growsIn', {'time': time});
