@@ -9,7 +9,6 @@ import '../format.dart';
 import '../palette.dart';
 import '../widgets/action_button.dart';
 import '../widgets/ticker_builder.dart';
-import 'ranch_screen.dart';
 import 'stud_screen.dart';
 
 /// 配種：「自己配種」與「借種」（S18）兩個分頁。
@@ -188,7 +187,7 @@ class CowChips extends StatelessWidget {
   }
 
   static String _suffix(Cow c) {
-    final b = cowBadges(c);
+    final b = [if (c.bred) S.badgeBred, if (c.working) S.badgeWorking, if (c.listed) S.badgeListed];
     return b.isEmpty ? '' : '（${b.join('、')}）';
   }
 }

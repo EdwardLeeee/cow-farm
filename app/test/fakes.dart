@@ -568,10 +568,12 @@ class FakeClock {
 }
 
 /// 建好模型並載入假資料（不開計時器）。
+/// [uiTick]：畫面多久重畫一次（倒數、奶桶）；預設 null 不重畫，測試要自己觸發。
 Future<(GameModel, FakeGameApi, FakePush)> loadedModel({
   FakeGameApi? api,
   bool connected = true,
   FakeClock? clock,
+  Duration? uiTick,
 }) async {
   final a = api ?? FakeGameApi();
   final p = FakePush(connected: connected);
@@ -581,7 +583,7 @@ Future<(GameModel, FakeGameApi, FakePush)> loadedModel({
     push: p,
     tokens: MemoryTokenStore({TokenStore.tokenKey: 'tok'}),
     now: c.call,
-    uiTick: null,
+    uiTick: uiTick,
   );
   await m.refreshState(); // token 還沒設時不會動作
   a.token = 'tok';

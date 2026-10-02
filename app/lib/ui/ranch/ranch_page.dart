@@ -2,10 +2,12 @@
 // 以及收奶的結果提示（S03-03、S03-04）、奶桶滿了的泡泡（S03-02）、第一次的滑動提示（S03-14）、大新聞（S03-15）、
 // 空牧場（S03-08）。牛的小名片（S03-06）和牛舍清單（S03-07）在下一個 PR。
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../api/breeds.dart';
 import '../../api/models.dart';
 import '../../l10n/format.dart';
 import '../../l10n/l10n.dart';
@@ -13,11 +15,14 @@ import '../../state/game_model.dart';
 import '../../state/settings.dart';
 import '../../theme/tokens.dart';
 import '../kit/app_icon.dart';
+import '../kit/cow_bits.dart';
 import '../kit/frame.dart';
 import '../kit/kit.dart';
 import '../kit/press.dart';
 import '../widgets/action_button.dart';
+import '../widgets/ticker_builder.dart';
 import 'dock.dart';
+import 'pen_list.dart';
 import 'scene.dart';
 
 class RanchPage extends StatefulWidget {
@@ -29,6 +34,9 @@ class RanchPage extends StatefulWidget {
 
 class _RanchPageState extends State<RanchPage> {
   double _pan = 0;
+
+  /// 被點到的牛（S03-06：轉正面、跳出小名片）。
+  Object? _popId;
   _Toast? _toast;
   Timer? _toastTimer;
 
@@ -83,8 +91,11 @@ class _RanchPageState extends State<RanchPage> {
     }
   }
 
+  // 每隔 uiTick 重畫：奶桶照伺服器的產量一直往上加，「幾分鐘後滿」、牛轉正面也跟著變（M1 也是這樣）
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => TickerBuilder(builder: _page);
+
+  Widget _page(BuildContext context) {
     final m = context.watch<GameModel>();
     final settings = context.watch<SettingsController>();
     final s = Strings.of(context);
@@ -110,7 +121,12 @@ class _RanchPageState extends State<RanchPage> {
         if (c.milkPerH > 0) c,
     ];
     final bubbleCow = full && producers.isNotEmpty ? producers.first : null;
-    final cows = [for (final (c, slot) in herd) SceneCow(c, slot, front: full && c.milkPerH > 0)];
+    // 被點到的牛也轉正面（D11）
+    final cows = [for (final (c, slot) in herd) SceneCow(c, slot, front: (full && c.milkPerH > 0) || c.id == _popId)];
+    final popCow = [
+      for (final sc in cows)
+        if (sc.cow.id == _popId) sc.cow,
+    ].firstOrNull;
     final empty = st.cows.isEmpty;
     // 空牧場在很矮的手機（320×568）放不下「去商店」卡片：面板收成一條，卡片才不會疊到奶桶（m3-backlog）
     final shortScreen = mq.size.height < 700;
@@ -138,6 +154,9 @@ class _RanchPageState extends State<RanchPage> {
           setState(() => _pan = p);
           if (!settings.swipeHintSeen) settings.markSwipeHintSeen();
         },
+        // 點一頭牛：轉正面、跳出小名片；再點一次或點空地就收起來
+        onTapCow: (c) => setState(() => _popId = _popId == c.id ? null : c.id),
+        onTapEmpty: _popId == null ? null : () => setState(() => _popId = null),
       ),
       underlays: [if (bubbleCow != null) _BubbleAnchor(cows: cows, cow: bubbleCow, pan: _pan)],
       body: [
@@ -183,6 +202,7 @@ class _RanchPageState extends State<RanchPage> {
         ),
       ],
       overlays: [
+        if (popCow != null) _CowPopAnchor(cows: cows, cow: popCow, pan: _pan),
         if (bigNews != null)
           Positioned(
             left: 16,
@@ -212,10 +232,12 @@ class _RanchPageState extends State<RanchPage> {
     );
   }
 
-  /// 大新聞（收購價大漲或大跌 20% 以上，企劃書 4.7、D24）：還沒看過的那一則，跳出一次（S03-15）。
+  /// 大新聞（收購價大漲或大跌 20% 以上，企劃書 4.7、D24、m3-backlog）：還沒看過的那一則，跳出一次（S03-15）。
+  /// 觸發條件只看幅度，不看伺服器的 big（big 是 ±30–40% 的罕見新聞；ceo 2026-10-02）。
+  /// 全部商品一起漲跌的新聞：等 cow-ui 補「全部商品」的文案、使用者核准之前，先不跳。
   static NewsItem? _bigNews(GameModel m, SettingsController settings) {
     for (final n in m.market?.news ?? const <NewsItem>[]) {
-      if (n.big && n.pct.abs() >= 0.2 && n.commodity != null && !n.upcoming && !settings.bigNewsSeen(n.id)) return n;
+      if (n.pct.abs() >= 0.2 && n.commodity != null && !n.upcoming && !settings.bigNewsSeen(n.id)) return n;
     }
     return null;
   }
@@ -683,4 +705,140 @@ class _BigNews extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 牛的小名片（S03-06，.cow-pop）：在那頭牛頭頂上方 14，左右夾在螢幕左 12 到右 220 之間；下面一個小尖角對著牛。
+/// 設計稿沒畫到：後排的牛名片會超出畫面上緣（320×568 最多超出 70），所以名片的上緣最高到安全區下面 6，
+/// 這時名片會蓋到牛（先這樣做，等 cow-ui 定規則）。
+class _CowPopAnchor extends StatelessWidget {
+  const _CowPopAnchor({required this.cows, required this.cow, required this.pan});
+
+  final List<SceneCow> cows;
+  final Cow cow;
+  final double pan;
+
+  @override
+  Widget build(BuildContext context) {
+    final safeTop = MediaQuery.paddingOf(context).top;
+    return Positioned.fill(
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final p = CowPlacement.of(cows.firstWhere((x) => x.cow.id == cow.id), SceneFit(c.biggest, pan));
+          if (p == null) return const SizedBox.shrink();
+          return CustomSingleChildLayout(
+            delegate: _PopLayout(head: p.head, minTop: safeTop + 6),
+            child: _CowPop(cow: cow),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// 名片寬 208：左邊 = 頭的 x − 43（夾在 12 到 寬 − 220），下緣 = 頭頂 − 14，上緣不高過 [minTop]。
+class _PopLayout extends SingleChildLayoutDelegate {
+  _PopLayout({required this.head, required this.minTop});
+
+  final Offset head;
+  final double minTop;
+
+  @override
+  BoxConstraints getConstraintsForChild(BoxConstraints constraints) => BoxConstraints.tightFor(width: 208);
+
+  @override
+  Offset getPositionForChild(Size size, Size childSize) =>
+      Offset((head.dx - 43).clamp(12.0, size.width - 220), math.max(head.dy - 14 - childSize.height, minTop));
+
+  @override
+  bool shouldRelayout(_PopLayout oldDelegate) => oldDelegate.head != head || oldDelegate.minTop != minTop;
+}
+
+class _CowPop extends StatelessWidget {
+  const _CowPop({required this.cow});
+
+  final Cow cow;
+
+  @override
+  Widget build(BuildContext context) {
+    final m = context.read<GameModel>();
+    final s = Strings.of(context);
+    final id = cow.id is int ? cow.id as int : int.tryParse('${cow.id}') ?? 0;
+    // 設計稿只畫了產奶的牛：寫產量。其他的牛狀態看標籤（小牛、老牛、上架中、已配種），不另外寫一行（等 cow-ui 定）
+    final meta = cow.milkPerH > 0
+        ? s.s03PopMilk(tier: s.tierName((breedInfo(cow.breed)?.tier ?? cow.tier).clamp(0, 3)), n: rateNum(cow.milkPerH))
+        : null;
+    return CustomPaint(
+      key: const Key('cow-pop'),
+      // 尖角畫在名片上面，蓋掉下框的一段
+      foregroundPainter: _PopTail(),
+      // .cow-pop 的框、圓角、陰影、內距跟 .card 一樣
+      child: AppCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 名字放不下（英文「Strawberry Cow #12」）就換行，字級不變，編號才不會被截掉
+            Text(s.cowName(cow.breed, id), style: AppText.style(17, weight: FontWeight.w900, lineHeight: 22)),
+            const SizedBox(height: 4),
+            // 用途、公母、稀有度，再加上狀態（scope.md S03-06：品種、稀有度、狀態）
+            Wrap(
+              spacing: 4,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: cowChips(context, cow),
+            ),
+            if (meta != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                meta,
+                style: AppText.style(13, weight: FontWeight.w700, color: AppColors.ink2, lineHeight: 19),
+              ),
+            ],
+            const SizedBox(height: 8),
+            AppButton(
+              s.s03PopDetail,
+              key: const Key('pop-detail'),
+              small: true,
+              block: true,
+              kind: ButtonKind.primary,
+              onPressed: () => m.openCow(cow.key),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 小名片下面的尖角（.cow-pop::after）：一個方塊轉 45°，只有右邊和下面有 3 的框、右下角圓角 4。
+/// `* { box-sizing: border-box }` 管不到 ::after，所以方塊是內容 18 加框 3 = 21×21。
+/// 方塊的左邊在框內 34（外框往右 3 + 34），下緣在框內往下 12（外框下緣往下 9），
+/// 所以中心在外框左邊往右 47.5、外框下緣往上 1.5。方塊的底色蓋掉名片下框的一段，看起來是名片長出一個尖角。
+class _PopTail extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.translate(3 + 34 + 10.5, size.height - 1.5);
+    canvas.rotate(math.pi / 4);
+    // 底色只畫到框線的中間：底色的鋸齒邊藏在框線底下，名片的下框上才不會多一條淡淡的邊
+    canvas.drawRRect(
+      RRect.fromRectAndCorners(const Rect.fromLTRB(-10.5, -10.5, 9, 9), bottomRight: const Radius.circular(2.5)),
+      Paint()..color = AppColors.paper,
+    );
+    // CSS 的框畫在方塊裡面：線的中心在邊往內 1.5，轉角的半徑 4 − 1.5
+    canvas.drawPath(
+      Path()
+        ..moveTo(9, -10.5)
+        ..lineTo(9, 6.5)
+        ..arcToPoint(const Offset(6.5, 9), radius: const Radius.circular(2.5))
+        ..lineTo(-10.5, 9),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..color = AppColors.ink,
+    );
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_PopTail oldDelegate) => false;
 }

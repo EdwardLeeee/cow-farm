@@ -5,8 +5,8 @@ import 'package:provider/provider.dart';
 
 import '../l10n/l10n.dart';
 import '../l10n/strings.dart';
-import 'kit/app_icon.dart';
 import 'kit/frame.dart';
+import 'ranch/pen_list.dart';
 import 'ranch/ranch_page.dart';
 import '../state/game_model.dart';
 import 'widgets/action_button.dart';
@@ -16,7 +16,6 @@ import 'screens/cow_detail_screen.dart';
 import 'screens/fields_screen.dart';
 import 'screens/leaderboard_screen.dart';
 import 'screens/market_screen.dart';
-import 'screens/ranch_screen.dart';
 import 'screens/shop_screen.dart';
 import 'start/start_flow.dart';
 import 'widgets/ticker_builder.dart';
@@ -104,8 +103,8 @@ class _HomeShellState extends State<HomeShell> {
     if (m.state == null || m.authLost != null) return const _Loading();
     if (m.detailCowKey != null) return CowDetailScreen(cowKey: m.detailCowKey!);
     return switch (m.tab) {
-      // 牛舍清單：正式的 S03-07 在下一個 PR，現在先用 M1 的清單（上面加一個返回）
-      AppTab.ranch => const _PenListStandIn(),
+      // 牛舍清單（S03-07）
+      AppTab.ranch => const PenListPage(),
       AppTab.market => const MarketScreen(),
       AppTab.fields => const FieldsScreen(),
       AppTab.breed => const BreedScreen(),
@@ -242,41 +241,6 @@ class _Records extends StatelessWidget {
           Expanded(child: TabBarView(children: [CodexScreen(), LeaderboardScreen()])),
         ],
       ),
-    );
-  }
-}
-
-/// 牛舍清單（暫時）：M1 的牧場清單，上面一列返回牧場。正式的 S03-07 在下一個 PR。
-class _PenListStandIn extends StatelessWidget {
-  const _PenListStandIn();
-
-  @override
-  Widget build(BuildContext context) {
-    final m = context.read<GameModel>();
-    final s = Strings.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(4, 0, 12, 0),
-          child: Row(
-            children: [
-              Semantics(
-                button: true,
-                label: s.back,
-                child: GestureDetector(
-                  key: const Key('pen-back'),
-                  behavior: HitTestBehavior.opaque,
-                  onTap: m.closePenList,
-                  child: const SizedBox(width: 44, height: 44, child: Center(child: AppIcon('back', size: 22))),
-                ),
-              ),
-              Text(s.cowsTitle, style: Theme.of(context).textTheme.titleMedium),
-            ],
-          ),
-        ),
-        const Expanded(child: RanchScreen()),
-      ],
     );
   }
 }

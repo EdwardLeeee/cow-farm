@@ -9,7 +9,6 @@ import '../format.dart';
 import '../palette.dart';
 import '../widgets/action_button.dart';
 import '../widgets/ticker_builder.dart';
-import 'ranch_screen.dart';
 
 /// 牛的詳細資料：出貨（先看評級機率，出貨後揭曉評級）、選這頭去配種、下田／叫回、上架／下架借種。
 class CowDetailScreen extends StatelessWidget {
@@ -259,4 +258,36 @@ class _Body extends StatelessWidget {
     final r = await m.studList(cow);
     if (context.mounted) showResult(context, r.error, S.listedOk);
   }
+}
+
+/// 用途色塊＋稀有度色條（原型只用色塊，不畫牛）。
+class CowBlock extends StatelessWidget {
+  const CowBlock({super.key, required this.cow, this.size = 48});
+  final Cow cow;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: Palette.type(cow.type),
+        border: Border(bottom: BorderSide(color: Palette.tiers[cow.tier], width: 8)),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        '${typeName(cow.type)}\n${sexName(cow.bull)}',
+        textAlign: TextAlign.center,
+        style: const TextStyle(fontSize: 11),
+      ),
+    );
+  }
+}
+
+/// 牛現在的產出：母乳牛產奶、在田裡的耕牛產稻米，其他不產奶。
+String cowOutput(Cow c) {
+  if (c.milker && c.stage != CowStage.calf) return S.milkRate(fmtNum(c.milkPerH));
+  if (c.working) return S.ricePerHour(fmtNum(c.ricePerH));
+  return S.noMilk;
 }
