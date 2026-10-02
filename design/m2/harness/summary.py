@@ -11,7 +11,7 @@ LANG = sys.argv[1] if len(sys.argv) > 1 and sys.argv[1] != 'zh-Hant' else ''
 LANG_NAME = {'en': '英文', 'th': '泰文'}
 RAW, OUT = os.path.join(ROOT, 'raw', LANG) if LANG else os.path.join(ROOT, 'raw'), os.path.join(ROOT, 'measure')
 SUFFIX = f'-{LANG}' if LANG else ''
-CATS = [('clipped', '文字被切掉'), ('outside', '文字超出框'), ('wrapped', '不該換行卻換行'), ('overlaps', '文字互相重疊或被按鈕蓋住'),
+CATS = [('clipped', '文字被切掉'), ('outside', '文字超出框'), ('wrapped', '不該換行卻換行'), ('overlaps', '文字互相重疊、被蓋住或壓在圖上'),
         ('smallTargets', '按鈕小於 44×44'), ('unsafe', '進到狀態列或 Home 指示條'), ('errors', '頁面錯誤')]
 SIZE = {430: '430×932', 390: '390×844', 360: '360×800', 320: '320×568'}
 
@@ -30,7 +30,7 @@ def main():
     lines = [f"# M2 設計稿量測摘要{'（' + LANG_NAME.get(LANG, LANG) + '）' if LANG else ''}", '',
              '- 工具：`design/m2/harness/capture.mjs`（Chromium，行動裝置模式）。每個狀態在四種寬度各量一次。',
              '- 430、390 是送核准的尺寸；360、320 只量測，問題列在下面，實作時處理。',
-             '- 量的項目：最小字級、文字被切掉、文字超出所屬的框、不該換行卻換行、文字互相重疊或被按鈕蓋住、按鈕小於 44×44、進到狀態列或 Home 指示條、橫向捲動、頁面錯誤。',
+             '- 量的項目：最小字級、文字被切掉、文字超出所屬的框、不該換行卻換行、文字互相重疊、被按鈕或別的元件蓋住、壓在不屬於它的圖上、按鈕小於 44×44、進到狀態列或 Home 指示條、橫向捲動、頁面錯誤。',
              '- 不算問題、另外記的：跑馬燈和橫向捲動列本來就會切到；太長的名字刻意截成「…」；內容區要往下捲才看得到的部分。', '']
     summary = {}
     lines += ['## 總表', '', '| 寬度 | 狀態數 | 最小字級 | 有問題的狀態 | 橫向捲動 | 刻意截成「…」 | 要往下捲的狀態 |', '|---|---|---|---|---|---|---|']

@@ -148,6 +148,73 @@ export function measure(terms = []) {
       if (x > 2 && y > 2 && !!t.el.closest(OV) === !!b.closest(OV)) overlaps.push([t.text, '按鈕:' + b.textContent.trim().slice(0, 10)]);
     });
   });
+  // 文字被別的東西蓋住，或壓在不屬於它的圖上（ceo 2026-10-02：英文 S01 的標題壓到牛、S01-04 英文 320 的卡片蓋住版本號）
+  // 在字的每一行取幾排點（行高的 1/4、1/2、3/4，每排最多 4 點），用 elementsFromPoint 看那一點由上到下疊了什麼：
+  //   在字上面、真的有畫東西（底色、外框、背景圖，或 SVG 的線條／色塊、圖片）→「蓋住」
+  //   在字下面、不是字的上層也不是字自己帶的圖示、是一張圖（SVG 的線條／色塊、圖片），而且這張圖沒有整個包住字 →「圖」（整個包住的是底圖）
+  //   不算：對話框、提示、泡泡疊在頁面上（故意的）；浮在牧場場景（.scene）上的介面；
+  //   捲動區裡的字被捲動區外面的東西（分頁列、下方按鈕區）蓋住，而且還能往那邊捲（捲了就看得到，算「要捲」）
+  const OVL = '.backdrop, .backdrop ~ *, .dialog, .sheet, .toast, .cow-pop, .bubble, .hud-offline, .lv-wrap, .long-off, .big-news, .swipe-hint';
+  const SHAPES = ['path', 'circle', 'ellipse', 'rect', 'polygon', 'polyline', 'line', 'text', 'use', 'image'];
+  const picOf = (e) => (e instanceof SVGElement ? (SHAPES.includes(e.tagName.toLowerCase()) ? e.ownerSVGElement : null) : /^(IMG|CANVAS|VIDEO)$/.test(e.tagName) ? e : null);
+  const memo = (f) => { const m = new Map(); return (e) => { if (!m.has(e)) m.set(e, f(e)); return m.get(e); }; };
+  const painted = memo((e) => {
+    if (picOf(e)) return true;
+    if (e instanceof SVGElement) return false;
+    const cs = getComputedStyle(e);
+    if (+cs.opacity === 0 || cs.visibility === 'hidden') return false;
+    const bg = cs.backgroundColor, hasBg = bg && bg !== 'transparent' && !/rgba\([^)]*,\s*0\)$/.test(bg);
+    const hasBorder = ['Top', 'Right', 'Bottom', 'Left'].some((s) => parseFloat(cs[`border${s}Width`]) > 0 && cs[`border${s}Style`] !== 'none');
+    return hasBg || hasBorder || cs.backgroundImage !== 'none';
+  });
+  const rectOf = memo((e) => e.getBoundingClientRect());
+  const inOvl = memo((e) => !!e.closest(OVL));
+  const inScene = memo((e) => !!e.closest('.scene'));
+  const scroller = memo((e) => { const c = e.closest('.content'); return c && getComputedStyle(c).overflowY !== 'visible' ? c : null; });
+  const holds = (o, r) => o.left <= r.left + 1 && o.right >= r.right - 1 && o.top <= r.top + 1 && o.bottom >= r.bottom - 1;
+  const cls = (e) => (e && e.getAttribute && e.getAttribute('class') ? '.' + e.getAttribute('class').trim().split(/\s+/)[0] : '');
+  const what = (e) => { const p = picOf(e) || e; return `${p.tagName.toLowerCase()}${cls(p) || (cls(p.parentElement) ? '（在 ' + cls(p.parentElement) + ' 裡）' : '')}`.slice(0, 40); };
+  shown.forEach((t) => {
+    if (t.el.closest('[data-note], [data-marquee]')) return;
+    const cover = new Set(), pics = new Set(), sc = scroller(t.el), tOvl = inOvl(t.el), tScene = inScene(t.el);
+    // 捲動區外面的東西（分頁列、下方按鈕區）蓋住捲動區裡的字：還能捲的距離夠讓這一行移出來，就算「要捲」
+    const scR = sc && rectOf(sc);
+    const scrollAway = (e, r) => {
+      if (!sc || sc.contains(e)) return false;
+      const er = rectOf(e);
+      if (er.top >= scR.top) return sc.scrollHeight - sc.clientHeight - sc.scrollTop >= r.bottom - er.top; // 在下面：往下捲
+      if (er.bottom <= scR.bottom) return sc.scrollTop >= er.bottom - r.top; // 在上面：往上捲
+      return false;
+    };
+    [...rangeRect(t.el).getClientRects()].filter((r) => r.width > 2 && r.height > 2).forEach((r) => {
+      const n = Math.max(1, Math.min(4, Math.round(r.width / 20)));
+      for (const fy of [0.25, 0.5, 0.75]) for (let i = 0; i < n; i++) {
+        const x = r.left + (r.width * (i + 0.5)) / n, y = r.top + r.height * fy;
+        if (y < t.vr.top || y > t.vr.bottom) continue; // 捲出畫面的部分不算
+        if (t.vr.left != null && (x < t.vr.left || x > t.vr.right)) continue; // 刻意截成「…」的，只看得到框裡
+        const st = document.elementsFromPoint(x, y);
+        const at = st.findIndex((e) => e === t.el || t.el.contains(e));
+        if (at < 0) continue;
+        for (let k = 0; k < at; k++) {
+          const e = st[k];
+          if (inSim(e) || e.contains(t.el) || !painted(e)) continue;
+          if (inOvl(e) && !tOvl) continue;
+          if (scrollAway(e, r)) continue;
+          cover.add(what(e));
+        }
+        if (tOvl) continue;
+        for (let k = at + 1; k < st.length; k++) {
+          const p = picOf(st[k]);
+          if (!p || p.contains(t.el) || t.el.contains(p) || inSim(p)) continue;
+          if (inScene(p) && !tScene) continue;
+          if (holds(rectOf(p), t.rect)) continue;
+          pics.add(what(st[k]));
+        }
+      }
+    });
+    cover.forEach((c) => overlaps.push([t.text, '蓋住:' + c]));
+    pics.forEach((c) => overlaps.push([t.text, '圖:' + c]));
+  });
   // 觸控大小：按鈕至少 44×44（第二層分頁的按鈕算上外框的內距）
   const small = [];
   [...phone.querySelectorAll('button, a, .btn, [role=button]')].filter((el) => vis(el) && !inSim(el) && !outOfView(el, el.getBoundingClientRect())).forEach((el) => {
@@ -247,10 +314,12 @@ async function run(filter, widths) {
     for (const w of widths) {
       const [vw, vh, dpr] = DEV[w];
       const ctx = await browser.newContext({ viewport: { width: vw, height: vh }, deviceScaleFactor: dpr, isMobile: true, hasTouch: true, locale: LOCALE, colorScheme: 'light', reducedMotion: 'reduce' });
-      const page = await ctx.newPage();
-      page.setDefaultTimeout(20000);
-      for (const s of want.filter((x) => x.type !== 'sheet')) {
-       try {
+      // 同一個分頁拍太多張，記憶體會越用越多（長頁加上逐點量測時，分頁曾在 360 寬當掉）：每 25 張換一個新分頁；
+      // 分頁當掉就換新分頁重拍一次
+      let page = null, used = 0;
+      const fresh = async () => { if (page) await page.close().catch(() => {}); page = await ctx.newPage(); page.setDefaultTimeout(20000); used = 0; };
+      await fresh();
+      const shoot = async (s) => {
         const errors = [];
         const onErr = (e) => errors.push(String(e));
         const onCon = (m) => { if (m.type() === 'error') errors.push(m.text()); };
@@ -277,6 +346,8 @@ async function run(filter, widths) {
           await page.screenshot({ path: `${base}.png`, fullPage: !!s.tall });
         }
         const m = await page.evaluate(measure, terms).catch((e) => ({ error: String(e) }));
+        if (/crash/i.test(m.error || '')) throw new Error(m.error);
+        if (m.error) errors.push('量測失敗：' + m.error.split('\n')[0]);
         const meta = { id: s.id, name: s.name, note: s.note || '', screen: s.screen, screenName: s.screenName, type: s.type, tall: !!s.tall, width: w, uiLang: LANG, errors, ...m };
         await writeFile(`${base}.json`, JSON.stringify(meta, null, 1));
         page.off('pageerror', onErr); page.off('console', onCon);
@@ -285,10 +356,18 @@ async function run(filter, widths) {
         const flag = errors.length || meta.horizontalScroll || issues.some((n) => n);
         const thBad = (meta.thaiBreaks || []).filter((x) => x.midWord).length, thSplit = (meta.thaiBreaks || []).filter((x) => x.splitTerms.length).length;
         console.log(`${flag || thBad ? '!!' : 'ok'} ${s.id} ${w}${LANG === 'zh-Hant' ? '' : ' ' + LANG}  字 ${meta.minFontSize}px${(meta.i18nMissing || []).length ? `  缺字串${meta.i18nMissing.length}` : ''}${thBad ? `  泰文斷在詞中間${thBad}` : ''}${thSplit ? `  拆開用詞表的詞${thSplit}（要人看）` : ''}${(meta.belowFold || []).length ? `  要捲${meta.belowFold.length}` : ''}  截${issues[0]} 出框${issues[1]} 換行${issues[2]} 疊${issues[3]} 小鈕${issues[4]} 安全區${issues[5]}${meta.horizontalScroll ? ' 橫捲' : ''}${errors.length ? ' 錯誤:' + errors.join('|') : ''}`);
-       } catch (e) {
-        console.log(`!! ${s.id} ${w}  出圖失敗：${String(e).split('\n')[0]}`);
-        summary.push({ id: s.id, w, failed: String(e).split('\n')[0] });
-       }
+      };
+      for (const s of want.filter((x) => x.type !== 'sheet')) {
+        if (used >= 25) await fresh();
+        used++;
+        for (let attempt = 0; ; attempt++) {
+          try { await shoot(s); break; } catch (e) {
+            if (attempt === 0 && /crash/i.test(String(e))) { console.log(`.. ${s.id} ${w}  分頁當掉，換新分頁重拍`); await fresh(); continue; }
+            console.log(`!! ${s.id} ${w}  出圖失敗：${String(e).split('\n')[0]}`);
+            summary.push({ id: s.id, w, failed: String(e).split('\n')[0] });
+            break;
+          }
+        }
       }
       await ctx.close();
     }
