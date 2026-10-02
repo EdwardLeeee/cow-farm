@@ -21,7 +21,7 @@ session 照進度分批開，名稱用 `cow-<角色>`。
 
 每個角色都在自己的 worktree（`~/Desktop/cow-farm-worktrees/<角色>`）開分支，開 PR 給 ceo 讀過 diff 再合併，不直接推 main。ceo 在 `~/Desktop/cow-farm` 開分支，一樣走 PR。
 
-記憶體安全：這台電腦 2026-09-30 因記憶體耗盡當機過。開 Playwright、headless Chrome、大型建置或長時間模擬之前，先看 `free -m`（available 少於 2000 MB 就等），指令用 `systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0` 包起來，一次只跑一個。
+記憶體安全：這台電腦 2026-09-30 因記憶體耗盡當機過。開 Playwright、headless Chrome、大型建置或長時間模擬之前，先看 `free -m`（available 少於 1000 MB 就等；使用者 2026-10-03：「不夠1Gb再來緊張，2gb還很多」），指令用 `systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0` 包起來，一次只跑一個。
 
 ## CI
 
