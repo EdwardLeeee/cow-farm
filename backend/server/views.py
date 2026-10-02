@@ -357,6 +357,7 @@ def economy_view(fp) -> dict:
         "calf_grow_h": list(fp.tier_growth_h),  # 小牛長大要幾遊戲小時，依稀有度（params 的 tier_growth_h）
         "peak_weight_kg": {TYPE_WIRE[i]: w for i, w in enumerate(fp.peak_weight_kg)},  # 母牛的最佳體重，依用途
         "bull_weight_mult": fp.bull_weight_mult,  # 公牛的體重 = 母牛 × 這個
+        "field_cap_h": fp.field_cap_h,  # 一塊田最多存這頭耕牛壯年幾小時的量（fields[].capacity 不乘年齡曲線）
     }
 
 
