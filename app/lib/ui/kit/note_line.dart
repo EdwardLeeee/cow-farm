@@ -33,12 +33,16 @@ class NoteLine extends StatelessWidget {
         children: [
           AppIcon(icon, size: 18),
           const SizedBox(width: 6),
+          // 一行放得下就照 Chrome 的行高排（字才不會比設計稿低半格）；放不下照一般的換行
           Expanded(
-            child: Text(
-              text,
-              style: kind == NoteKind.warn
-                  ? KitText.warn()
-                  : AppText.style(13, weight: FontWeight.w900, lineHeight: 18),
+            child: CssLine(
+              TextSpan(
+                text: text,
+                style: kind == NoteKind.warn
+                    ? KitText.warn()
+                    : AppText.style(13, weight: FontWeight.w900, lineHeight: 18),
+              ),
+              wrap: true,
             ),
           ),
         ],

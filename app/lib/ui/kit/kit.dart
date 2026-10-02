@@ -518,11 +518,14 @@ class AppSheet extends StatelessWidget {
 /// 字型是 Noto Sans CJK 的 hhea（ascent 1.16、descent 0.288 字級）。
 /// 只排一行；[wrap] 的話，一行放不下（英文、泰文的窄手機）就照一般的字換行。
 class CssLine extends StatelessWidget {
-  const CssLine(this.span, {super.key, this.textKey, this.wrap = false});
+  const CssLine(this.span, {super.key, this.textKey, this.wrap = false, this.textAlign});
 
   final TextSpan span;
   final Key? textKey;
   final bool wrap;
+
+  /// 放不下、換行的時候怎麼對齊（一行的時候由外層決定位置）。
+  final TextAlign? textAlign;
 
   /// 這一行在 Chrome 的（基線以上、基線以下）。
   static (double, double) metrics(TextSpan span) {
@@ -580,7 +583,7 @@ class CssLine extends StatelessWidget {
         )..layout();
         final fits = p.width <= c.maxWidth + 0.5;
         p.dispose();
-        return fits ? line() : Text.rich(span, key: textKey);
+        return fits ? line() : Text.rich(span, key: textKey, textAlign: textAlign);
       },
     );
   }
