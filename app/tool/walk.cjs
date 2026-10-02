@@ -1,10 +1,10 @@
 // 整合走查（headless Chromium，正式畫面 + 還沒換掉的 M1 分頁），每步截圖：
 //   開新牧場（S02 取名、歡迎）→ 收奶 → 賣奶（S06）→ 擴建牛舍、加大奶桶（S10）→ 抽 C 級（S19）→
 //   等小牛長大 → 出貨（S04 → S07 → S20）→ 田地：派耕牛、收成（M1）→ 賣稻米 → 叫回耕牛 →
-//   借種：上架、借別人的公牛（M1）→ 圖鑑、排行榜（M1）
+//   借種（S18）：上架、借別人的公牛、借種紀錄 → 圖鑑、排行榜（M1）
 //
-// 做法：打開 Flutter 網頁版的無障礙樹（flt-semantics），照按鈕的名字操作。正式畫面的分頁也是按鈕；
-// M1 畫面裡的次分頁（自己配種／借種、圖鑑／排行榜）是 tab。頂列的金幣沒有名字，讀「設定」前面最後一個數字。
+// 做法：打開 Flutter 網頁版的無障礙樹（flt-semantics），照按鈕的名字操作。正式畫面的分頁、配種頁上面的
+// 「自己配種／借種」都是按鈕；M1 畫面裡的次分頁（圖鑑／排行榜）是 tab。頂列的金幣沒有名字，讀「設定」前面最後一個數字。
 // 用法（Node 18+；Playwright 只讀借用 connect4 已安裝的套件，瀏覽器用 ~/.cache/ms-playwright）：
 //   free -m   # available ≥ 2000 MB 再跑
 //   PLAYWRIGHT_MODULE=~/Desktop/connect4-web2-worktrees/mobile/frontend/node_modules/playwright \
@@ -57,12 +57,16 @@ const writeLog = () => fs.writeFileSync(
   })).filter((x) => x.label));
   const labels = async () => (await nodes()).map((x) => x.label);
   const fullText = async () => (await labels()).join('\n');
+  /// 頂列的金幣：一般在「設定」前面（牧場名、Lv、經驗、金幣、設定）；牧場分頁的頂列疊在場景上，
+  /// 無障礙樹照位置排成「設定」在最前面，這時金幣是後面幾個裡的第一個數字。
   const coins = async () => {
     const all = await nodes();
     const end = all.findIndex((x) => x.role === 'button' && x.label === '設定');
-    const nums = all.slice(0, end < 0 ? 8 : end).map((x) => x.label).filter((l) => /^[\d,.]+萬?$/.test(l));
-    if (!nums.length) return NaN;
-    const l = nums[nums.length - 1];
+    const isNum = (l) => /^[\d,.]+萬?$/.test(l);
+    const before = all.slice(0, end < 0 ? 8 : end).map((x) => x.label).filter(isNum);
+    const after = end < 0 ? [] : all.slice(end + 1, end + 5).map((x) => x.label).filter(isNum);
+    const l = before.length ? before[before.length - 1] : after[0];
+    if (!l) return NaN;
     return l.endsWith('萬') ? Math.round(parseFloat(l) * 10000) : Number(l.replace(/,/g, ''));
   };
   const wait = (ms) => page.waitForTimeout(ms);
@@ -299,34 +303,116 @@ const writeLog = () => fs.writeFileSync(
   await shot('sold-rice');
   step('賣稻米（S06）', (await coins()) > c8, `金幣 ${c8} → ${await coins()}`);
 
-  // ---- 9. 借種（M1）：叫回耕牛（在田裡不能上架）→ 上架 → 借別人的公牛給自己的母牛 ----
+  // ---- 9. 借種（S18）：叫回耕牛（在田裡不能上架）→ 上架 → 借別人的公牛給自己的母牛 → 借種紀錄 ----
+  const studTab = async () => { await tab('配種'); await tap(button('借種').first()); await wait(2500); };
+  /// 市場的每一列是一顆按鈕，名字是整列的字（品種名公、用途、稀有度、主人：…），單獨一行的數字是借種費。
+  const listingRows = async () => (await nodes())
+    .filter((x) => x.role === 'button' && x.label.includes('主人：'))
+    .map((x) => ({ label: x.label, price: Number((x.label.split('\n').map((l) => l.trim()).filter((l) => /^[\d,]+$/.test(l)).pop() || 'NaN').replace(/,/g, '')) }));
   await tab('田地');
   if (await enabled(button(/^叫回/))) await tapIfEnabled(button(/^叫回/), '叫回');
-  await tab('配種');
-  await subTab('借種');
-  await wait(1500);
-  const listed = await tapIfEnabled(button(/^上架/), '上架公牛');
-  await shot('stud-listed');
-  step('上架公牛（M1 借種）', listed);
-
-  await earnUntil(500);
-  await tab('配種');
-  await subTab('借種');
-  await wait(1500);
-  const ls = await labels();
-  const listing = ls.find((x) => /[\d,]+ 幣/.test(x) && x.includes('主人'));
-  const cut = ls.findIndex((x) => x.includes('選自己的母牛'));
-  const dam = ls.slice(cut + 1).find((x) => /#\d+/.test(x) && /乳牛|耕牛|肉牛/.test(x) && !x.includes('（'));
-  note(`借種：選 ${listing ? listing.replace(/\n/g, ' ') : '(沒有上架)'}，母牛 ${dam ? dam.replace(/\n/g, ' ') : '(沒有)'}`);
-  if (listing) await tapLabel(listing);
-  await wait(600);
-  if (dam) await tapLabel(dam);
-  await wait(2000);
-  await shot('stud-preview');
-  const borrowed = await tapIfEnabled(button(/^借種（/), '借種');
+  await studTab();
+  const listed = await tapIfEnabled(button('上架'), '上架公牛');
   await wait(1000);
-  await shot('stud-borrowed');
-  step('借別人的公牛（M1 借種）', borrowed);
+  const unlistShown = (await button('下架').count()) > 0;
+  await shot('stud-listed');
+  step('上架公牛（S18）', listed && unlistShown, unlistShown ? '我的公牛那一列換成「下架」' : '沒看到「下架」');
+
+  /// 清單只建畫面附近的元件，捲出去太遠的不在無障礙樹裡（市場的公牛一多，下面的母牛、借種鈕就找不到）：
+  /// 往下捲到 [has] 成立為止；scrollTop 捲回最上面。
+  const scrollUntil = async (has, max = 10) => {
+    await page.mouse.move(215, 600);
+    for (let k = 0; k < max; k++) {
+      if (await has()) return true;
+      await page.mouse.wheel(0, 400);
+      await wait(600);
+    }
+    return has();
+  };
+  const scrollTop = async () => { await page.mouse.move(215, 400); await page.mouse.wheel(0, -8000); await wait(800); };
+  /// 「選自己的母牛」底下第一頭能選的母牛。
+  const damRow = async () => {
+    const all = await nodes();
+    const cut = all.findIndex((x) => x.label === '選自己的母牛');
+    return (cut < 0 ? null : all.slice(cut + 1).find((x) => x.role === 'button' && /#\d+/.test(x.label) && !x.disabled)) || null;
+  };
+
+  const rows0 = await listingRows();
+  const cheapest = Math.min(...rows0.map((r) => r.price).filter((p) => p > 0));
+  note(`借種市場（畫面上看得到的）${rows0.length} 頭：${rows0.map((r) => r.price).join('、')} 幣`);
+  await earnUntil((Number.isFinite(cheapest) ? cheapest : 500) + 100);
+  let borrowed = '';
+  // 等賺錢的時候，挑好的那頭可能被別人借走（S18-10）或長大變貴（S18-12）：最多試三頭
+  for (let attempt = 0; attempt < 3 && !borrowed; attempt++) {
+    await studTab();
+    const c = await coins();
+    const pick = (await listingRows()).filter((r) => r.price > 0 && r.price <= c).sort((a, b) => a.price - b.price)[0];
+    if (!pick) { issue(`借種：沒有付得起的公牛（金幣 ${c}）`); break; }
+    await tapLabel(pick.label);
+    await wait(1500);
+    await scrollUntil(async () => (await damRow()) !== null);
+    const dam = await damRow();
+    note(`借種：選 ${pick.label.replace(/\n/g, ' ')}，母牛 ${dam ? dam.label.replace(/\n/g, ' ') : '(沒有)'}`);
+    if (!dam) { issue('借種：沒有能借種的母牛（捲到底也沒看到）'); break; }
+    await tapLabel(dam.label);
+    await wait(3000);
+    // 借種鈕在最下面：捲到它進了無障礙樹，再多捲一點，截圖看得到機率卡、提醒和借種鈕
+    const b = button(/^借種（/);
+    await scrollUntil(async () => (await b.count()) > 0);
+    await page.mouse.wheel(0, 300);
+    await wait(600);
+    note(`機率卡：${(((await nodes()).find((x) => x.label.startsWith('可能生出的小牛')) || {}).label || '?').replace(/\n/g, ' ')}`);
+    await shot('stud-preview');
+    if (!(await b.count())) { issue('找不到借種鈕（捲到底也不在無障礙樹裡）'); break; }
+    if (!(await enabled(b))) {
+      // 停用時把機率卡到借種鈕之間的字記下來（金幣不夠、牛舍滿了…），再看有沒有離線
+      const all2 = await nodes();
+      const i0 = all2.findIndex((x) => x.label.startsWith('可能生出的小牛'));
+      const i1 = all2.findIndex((x) => x.role === 'button' && /^借種（/.test(x.label));
+      const between = i0 < 0 || i1 < 0 ? '?' : all2.slice(i0 + 1, i1).map((x) => x.label.replace(/\n/g, ' ')).join(' / ');
+      issue(`借種鈕停用（金幣 ${await coins()}）：${between || '(沒有提醒)'}；離線：${all2.some((x) => /離線|連線中/.test(x.label))}`);
+      break;
+    }
+    const c0 = await coins();
+    await mark(); await tap(b.first());
+    await wait(2500);
+    let ft = await fullText();
+    if (ft.includes('借種費變了')) {
+      note(`借種費變了：${await news()}`);
+      await shot('stud-fee-changed');
+      await tap(button(/^用新價格借/));
+      await wait(2500);
+      ft = await fullText();
+    }
+    if (ft.includes('借不到了')) {
+      note('借不到了（被別人借走或主人下架）：重新整理市場再挑一頭');
+      await shot('stud-gone');
+      await tap(button('重新整理市場')).catch(() => {});
+      await wait(1500);
+      continue;
+    }
+    await shot('stud-borrowed');
+    if ((await button('已借種').count()) === 0) { issue(`借種沒有成功：${await news()}`); break; }
+    borrowed = `${(ft.match(/借種成功！[^\n]*/) || ['已借種'])[0]}；金幣 ${c0} → ${await coins()}`;
+  }
+  step('借別人的公牛（S18）', borrowed !== '', borrowed);
+
+  // 借種紀錄（S18-11）：剛才借入的那一筆是「今天」；上架的公牛被別人借走的話，也會有一筆借出。
+  // 連結在最上面的「我的公牛」卡片裡：先捲回最上面（捲出畫面的元件不在無障礙樹裡）
+  await scrollTop();
+  await tap(button('借種紀錄'));
+  await wait(2500);
+  const logRows = (await nodes()).filter((x) => /^(借入|借出)\n/.test(x.label)).map((x) => x.label.replace(/\n/g, ' '));
+  logRows.forEach((r) => note(`紀錄：${r}`));
+  if (!logRows.length) note(`借種紀錄頁的字：${(await fullText()).replace(/\n/g, ' | ').slice(0, 600)}`);
+  const logOpen = (await labels()).some((x) => x.includes('只保留最近'));
+  await shot('stud-log');
+  step('借種紀錄（S18）', logOpen && (!borrowed || logRows.some((r) => r.startsWith('借入') && r.includes('今天'))), logRows[0] || '(沒有紀錄)');
+  // 返回鈕的名字只有「返回」：旁邊的標題不能併進按鈕
+  const back = button('返回');
+  if (!(await back.count())) issue('借種紀錄的返回鈕名字不只「返回」（標題併進按鈕了）');
+  await tap((await back.count()) ? back.first() : button(/^返回/).first()).catch(() => {});
+  await wait(800);
 
   // ---- 10. 圖鑑、排行榜（M1）----
   await tab('紀錄');

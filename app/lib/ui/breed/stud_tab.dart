@@ -563,13 +563,13 @@ class StudRow extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // .sr-name：品種名，後面小字「公」（.use 是 inline-flex，前面的空白不算）。
+                          // .sr-name：品種名，後面小字「公」；英文、泰文中間空一格（breedSexGap）。
                           // 英文、泰文放不下（例 Taiwan Yellow Ox Bull）就換行，不截掉也不蓋到右邊的借種費
                           CssLine(
                             TextSpan(
                               style: AppText.style(15, weight: FontWeight.w900, lineHeight: 20),
                               children: [
-                                TextSpan(text: s.breedName(l.breed)),
+                                TextSpan(text: '${s.breedName(l.breed)}${s.breedSexGap}'),
                                 TextSpan(
                                   text: s.bull,
                                   style: AppText.style(12, weight: FontWeight.w900, lineHeight: 18),

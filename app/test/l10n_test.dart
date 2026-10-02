@@ -103,6 +103,29 @@ void main() {
     }
   });
 
+  test('今天、昨天：差幾個日曆天（同一天 0、前一天 1；跨月、跨年，差不到 24 小時也是前一天）', () {
+    expect(calendarDaysBetween(DateTime(2026, 10, 2, 23, 59), DateTime(2026, 10, 2, 0, 1)), 0);
+    expect(calendarDaysBetween(DateTime(2026, 10, 2, 0, 5), DateTime(2026, 10, 1, 23, 50)), 1);
+    expect(calendarDaysBetween(DateTime(2026, 3, 1, 9), DateTime(2026, 2, 28, 21)), 1);
+    expect(calendarDaysBetween(DateTime(2027, 1, 1, 0, 1), DateTime(2026, 12, 31, 23, 59)), 1);
+    expect(calendarDaysBetween(DateTime(2026, 10, 2, 9), DateTime(2026, 9, 30, 21)), 2);
+  });
+
+  // CI 在 UTC 跑、沒有夏令時間，這個測試要在有夏令時間的時區才抓得到「當地兩個午夜相減」的錯：
+  // TZ=America/New_York flutter test test/l10n_test.dart（2026-03-09 那天舊算法會把昨天算成今天）。
+  test('夏令時間切換那天（當地的一天只有 23 或 25 小時）也照日曆算', () {
+    for (var d = DateTime(2024); d.year < 2028; d = DateTime(d.year, d.month, d.day + 1)) {
+      expect(calendarDaysBetween(DateTime(d.year, d.month, d.day + 1, 12), d), 1, reason: '$d');
+      expect(calendarDaysBetween(DateTime(d.year, d.month, d.day + 2, 0, 30), d), 2, reason: '$d');
+    }
+  });
+
+  test('品種名和「公」之間：英文、泰文空一格，繁中不空（ceo 2026-10-02）', () {
+    expect(Strings.forLang(AppLang.zhHant).breedSexGap, '');
+    expect(Strings.forLang(AppLang.en).breedSexGap, ' ');
+    expect(Strings.forLang(AppLang.th).breedSexGap, ' ');
+  });
+
   test('第一次打開依手機語言：中文 → 繁中、泰文 → 泰文、其他 → 英文（D25）', () {
     expect(AppLang.forDevice(const [Locale('zh', 'TW')]), AppLang.zhHant);
     expect(AppLang.forDevice(const [Locale('zh', 'CN')]), AppLang.zhHant);

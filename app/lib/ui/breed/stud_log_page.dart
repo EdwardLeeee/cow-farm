@@ -183,7 +183,7 @@ String logWhen(Strings s, GameModel m, double t) {
       : st.realTime + (m.gameNow - st.serverTime) / scale;
   DateTime local(double sec) => DateTime.fromMillisecondsSinceEpoch((sec * 1000).round());
   final now = local(nowReal), at = local(nowReal - (m.gameNow - t) / scale);
-  final days = DateTime(now.year, now.month, now.day).difference(DateTime(at.year, at.month, at.day)).inDays;
+  final days = calendarDaysBetween(now, at);
   return s.dateTime(today: days == 0, yesterday: days == 1, month: at.month, day: at.day, time: s.clock(at));
 }
 

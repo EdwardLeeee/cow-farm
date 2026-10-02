@@ -54,6 +54,7 @@ class PageHead extends StatelessWidget {
 }
 
 /// .icon-btn：44×44 的白色圓形鈕（返回、上一頁…）。G-12：浮起，按下往下 2。
+/// 自己一個無障礙節點（container）：不然旁邊的標題會併進來，讀成「返回 借種紀錄 借出收入累計 0 幣」一顆按鈕。
 class CircleIconButton extends StatelessWidget {
   const CircleIconButton({super.key, required this.icon, required this.label, required this.onTap});
 
@@ -63,6 +64,7 @@ class CircleIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
+    container: true,
     button: true,
     label: label,
     child: Pressable(
