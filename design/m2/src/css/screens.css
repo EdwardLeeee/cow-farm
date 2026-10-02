@@ -742,3 +742,72 @@
   /* 320 寬的圖鑑排 3 欄：4 欄時一格只剩 59 px，長的牛名（例 สตรอว์เบอร์รี）整個詞放不下 */
   .dex-grid { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* 按下狀態表（G-11～G-13）的排版：每種元件一塊，各狀態並排，放不下就換行；橘色字是註解 */
+.press-sheet { gap: 14px; }
+.press-kind { background: #FFFFFF; border: 2px dashed #F0C99A; border-radius: 16px; padding: 8px 10px 12px; }
+.press-title { font-size: 14px; font-weight: 900; line-height: 20px; color: #C2541B; }
+.press-title small { display: block; font-size: 12px; font-weight: 700; line-height: 17px; }
+.press-row { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; margin-top: 8px; }
+.press-row:empty { display: none; }
+.press-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.press-cell.full { flex: 1 1 100%; align-items: stretch; }
+.press-cap { font-size: 12px; font-weight: 900; line-height: 16px; color: #C2541B; }
+.press-stack { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+.press-stack.row { flex-direction: row; align-items: center; }
+.press-sheet .pen-pill, .press-sheet .dock-toggle, .press-sheet .bn-close { position: relative; left: auto; right: auto; top: auto; }
+.press-seg { width: 180px; }
+.press-link { padding-top: 0; }
+.press-link .link-row { margin-top: 0; border-top: 0; }
+.press-dex { width: 84px; }
+.press-bn { width: 64px; height: 56px; display: grid; place-items: center; background: #FFF6D6; border: 3px solid var(--ink); border-radius: 18px; }
+.pz-stage { position: relative; width: 116px; height: 108px; }
+.pz-scale { position: absolute; left: 0; top: 0; transform: scale(2); transform-origin: 0 0; }
+.pz-line { position: absolute; left: -6px; right: -6px; height: 0; border-top: 2px dashed #C2541B; }
+
+/* ================= 按下（G-11～G-13；使用者 2026-10-02 核准） =================
+   浮起的元件（有實心下陰影）：手指一碰到就往下移、下陰影變薄成 1px，底邊停在原來的位置；放開 0.1 秒彈回。
+   平的元件（沒有自己的陰影）：蓋一層 12% 的可可色，不移動。
+   減少動態：浮起的元件也不移動、陰影不變，改成跟平的元件一樣蓋一層顏色；放開立刻回去。
+   停用、處理中（轉圈）的按了不會變。
+   實作的樣子寫在最下面（:active）；.is-pressed（按下）、.is-pressed-rm（減少動態時按下）只給狀態表畫圖。 */
+:root { --press: rgba(75, 51, 38, 0.12); }
+/* 下陰影 4px（大按鈕、可點的卡片）：往下 3px */
+.btn:not(.small).is-pressed, button.card.is-pressed { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+/* 下陰影 3px（小按鈕、圓形鈕、頂列齒輪、牛欄膠囊、選牛小卡、圖鑑格子）：往下 2px */
+.btn.small.is-pressed, .icon-btn.is-pressed, .gear.is-pressed, .pen-pill.is-pressed, .pick.is-pressed, .dex-cell.is-pressed { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+/* 下陰影 2px（牧場面板的收起膠囊）：往下 1px */
+.dock-toggle.is-pressed .dt-pill { transform: translateY(1px); box-shadow: 0 1px 0 var(--ink); }
+/* 選中的卡片：外圈的顏色留著 */
+.stud-row.on.is-pressed, .pick.on.is-pressed { box-shadow: 0 1px 0 var(--ink), 0 0 0 3px var(--yellow); }
+.ox-opt.on.is-pressed { box-shadow: 0 1px 0 var(--ink), 0 0 0 3px var(--green-2); }
+.dex-cell.unknown.is-pressed { box-shadow: 0 1px 0 #B8A89A; }
+/* 平的元件（第二層分頁、篩選、數量鈕、清單列、設定列、連結、底部分頁、關閉鈕），和所有元件在減少動態時：蓋一層顏色 */
+.seg button.is-pressed, .filter button.is-pressed, .chip-btn.is-pressed, .price-row.is-pressed, .set-row.is-pressed, .link-row.is-pressed,
+.link-btn.is-pressed, .tab.is-pressed, .bn-close.is-pressed,
+.btn.is-pressed-rm, button.card.is-pressed-rm, .icon-btn.is-pressed-rm, .gear.is-pressed-rm, .pen-pill.is-pressed-rm, .pick.is-pressed-rm, .dex-cell.is-pressed-rm,
+.dock-toggle.is-pressed-rm .dt-pill, .seg button.is-pressed-rm, .filter button.is-pressed-rm, .chip-btn.is-pressed-rm, .price-row.is-pressed-rm,
+.set-row.is-pressed-rm, .link-row.is-pressed-rm, .link-btn.is-pressed-rm, .tab.is-pressed-rm, .bn-close.is-pressed-rm { background-image: linear-gradient(var(--press), var(--press)); }
+/* 沒有底色的元件：蓋的顏色做成圓角塊 */
+.set-row.is-pressed, .link-row.is-pressed, .link-btn.is-pressed, .tab.is-pressed,
+.set-row.is-pressed-rm, .link-row.is-pressed-rm, .link-btn.is-pressed-rm, .tab.is-pressed-rm { border-radius: 12px; }
+.bn-close.is-pressed, .bn-close.is-pressed-rm { border-radius: 50%; }
+
+/* 實作（:active）：平的元件兩種模式一樣 */
+.seg button:not([disabled]):active, .filter button:active, .chip-btn:not([disabled]):active, .price-row:active, .set-row:active, .link-row:active,
+.link-btn:active, .tab:active, .bn-close:active { background-image: linear-gradient(var(--press), var(--press)); }
+.set-row:active, .link-row:active, .link-btn:active, .tab:active { border-radius: 12px; }
+.bn-close:active { border-radius: 50%; }
+@media (prefers-reduced-motion: no-preference) {
+  .btn:not(.small):not([disabled]):not(.disabled):active, button.card:not([disabled]):active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
+  .btn.small:not([disabled]):not(.disabled):active, .icon-btn:not([disabled]):active, .gear:active, .pen-pill:active,
+  .pick:not([disabled]):active, .dex-cell:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
+  .dock-toggle:active .dt-pill { transform: translateY(1px); box-shadow: 0 1px 0 var(--ink); }
+  .stud-row.on:active, .pick.on:not([disabled]):active { box-shadow: 0 1px 0 var(--ink), 0 0 0 3px var(--yellow); }
+  .ox-opt.on:active { box-shadow: 0 1px 0 var(--ink), 0 0 0 3px var(--green-2); }
+  .dex-cell.unknown:active { box-shadow: 0 1px 0 #B8A89A; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn:not([disabled]):not(.disabled):active, button.card:not([disabled]):active, .icon-btn:not([disabled]):active, .gear:active, .pen-pill:active,
+  .pick:not([disabled]):active, .dex-cell:active, .dock-toggle:active .dt-pill { background-image: linear-gradient(var(--press), var(--press)); }
+}

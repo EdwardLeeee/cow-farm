@@ -88,7 +88,8 @@ def board_full(m, img, screen_dir):
     save(im, os.path.join(screen_dir, name))
     return name
 
-def sheet_parts(screen, sname, parts, w, screen_dir):
+def sheet_parts(screen, sname, parts, w, screen_dir, board=None):
+    # board：另外成一張的狀態表（例如「按下-狀態表」），檔名和左上角的標籤都是 M2-<畫面>-<board>-<寬>
     if not parts: return None
     pad, gap, head = 32, 28, 110
     tiles = []
@@ -107,7 +108,8 @@ def sheet_parts(screen, sname, parts, w, screen_dir):
     W = pad * 2 + ncol * colw + (ncol - 1) * gap
     H = head + max(hs) + pad
     im = Image.new('RGB', (W, H), BG); d = ImageDraw.Draw(im)
-    header(d, pad, 20, f"M2-{screen}  局部狀態表", f"{screen} {sname}　·　{DEVNAME[w]}　·　只差一小塊的狀態並排在一起", ['局部'])
+    if board: header(d, pad, 20, f"M2-{screen}-{board}-{w}", f"{screen} {sname}　·　{DEVNAME[w]}", ['狀態表'])
+    else: header(d, pad, 20, f"M2-{screen}  局部狀態表", f"{screen} {sname}　·　{DEVNAME[w]}　·　只差一小塊的狀態並排在一起", ['局部'])
     for ci, col in enumerate(cols):
         x, y = pad + ci * (colw + gap), head
         for m, img, cap, nt in col:
@@ -119,7 +121,7 @@ def sheet_parts(screen, sname, parts, w, screen_dir):
             im.paste(img, (x, y))
             d.rectangle([x - 2, y - 2, x + img.width + 1, y + img.height + 1], outline=(200, 184, 168), width=2)
             y += img.height + gap
-    name = f"M2-{screen}-表-{safe(sname)}-局部狀態-{w}.png"
+    name = f"M2-{screen}-{safe(board)}-{w}.png" if board else f"M2-{screen}-表-{safe(sname)}-局部狀態-{w}.png"
     save(im, os.path.join(screen_dir, name))
     return name
 
@@ -212,6 +214,10 @@ def main(prefix=''):
         for w in (430, 390):
             fulls = sorted([m for m in ms if m.get('width') == w and m.get('type') == 'full' and os.path.exists(m['_png'])], key=key)
             parts = sorted([m for m in ms if m.get('width') == w and m.get('type') == 'part' and os.path.exists(m['_png'])], key=key)
+            boards = [m for m in parts if m.get('board')]
+            parts = [m for m in parts if not m.get('board')]  # 另外成一張的不放進局部狀態表和總覽
+            for b in sorted({m['board'] for m in boards}):
+                made.append(sheet_parts(sc, sname, [m for m in boards if m['board'] == b], w, screen_dir, board=b))
             for m in fulls: made.append(board_full(m, dpr2(m['_png']), screen_dir))
             n = sheet_parts(sc, sname, parts, w, screen_dir)
             if n: made.append(n)
