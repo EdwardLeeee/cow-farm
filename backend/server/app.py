@@ -232,7 +232,8 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
         return server.auth(token)
 
     def state_of(p: Player, now: float) -> dict:
-        st = V.state_view(server.game, server.game.players[p.pid], now, server.clock)
+        # game.player：驗過 token 之後牧場剛被刪除時回 401（協定 5.6），不是 KeyError 變成 500
+        st = V.state_view(server.game, server.game.player(p.pid), now, server.clock)
         st["maintenance"] = server.maintenance_view()  # 維護預告（協定 6.1 節）；沒有是 null
         st["account"] = server.account_view(p.pid)  # 綁定的帳號（協定 2.3 節）
         return st
@@ -449,7 +450,7 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
     @app.get("/v1/shop")
     async def shop(p: Player = Depends(current)):
         now = server.clock.now()
-        pl = server.game.players[p.pid]
+        pl = server.game.player(p.pid)
         return {
             **base(now),
             "coins": int(round(pl.farm.coins)),
@@ -484,7 +485,7 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
     async def ship_preview(cow_id: int = Query(...), p: Player = Depends(current)):
         g = server.game
         now = server.clock.now()
-        pl = g.players[p.pid]
+        pl = g.player(p.pid)
         c = g._cow(pl, cow_id)
         blockers = []
         try:
