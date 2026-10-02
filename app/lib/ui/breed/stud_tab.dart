@@ -524,6 +524,7 @@ class StudRow extends StatelessWidget {
     final tag = Strings.ranchTag(owner);
     final ownerStyle = AppText.style(12, weight: FontWeight.w700, color: AppColors.ink2, lineHeight: 17);
     return Semantics(
+      container: true,
       button: true,
       selected: on,
       child: Pressable(
@@ -855,6 +856,7 @@ class _LinkRow extends StatelessWidget {
   Widget build(BuildContext context) => CustomPaint(
     painter: const DashedTopLine(),
     child: Semantics(
+      container: true,
       button: true,
       child: Pressable(
         key: const Key('stud-log-link'),

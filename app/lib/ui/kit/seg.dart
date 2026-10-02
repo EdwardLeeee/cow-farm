@@ -34,6 +34,7 @@ class SegControl extends StatelessWidget {
               SizedBox(
                 width: i == selected ? share + ring : share,
                 child: Semantics(
+                  container: true,
                   button: true,
                   selected: i == selected,
                   child: Pressable(

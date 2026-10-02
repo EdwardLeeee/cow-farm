@@ -292,6 +292,7 @@ class Hud extends StatelessWidget {
           ),
           SizedBox(width: narrow ? 6 : 8),
           Semantics(
+            container: true,
             button: true,
             label: gearDot ? s.hudSettingsNotBacked : s.hudSettings,
             child: Stack(
@@ -400,6 +401,7 @@ class AppTabBar extends StatelessWidget {
           for (final t in AppTab.values)
             Expanded(
               child: Semantics(
+                container: true,
                 button: true,
                 selected: t == active,
                 // 平的元件：按下蓋一層顏色（圓角 12，G-12）

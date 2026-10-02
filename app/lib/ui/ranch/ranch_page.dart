@@ -705,6 +705,7 @@ class _BigNews extends StatelessWidget {
             right: -12 + 4,
             top: -12 + 4,
             child: Semantics(
+              container: true,
               button: true,
               label: s.gClose,
               // 平的元件：按下蓋一層顏色（圓形，G-13）

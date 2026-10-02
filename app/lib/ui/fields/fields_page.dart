@@ -675,6 +675,7 @@ class OxOption extends StatelessWidget {
       ],
     };
     return Semantics(
+      container: true,
       button: true,
       selected: on,
       enabled: !disabled,

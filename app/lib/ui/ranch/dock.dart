@@ -88,6 +88,7 @@ class Dock extends StatelessWidget {
                     top: 0,
                     bottom: 0,
                     child: Semantics(
+                      container: true,
                       button: true,
                       label: collapsed ? s.s03ExpandAria : s.s03CollapseAria,
                       // 按下：膠囊往下 1、陰影變 1（G-12）
