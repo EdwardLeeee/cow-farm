@@ -804,6 +804,8 @@ class GameServer:
                         raise GameError("request_id_reused", "這個 request_id 已經用在別的動作", 409, {"endpoint": ep})
                     return resp
             game = self.game
+            if pid not in game.players:  # 驗過 token、排隊等鎖的時候牧場被刪了：跟之後的請求一樣回 401（協定 5.6）
+                raise GameError("unauthorized", "登入憑證無效", 401)
             p = game.player(pid)
             game.begin()
             backup = p.copy()
