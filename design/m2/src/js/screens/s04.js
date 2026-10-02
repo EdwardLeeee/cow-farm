@@ -74,8 +74,11 @@ full('S04-05', '公牛上架中', (ctx) => detailPage(ctx, cowById(5), {
   buttons: `${btn(t('unlist'), { ic: 'tag', block: true })}<div class="btn-row" style="margin-top:12px">${breedBtn(true)}${shipBtn(true)}</div>`,
 }));
 const idleOx = { ...cowById(2), field: null };
-full('S04-06', '耕牛沒下田：派去田裡', (ctx) => detailPage(ctx, idleOx, { buttons: `${btn(t('g.assign'), { kind: 'green', ic: 'sprout', block: true })}<div class="btn-row" style="margin-top:12px">${breedBtn(false)}${shipBtn(false)}</div>` }));
-full('S04-07', '耕牛在田裡工作', (ctx) => detailPage(ctx, cowById(2), {
+// 母耕牛（高地牛 #9）只能下田、不能上架借種，所以一排一顆（S04-06、07、13；配過種的公耕牛也是這樣）。
+// 成年、沒配過種的公耕牛（黃牛 #2）是 4 個動作，見 S04-14～16（D31；ceo 2026-10-02 把範例牛換掉，跟 cow-app #99 一致）
+const cowOx = { ...cowById(9), field: null };
+full('S04-06', '耕牛沒下田：派去田裡', (ctx) => detailPage(ctx, cowOx, { buttons: `${btn(t('g.assign'), { kind: 'green', ic: 'sprout', block: true })}<div class="btn-row" style="margin-top:12px">${breedBtn(false)}${shipBtn(false)}</div>` }));
+full('S04-07', '耕牛在田裡工作', (ctx) => detailPage(ctx, { ...cowById(9), field: 0 }, { // 第 1 塊田（跟原本的稿一樣）
   note: t('recallFirst', { n: 1 }),
   buttons: `${btn(t('s04.recall'), { ic: 'hand', block: true })}<div class="btn-row" style="margin-top:12px">${breedBtn(true)}${shipBtn(true)}</div>`,
 }));
@@ -89,7 +92,7 @@ full('S04-11', '這頭牛已經不在了', (ctx) => frame(ctx.dev, { tab: 'ranch
   <div class="page-head"><button class="icon-btn" aria-label="${t('back')}">${icon('back', 22)}</button><div class="grow"><h1>${t('cowTitle', { id: 3 })}</h1></div></div>
   <article class="card">${empty({ pic: cowSVG({ breed: 'holstein' }, { w: 120, h: 120, sil: true }), t1: t('s04.goneTitle'), t2: t('s04.goneBody'), action: btn(t('s04.backRanch'), { kind: 'primary' }) })}</article></div>` }));
 part('S04-12', '斷線：按鈕全部停用', '.detail-actions', (ctx) => detailPage(ctx, cowById(3), { offline: true, buttons: `<div class="btn-row">${breedBtn(true)}${shipBtn(true)}</div>` }));
-part('S04-13', '耕牛：沒有空田，派不出去', '.detail-actions', (ctx) => detailPage(ctx, idleOx, { buttons: `${btn(t('g.assign'), { kind: 'green', ic: 'sprout', block: true, disabled: true })}<p class="warn-text" style="margin-top:8px;text-align:center">${t('s04.noField')}</p><div class="btn-row" style="margin-top:10px">${breedBtn(false)}${shipBtn(false)}</div>` }));
+part('S04-13', '耕牛：沒有空田，派不出去', '.detail-actions', (ctx) => detailPage(ctx, cowOx, { buttons: `${btn(t('g.assign'), { kind: 'green', ic: 'sprout', block: true, disabled: true })}<p class="warn-text" style="margin-top:8px;text-align:center">${t('s04.noField')}</p><div class="btn-row" style="margin-top:10px">${breedBtn(false)}${shipBtn(false)}</div>` }));
 // 公耕牛（成年、沒配過種）：可以下田，也可以上架借種，一共 4 個動作。第一排兩顆半寬：派去田裡（或叫回來）、上架借種（或下架）；第二排照舊（缺口清單 2-1，D31）
 const oxRow = (a, b) => `<div class="btn-row">${a}${b}</div><div class="btn-row" style="margin-top:12px">`;
 const FEE2 = studFee(idleOx.kg, 0);
