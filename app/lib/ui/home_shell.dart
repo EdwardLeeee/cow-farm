@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../l10n/l10n.dart';
 import '../l10n/strings.dart';
+import 'breed/breed_page.dart';
 import 'cow/cow_detail_page.dart';
 import 'kit/frame.dart';
 import 'market/market_page.dart';
@@ -12,7 +13,6 @@ import 'ranch/pen_list.dart';
 import 'ranch/ranch_page.dart';
 import '../state/game_model.dart';
 import 'widgets/action_button.dart';
-import 'screens/breed_screen.dart';
 import 'screens/codex_screen.dart';
 import 'screens/fields_screen.dart';
 import 'screens/leaderboard_screen.dart';
@@ -76,6 +76,9 @@ class _HomeShellState extends State<HomeShell> {
     } else if (m.tab == AppTab.shop) {
       // 商店（S19 抽牛、S10 設施）：自己的外框，升級的提示疊在最上面
       page = const ShopPage();
+    } else if (m.tab == AppTab.breed) {
+      // 配種（S08）：自己的外框，配種成功的提示疊在最上面
+      page = const BreedPage();
     } else {
       page = AppFrame(tab: m.tab, content: _content(m), contentPadding: EdgeInsets.zero);
     }
@@ -118,7 +121,7 @@ class _HomeShellState extends State<HomeShell> {
       AppTab.ranch => m.warehouseOpen ? const WarehousePage() : const PenListPage(),
       AppTab.market => const SizedBox.shrink(), // 市場是自己的整頁（MarketPage），不會走到這裡
       AppTab.fields => const FieldsScreen(),
-      AppTab.breed => const BreedScreen(),
+      AppTab.breed => const SizedBox.shrink(), // 配種是自己的整頁（BreedPage），不會走到這裡
       AppTab.shop => const SizedBox.shrink(), // 商店是自己的整頁（ShopPage），不會走到這裡
       AppTab.records => const _Records(),
     };

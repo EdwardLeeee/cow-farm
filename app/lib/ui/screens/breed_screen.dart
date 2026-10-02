@@ -1,3 +1,5 @@
+// M1 借種畫面（stud_screen.dart，S18 還沒做正式畫面）用的元件：預覽的載入、機率、選母牛、新小牛的倒數。
+// 自己配種已經換成正式畫面（breed/breed_page.dart，S08）。
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -7,32 +9,7 @@ import '../../l10n/strings.dart';
 import '../../state/game_model.dart';
 import '../format.dart';
 import '../palette.dart';
-import '../widgets/action_button.dart';
 import '../widgets/ticker_builder.dart';
-import 'stud_screen.dart';
-
-/// 配種：「自己配種」與「借種」（S18）兩個分頁。
-class BreedScreen extends StatelessWidget {
-  const BreedScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const DefaultTabController(
-      length: 2,
-      child: Column(
-        children: [
-          TabBar(
-            tabs: [
-              Tab(text: S.subOwnBreed),
-              Tab(text: S.subStud),
-            ],
-          ),
-          Expanded(child: TabBarView(children: [OwnBreedView(), StudView()])),
-        ],
-      ),
-    );
-  }
-}
 
 /// 預覽（配種／借種機率）的載入狀態：換了組合才重抓；失敗（例如斷線）時連回來、隔幾秒再試。
 class PreviewLoader {
@@ -189,107 +166,6 @@ class CowChips extends StatelessWidget {
   static String _suffix(Cow c) {
     final b = [if (c.bred) S.badgeBred, if (c.working) S.badgeWorking, if (c.listed) S.badgeListed];
     return b.isEmpty ? '' : '（${b.join('、')}）';
-  }
-}
-
-/// 自己的公牛 × 自己的母牛：免費，每頭一輩子一次。
-class OwnBreedView extends StatefulWidget {
-  const OwnBreedView({super.key});
-
-  @override
-  State<OwnBreedView> createState() => _OwnBreedViewState();
-}
-
-class _OwnBreedViewState extends State<OwnBreedView> {
-  final _loader = PreviewLoader();
-
-  @override
-  Widget build(BuildContext context) {
-    final m = context.watch<GameModel>();
-    final s = m.state!;
-    final now = m.gameNow;
-    final bulls = s.cows.where((c) => c.bull && c.isAdultAt(now)).toList();
-    final cows = s.cows.where((c) => !c.bull && c.isAdultAt(now)).toList();
-    var sire = m.breedSireKey == null ? null : s.cowById(m.breedSireKey!);
-    var dam = m.breedDamKey == null ? null : s.cowById(m.breedDamKey!);
-    if (sire != null && !sire.canBreedAt(now)) sire = null; // 已配過的不能再選
-    if (dam != null && !dam.canBreedAt(now)) dam = null;
-    _loader.ensure(
-      model: m,
-      newKey: sire == null || dam == null ? null : '${sire.key}|${dam.key}',
-      mounted: () => mounted,
-      setState: setState,
-      fetch: () => m.breedPreview(sire!, dam!),
-    );
-    final theme = Theme.of(context);
-    final p = _loader.value;
-    final calf = m.lastCalfKey == null ? null : s.cowById(m.lastCalfKey!);
-
-    return ListView(
-      padding: const EdgeInsets.all(12),
-      children: [
-        Text(S.breedOnce, style: theme.textTheme.bodySmall),
-        const SizedBox(height: 6),
-        Text(S.pickSire, style: theme.textTheme.titleSmall),
-        CowChips(
-          keyPrefix: 'sire',
-          cows: bulls,
-          selected: sire?.key,
-          emptyText: S.noSire,
-          enabled: (c) => c.canBreedAt(now),
-          onSelect: m.setBreedSire,
-        ),
-        const SizedBox(height: 12),
-        Text(S.pickDam, style: theme.textTheme.titleSmall),
-        CowChips(
-          keyPrefix: 'dam',
-          cows: cows,
-          selected: dam?.key,
-          emptyText: S.noDam,
-          enabled: (c) => c.canBreedAt(now),
-          onSelect: m.setBreedDam,
-        ),
-        const SizedBox(height: 12),
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(S.probTitle, style: theme.textTheme.titleSmall),
-                const SizedBox(height: 6),
-                if (sire == null || dam == null)
-                  const Text(S.pickBoth)
-                else if (_loader.statusText(m) != null)
-                  Text(_loader.statusText(m)!)
-                else
-                  BreedOdds(preview: p!, feeText: S.breedFree),
-                const SizedBox(height: 8),
-                if (s.pen.full) const Text(S.penFull, style: TextStyle(color: Palette.warn)),
-                ActionButton(
-                  key: const Key('breed-go'),
-                  label: S.breed,
-                  expand: true,
-                  enabled: sire != null && dam != null && p != null && p.canBreed && !s.pen.full,
-                  onPressed: () async {
-                    final r = await m.breed(sire!, dam!);
-                    if (!context.mounted) return;
-                    final c = r.value?.calf;
-                    showResult(
-                      context,
-                      r.error,
-                      c == null ? S.breedDone : '${S.breedDone} ${S.newCalf(c.key, tierName(c.tier))}',
-                    );
-                    setState(_loader.clear);
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-        if (calf != null) CalfCountdown(calf: calf),
-      ],
-    );
   }
 }
 
