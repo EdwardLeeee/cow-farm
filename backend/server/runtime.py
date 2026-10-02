@@ -412,6 +412,7 @@ class GameServer:
                         "end_at": r["end_at"],
                         "headline": r["headline"],
                         "rare": r["rare"],
+                        "tier": r["tier"],  # D33 以前存的是 NULL：照 rare 當 big／normal
                     }
                 )
             self.news_log[r["id"]] = ev

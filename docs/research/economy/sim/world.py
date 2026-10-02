@@ -144,7 +144,8 @@ class World:
         # 紀錄
         keys = ["t", "online"]
         for cid in self.cids:
-            keys += [cid, f"{cid}_e", f"{cid}_y", f"{cid}_x", f"{cid}_ev", f"{cid}_D", f"{cid}_flow"]
+            # _xn：新聞以外的部分（基本價倍數，D33 起軟邊界只管這部分）
+            keys += [cid, f"{cid}_e", f"{cid}_y", f"{cid}_x", f"{cid}_ev", f"{cid}_xn", f"{cid}_D", f"{cid}_flow"]
         self.rec: Dict[str, array] = {k: array("d") for k in keys}
         self.wall = {}
 
@@ -245,6 +246,7 @@ class World:
                     rec[f"{cid}_y"].append(m.pressure)
                     rec[f"{cid}_x"].append(m.x)
                     rec[f"{cid}_ev"].append(m.event_log)
+                    rec[f"{cid}_xn"].append(m.ratio_ex_news)
                     rec[f"{cid}_D"].append(m.demand_rate())
                     rec[f"{cid}_flow"].append(m.flow)
                 tick += 1

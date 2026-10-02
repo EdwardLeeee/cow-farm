@@ -246,7 +246,7 @@ class ServiceWorld:
 
         keys = ["t", "online"]
         for cid in self.cids:
-            keys += [cid, f"{cid}_e", f"{cid}_y"]
+            keys += [cid, f"{cid}_e", f"{cid}_y", f"{cid}_xn"]  # _xn：新聞以外的部分（基本價倍數）
         self.rec: Dict[str, array] = {k: array("d") for k in keys}
         self.wall: dict = {}
 
@@ -353,6 +353,7 @@ class ServiceWorld:
                     rec[cid].append(m.price)
                     rec[f"{cid}_e"].append(m.excess)
                     rec[f"{cid}_y"].append(m.pressure)
+                    rec[f"{cid}_xn"].append(m.ratio_ex_news)
                 tick += 1
             t_day = self.t0 + (day + 1) * DAY
             pm, pb, pr = (self.ex.markets[c].price for c in ("milk", "beef", "rice"))

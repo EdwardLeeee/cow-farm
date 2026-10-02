@@ -77,12 +77,19 @@ class CommodityParams:
     order_size_tau_s: float  # 平常單量 EMA 的時間常數
     order_size_update_cap: float  # 單筆最多用平常單量的幾倍去更新 EMA（防止灌大單操縱）
 
-    # --- 邊界 ---
-    soft_lo: float = 0.6  # 軟邊界（基本價倍數）：超出後回歸加強
+    # --- 邊界（D33 起分三層，ceo 2026-10-03）---
+    # 1. 新聞以外的部分（時段 × 雜訊 × 賣壓）：軟邊界 soft_lo–soft_hi 加速拉回，硬邊界 hard_lo–hard_hi 夾住
+    #    （大戶倒貨、賣壓的最壞情況跟 D33 以前一樣）。
+    # 2. 新聞倍數：所有進行中的事件相乘，夾在 EventParams.total_cap_down–total_cap_up。
+    # 3. 總價格（1 × 2）：最後夾在 price_lo–price_hi。下限放寬到 0.05 黑天鵝 −90% 才出得來；
+    #    上限 2.2：「買 C 級小牛、長大馬上出貨」照剛成年的實際評級機率要約 2.6 倍才超過 900 幣，不會變成套利。
+    soft_lo: float = 0.6  # 軟邊界（基本價倍數）：新聞以外的部分超出後回歸加強
     soft_hi: float = 1.7
     soft_half_life_s: float = 20 * MINUTE  # 超出軟邊界那一段的回歸半衰期
-    hard_lo: float = 0.45  # 硬邊界：價格絕對不會超出
+    hard_lo: float = 0.45  # 硬邊界：新聞以外的部分絕對不會超出
     hard_hi: float = 2.2
+    price_lo: float = 0.05  # 總價格（新聞以外 × 新聞）絕對不會超出
+    price_hi: float = 2.2
     ma_window_s: float = 24 * HOUR  # 走勢圖的移動平均視窗
 
 
@@ -208,20 +215,23 @@ class EventParams:
         (("rice",), 0.25),
         (("milk", "beef", "rice"), 0.20),
     )
-    mag_lo: float = 0.05  # 一般事件幅度下限（±5%）
-    mag_hi: float = 0.25  # 一般事件幅度上限（±25%）
-    rare_prob: float = 0.05  # 罕見大事件的機率
-    rare_lo: float = 0.30
-    rare_hi: float = 0.40  # 罕見大事件最大 ±40%
-    up_prob: float = 0.5  # 利多的機率
+    # 新聞分四級（D33，使用者 2026-10-03）：(級別, 機率, 幅度下限, 幅度上限, 利多的機率)。每則新聞先抽級別。
+    # 一般 ±5–15%；大事件 ±25–40%；超級大事件 +100%（只往上，收購價變兩倍）；超級黑天鵝 −90%（只往下，剩一成）。
+    # 超級、黑天鵝各約 1/(4×3.5)：每天 4 則，各約 3–4 個遊戲天一次。級別代碼就是協定 news[].tier。
+    tiers: Tuple[Tuple[str, float, float, float, float], ...] = (
+        ("normal", 0.7072, 0.05, 0.15, 0.5),
+        ("big", 0.15, 0.25, 0.40, 0.5),
+        ("super", 0.0714, 1.0, 1.0, 1.0),
+        ("crash", 0.0714, 0.9, 0.9, 0.0),
+    )
     announce_prob: float = 0.4  # 提前公告的機率
     announce_lead_s: float = 30 * MINUTE  # 提前多久公告
     ramp_s: float = 15 * MINUTE  # 開始後幾分鐘內漲（跌）到全幅
     half_life_lo_s: float = 2 * HOUR  # 效果衰減半衰期下限
     half_life_hi_s: float = 8 * HOUR
     lifetime_half_lives: float = 6.0  # 幾個半衰期後移除（剩 1.6%）
-    total_cap_up: float = 1.6  # 所有進行中事件相乘的上限（倍）
-    total_cap_down: float = 0.62  # 相乘的下限（倍）
+    total_cap_up: float = 2.5  # 所有進行中事件相乘的上限（倍；D33 從 1.6 放寬，+100% 才出得來）
+    total_cap_down: float = 0.08  # 相乘的下限（倍；D33 從 0.62 放寬，−90% 才出得來）
 
 
 # 新聞標題（虛構）：(商品, 利多/利空) → 標題清單；伺服器可以換成企劃寫的稿

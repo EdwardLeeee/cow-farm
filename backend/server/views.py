@@ -419,7 +419,8 @@ def news_item(ev, now: float) -> dict:
         "commodity": commodity,
         "targets": list(ev.targets),
         "direction": "up" if ev.factor > 1.0 else "down",
-        "big": bool(ev.rare),
+        "tier": ev.tier,  # D33：normal、big、super、crash
+        "big": ev.tier != "normal",  # 大事件以上（D29 牧場頁的提示）
         "time": ev.announce_at,
         "announce_at": ev.announce_at,
         "start_at": ev.start_at,
