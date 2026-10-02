@@ -425,7 +425,7 @@ def goal_b(w: ServiceWorld) -> dict:
     st = strategy_weeks(w)
     keys = B.PLAYER_STRATEGIES
     weeks = []
-    for i in range(len(st["S1"]["weeks"])):
+    for i in range(len(st[keys[0]]["weeks"])):  # 策略代號是 D、B、F…（以前的 S1 早就沒了）
         vals = {k: st[k]["weeks"][i] for k in keys}
         weeks.append(max(vals.values()) / min(vals.values()))
     tot = {k: st[k]["total"] for k in keys}
