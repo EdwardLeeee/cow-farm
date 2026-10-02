@@ -7,6 +7,7 @@ import 'package:cowfarm/api/push.dart';
 import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
 import 'package:cowfarm/storage/token_store.dart';
+import 'package:cowfarm/ui/kit/frame.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -462,7 +463,7 @@ void main() {
       await tester.pump(Duration.zero);
       expect(find.byKey(const Key('maintenance')), findsOneWidget);
       expect(find.text(zh.s16Title), findsOneWidget);
-      expect(find.byType(NavigationBar), findsNothing);
+      expect(find.byType(AppTabBar), findsNothing);
       expect(find.byKey(const Key('long-offline')), findsNothing);
 
       await tester.pumpWidget(const SizedBox());
@@ -473,11 +474,11 @@ void main() {
       final zh = Strings.forLang(AppLang.zhHant);
       final (m, _, push) = await loadedModel();
       await pumpApp(tester, m);
-      expect(find.byType(NavigationBar), findsOneWidget);
+      expect(find.byType(AppTabBar), findsOneWidget);
       push.emit(const PushAuthFailed('tok'));
       await tester.pump(Duration.zero); // 推播是非同步送到的：先送到，再畫下一格
       expect(find.text(zh.s15InvalidTitle), findsOneWidget);
-      expect(find.byType(NavigationBar), findsNothing);
+      expect(find.byType(AppTabBar), findsNothing);
     });
   });
 

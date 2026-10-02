@@ -7,6 +7,7 @@ import '../api/game_api.dart';
 import '../api/models.dart';
 import '../api/push.dart';
 import '../storage/token_store.dart';
+import '../ui/ranch/herd.dart';
 
 /// 手機上的單調時鐘（秒）。不受使用者改手機時間影響，只用來推算畫面上的時間與奶桶。
 typedef NowFn = double Function();
@@ -154,6 +155,12 @@ class GameModel extends ChangeNotifier {
 
   // ---- 畫面導覽 ----
   AppTab tab = AppTab.ranch;
+
+  /// 牧場頁按「我的牛」開的牛舍清單（正式的 S03-07 在下一個 PR；現在先用 M1 的清單）。
+  bool penListOpen = false;
+
+  /// 牧場場景裡每頭牛的位置：這次打開 app 期間同一頭牛一直在同一個位置（ceo 2026-10-02）。只是顯示用。
+  final herdLayout = HerdLayout();
   String? detailCowKey;
   String? breedSireKey;
   String? breedDamKey;
@@ -563,6 +570,17 @@ class GameModel extends ChangeNotifier {
   void selectTab(AppTab t) {
     tab = t;
     detailCowKey = null;
+    penListOpen = false;
+    _notify();
+  }
+
+  void openPenList() {
+    penListOpen = true;
+    _notify();
+  }
+
+  void closePenList() {
+    penListOpen = false;
     _notify();
   }
 

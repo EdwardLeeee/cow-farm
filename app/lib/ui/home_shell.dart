@@ -5,6 +5,9 @@ import 'package:provider/provider.dart';
 
 import '../l10n/l10n.dart';
 import '../l10n/strings.dart';
+import 'kit/app_icon.dart';
+import 'kit/frame.dart';
+import 'ranch/ranch_page.dart';
 import '../state/game_model.dart';
 import 'widgets/action_button.dart';
 import 'screens/breed_screen.dart';
@@ -17,22 +20,12 @@ import 'screens/ranch_screen.dart';
 import 'screens/shop_screen.dart';
 import 'start/start_flow.dart';
 import 'widgets/ticker_builder.dart';
-import 'widgets/top_bar.dart';
 
-/// 外框：頂列＋內容＋底部分頁。分頁切換不算「按鈕」，斷線時仍可切換查看。
+/// 外框：照 M2 設計稿的頂列（G-02）、底部分頁列（G-01）。牧場分頁是正式的 S03；其他分頁先把 M1 的畫面放在內容區，
+/// 之後照設計稿一組一組換掉。分頁切換不算「按鈕」，斷線時仍可切換查看。
 /// 伺服器推來的提示（例如有人借了你的公牛）用 SnackBar 顯示。
 class HomeShell extends StatefulWidget {
   const HomeShell({super.key});
-
-  static const labels = [S.tabRanch, S.tabMarket, S.tabFields, S.tabBreed, S.tabShop, S.tabRecords];
-  static const _icons = [
-    Icons.grass,
-    Icons.show_chart,
-    Icons.agriculture,
-    Icons.favorite_border,
-    Icons.store_outlined,
-    Icons.emoji_events_outlined,
-  ];
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -68,38 +61,37 @@ class _HomeShellState extends State<HomeShell> {
     final m = context.watch<GameModel>();
     // 還沒進牧場：S01 啟動與載入、S02 取名（正式畫面）
     if (showsStartFlow(m)) return const StartFlow();
+    final Widget page;
+    if (m.maintenance != null || m.state == null || m.authLost != null) {
+      // 維護中、token 失效（原型文字）：整頁，沒有頂列和分頁列
+      page = AppFrame(hud: false, content: _content(m));
+    } else if (m.tab == AppTab.ranch && m.detailCowKey == null && !m.penListOpen) {
+      page = const RanchPage();
+    } else {
+      page = AppFrame(tab: m.tab, content: _content(m), contentPadding: EdgeInsets.zero);
+    }
+    final safe = MediaQuery.paddingOf(context);
     return PopScope(
-      canPop: m.detailCowKey == null,
+      canPop: m.detailCowKey == null && !m.penListOpen,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) m.closeCow();
+        if (didPop) return;
+        if (m.detailCowKey != null) {
+          m.closeCow();
+        } else {
+          m.closePenList();
+        }
       },
       child: ScaffoldMessenger(
         key: _messengerKey,
         child: Scaffold(
-          body: SafeArea(
-            child: Column(
-              children: [
-                if (m.maintenance == null) ...[const TopBar(), const _LongOffline()],
-                Expanded(child: _content(m)),
-              ],
-            ),
+          resizeToAvoidBottomInset: false,
+          body: Stack(
+            children: [
+              Positioned.fill(child: page),
+              if (m.maintenance == null && m.state != null)
+                Positioned(left: 0, right: 0, top: FrameSizes.contentTop(safe), child: const _LongOffline()),
+            ],
           ),
-          bottomNavigationBar: m.state == null || m.maintenance != null || m.authLost != null
-              ? null
-              : NavigationBar(
-                  selectedIndex: m.tab.index,
-                  labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-                  height: 64,
-                  onDestinationSelected: (i) => m.selectTab(AppTab.values[i]),
-                  destinations: [
-                    for (var i = 0; i < HomeShell.labels.length; i++)
-                      NavigationDestination(
-                        key: Key('tab-${AppTab.values[i].name}'),
-                        icon: Icon(HomeShell._icons[i]),
-                        label: HomeShell.labels[i],
-                      ),
-                  ],
-                ),
         ),
       ),
     );
@@ -111,7 +103,8 @@ class _HomeShellState extends State<HomeShell> {
     if (m.state == null || m.authLost != null) return const _Loading();
     if (m.detailCowKey != null) return CowDetailScreen(cowKey: m.detailCowKey!);
     return switch (m.tab) {
-      AppTab.ranch => const RanchScreen(),
+      // 牛舍清單：正式的 S03-07 在下一個 PR，現在先用 M1 的清單（上面加一個返回）
+      AppTab.ranch => const _PenListStandIn(),
       AppTab.market => const MarketScreen(),
       AppTab.fields => const FieldsScreen(),
       AppTab.breed => const BreedScreen(),
@@ -248,6 +241,41 @@ class _Records extends StatelessWidget {
           Expanded(child: TabBarView(children: [CodexScreen(), LeaderboardScreen()])),
         ],
       ),
+    );
+  }
+}
+
+/// 牛舍清單（暫時）：M1 的牧場清單，上面一列返回牧場。正式的 S03-07 在下一個 PR。
+class _PenListStandIn extends StatelessWidget {
+  const _PenListStandIn();
+
+  @override
+  Widget build(BuildContext context) {
+    final m = context.read<GameModel>();
+    final s = Strings.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 12, 0),
+          child: Row(
+            children: [
+              Semantics(
+                button: true,
+                label: s.back,
+                child: GestureDetector(
+                  key: const Key('pen-back'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: m.closePenList,
+                  child: const SizedBox(width: 44, height: 44, child: Center(child: AppIcon('back', size: 22))),
+                ),
+              ),
+              Text(s.cowsTitle, style: Theme.of(context).textTheme.titleMedium),
+            ],
+          ),
+        ),
+        const Expanded(child: RanchScreen()),
+      ],
     );
   }
 }

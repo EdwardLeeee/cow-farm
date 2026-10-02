@@ -13,6 +13,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 's01_s02_cases.dart';
+import 's03_cases.dart';
 
 /// 手機的尺寸與安全區，跟設計稿 design/m2/src/js/kit.js 的 DEVICES 一樣（pages_test 會比對）。
 enum Screen {
@@ -62,7 +63,7 @@ class PageCase {
 }
 
 /// 全部的頁面狀態。第 4 步每做好一組畫面，就把它的狀態加進來，並從 pages_test.dart 的待做清單拿掉。
-final List<PageCase> pageCases = [...startCases];
+final List<PageCase> pageCases = [...startCases, ...s03Cases];
 
 /// 載入 app 內建的字型和牛的圖的量測（cows.json）。測試環境預設不載字型，字會畫成方塊，量不準寬度，也看不出泰文怎麼斷行。
 Future<void> loadAppAssets() async {
@@ -72,13 +73,18 @@ Future<void> loadAppAssets() async {
   await CowArt.load();
 }
 
-/// 手機語言是 [lang] 的設定（第一次打開跟著手機語言）。
-SettingsController settingsFor(AppLang lang) =>
-    SettingsController(MemoryPrefsStore(), deviceLocales: () => [lang.locale]);
+/// 手機語言是 [lang] 的設定（第一次打開跟著手機語言）；[prefs] 是先存好的偏好（例：面板收起來了）。
+SettingsController settingsFor(AppLang lang, [Map<String, String> prefs = const {}]) =>
+    SettingsController(MemoryPrefsStore({...prefs}), deviceLocales: () => [lang.locale]);
+
+/// 牧場的滑動提示已經看過（S03-14 以外的牧場狀態都是這樣）。
+const swipeHintSeen = {SettingsController.swipeHintKey: '1'};
 
 /// 把 app 放進目前設好的畫面，用 [lang] 的語言。
-Future<void> pumpAppIn(WidgetTester tester, GameModel m, AppLang lang) async {
-  await tester.pumpWidget(CowFarmApp(model: m, settings: settingsFor(lang)));
+Future<void> pumpAppIn(WidgetTester tester, GameModel m, AppLang lang, {Map<String, String> prefs = const {}}) async {
+  final settings = settingsFor(lang, prefs);
+  await settings.load();
+  await tester.pumpWidget(CowFarmApp(model: m, settings: settings));
   await tester.pump();
 }
 

@@ -1,4 +1,5 @@
 import 'package:cowfarm/l10n/strings.dart';
+import 'package:cowfarm/ui/kit/kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -14,7 +15,7 @@ void main() {
 
     expect(find.text(S.connecting), findsOneWidget);
     expect(find.byKey(const Key('topbar-clock')), findsNothing);
-    expect(_btn(tester, 'collect').onPressed, isNull);
+    expect(tester.widget<AppButton>(find.byKey(const Key('collect'))).onPressed, isNull);
 
     // 按了也不會送出
     await tester.tap(find.byKey(const Key('collect')), warnIfMissed: false);
@@ -45,6 +46,8 @@ void main() {
   testWidgets('斷線時市場的賣出按鈕與牛的出貨按鈕也停用', (tester) async {
     final (m, _, _) = await loadedModel(connected: false);
     await pumpApp(tester, m);
+    await tester.tap(find.byKey(const Key('pen-pill')));
+    await tester.pump();
     await tester.tap(find.byKey(const Key('cow-1')));
     await tester.pump();
     expect(_btn(tester, 'detail-ship').onPressed, isNull);

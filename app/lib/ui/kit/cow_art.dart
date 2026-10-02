@@ -8,12 +8,30 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 /// 一張牛圖的量測（cows.json 的 images）：SVG 的 viewBox 原點在腳底中間，往上是負的；四邊各留 4。
 class CowImageMeta {
-  const CowImageMeta({required this.w, required this.h, required this.x0, required this.y0, required this.height});
+  const CowImageMeta({
+    required this.w,
+    required this.h,
+    required this.x0,
+    required this.y0,
+    required this.height,
+    this.face = const (0.0, 0.0, 0.0),
+    this.shadow = const (0.0, 0.0, 0.0),
+    this.headTop = Offset.zero,
+  });
   final double w; // viewBox 寬（含左右各 4 的留邊）
   final double h; // viewBox 高（含上下各 4 的留邊）
   final double x0;
   final double y0;
   final double height; // 牛本身的高（不含留邊）
+
+  /// 臉的圓（cx, cy, r）：頭像（cowFace）只畫這個圓裡面。
+  final (double, double, double) face;
+
+  /// 腳下影子的橢圓（cx, rx, ry），畫在腳底那一條線上。
+  final (double, double, double) shadow;
+
+  /// 頭頂：「奶桶滿了」泡泡、牛的小名片從這裡往上放。
+  final Offset headTop;
 }
 
 /// cows.json：每個品種有幾種花色（seeds）、有沒有自己畫的朝右圖（right），每張圖的量測。
@@ -49,7 +67,17 @@ class CowArt {
           e.key: () {
             final m = (e.value as Map).cast<String, dynamic>();
             double d(String k) => (m[k] as num).toDouble();
-            return CowImageMeta(w: d('w'), h: d('h'), x0: d('x0'), y0: d('y0'), height: d('height'));
+            double n(Object? v, String k) => ((v as Map?)?[k] as num?)?.toDouble() ?? 0;
+            return CowImageMeta(
+              w: d('w'),
+              h: d('h'),
+              x0: d('x0'),
+              y0: d('y0'),
+              height: d('height'),
+              face: (n(m['face'], 'cx'), n(m['face'], 'cy'), n(m['face'], 'r')),
+              shadow: (n(m['shadow'], 'cx'), n(m['shadow'], 'rx'), n(m['shadow'], 'ry')),
+              headTop: Offset(n(m['headTop'], 'x'), n(m['headTop'], 'y')),
+            );
           }(),
       },
     );
@@ -124,6 +152,40 @@ class CowPicture extends StatelessWidget {
           children: [
             // 腳底（viewBox 原點）放在 y = h − pad；左右留邊一樣寬，所以整張圖置中
             Positioned(left: (width - m.w * k) / 2, top: height - pad + m.y0 * k, child: pic),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 牛的臉（設計稿 kit.js 的 cowFace）：正面的圖只取臉那個圓，畫成 [size]×[size]。頂列的頭像用。
+class CowFace extends StatelessWidget {
+  const CowFace({super.key, this.breed = 'holstein', required this.size});
+
+  final String breed;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final art = CowArt.instance;
+    final (name, _) = art?.pick(breed: breed, bull: false, calf: false, front: true, right: false) ?? ('', false);
+    final m = art?.meta(name);
+    if (m == null) return SizedBox.square(dimension: size);
+    final (cx, cy, r) = m.face;
+    final k = size / (r * 2);
+    return SizedBox.square(
+      dimension: size,
+      child: ClipRect(
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            // viewBox 的左上角是 (x0, y0)；把臉的圓的左上角 (cx − r, cy − r) 對到 (0, 0)
+            Positioned(
+              left: (m.x0 - (cx - r)) * k,
+              top: (m.y0 - (cy - r)) * k,
+              child: SvgPicture.asset('assets/cows/svg/$name.svg', width: m.w * k, height: m.h * k, fit: BoxFit.fill),
+            ),
           ],
         ),
       ),

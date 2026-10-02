@@ -89,3 +89,9 @@ String _compactLatin(num n) {
 }
 
 String _tenthsText(int tenths) => tenths % 10 == 0 ? '${tenths ~/ 10}' : '${tenths ~/ 10}.${tenths % 10}';
+
+/// 收購價：10 幣以上寫 1 位小數、以下寫 2 位，後面的 0 不寫（設計稿：13.4、5.35、15）。
+String priceText(double p) {
+  final t = fmt(p, p.abs() < 10 ? 2 : 1);
+  return t.contains('.') ? t.replaceFirst(RegExp(r'\.?0+$'), '') : t;
+}

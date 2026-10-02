@@ -7,6 +7,7 @@ import '../../theme/tokens.dart';
 import '../../util/name_tables.g.dart' show kNameMaxWidth;
 import '../../util/ranch_name.dart';
 import '../kit/cow_art.dart';
+import '../kit/frame.dart';
 import '../kit/kit.dart';
 
 /// 輸入框、字數、提示（或錯誤）那一張卡的版面（.name-card）。S02 頁面和 S02-05 的錯誤一覽都用它。
@@ -241,28 +242,4 @@ class _NamerPageState extends State<NamerPage> {
       },
     );
   }
-}
-
-/// .page-bg：暖米色，上方一條淡淡的天空色。
-class PageBackground extends StatelessWidget {
-  const PageBackground({super.key, required this.safeTop});
-
-  final double safeTop;
-
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, c) {
-      final h = c.maxHeight;
-      return DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: const [Color(0xFFCDEBFF), Color(0xFFE9F6FF), AppColors.cream],
-            stops: [0, ((safeTop + 64) / h).clamp(0, 1), ((safeTop + 150) / h).clamp(0, 1)],
-          ),
-        ),
-      );
-    },
-  );
 }

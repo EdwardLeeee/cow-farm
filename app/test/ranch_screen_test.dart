@@ -1,5 +1,7 @@
+import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/l10n/strings.dart';
 import 'package:cowfarm/state/game_model.dart';
+import 'package:cowfarm/ui/kit/kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -11,7 +13,14 @@ FilledButton _btn(WidgetTester tester, String key) =>
 OutlinedButton _outlined(WidgetTester tester, String key) =>
     tester.widget<OutlinedButton>(find.descendant(of: find.byKey(Key(key)), matching: find.byType(OutlinedButton)));
 
+/// 牧場頁按「我的牛」開牛舍清單（M1 的清單；正式的 S03-07 在下一個 PR）。
+Future<void> _openPen(WidgetTester tester) async {
+  await tester.tap(find.byKey(const Key('pen-pill')));
+  await tester.pump();
+}
+
 Future<void> _openCow(WidgetTester tester, String id) async {
+  if (find.byKey(Key('cow-$id')).evaluate().isEmpty) await _openPen(tester);
   final card = find.byKey(Key('cow-$id'));
   await tester.scrollUntilVisible(card, 200);
   await tester.tap(card);
@@ -19,14 +28,17 @@ Future<void> _openCow(WidgetTester tester, String id) async {
 }
 
 void main() {
-  testWidgets('牧場：頂列、奶桶、倉庫（含稻米）、牛的卡片', (tester) async {
+  testWidgets('牧場：頂列（G-02）；牛舍清單：奶桶、倉庫（含稻米）、牛的卡片', (tester) async {
     final (m, _, _) = await loadedModel();
     await pumpApp(tester, m);
 
     expect(find.text('晨光草原牧場'), findsOneWidget);
     expect(find.text('Lv 3'), findsOneWidget);
-    expect(find.text('金幣 1,500'), findsOneWidget);
-    expect(find.text('遊戲時間 10/1 12:00 ・ 倍率 ×144'), findsOneWidget);
+    expect(find.text('1,500'), findsOneWidget);
+    // 原型的「遊戲時間・倍率」不再顯示（設計稿：時間一律寫真實時間）
+    expect(find.textContaining('倍率'), findsNothing);
+
+    await _openPen(tester);
     expect(find.text('6.0 / 24 瓶'), findsOneWidget);
     expect(find.text('每小時 12.0 瓶'), findsOneWidget);
     expect(find.text('牛奶 150.5 / 150 瓶（2 批）'), findsOneWidget);
@@ -35,11 +47,16 @@ void main() {
     expect(find.textContaining('乳牛・母・成年'), findsWidgets);
     expect(find.textContaining('耕牛・公・成年'), findsOneWidget);
     expect(find.textContaining('肉牛・母・小牛'), findsOneWidget);
+    // 返回牧場
+    await tester.tap(find.byKey(const Key('pen-back')));
+    await tester.pump();
+    expect(find.byKey(const Key('dock')), findsOneWidget);
   });
 
   testWidgets('v0.2：只有母乳牛產奶；工作中、已配種有標示', (tester) async {
     final (m, _, _) = await loadedModel();
     await pumpApp(tester, m);
+    await _openPen(tester);
     // 母乳牛 #1 產奶；公耕牛 #2 不產奶
     expect(
       find.descendant(of: find.byKey(const Key('cow-1')), matching: find.textContaining('產奶 14.0 瓶／時')),
@@ -55,7 +72,7 @@ void main() {
     expect(find.descendant(of: find.byKey(const Key('cow-5')), matching: find.text(S.badgeBred)), findsOneWidget);
   });
 
-  testWidgets('收奶：呼叫伺服器、顯示結果、再拿一次 state 校正', (tester) async {
+  testWidgets('收奶（S03 的面板）：呼叫伺服器、顯示結果、再拿一次 state 校正', (tester) async {
     final (m, api, _) = await loadedModel();
     await pumpApp(tester, m);
     api.calls.clear();
@@ -64,7 +81,15 @@ void main() {
     await tester.pump();
     await tester.pump();
     expect(api.calls, ['collect', 'state']);
-    expect(find.text(S.collected('6.0')), findsOneWidget);
+    expect(find.text(Strings.forLang(AppLang.zhHant).collected(v: '6')), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3)); // 提示 2.5 秒後收起來
+  });
+
+  testWidgets('奶桶是 0 時收奶鈕停用（S03-05，M1 問題 4）', (tester) async {
+    final api = FakeGameApi()..stateJson['bucket'] = {'qty': 0.0, 'capacity': 24.0, 'per_hour': 0.0, 'boost': null};
+    final (m, _, _) = await loadedModel(api: api);
+    await pumpApp(tester, m);
+    expect(tester.widget<AppButton>(find.byKey(const Key('collect'))).onPressed, isNull);
   });
 
   testWidgets('奶桶依伺服器產量與倍率平滑增加，滿了就停', (tester) async {
@@ -77,7 +102,7 @@ void main() {
     clock.t += 10;
     expect(m.bucketNow, closeTo(10.8, 1e-9));
     expect(m.gameNow, closeTo(t0 + 1440, 1e-6));
-    m.selectTab(AppTab.ranch); // 觸發重畫
+    m.openPenList(); // 觸發重畫（M1 的清單上有奶桶的數字）
     await tester.pump();
     expect(find.text('10.8 / 24 瓶'), findsOneWidget);
 
