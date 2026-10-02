@@ -1,6 +1,6 @@
 // S04 牛的詳細資料、S07 出貨確認、S20 出貨評級結果（設計稿 boards/S04、S07、S20）的畫面狀態。
-// 假資料照設計稿 design/m2/src/js/fixtures.js 的牛：#3 荷斯坦、#11 和牛、#5 安格斯公牛、#2 黃牛（耕牛）、
-// #15 小牛、#7 娟珊、#8 老公牛；牛肉現價 11.2。出貨確認的收入照 s07.js：體重 × 11.2 × 評級倍率。
+// 假資料照設計稿 design/m2/src/js/fixtures.js 的牛：#3 荷斯坦、#11 和牛、#5 安格斯公牛、#2 黃牛（公耕牛）、
+// #9 高地牛（母耕牛）、#15 小牛、#7 娟珊、#8 老公牛；牛肉現價 11.2。出貨確認的收入照 s07.js：體重 × 11.2 × 評級倍率。
 import 'dart:async';
 
 import 'package:cowfarm/api/game_api.dart';
@@ -45,11 +45,22 @@ Map<String, dynamic> detailCow(int id, {int? field, bool listed = false, bool br
     probs: [0.448, 0.414, 0.138],
   ),
   // 耕牛不管有沒有下田都給「下田的話」每小時的稻米（協定 2.3）
+  // 公耕牛：可以下田，也可以上架借種（D31 的 4 個動作，S04-14～16）。借種費 431 公斤 × 1.1 ≈ 470
   2 => _detail(
-    {...designCow(2, 'yellow', bull: true, kg: 431, value: 5108, field: field), 'rice_per_h': 11.0},
+    {
+      ...designCow(2, 'yellow', bull: true, kg: 431, value: 5108, field: field, listed: listed ? 8 : null, fee: 470),
+      'rice_per_h': 11.0,
+    },
     ageH: 3 * 24 + 1,
     origin: 'start',
     probs: [0.416, 0.428, 0.156],
+  ),
+  // 母耕牛：只能下田（派去田裡、叫回來都是一整排的一顆，S04-06、07、13）
+  9 => _detail(
+    {...designCow(9, 'highland', kg: 377, value: 5832, field: field), 'rice_per_h': 14.3},
+    ageH: 2 * 24 + 9,
+    origin: 'A',
+    probs: [0.401, 0.439, 0.16],
   ),
   15 => _detail(
     designCow(15, 'holstein', stage: 'calf'),
@@ -75,7 +86,14 @@ Map<String, dynamic> detailCow(int id, {int? field, bool listed = false, bool br
 Map<String, dynamic> detailState(Map<String, dynamic> cow, {bool freeField = true}) => {
   ...ranchState(cows: [cow]),
   'fields': [
-    {'index': 0, 'cow_id': cow['field'] == 0 ? cow['id'] : 9, 'rice': 20.0, 'capacity': 88.0, 'per_hour': 11.0},
+    // 第 1 塊田：這頭牛在田裡就是它，不然是別的耕牛（高地牛 #9；看的就是 #9 時換成黃牛 #2）
+    {
+      'index': 0,
+      'cow_id': cow['field'] == 0 ? cow['id'] : (cow['id'] == 9 ? 2 : 9),
+      'rice': 20.0,
+      'capacity': 88.0,
+      'per_hour': 11.0,
+    },
     if (freeField)
       {'index': 1, 'cow_id': null, 'rice': 0.0, 'capacity': null, 'per_hour': 0.0}
     else
@@ -255,9 +273,11 @@ final s04Cases = <PageCase>[
   PageCase(
     'S04-06',
     '耕牛沒下田：派去田裡',
-    (tester, lang) => showCow(tester, lang, detailCow(2)),
+    // 公耕牛改成 4 個動作（D31，S04-14）以後，一整排一顆的樣子只剩母耕牛：用高地牛 #9（設計稿畫的是黃牛 #2）
+    (tester, lang) => showCow(tester, lang, detailCow(9)),
     check: (tester) {
-      expect(kvValue(tester, _zh.gPlow), '11 ${_zh.gPerHourRice}');
+      expect(kvValue(tester, _zh.gPlow), '14.3 ${_zh.gPerHourRice}');
+      expect(find.byKey(const Key('detail-list')), findsNothing);
       expect(_btn(tester, 'detail-assign').onPressed, isNotNull);
       expect(find.byKey(const Key('no-field')), findsNothing);
     },
@@ -265,7 +285,7 @@ final s04Cases = <PageCase>[
   PageCase(
     'S04-07',
     '耕牛在田裡工作',
-    (tester, lang) => showCow(tester, lang, detailCow(2, field: 0)),
+    (tester, lang) => showCow(tester, lang, detailCow(9, field: 0)),
     check: (tester) {
       expect(find.text(_zh.recallFirst(n: 1)), findsOneWidget);
       expect(find.text(_zh.badgeWorking), findsOneWidget);
@@ -339,12 +359,55 @@ final s04Cases = <PageCase>[
   PageCase(
     'S04-13',
     '耕牛：沒有空田，派不出去',
-    (tester, lang) => showCow(tester, lang, detailCow(2), freeField: false),
+    (tester, lang) => showCow(tester, lang, detailCow(9), freeField: false),
     crop: find.byKey(const Key('detail-actions')),
     check: (tester) {
       expect(_btn(tester, 'detail-assign').onPressed, isNull);
       expect(find.text(_zh.s04NoField), findsOneWidget);
       expect(_btn(tester, 'detail-ship').onPressed, isNotNull);
+    },
+  ),
+  PageCase(
+    'S04-14',
+    '公耕牛：沒下田、沒上架',
+    (tester, lang) => showCow(tester, lang, detailCow(2)),
+    check: (tester) {
+      expect(kvValue(tester, _zh.gPlow), '11 ${_zh.gPerHourRice}');
+      for (final k in ['detail-assign', 'detail-list', 'detail-breed', 'detail-ship']) {
+        expect(_btn(tester, k).onPressed, isNotNull, reason: k);
+      }
+      // 第一排兩顆半寬：派去田裡在左、上架借種在右，一樣高
+      final assign = tester.getRect(find.byKey(const Key('detail-assign')));
+      final list = tester.getRect(find.byKey(const Key('detail-list')));
+      expect(assign.top, list.top);
+      expect(assign.width, list.width);
+      expect(find.byKey(const Key('detail-note')), findsNothing);
+    },
+  ),
+  PageCase(
+    'S04-15',
+    '公耕牛：在田裡工作',
+    (tester, lang) => showCow(tester, lang, detailCow(2, field: 0)),
+    check: (tester) {
+      expect(find.text(_zh.s04RecallFirstOx(n: 1)), findsOneWidget);
+      expect(_btn(tester, 'detail-recall').onPressed, isNotNull);
+      for (final k in ['detail-list', 'detail-breed', 'detail-ship']) {
+        expect(_btn(tester, k).onPressed, isNull, reason: k);
+      }
+    },
+  ),
+  PageCase(
+    'S04-16',
+    '公耕牛：上架中',
+    (tester, lang) => showCow(tester, lang, detailCow(2, listed: true)),
+    check: (tester) {
+      // 上架中的公牛不放橘字提醒（D31）
+      expect(find.byKey(const Key('detail-note')), findsNothing);
+      expect(find.text(_zh.badgeListed), findsOneWidget);
+      expect(_btn(tester, 'detail-unlist').onPressed, isNotNull);
+      for (final k in ['detail-assign', 'detail-breed', 'detail-ship']) {
+        expect(_btn(tester, k).onPressed, isNull, reason: k);
+      }
     },
   ),
 ];
