@@ -171,6 +171,9 @@ class GameModel extends ChangeNotifier {
   /// 配種頁顯示「借種」（S18）還是「自己配種」（S08）。
   bool breedStud = false;
 
+  /// 借種分頁按「借種紀錄」開的紀錄頁（S18-11）。
+  bool studLogOpen = false;
+
   /// 牧場場景裡每頭牛的位置：這次打開 app 期間同一頭牛一直在同一個位置（ceo 2026-10-02）。只是顯示用。
   final herdLayout = HerdLayout();
   String? detailCowKey;
@@ -586,6 +589,7 @@ class GameModel extends ChangeNotifier {
     detailCowKey = null;
     penListOpen = false;
     warehouseOpen = false;
+    studLogOpen = false;
     _notify();
   }
 
@@ -604,6 +608,17 @@ class GameModel extends ChangeNotifier {
   /// 配種頁換「自己配種」或「借種」（S08、S18）。
   void selectBreed({required bool stud}) {
     breedStud = stud;
+    _notify();
+  }
+
+  /// 借種紀錄（S18-11）。
+  void openStudLog() {
+    studLogOpen = true;
+    _notify();
+  }
+
+  void closeStudLog() {
+    studLogOpen = false;
     _notify();
   }
 
@@ -646,6 +661,7 @@ class GameModel extends ChangeNotifier {
 
   void selectForBreeding(Cow cow) {
     breedStud = false;
+    studLogOpen = false;
     if (cow.bull) {
       breedSireKey = cow.key;
     } else {
@@ -769,6 +785,7 @@ class GameModel extends ChangeNotifier {
   Future<ShipPreview?> shipPreview(Cow cow) => _read(() => api.shipPreview(cow.id));
   Future<ShopInfo?> shopInfo() => _read(api.shop);
   Future<StudMarket?> studMarket() => _read(api.stud);
+  Future<StudLog?> studLog() => _read(api.studLog);
   Future<BreedPreview?> studPreview(StudListing listing, Cow dam) => _read(() => api.studPreview(listing.id, dam.id));
 
   /// 田裡現在大概有多少稻米（顯示用推算，長滿就停）。

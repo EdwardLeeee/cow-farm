@@ -18,6 +18,7 @@ import 's04_cases.dart';
 import 's05_cases.dart';
 import 's06_cases.dart';
 import 's08_cases.dart';
+import 's18_cases.dart';
 import 's19_cases.dart';
 
 /// 手機的尺寸與安全區，跟設計稿 design/m2/src/js/kit.js 的 DEVICES 一樣（pages_test 會比對）。
@@ -76,6 +77,7 @@ final List<PageCase> pageCases = [
   ...s06Cases,
   ...s07Cases,
   ...s08Cases,
+  ...s18Cases,
   ...s19Cases,
   ...s20Cases,
 ];

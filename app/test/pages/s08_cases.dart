@@ -152,6 +152,7 @@ Future<void> scrollBreedTo(WidgetTester tester, Finder target, {double gap = 6})
 Future<void> tapBreed(WidgetTester tester) async {
   final go = find.byKey(const Key('breed-go'));
   await tester.scrollUntilVisible(go, 200, scrollable: breedScrollable);
+  await tester.ensureVisible(go);
   await tester.pump();
   await tester.tap(go);
   await tester.pump();

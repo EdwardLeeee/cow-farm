@@ -638,7 +638,7 @@ class _DetailActions extends StatelessWidget {
       width: double.infinity,
       color: AppColors.cream,
       child: CustomPaint(
-        painter: const _DashedTop(),
+        painter: const DashedTopLine(),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(12, 2 + 12, 12, 14),
           child: Column(
@@ -675,27 +675,6 @@ class _DetailActions extends StatelessWidget {
       ),
     );
   }
-}
-
-/// .detail-actions 的上緣：2px 淡色虛線。照 Chrome 的畫法：線段 6、間隔約 4，調整間隔讓頭尾都是完整的線段。
-class _DashedTop extends CustomPainter {
-  const _DashedTop();
-
-  static const _dash = 6.0, _gap = 4.0;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final n = math.max(1, ((w + _gap) / (_dash + _gap)).floor());
-    final gap = n > 1 ? (w - n * _dash) / (n - 1) : 0.0;
-    final paint = Paint()..color = AppColors.lineSoft;
-    for (var i = 0; i < n; i++) {
-      canvas.drawRect(Rect.fromLTWH(i * (_dash + gap), 0, _dash, 2), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashedTop oldDelegate) => false;
 }
 
 /// S04-11：這頭牛已經不在了（剛在別的手機出貨、或處理過）。

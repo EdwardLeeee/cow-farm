@@ -131,6 +131,32 @@ List<Widget> cowChips(BuildContext context, Cow c) {
   ];
 }
 
+/// 牛的小圖框（kit.css 的 .cow-row .pic、screens.css 的 .sr-pic）：[size]×[size]、淺綠底、框 2。
+/// 裡面是 grid（place-items: end center）：[size] 的圖比框裡（少了框的 2 × 2）大，格子跟著圖變大，
+/// 圖從框裡的左上角開始放，右邊、下面各超出 4 被裁掉（place-items 在格子裡沒有作用）。
+class CowPicBox extends StatelessWidget {
+  const CowPicBox({super.key, required this.child, this.size = 60, this.radius = 16});
+
+  final Widget child;
+  final double size;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: size,
+    height: size,
+    decoration: BoxDecoration(
+      color: const Color(0xFFE4F4DA),
+      border: Border.all(color: AppColors.ink, width: 2),
+      borderRadius: BorderRadius.all(Radius.circular(radius)),
+    ),
+    child: ClipRRect(
+      borderRadius: BorderRadius.all(Radius.circular(radius - 2)),
+      child: OverflowBox(maxWidth: size, maxHeight: size, alignment: Alignment.topLeft, child: child),
+    ),
+  );
+}
+
 /// .card.cow-row：牛的小圖（正面）、名字、標籤、一行說明，右邊一個箭頭。整張卡可以點（G-13：浮起，按下往下 3）。
 class CowRow extends StatelessWidget {
   const CowRow({super.key, required this.cow, required this.meta, this.onTap});
@@ -160,29 +186,17 @@ class CowRow extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // .pic：60×60、淺綠底、圓角 16；牛貼著下緣
-              Container(
-                width: 60,
-                height: 60,
-                clipBehavior: Clip.antiAlias,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE4F4DA),
-                  border: Border.all(color: AppColors.ink, width: 2),
-                  borderRadius: const BorderRadius.all(AppRadii.r16),
-                ),
-                child: OverflowBox(
-                  maxWidth: 60,
-                  maxHeight: 60,
-                  alignment: Alignment.bottomCenter,
-                  child: CowPicture(
-                    breed: cow.breed,
-                    bull: cow.bull,
-                    calf: cow.stage == CowStage.calf,
-                    variant: id,
-                    width: 60,
-                    height: 60,
-                    pad: 3,
-                  ),
+              // .pic：60×60、淺綠底、圓角 16
+              CowPicBox(
+                radius: 16,
+                child: CowPicture(
+                  breed: cow.breed,
+                  bull: cow.bull,
+                  calf: cow.stage == CowStage.calf,
+                  variant: id,
+                  width: 60,
+                  height: 60,
+                  pad: 3,
                 ),
               ),
               const SizedBox(width: 10),

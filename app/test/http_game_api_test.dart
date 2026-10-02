@@ -167,6 +167,54 @@ void main() {
     expect(reqs[10].url.queryParameters, {'listing_id': '4', 'dam': '1'});
   });
 
+  test('借種紀錄（協定 4.6）：借出、借入；對方的牧場刪除了是 null', () async {
+    final client = MockClient((req) async {
+      expect(req.method, 'GET');
+      expect(req.url.path, '/v1/stud/log');
+      return http.Response(
+        jsonEncode({
+          'server_time': 1791141900.0,
+          'keep_days': 30,
+          'income_total': 1510,
+          'entries': [
+            {
+              'kind': 'out',
+              't': 1791141900.0,
+              'price': 60,
+              'bull': {'id': 2, 'breed': 'yellow'},
+              'calf': null,
+              'ranch': {
+                'player_id': 12,
+                'name': null,
+                'name_words': [0, 1, 0],
+                'is_bot': true,
+                'level': 4,
+              },
+            },
+            {
+              'kind': 'in',
+              't': 1791138300.0,
+              'price': 970,
+              'bull': {'id': null, 'breed': 'angus'},
+              'calf': {'id': 9, 'breed': 'galloway'},
+              'ranch': null,
+            },
+          ],
+        }),
+        200,
+      );
+    });
+    final log = await (HttpGameApi(base: base, client: client, sleep: noSleep)..token = 'tok').studLog();
+    expect(log.keepDays, 30);
+    expect(log.incomeTotal, 1510);
+    expect(log.entries, hasLength(2));
+    final (out, inn) = (log.entries[0], log.entries[1]);
+    expect((out.out, out.price, out.bullBreed, out.bullId, out.calfBreed), (true, 60, 'yellow', 2, null));
+    expect(out.ranch?.nameWords, [0, 1, 0]);
+    expect((inn.out, inn.price, inn.bullId, inn.calfId, inn.calfBreed), (false, 970, null, 9, 'galloway'));
+    expect(inn.ranch, isNull);
+  });
+
   test('錯誤：帶 detail；503 維護中不重送，交給畫面（S16-01）', () async {
     var calls = 0;
     final client = MockClient((req) async {
