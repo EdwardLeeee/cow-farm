@@ -197,13 +197,22 @@ class CowFace extends StatelessWidget {
 }
 
 /// 牛的淺色剪影（設計稿 kit.js 的 cowSVG 加 sil: true）：整隻牛填 #C2B3A6，中間一個白字、深色描邊的「？」
-/// （字級是高的 0.42、基線在高的 0.62、描邊 max(1.5, 高 × 0.03)）。找不到這頭牛（S04-11）用。
+/// （字級是高的 0.42、基線在高的 0.62、描邊 max(1.5, 高 × 0.03)）。找不到這頭牛（S04-11）、還沒發現的品種（S08-06）用。
 class CowSilhouette extends StatelessWidget {
-  const CowSilhouette({super.key, required this.breed, this.bull = false, required this.size});
+  const CowSilhouette({
+    super.key,
+    required this.breed,
+    this.bull = false,
+    this.calf = false,
+    required this.size,
+    this.pad = 4,
+  });
 
   final String breed;
   final bool bull;
+  final bool calf;
   final double size;
+  final double pad;
 
   @override
   Widget build(BuildContext context) => SizedBox.square(
@@ -212,7 +221,7 @@ class CowSilhouette extends StatelessWidget {
       children: [
         ColorFiltered(
           colorFilter: const ColorFilter.mode(Color(0xFFC2B3A6), BlendMode.srcIn),
-          child: CowPicture(breed: breed, bull: bull, width: size, height: size),
+          child: CowPicture(breed: breed, bull: bull, calf: calf, width: size, height: size, pad: pad),
         ),
         Positioned.fill(child: CustomPaint(painter: _QuestionMark(size))),
       ],
