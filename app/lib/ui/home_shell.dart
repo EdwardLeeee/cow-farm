@@ -15,6 +15,7 @@ import 'screens/leaderboard_screen.dart';
 import 'screens/market_screen.dart';
 import 'screens/ranch_screen.dart';
 import 'screens/shop_screen.dart';
+import 'widgets/ticker_builder.dart';
 import 'widgets/top_bar.dart';
 
 /// 外框：頂列＋內容＋底部分頁。分頁切換不算「按鈕」，斷線時仍可切換查看。
@@ -75,12 +76,12 @@ class _HomeShellState extends State<HomeShell> {
           body: SafeArea(
             child: Column(
               children: [
-                const TopBar(),
+                if (m.maintenance == null) ...[const TopBar(), const _LongOffline()],
                 Expanded(child: _content(m)),
               ],
             ),
           ),
-          bottomNavigationBar: m.state == null
+          bottomNavigationBar: m.state == null || m.maintenance != null || m.authLost != null
               ? null
               : NavigationBar(
                   selectedIndex: m.tab.index,
@@ -102,7 +103,9 @@ class _HomeShellState extends State<HomeShell> {
   }
 
   Widget _content(GameModel m) {
-    if (m.state == null) return const _Loading();
+    if (m.maintenance != null) return const _Maintenance();
+    // 玩到一半 token 失效（401、WebSocket 4401）也要換成 S15-03／S14-05，不能留在牧場畫面
+    if (m.state == null || m.authLost != null) return const _Loading();
     if (m.detailCowKey != null) return CowDetailScreen(cowKey: m.detailCowKey!);
     return switch (m.tab) {
       AppTab.ranch => const RanchScreen(),
@@ -149,6 +152,81 @@ class _Loading extends StatelessWidget {
           Text(S.prototypeNote, style: Theme.of(context).textTheme.bodySmall),
         ],
       ),
+    );
+  }
+}
+
+/// S16-01 維護中（原型文字）。正式畫面在第 4 步照設計稿做。
+class _Maintenance extends StatelessWidget {
+  const _Maintenance();
+
+  @override
+  Widget build(BuildContext context) {
+    final m = context.watch<GameModel>();
+    final s = Strings.of(context);
+    final ends = m.maintenance?.endsAtReal;
+    return Center(
+      key: const Key('maintenance'),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(s.s16Title, style: Theme.of(context).textTheme.headlineSmall),
+            const SizedBox(height: 8),
+            Text(s.s16Lead, textAlign: TextAlign.center),
+            // ends_at_real 是現實時間的 Unix 秒，照手機的時區顯示
+            if (ends != null) Text(s.maintenanceEta(DateTime.fromMillisecondsSinceEpoch((ends * 1000).round()))),
+            const SizedBox(height: 8),
+            Text(s.s16Body, textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            OutlinedButton(onPressed: m.checkMaintenance, child: Text(s.reload)),
+            const SizedBox(height: 24),
+            Text(S.prototypeNote, style: Theme.of(context).textTheme.bodySmall),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// S15-04 斷線超過 60 秒（原型文字）：畫面上方提示，可以按「重試」。正式畫面在第 4 步照設計稿做。
+/// 斷線時間一直在走，用 TickerBuilder 定時重畫。
+class _LongOffline extends StatelessWidget {
+  const _LongOffline();
+
+  @override
+  Widget build(BuildContext context) {
+    return TickerBuilder(
+      builder: (context) {
+        final m = context.watch<GameModel>();
+        if (!m.longOffline) return const SizedBox.shrink();
+        final s = Strings.of(context);
+        return Material(
+          key: const Key('long-offline'),
+          color: Theme.of(context).colorScheme.errorContainer,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        s.s15LongOffTitle(n: m.offlineMinutes),
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      Text(s.s15LongOffBody),
+                    ],
+                  ),
+                ),
+                TextButton(onPressed: m.retryConnection, child: Text(s.retry)),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

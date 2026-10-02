@@ -1,10 +1,13 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:cowfarm/api/game_api.dart';
 import 'package:cowfarm/api/models.dart';
 import 'package:cowfarm/api/push.dart';
+import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
 import 'package:cowfarm/storage/token_store.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'fakes.dart';
@@ -16,6 +19,33 @@ class _ExpiredTokenApi extends FakeGameApi {
     return super.getState();
   }
 }
+
+/// 收奶、行情、試算可以切成「維護中」（503 maintenance）。
+class _MaintenanceApi extends FakeGameApi {
+  bool down = false;
+  static const error = ApiException(503, 'maintenance', '維護中', {'ends_at_real': 1790784000.0});
+
+  @override
+  Future<MarketInfo> market() async {
+    if (down) throw error;
+    return super.market();
+  }
+
+  @override
+  Future<SellQuote> sellQuote(Commodity commodity, double qty) async {
+    if (down) throw error;
+    return super.sellQuote(commodity, qty);
+  }
+
+  @override
+  Future<Map<String, dynamic>> collect() async {
+    if (down) throw error;
+    return super.collect();
+  }
+}
+
+/// 讓排在後面的 microtask（假 API 的回應、補抓）都跑完。
+Future<void> _settle() => Future<void>.delayed(Duration.zero);
 
 void main() {
   group('斷線重連的等待時間', () {
@@ -169,6 +199,285 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       expect(m.market!.news.length, n + 1);
       expect(m.market!.news.first.id, 'x1');
+    });
+  });
+
+  group('維護（S16-01；協定第 6 節）', () {
+    const active = Maintenance(startsAtReal: 1790780400, endsAtReal: 1790784000, active: true);
+
+    test('開機先問 /v1/status：維護中停在 S16-01，不讀牧場、不連 WebSocket；維護結束才重新載入', () async {
+      final api = FakeGameApi()..maintenance = active;
+      final push = FakePush(connected: false);
+      final m = GameModel(api: api, push: push, tokens: MemoryTokenStore({TokenStore.tokenKey: 'tok'}), uiTick: null);
+      await m.start();
+      expect(api.calls, ['status']);
+      expect(m.maintenance?.endsAtReal, 1790784000);
+      expect(push.connects, 0);
+      expect(m.canAct, isFalse);
+
+      // 還在維護：營運延長了，預計恢復時間跟著改
+      api.maintenance = const Maintenance(startsAtReal: 1790780400, endsAtReal: 1790787600, active: true);
+      await m.checkMaintenance();
+      expect(m.maintenance?.endsAtReal, 1790787600);
+      expect(api.calls, ['status', 'status']);
+
+      // 維護結束（maintenance 變成 null）：重新載入
+      api.maintenance = null;
+      await m.checkMaintenance();
+      expect(m.maintenance, isNull);
+      expect(m.state, isNotNull);
+      expect(api.calls.skip(2), containsAllInOrder(['status', 'state', 'market']));
+      expect(push.token, 'tok');
+      m.dispose();
+    });
+
+    test('還沒有牧場也先問：維護中顯示 S16-01；結束後營運排了下一次（active: false）也回到取名（S02）', () async {
+      final api = FakeGameApi()..maintenance = active;
+      final m = GameModel(api: api, push: FakePush(), tokens: MemoryTokenStore(), uiTick: null);
+      await m.start();
+      expect(m.maintenance, isNotNull);
+      expect(m.needsRanch, isFalse);
+      api.maintenance = const Maintenance(startsAtReal: 1790900000, endsAtReal: 1790903600);
+      await m.checkMaintenance();
+      expect(m.maintenance, isNull);
+      expect(m.needsRanch, isTrue);
+      m.dispose();
+    });
+
+    test('/v1/status 回別的錯誤不擋開機；連不上就顯示連線失敗', () async {
+      final api = FakeGameApi()..statusError = const ApiException(404, 'not_found', 'Not Found');
+      final m = GameModel(
+        api: api,
+        push: FakePush(),
+        tokens: MemoryTokenStore({TokenStore.tokenKey: 'tok'}),
+        uiTick: null,
+      );
+      await m.start();
+      expect(m.state, isNotNull);
+      expect(m.startError, isNull);
+      m.dispose();
+
+      final down = FakeGameApi()..statusError = const NetworkException('down');
+      final m2 = GameModel(
+        api: down,
+        push: FakePush(),
+        tokens: MemoryTokenStore({TokenStore.tokenKey: 'tok'}),
+        uiTick: null,
+      );
+      await m2.start();
+      expect(m2.startError, isA<NetworkActionError>());
+      expect(m2.maintenance, isNull);
+      m2.dispose();
+    });
+
+    test('部署時反向代理回 503 maintenance（/v1/status 也是）：用 detail 的預計恢復時間', () async {
+      final api = FakeGameApi()..statusError = _MaintenanceApi.error;
+      final m = GameModel(
+        api: api,
+        push: FakePush(),
+        tokens: MemoryTokenStore({TokenStore.tokenKey: 'tok'}),
+        uiTick: null,
+      );
+      await m.start();
+      expect(m.maintenance?.active, isTrue);
+      expect(m.maintenance?.endsAtReal, 1790784000.0);
+      expect(api.calls, ['status']);
+      m.dispose();
+    });
+
+    test('玩到一半遇到 503 maintenance：進 S16-01、按鈕停用、關掉 WebSocket，之後只打 /v1/status', () async {
+      final (m, api, push) = await loadedModel();
+      api.stateError = _MaintenanceApi.error;
+      await m.refreshState();
+      expect(m.maintenance?.endsAtReal, 1790784000.0);
+      expect(m.canAct, isFalse);
+      expect(push.closes, 1);
+      expect(push.connected.value, isFalse, reason: '維護中不要重連');
+      expect(m.offlineFor, isNull, reason: '維護中顯示 S16-01，不算斷線');
+
+      api.calls.clear();
+      await m.refreshState();
+      await m.refreshMarket();
+      final r = await m.collect();
+      expect(r.ok, isFalse);
+      expect(api.calls, isEmpty);
+      m.dispose();
+    });
+
+    test('行情、試算、操作遇到 503 maintenance 也進 S16-01', () async {
+      final triggers = <String, Future<void> Function(GameModel)>{
+        'market': (m) => m.refreshMarket(),
+        'quote': (m) => m.quote(Commodity.milk, 1),
+        'collect': (m) => m.collect(),
+      };
+      for (final MapEntry(:key, :value) in triggers.entries) {
+        final api = _MaintenanceApi();
+        final (m, _, _) = await loadedModel(api: api);
+        api.down = true;
+        await value(m);
+        expect(m.maintenance?.endsAtReal, 1790784000.0, reason: key);
+        m.dispose();
+      }
+    });
+
+    test('WebSocket 說開始維護（active）才進 S16-01；安排、取消維護照常玩', () async {
+      final (m, _, push) = await loadedModel();
+      push.emit(const MaintenancePush(Maintenance(startsAtReal: 1790900000, endsAtReal: 1790903600)));
+      push.emit(const MaintenancePush(null));
+      await _settle();
+      expect(m.maintenance, isNull);
+      expect(m.canAct, isTrue);
+      push.emit(const MaintenancePush(active));
+      await _settle();
+      expect(m.maintenance?.endsAtReal, 1790784000);
+      expect(m.canAct, isFalse);
+      m.dispose();
+    });
+
+    test('每隔一段時間問一次（正式 30 秒，測試縮短）；連不上、反向代理的 503 都留在維護畫面', () async {
+      final api = FakeGameApi()..maintenance = active;
+      final m = GameModel(
+        api: api,
+        push: FakePush(),
+        tokens: MemoryTokenStore({TokenStore.tokenKey: 'tok'}),
+        uiTick: null,
+        maintenanceCheckEvery: const Duration(milliseconds: 20),
+      );
+      await m.start();
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+      expect(api.calls.where((c) => c == 'status').length, greaterThanOrEqualTo(3));
+      expect(api.calls, everyElement('status'));
+
+      api.statusError = const NetworkException('down');
+      await m.checkMaintenance();
+      expect(m.maintenance?.endsAtReal, 1790784000);
+      api.statusError = const ApiException(503, 'maintenance', '維護中', {'ends_at_real': 1790790000.0});
+      await m.checkMaintenance();
+      expect(m.maintenance?.endsAtReal, 1790790000.0);
+      m.dispose();
+    });
+  });
+
+  group('斷線與重新連上（S15；協定第 7 節）', () {
+    test('連續斷線 60 秒以上才算斷線很久（S15-04），{n} 是分鐘數', () async {
+      final clock = FakeClock();
+      final (m, _, push) = await loadedModel(clock: clock);
+      expect(m.offlineFor, isNull);
+      push.isConnected = false;
+      expect(m.canAct, isFalse, reason: 'S15-01：斷線時按鈕停用');
+      expect(m.offlineFor, Duration.zero);
+      clock.t += 59;
+      expect(m.longOffline, isFalse);
+      clock.t += 2;
+      expect(m.longOffline, isTrue);
+      expect(m.offlineMinutes, 1);
+      clock.t += 120;
+      expect(m.offlineMinutes, 3);
+      m.dispose();
+    });
+
+    test('重新連上：先補抓 state 和行情，都抓完才提示一次「已重新連線」（S15-02）', () async {
+      final clock = FakeClock();
+      final (m, api, push) = await loadedModel(clock: clock);
+      final notices = <GameNotice>[];
+      m.notices.listen(notices.add);
+      push.isConnected = false;
+      clock.t += 90;
+      api.calls.clear();
+      final gate = api.marketGate = Completer<void>();
+      push.isConnected = true;
+      await _settle();
+      expect(api.calls, containsAll(['state', 'market']));
+      expect(notices, isEmpty, reason: '行情還沒抓完');
+      gate.complete();
+      await _settle();
+      expect(notices.whereType<ReconnectedNotice>(), hasLength(1));
+      expect(m.offlineFor, isNull);
+      expect(m.longOffline, isFalse);
+      m.dispose();
+    });
+
+    test('第一次連上不算重新連上；補抓失敗不提示、繼續算斷線', () async {
+      final clock = FakeClock();
+      final (m, api, push) = await loadedModel(connected: false, clock: clock);
+      final notices = <GameNotice>[];
+      m.notices.listen(notices.add);
+      expect(m.offlineFor, Duration.zero, reason: '還沒連上 WebSocket 也算連不上');
+      push.isConnected = true;
+      await _settle();
+      expect(notices, isEmpty);
+
+      // WebSocket 連回來了，但 HTTP 還是連不上：不提示，按鈕繼續停用、繼續算斷線
+      push.isConnected = false;
+      api.stateError = const NetworkException('down');
+      api.marketError = const NetworkException('down');
+      push.isConnected = true;
+      await _settle();
+      expect(notices, isEmpty);
+      expect(m.canAct, isFalse);
+      clock.t += 61;
+      expect(m.longOffline, isTrue);
+      m.dispose();
+    });
+
+    test('WebSocket 一直連著、HTTP 先斷後好：定時校正成功後補抓行情，再提示', () async {
+      final (m, api, _) = await loadedModel();
+      final notices = <GameNotice>[];
+      m.notices.listen(notices.add);
+      api.stateError = const NetworkException('down');
+      await m.refreshState();
+      expect(m.canAct, isFalse);
+      api.stateError = null;
+      api.calls.clear();
+      await m.refreshState();
+      await _settle();
+      expect(api.calls, contains('market'));
+      expect(notices.whereType<ReconnectedNotice>(), hasLength(1));
+      m.dispose();
+    });
+
+    test('S15-04 的「重試」：叫 WebSocket 重連，並馬上補抓', () async {
+      final (m, api, push) = await loadedModel();
+      push.isConnected = false;
+      api.calls.clear();
+      final before = push.connects;
+      await m.retryConnection();
+      expect(push.connects, before + 1);
+      expect(api.calls, containsAll(['state', 'market']));
+      m.dispose();
+    });
+
+    testWidgets('原型外框：斷線很久在上方提示 S15-04；維護中整個換成 S16-01，沒有分頁', (tester) async {
+      final zh = Strings.forLang(AppLang.zhHant);
+      final clock = FakeClock();
+      final (m, _, push) = await loadedModel(clock: clock);
+      await pumpApp(tester, m);
+      expect(find.byKey(const Key('long-offline')), findsNothing);
+      push.isConnected = false;
+      clock.t += 61;
+      await tester.pump();
+      expect(find.text(zh.s15LongOffTitle(n: 1)), findsOneWidget);
+
+      push.emit(const MaintenancePush(Maintenance(endsAtReal: 1790784000, active: true)));
+      await tester.pump(Duration.zero);
+      expect(find.byKey(const Key('maintenance')), findsOneWidget);
+      expect(find.text(zh.s16Title), findsOneWidget);
+      expect(find.byType(NavigationBar), findsNothing);
+      expect(find.byKey(const Key('long-offline')), findsNothing);
+
+      await tester.pumpWidget(const SizedBox());
+      m.dispose(); // 停掉維護的定時查詢
+    });
+
+    testWidgets('玩到一半 token 失效：換成 S15-03，不留在牧場畫面', (tester) async {
+      final zh = Strings.forLang(AppLang.zhHant);
+      final (m, _, push) = await loadedModel();
+      await pumpApp(tester, m);
+      expect(find.byType(NavigationBar), findsOneWidget);
+      push.emit(const PushAuthFailed('tok'));
+      await tester.pump(Duration.zero); // 推播是非同步送到的：先送到，再畫下一格
+      expect(find.text(zh.s15InvalidTitle), findsOneWidget);
+      expect(find.byType(NavigationBar), findsNothing);
     });
   });
 

@@ -125,6 +125,16 @@ class Strings extends GeneratedStrings {
     return dateMd(m: month!, d: day!, time: time);
   }
 
+  /// S16-01「預計 {date} 恢復」：月、日、星期與 24 小時制的時:分。[local] 是換成手機時區的時間。
+  String maintenanceEta(DateTime local) => s16Eta(
+    date: dateMdw(
+      m: local.month,
+      d: local.day,
+      w: weekdayName(local.weekday),
+      time: '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}',
+    ),
+  );
+
   /// 用途名：乳牛、耕牛、肉牛。
   String useName(CowType type) => switch (type) {
     CowType.dairy => typeDairy,

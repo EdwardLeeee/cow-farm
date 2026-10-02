@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 
@@ -59,6 +60,11 @@ class StudBorrowedNotice extends GameNotice {
   final double price;
 }
 
+/// 斷線後重新連上，state 和行情也補抓好了（S15-02「已重新連線，資料更新了」）。
+class ReconnectedNotice extends GameNotice {
+  const ReconnectedNotice();
+}
+
 /// 分頁順序。
 /// 底部分頁。配種裡有「自己配種／借種」，紀錄裡有「圖鑑／排行榜」。
 enum AppTab { ranch, market, fields, breed, shop, records }
@@ -76,6 +82,8 @@ class GameModel extends ChangeNotifier {
     this.refreshEvery = const Duration(seconds: 5),
     this.marketRefreshEvery = const Duration(seconds: 30),
     this.uiTick = const Duration(milliseconds: 250),
+    this.maintenanceCheckEvery = const Duration(seconds: 30),
+    this.longOfflineAfter = const Duration(seconds: 60),
   }) : _now = now ?? monotonicClock() {
     push.connected.addListener(_onConnectedChanged);
     _pushSub = push.messages.listen(_onPush);
@@ -91,6 +99,12 @@ class GameModel extends ChangeNotifier {
   /// 畫面上倒數與奶桶多久重畫一次；測試設成 null 就不開計時器。
   final Duration? uiTick;
 
+  /// 維護中多久問一次 /v1/status（協定 6.2：30 秒）。
+  final Duration maintenanceCheckEvery;
+
+  /// 斷線多久算「斷線很久」（S15-04；協定第 7 節：60 秒）。
+  final Duration longOfflineAfter;
+
   StreamSubscription<PushMessage>? _pushSub;
   final _notices = StreamController<GameNotice>.broadcast();
 
@@ -98,6 +112,7 @@ class GameModel extends ChangeNotifier {
   Stream<GameNotice> get notices => _notices.stream;
   Timer? _stateTimer;
   Timer? _marketTimer;
+  Timer? _maintTimer;
   bool _disposed = false;
 
   // ---- 狀態 ----
@@ -110,6 +125,11 @@ class GameModel extends ChangeNotifier {
   /// token 失效的原因：unauthorized（S15-03）或 signed_in_elsewhere（S14-05）。null 代表正常。
   /// 不會自動開新牧場（M1 會默默換成新牧場，scope.md 第 10 節第 9 項）。
   String? authLost;
+
+  /// 維護中（S16-01）：/v1/status 說 active、API 回 503 maintenance、或 WebSocket 送來 active 的 maintenance。
+  /// null 代表沒有在維護。維護前（active: false）照常玩，v1 不提示（協定 6.2）。
+  Maintenance? maintenance;
+  bool _checkingStatus = false;
   GameState? state;
   double _stateAt = 0; // 收到 state 時的單調時鐘
   String ranchName = '';
@@ -118,6 +138,13 @@ class GameModel extends ChangeNotifier {
 
   bool _httpOk = true;
   bool busy = false;
+
+  // 斷線（S15-01、S15-04）與重新連上（S15-02）。只在 [_playing] 的時候算。
+  double? _offlineSince; // 從什麼時候開始連不上（單調時鐘）
+  bool _onlineBefore = false; // 這次進遊戲以後連上過（第一次連上不算「重新連上」）
+  bool _dropped = false; // 連上過又斷了：補抓完資料要提示 S15-02
+  bool _resyncing = false;
+  bool _resyncAgain = false;
 
   // ---- 畫面導覽 ----
   AppTab tab = AppTab.ranch;
@@ -128,8 +155,24 @@ class GameModel extends ChangeNotifier {
 
   bool get wsConnected => push.connected.value;
 
-  /// 連著伺服器：已有牧場資料、WebSocket 連著、最近一次 HTTP 沒有失敗。
-  bool get online => state != null && wsConnected && _httpOk;
+  /// 正在玩：有牧場資料、token 沒失效、沒有在維護。
+  bool get _playing => state != null && !needsRanch && authLost == null && maintenance == null;
+
+  /// 連著伺服器：正在玩、WebSocket 連著、最近一次 HTTP 沒有失敗。
+  bool get online => _playing && wsConnected && _httpOk;
+
+  /// 玩的途中連不上伺服器多久了（S15-01、S15-04）；連著、或不在玩（維護、token 失效）就是 null。
+  Duration? get offlineFor {
+    final since = _offlineSince;
+    if (since == null) return null;
+    return Duration(microseconds: ((_now() - since) * 1e6).round());
+  }
+
+  /// 斷線超過 [longOfflineAfter]：顯示 S15-04「連不上伺服器，已經超過 {n} 分鐘」。
+  bool get longOffline => (offlineFor ?? Duration.zero) >= longOfflineAfter;
+
+  /// S15-04 的 {n}：斷線幾分鐘（無條件捨去，至少 1）。
+  int get offlineMinutes => max(1, (offlineFor ?? Duration.zero).inMinutes);
 
   /// 按鈕能不能按：連著而且沒有正在處理的操作。
   bool get canAct => online && !busy;
@@ -137,11 +180,12 @@ class GameModel extends ChangeNotifier {
   // ---------------------------------------------------------------------------
   // 啟動
   // ---------------------------------------------------------------------------
-  /// 啟動：有 token 就拿牧場與行情、連 WebSocket、開始定時校正；沒有 token 就停在「還沒有牧場」（S02 取名）。
+  /// 啟動：先問伺服器是不是在維護（S16-01）；有 token 就拿牧場與行情、連 WebSocket、開始定時校正；
+  /// 沒有 token 就停在「還沒有牧場」（S02 取名）。
   Future<void> start() async {
     await _boot();
     _stateTimer ??= Timer.periodic(refreshEvery, (_) {
-      if (needsRanch || authLost != null) return;
+      if (needsRanch || authLost != null || maintenance != null) return;
       if (state == null) {
         _boot();
       } else {
@@ -157,6 +201,7 @@ class GameModel extends ChangeNotifier {
     startError = null;
     _notify();
     try {
+      if (await _maintenanceAtBoot()) return;
       if (!await _loadToken()) return;
       await _loadState();
       if (state == null) {
@@ -165,16 +210,27 @@ class GameModel extends ChangeNotifier {
       push.connect(api.token!);
       await refreshMarket();
     } on ApiException catch (e) {
-      if (e.unauthorized) {
-        authLost = e.code;
-      } else {
-        startError = ApiActionError(e);
-      }
+      if (!_handleApiError(e)) startError = ApiActionError(e);
     } on NetworkException {
       startError = const NetworkActionError();
     } finally {
       starting = false;
       _notify();
+    }
+  }
+
+  /// 開機先打 /v1/status（協定 6.1，不用 token，所以還沒有牧場也會先看到維護畫面）。在維護就回 true。
+  /// /v1/status 回別的錯誤不擋開機：它只決定要不要顯示維護畫面，牧場照樣往下讀。連不上就丟 NetworkException。
+  Future<bool> _maintenanceAtBoot() async {
+    try {
+      final m = (await api.status()).maintenance;
+      if (m == null || !m.active) return false;
+      _enterMaintenance(m);
+      return true;
+    } on ApiException catch (e) {
+      if (!e.maintenance) return false;
+      _enterMaintenance(_maintenanceFrom(e));
+      return true;
     }
   }
 
@@ -212,6 +268,7 @@ class GameModel extends ChangeNotifier {
       push.connect(session.token);
       r = ActionResult.ok(session);
     } on ApiException catch (e) {
+      _handleApiError(e);
       r = ActionResult.fail(ApiActionError(e));
     } on NetworkException {
       r = const ActionResult.fail(NetworkActionError());
@@ -250,22 +307,33 @@ class GameModel extends ChangeNotifier {
     if (s.ranchName != null && s.ranchName!.isNotEmpty) ranchName = s.ranchName!;
   }
 
-  /// 重新拿 /v1/state 校正（每次操作後、以及每幾秒一次）。
-  Future<void> refreshState() async {
-    if (api.token == null || authLost != null) return;
+  /// 可以打要 token 的 API：有 token、token 沒失效、沒有在維護。
+  bool get _canFetch => api.token != null && authLost == null && maintenance == null;
+
+  /// 重新拿 /v1/state 校正（每次操作後、以及每幾秒一次）。成功回 true。
+  Future<bool> refreshState() async {
+    if (!_canFetch) return false;
     try {
       await _loadState();
     } on ApiException catch (e) {
-      // token 失效就停下來顯示 S15-03／S14-05；其他錯誤保留舊資料，下次再試。
-      if (e.unauthorized) authLost = e.code;
+      // token 失效、維護中就換畫面（S15-03／S14-05、S16-01）；其他錯誤保留舊資料，下次再試。
+      _handleApiError(e);
+      _notify();
+      return false;
     } on NetworkException {
       _httpOk = false;
+      _notify();
+      return false;
     }
     _notify();
+    // 斷過線、WebSocket 沒斷但 HTTP 先恢復了：也要補抓行情，抓完才提示 S15-02。
+    if (_dropped && online && !_resyncing) unawaited(_resync());
+    return true;
   }
 
-  Future<void> refreshMarket() async {
-    if (api.token == null || authLost != null) return;
+  /// 重新拿 /v1/market。成功回 true。
+  Future<bool> refreshMarket() async {
+    if (!_canFetch) return false;
     try {
       final m = await api.market();
       // 保留推播來的較新新聞
@@ -274,24 +342,145 @@ class GameModel extends ChangeNotifier {
         history[(c, '1d')] ??= m.recent[c] ?? const [];
       }
       _httpOk = true;
-    } on ApiException {
-      // 忽略
+    } on ApiException catch (e) {
+      _handleApiError(e);
+      _notify();
+      return false;
     } on NetworkException {
       _httpOk = false;
+      _notify();
+      return false;
     }
     _notify();
+    return true;
+  }
+
+  /// 打 API 回錯誤時先過這裡：token 失效（401）停下來顯示 S15-03／S14-05；維護中（503 maintenance）進 S16-01。
+  /// 處理了回 true；其他錯誤由呼叫的地方決定（操作的錯誤畫面用錯誤碼查文案）。
+  bool _handleApiError(ApiException e) {
+    if (e.unauthorized) {
+      authLost = e.code;
+      return true;
+    }
+    if (e.maintenance) {
+      _enterMaintenance(_maintenanceFrom(e));
+      return true;
+    }
+    return false;
+  }
+
+  // ---------------------------------------------------------------------------
+  // 維護（S16-01；協定第 6 節）
+  // ---------------------------------------------------------------------------
+  /// 503 maintenance 的 detail 只有預計恢復時間（M4 部署時反向代理也回同一個形狀）。
+  static Maintenance _maintenanceFrom(ApiException e) {
+    final ends = e.detail['ends_at_real'];
+    return Maintenance(endsAtReal: ends is num ? ends.toDouble() : null, active: true);
+  }
+
+  /// 進入維護：關掉 WebSocket（不要重連；連線剛好在維護時重連會被拒絕，推播那邊會一直退避重試），
+  /// 改成每 [maintenanceCheckEvery] 打一次 /v1/status。
+  void _enterMaintenance(Maintenance m) {
+    maintenance = m;
+    push.close();
+    _maintTimer ??= Timer.periodic(maintenanceCheckEvery, (_) => checkMaintenance());
+    _notify();
+  }
+
+  /// 再問一次伺服器維護好了沒（定時；也是 S16-01 的「重新載入」）。
+  /// `active` 不是 true 就重新載入整個牧場：維護結束後 maintenance 是 null，
+  /// 營運接著排了下一次維護時是 active: false，兩種都要回到遊戲。
+  Future<void> checkMaintenance() async {
+    if (maintenance == null || _checkingStatus) return;
+    _checkingStatus = true;
+    var over = false;
+    try {
+      final m = (await api.status()).maintenance;
+      if (m != null && m.active) {
+        maintenance = m; // 營運延長維護會改預計恢復時間
+      } else {
+        over = true;
+      }
+    } on ApiException catch (e) {
+      // 部署時反向代理也回 503 maintenance；其他錯誤等下一次再問
+      if (e.maintenance) {
+        final m = _maintenanceFrom(e);
+        if (m.endsAtReal != null) maintenance = m;
+      }
+    } on NetworkException {
+      // 連不上：留在維護畫面，下一次再問
+    } finally {
+      _checkingStatus = false;
+    }
+    if (_disposed) return;
+    if (over && maintenance != null) {
+      _maintTimer?.cancel();
+      _maintTimer = null;
+      maintenance = null;
+      await _boot(); // 開機會再問一次 /v1/status，剛好又開始維護就回到 S16-01
+    } else {
+      _notify();
+    }
   }
 
   // ---------------------------------------------------------------------------
   // 推播
   // ---------------------------------------------------------------------------
   void _onConnectedChanged() {
-    if (push.connected.value) {
-      // 重連後補一次快照。
-      refreshState();
-      refreshMarket();
+    // 連上後先補抓 state 和行情（協定第 7 節）。
+    if (push.connected.value) unawaited(_resync());
+    _notify();
+  }
+
+  /// 補抓 state 和行情。斷過線的話，兩個都成功而且還連著才提示 S15-02（只提示一次）。
+  /// 補抓到一半又斷線重連，就再抓一輪。
+  Future<void> _resync() async {
+    if (_resyncing) {
+      _resyncAgain = true;
+      return;
+    }
+    _resyncing = true;
+    var ok = false;
+    try {
+      do {
+        _resyncAgain = false;
+        final r = await Future.wait([refreshState(), refreshMarket()]);
+        ok = r.every((v) => v);
+      } while (_resyncAgain && !_disposed);
+    } finally {
+      _resyncing = false;
+    }
+    if (_disposed) return;
+    if (ok && _dropped && online) {
+      _dropped = false;
+      _notices.add(const ReconnectedNotice());
     }
     _notify();
+  }
+
+  /// S15-04「重試」：WebSocket 沒連著就叫它重連，並馬上補抓 state 和行情。
+  Future<void> retryConnection() async {
+    final token = api.token;
+    if (token == null || !_playing) return;
+    if (!wsConnected) push.connect(token);
+    await _resync();
+  }
+
+  /// 斷線計時（S15-04）與「連上過又斷了」（S15-02）。每次狀態改變都算一次；不在玩的時候歸零。
+  void _trackOnline() {
+    if (!_playing) {
+      _offlineSince = null;
+      _onlineBefore = false;
+      _dropped = false;
+      return;
+    }
+    if (online) {
+      _offlineSince = null;
+      _onlineBefore = true;
+    } else {
+      _offlineSince ??= _now();
+      if (_onlineBefore) _dropped = true;
+    }
   }
 
   void _onPush(PushMessage msg) {
@@ -314,12 +503,15 @@ class GameModel extends ChangeNotifier {
       case PushAuthFailed(:final token, :final code):
         // token 失效：不重連，停下來顯示 S15-03（unauthorized）或 S14-05（signed_in_elsewhere）。
         if (api.token == token) authLost = code;
+      case MaintenancePush(maintenance: final m):
+        // 開始維護：伺服器接著用 4503 關掉 WebSocket。安排、取消維護（active: false 或 null）照常玩，v1 不提示。
+        if (m != null && m.active) _enterMaintenance(m);
       case StudPush(:final cowId, :final breed, :final borrower, :final price):
         // 有人借了我上架的公牛：提示一則，並重抓 state（金幣、公牛狀態都變了）。
         _notices.add(StudBorrowedNotice(cowId: cowId, breed: breed, borrower: borrower, price: price));
         refreshState();
-      case HelloPush() || MaintenancePush() || ServerErrorPush():
-        // 維護和協定版本在第 3b 步之二接（S16）。
+      case HelloPush() || ServerErrorPush():
+        // error 由推播那邊轉成 PushAuthFailed；hello 的協定版本 v1 不檢查。
         break;
       case NewsPush(:final item):
         final m = market;
@@ -401,7 +593,7 @@ class GameModel extends ChangeNotifier {
       r = ActionResult.ok(await f());
       _httpOk = true;
     } on ApiException catch (e) {
-      if (e.unauthorized) authLost = e.code;
+      _handleApiError(e);
       r = ActionResult.fail(ApiActionError(e));
     } on NetworkException {
       _httpOk = false;
@@ -473,7 +665,8 @@ class GameModel extends ChangeNotifier {
         _notify();
       }
       return v;
-    } on ApiException {
+    } on ApiException catch (e) {
+      if (_handleApiError(e)) _notify();
       return null;
     } on NetworkException {
       _httpOk = false;
@@ -509,7 +702,9 @@ class GameModel extends ChangeNotifier {
   }
 
   void _notify() {
-    if (!_disposed) notifyListeners();
+    if (_disposed) return;
+    _trackOnline();
+    notifyListeners();
   }
 
   @override
@@ -517,6 +712,7 @@ class GameModel extends ChangeNotifier {
     _disposed = true;
     _stateTimer?.cancel();
     _marketTimer?.cancel();
+    _maintTimer?.cancel();
     _pushSub?.cancel();
     push.connected.removeListener(_onConnectedChanged);
     push.close();
