@@ -1,7 +1,9 @@
 // 牧場分頁：S03 牧場頁（收奶、點牛的小名片）、S03-07 牛舍清單，和從清單打開牛的詳細資料（S04 的測試在 cow_detail_test）。
+import 'package:cowfarm/l10n/format.dart';
 import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
 import 'package:cowfarm/ui/kit/cow_bits.dart';
+import 'package:cowfarm/ui/kit/frame.dart';
 import 'package:cowfarm/ui/kit/kit.dart';
 import 'package:cowfarm/ui/ranch/scene.dart';
 import 'package:flutter/material.dart';
@@ -64,6 +66,31 @@ void main() {
     expect(find.byKey(const Key('dock')), findsOneWidget);
     expect(m.penListOpen, isFalse);
   });
+
+  // 8790 走查看到牧場分頁讀成「設定、名字、金幣、Lv、經驗」：頂列跟鋪滿整頁的場景一起照位置排（ceo 2026-10-02：每個分頁都一樣）
+  for (final tab in [AppTab.ranch, AppTab.market, AppTab.fields, AppTab.breed, AppTab.shop]) {
+    testWidgets('頂列的無障礙順序（${tab.name}）：名字、Lv、經驗、金幣、設定', (tester) async {
+      Screen.w430.apply(tester);
+      final semantics = tester.ensureSemantics();
+      final m = await ranchModel();
+      m.selectTab(tab);
+      await pumpAppIn(tester, m, AppLang.zhHant);
+      await tester.pump(const Duration(milliseconds: 500));
+      final d = HudData.of(m);
+      final read = [
+        for (final n in tester.semantics.simulatedAccessibilityTraversal())
+          if (n.label.isNotEmpty) n.label,
+      ];
+      expect(read.take(5), [
+        d.name,
+        _zh.level(lv: d.level),
+        _zh.hudXp(pct: (d.xp * 100).round()),
+        compact(d.coins, AppLang.zhHant, from: 1000000),
+        _zh.hudSettings,
+      ]);
+      semantics.dispose();
+    });
+  }
 
   testWidgets('牛舍滿了：小字加「（滿了）」', (tester) async {
     final (m, _, _) = await loadedModel(api: FakeGameApi(state: sampleStateJson(penFull: true)));

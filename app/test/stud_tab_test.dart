@@ -60,6 +60,32 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
   });
 
+  testWidgets('新小牛剛好把牛舍佔滿：「已借種」下面不放「牛舍滿了」；換選別的才照常提醒（ceo 2026-10-02）', (tester) async {
+    Screen.w430.apply(tester);
+    // 10 頭牛、11 格：借之前還有一格，借到以後滿了
+    final api = StudApi(state: studState(penSlots: 11))..after = borrowedState(penSlots: 11);
+    await showStud(tester, AppLang.zhHant, api: api, listing: '43', dam: '3');
+    await tester.scrollUntilVisible(find.byKey(const Key('stud-borrow')), 200, scrollable: studScrollable);
+    expect(find.text(_zh.s08PenFull), findsNothing);
+
+    await tapBorrow(tester);
+    expect(_btn(tester, 'stud-borrow').label, _zh.s18BorrowedBtn);
+    expect(find.byType(CalfCard), findsOneWidget);
+    expect(find.text(_zh.s08PenFull), findsNothing);
+
+    // 換選別的公牛（在上面，往回捲）
+    final other = find.byKey(const Key('stud-listing-41'));
+    await tester.scrollUntilVisible(other, -200, scrollable: studScrollable);
+    await tester.ensureVisible(other);
+    await tester.pump();
+    await tester.tap(other);
+    await tester.pump();
+    await tester.pump();
+    await tester.scrollUntilVisible(find.byKey(const Key('stud-borrow')), 200, scrollable: studScrollable);
+    expect(find.text(_zh.s08PenFull), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
+  });
+
   testWidgets('借到以後下拉重新整理：借走的那頭已經不在市場上，下面的機率、「已借種」、新小牛照樣留著', (tester) async {
     Screen.w430.apply(tester);
     final api = StudApi()..after = borrowedState();

@@ -139,6 +139,27 @@ void main() {
     expect(_go(tester).onPressed, isNull);
   });
 
+  testWidgets('新小牛剛好把牛舍佔滿：「已配種」下面不放「牛舍滿了」；換選別的才照常提醒（ceo 2026-10-02）', (tester) async {
+    Screen.w430.apply(tester);
+    // 10 頭牛、11 格：配之前還有一格，配好以後滿了
+    final api = BreedApi(state: breedState(penSlots: 11))..after = bredState(penSlots: 11);
+    await showBreed(tester, AppLang.zhHant, api: api, sire: '14', dam: '3');
+    await tester.scrollUntilVisible(find.byKey(const Key('breed-go')), 200, scrollable: breedScrollable);
+    expect(find.text(_zh.s08PenFull), findsNothing);
+
+    await tapBreed(tester);
+    expect(_go(tester).label, _zh.s08BredBtn);
+    expect(find.byType(CalfCard), findsOneWidget);
+    expect(find.text(_zh.s08PenFull), findsNothing);
+    expect(find.byKey(const Key('breed-note-0')), findsNothing);
+
+    await tester.scrollUntilVisible(find.byKey(const Key('dam-7')), -200, scrollable: breedScrollable);
+    await _tap(tester, 'dam-7');
+    await tester.scrollUntilVisible(find.byKey(const Key('breed-go')), 200, scrollable: breedScrollable);
+    expect(find.text(_zh.s08PenFull), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
+  });
+
   testWidgets('沒有成年的公牛：放空的框（小公牛不算）；母牛照常列出來', (tester) async {
     Screen.w430.apply(tester);
     final cows = [
