@@ -7,9 +7,12 @@ import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
 import 'package:cowfarm/state/settings.dart';
 import 'package:cowfarm/theme/tokens.dart';
+import 'package:cowfarm/ui/kit/cow_art.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 's01_s02_cases.dart';
 
 /// 手機的尺寸與安全區，跟設計稿 design/m2/src/js/kit.js 的 DEVICES 一樣（pages_test 會比對）。
 enum Screen {
@@ -59,13 +62,14 @@ class PageCase {
 }
 
 /// 全部的頁面狀態。第 4 步每做好一組畫面，就把它的狀態加進來，並從 pages_test.dart 的待做清單拿掉。
-final List<PageCase> pageCases = [];
+final List<PageCase> pageCases = [...startCases];
 
-/// 載入 app 內建的字型。測試環境預設不載，字會畫成方塊，量不準寬度，也看不出泰文怎麼斷行。
-Future<void> loadAppFonts() async {
+/// 載入 app 內建的字型和牛的圖的量測（cows.json）。測試環境預設不載字型，字會畫成方塊，量不準寬度，也看不出泰文怎麼斷行。
+Future<void> loadAppAssets() async {
   TestWidgetsFlutterBinding.ensureInitialized();
   await (FontLoader(AppText.family)..addFont(rootBundle.load('assets/fonts/NotoSansTC-VF.ttf'))).load();
   await (FontLoader(AppText.fallback.first)..addFont(rootBundle.load('assets/fonts/NotoSansThai-VF.ttf'))).load();
+  await CowArt.load();
 }
 
 /// 手機語言是 [lang] 的設定（第一次打開跟著手機語言）。

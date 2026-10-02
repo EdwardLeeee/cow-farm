@@ -114,7 +114,8 @@ class WsPushClient implements PushClient {
           return;
         }
       } catch (e) {
-        debugPrint('ws error: $e');
+        // 只記錯誤的種類：連線失敗的訊息裡有完整網址，網址上有 token（協定 1.3：token、request_id 都不能寫進日誌）
+        if (kDebugMode) debugPrint('ws error: ${e.runtimeType}');
       }
       _watchdog?.cancel();
       _connected.value = false;
@@ -135,7 +136,7 @@ class WsPushClient implements PushClient {
       final j = jsonDecode(raw is String ? raw : utf8.decode(raw as List<int>));
       if (j is Map) return PushMessage.fromJson(j.cast<String, dynamic>());
     } catch (e) {
-      debugPrint('ws bad message: $e');
+      if (kDebugMode) debugPrint('ws bad message: ${e.runtimeType}');
     }
     return null;
   }

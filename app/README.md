@@ -38,7 +38,9 @@
 | `lib/state/game_model.dart` | 狀態（ChangeNotifier＋provider），奶桶與遊戲時間的平滑推算 |
 | `lib/util/ranch_name.dart` | 牧場名的規則（D23；協定 2.2 節）：去掉前後空白、emoji 和不能用的字、顯示寬度 2–16，跟伺服器一樣 |
 | `lib/util/name_tables.g.dart` | 由 `tool/gen_name_tables.py` 用伺服器的 `backend/server/ranchname.py` 逐字產生（要 Python 3.10，Unicode 13.0），不要手改 |
-| `lib/ui/` | 頂列、各分頁畫面（`screens/`）、共用元件（`widgets/`） |
+| `lib/ui/` | 頂列、各分頁畫面（`screens/`）、共用元件（`widgets/`）；M1 的原型畫面照 M2 設計稿逐組換掉 |
+| `lib/ui/kit/` | M2 設計稿的共用元件（照 `kit.css`）：按鈕、卡片、對話框、轉圈、提示膠囊、圖示；`cow_art.dart` 畫牛（照設計稿 `cowSVG` 的擺法） |
+| `lib/ui/start/` | 進牧場之前的正式畫面：S01 啟動與載入、S02 取名與歡迎卡 |
 | `lib/theme/` | 設計參數（顏色、尺寸、圓角、實心下陰影、文字樣式），照 M2 設計稿的 `base.css`、`kit.css`；`app_theme.dart` 是頁面底色、字型和字型授權 |
 | `assets/cows/`、`assets/ui/` | 牛、圖示、場景、卡車零件的 SVG 和描述檔（`cows.json`、`ui.json`），由 cow-ui 的 `design/m2/harness/assetexport.mjs` 產生，不要手改；執行時讀 SVG（T3）。`test/cow_assets_test.dart` 檢查檔案、雜湊和產生器有沒有漂移 |
 | `assets/fonts/` | 內建字型（T3）：Noto Sans TC 可變字型完整版（google/fonts 2.004-H2）、Noto Sans Thai 可變字型（2.002）、兩份 OFL 授權 |
@@ -72,8 +74,11 @@
   原值（含小數）。
 - **能不能做**：牛能不能配種、出貨、下田，以伺服器的 `can_breed`／`can_ship`／`can_work` 為準；按下去前的機率
   （商店、出貨評級、配種、借種）一律向伺服器拿，不在 app 寫死。
-- **建立牧場**（協定 2.1，D23）：取好名字才建立。手機上沒有 token 時，停在「還沒有牧場」（S02 取名），
-  不自動取名、不自動建立。
+- **建立牧場**（協定 2.1，D23）：取好名字才建立。手機上沒有 token 時，停在 S02 取名，不自動取名、不自動建立。
+  - 順序：S02 取名 → 就叫這個 → S01-03 建立中 → S02-02 歡迎卡 → 進牧場。
+  - 第 7 步做 S14-01 時，第一次打開要變回 S14-01 → 開新牧場 → S02（ceo 2026-10-02 方案 A）。
+  - 伺服器不收名字（`invalid_name`）就回 S02，提示在輸入框下面；連不上就跳「網路不穩」的提示（G-04 的樣子）。
+  - 歡迎卡的牛、金幣、奶桶、新手期加倍都照伺服器回的 state。
 - **token 失效**（HTTP 401，或 WebSocket 用關閉碼 4401 關閉）：不再重連，也不默默開新牧場。
   依錯誤碼停在 S15-03（unauthorized）或 S14-05（signed_in_elsewhere），玩家選「開新牧場」才清掉 token。
 - **伺服器不送給玩家看的中文**（v2）：品種、用途、新聞、電腦牧場名都用代碼查字串表。

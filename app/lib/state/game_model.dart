@@ -122,6 +122,12 @@ class GameModel extends ChangeNotifier {
   /// 手機上還沒有牧場（沒有 token）：要先取名（S02），用 [createRanch] 建立。協定 2.1：取好名字才建立。
   bool needsRanch = false;
 
+  /// 正在建立牧場（S01-03「正在幫你準備新牧場…」）。
+  bool creating = false;
+
+  /// 牧場剛建好、還沒按歡迎卡的「進牧場」（S02-02）。按了呼叫 [enterRanch]。
+  bool welcomePending = false;
+
   /// token 失效的原因：unauthorized（S15-03）或 signed_in_elsewhere（S14-05）。null 代表正常。
   /// 不會自動開新牧場（M1 會默默換成新牧場，scope.md 第 10 節第 9 項）。
   String? authLost;
@@ -252,6 +258,7 @@ class GameModel extends ChangeNotifier {
   Future<ActionResult<Session>> createRanch(String name) async {
     if (busy) return const ActionResult.fail(OfflineActionError());
     busy = true;
+    creating = true;
     _notify();
     ActionResult<Session> r;
     try {
@@ -266,6 +273,7 @@ class GameModel extends ChangeNotifier {
       final first = session.state;
       if (first != null) _setState(first);
       push.connect(session.token);
+      welcomePending = true;
       r = ActionResult.ok(session);
     } on ApiException catch (e) {
       _handleApiError(e);
@@ -274,12 +282,19 @@ class GameModel extends ChangeNotifier {
       r = const ActionResult.fail(NetworkActionError());
     }
     busy = false;
+    creating = false;
     if (r.ok) {
       if (state == null) await refreshState();
       unawaited(refreshMarket());
     }
     _notify();
     return r;
+  }
+
+  /// 歡迎卡（S02-02）按「進牧場」。
+  void enterRanch() {
+    welcomePending = false;
+    _notify();
   }
 
   /// 放棄這支手機上失效的牧場，改開新牧場（S15-03「開新牧場」）：清掉 token，回到取名。
@@ -292,6 +307,7 @@ class GameModel extends ChangeNotifier {
     market = null;
     ranchName = '';
     authLost = null;
+    welcomePending = false;
     needsRanch = true;
     _notify();
   }
