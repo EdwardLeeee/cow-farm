@@ -69,6 +69,7 @@ PR 3–10 都做完了（2026-10-02）。每個 PR 合併時更新這張表的�
 - `POST /v1/session` 可以帶（建議帶），規則見 2.1 節。帳號的綁定、換回、找回、刪除也可以帶，規則不一樣，見 5.0 節。
 - 每個「使用者動作」產生一個新的 UUID；網路逾時要重送時，**用同一個 request_id** 重送。
 - request_id 要用**安全亂數**產生的 UUID v4（Dart `uuid` 套件的 v4 預設用 `Random.secure`）。建立牧場（2.1 節）在 10 分鐘內只憑 request_id 重送，就會拿到那個牧場的新 token，所以 request_id 在這段時間等於這個請求的憑證：app、伺服器、反向代理都**不能把 request_id 和請求本文寫進日誌**（當機回報、除錯紀錄也一樣）。
+- 登入憑證 token 也一樣**不能寫進日誌**，包括 `/v1/ws?token=…` 網址上的 token（第 7 節）：app 印出連線錯誤時不能帶網址；伺服器不開存取日誌，WebSocket 握手那一行會遮成 `token=***`；反向代理不能記 `/v1/ws` 的完整網址。
 - 同一位玩家、同一個 request_id 重送：伺服器不再執行，直接回傳**第一次的回應本文**（HTTP 200，內容逐字相同，包括當時的 `server_time`）。重送拿到的 `state` 可能是舊的，之後請再 `GET /v1/state`。
 - 只記住**成功**的結果。失敗（4xx）沒有改變任何狀態，用同一個 request_id 重送會重新判斷。
 - 同一個 request_id 拿去做別種動作：回 `409 request_id_reused`。
@@ -106,6 +107,7 @@ PR 3–10 都做完了（2026-10-02）。每個 PR 合併時更新這張表的�
 | 404 | `not_linked` | 解除綁定時，這個牧場沒有綁這種帳號 | `provider` | `unknownError` | 9 |
 | 404 | `not_found` | 網址不存在 | | `unknownError` | |
 | 405 | `method_not_allowed` | 方法不對 | | `unknownError` | |
+| 4xx | `http_error` | 其他 HTTP 錯誤，狀態碼照原本的：請求本文讀不出來（例如不是 UTF-8，400）、`/v1` 以外的靜態檔案讀不到 | | `unknownError` | |
 | 409 | `not_enough_coins` | 金幣不夠 | `need`、`have`（整數） | `notEnoughCoins`（`{n}` = need − have） | |
 | 409 | `not_enough_stock` | 倉庫裡沒有這麼多牛奶／牛肉／稻米 | `have`、`want` | `err.not_enough_stock` | |
 | 409 | `pen_full` | 牛舍滿了（買牛、配種、借種都要有空格給小牛） | `slots` | `penFull` | |
@@ -974,7 +976,7 @@ app 啟動時先打這個（還沒有 token 也能打），再決定要不要顯
 
 ## 7. WebSocket 即時推播：`/v1/ws`
 
-- 連線：`ws://<主機>:8787/v1/ws?token=<token>`。也可以用子協定帶 token（瀏覽器不能自訂 header 時）：`["cowfarm.v1", "cowfarm.token." + token]`，伺服器會選 `cowfarm.v1` 回應。伺服器不記存取日誌，網址上的 token 不會寫進日誌。
+- 連線：`ws://<主機>:8787/v1/ws?token=<token>`。也可以用子協定帶 token（瀏覽器不能自訂 header 時）：`["cowfarm.v1", "cowfarm.token." + token]`，伺服器會選 `cowfarm.v1` 回應。伺服器不記存取日誌，WebSocket 握手那一行把網址上的 token 遮成 `token=***`；app 和反向代理也不能記網址上的 token（1.3 節）。
 - 用戶端送的任何訊息都會被忽略（可以用來保持連線）；伺服器每 20 秒 ping 一次。
 
 關閉碼：
@@ -1042,3 +1044,5 @@ app 啟動時先打這個（還沒有 token 也能打），再決定要不要顯
 - 2026-10-02：PR 9b 做完第 0 節 16 項（帳號：nonce、綁定、解除、找回、換回、刪除、`signed_in_elsewhere`、Apple 撤銷佇列）。欄位跟 9a 定的一樣。
 - 2026-10-02：PR 9b 審查：找回的重送改成比對 request_id＋`id_token`（5.0 節），只拿到 request_id 的人拿不到 token。整個請求原封不動的重送不受影響。
 - 2026-10-02：1.3 節補 request_id 的安全規則：用安全亂數產生的 UUID v4；建立牧場的 request_id 在 10 分鐘內等於請求的憑證，app、伺服器、反向代理都不把它和請求本文寫進日誌。ceo 裁示 `POST /v1/session` 的重送不改程式。欄位不變。
+- 2026-10-02：1.4 節錯誤碼表補上伺服器本來就會送的 `http_error`（其他 HTTP 錯誤，app 顯示 `unknownError`）。`tests/test_error_table.py` 自動比對這張表、伺服器程式和字串表。
+- 2026-10-02：1.3 節、第 7 節補：token 跟 request_id 一樣不能寫進日誌，包括 `/v1/ws` 網址上的 token（cow-app 在 #58 發現 app 的連線錯誤日誌會帶出網址）。欄位不變。

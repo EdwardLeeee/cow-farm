@@ -221,8 +221,8 @@ class Game:
     # ---- 共用 ----
     def player(self, pid: int) -> Player:
         p = self.players.get(pid)
-        if p is None:
-            raise GameError("player_not_found", "找不到這個牧場", 404)
+        if p is None:  # pid 都是驗過 token 的玩家；不在表示牧場剛被刪除，跟之後的請求一樣回 401（協定 5.6）
+            raise GameError("unauthorized", "登入憑證無效", 401)
         return p
 
     def _rng(self, p: Player, rng: Optional[random.Random]) -> random.Random:
