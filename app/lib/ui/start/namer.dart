@@ -189,7 +189,10 @@ class _NamerPageState extends State<NamerPage> {
                         ],
                       ),
                     const SizedBox(height: 14),
+                    // 固定的 key：鍵盤一開，上面那一列（Row → 標題）、下面的說明都換掉，沒有 key 的名字卡會被當成
+                    // 新的重建，輸入框跟著拆掉、焦點掉了，鍵盤馬上收起來（iPhone「一點就跳掉」）。有 key 才會留著同一個
                     NameCard(
+                      key: const ValueKey('name-card'),
                       width: check.width,
                       error: error,
                       hint: widget.filled ? s.s02Filled : s.s02WidthRule,
