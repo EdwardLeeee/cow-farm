@@ -59,11 +59,14 @@ String noticeText(BuildContext context, GameNotice notice) {
       ranch: s.ranchText(borrower),
       price: fmt(price),
     ),
+    ReconnectedNotice() => s.s15Reconnected,
   };
 }
 
 /// 顯示操作結果：成功顯示 [okText]，失敗依錯誤碼顯示字串表的文案。
 void showResult(BuildContext context, ActionError? error, String okText) {
+  // 維護中、token 失效時整個畫面換成 S16-01／S15-03／S14-05，不另外跳錯誤提示。
+  if (error case ApiActionError(error: final e) when e.maintenance || e.unauthorized) return;
   final messenger = ScaffoldMessenger.maybeOf(context);
   final text = error == null ? okText : actionErrorText(context, error);
   messenger?.hideCurrentSnackBar();

@@ -250,6 +250,17 @@ class FakeGameApi implements GameApi {
   /// 建立牧場時伺服器回的錯誤（例如 invalid_name）；null 就成功。
   ApiException? sessionError;
 
+  /// /v1/status 的 maintenance（null：沒有安排維護）。
+  Maintenance? maintenance;
+
+  /// 設了就讓 /v1/status、/v1/state、/v1/market 丟這個錯（例如 503 maintenance、連不上）。
+  Exception? statusError;
+  Exception? stateError;
+  Exception? marketError;
+
+  /// 設了就讓 /v1/market 等到 complete 才回（測試「補抓完才提示」）。
+  Completer<void>? marketGate;
+
   @override
   Future<Session> createSession(String ranchName) async {
     calls.add('session:$ranchName');
@@ -265,12 +276,14 @@ class FakeGameApi implements GameApi {
   @override
   Future<ServerStatus> status() async {
     calls.add('status');
-    return const ServerStatus(protocol: 2);
+    if (statusError != null) throw statusError!;
+    return ServerStatus(protocol: 2, maintenance: maintenance);
   }
 
   @override
   Future<GameState> getState() async {
     calls.add('state');
+    if (stateError != null) throw stateError!;
     return GameState.fromJson(stateJson);
   }
 
@@ -466,6 +479,8 @@ class FakeGameApi implements GameApi {
   @override
   Future<MarketInfo> market() async {
     calls.add('market');
+    if (marketGate != null) await marketGate!.future;
+    if (marketError != null) throw marketError!;
     return MarketInfo.fromJson(marketJson);
   }
 
@@ -495,6 +510,8 @@ class FakePush implements PushClient {
   final ValueNotifier<bool> _connected;
   final _ctrl = StreamController<PushMessage>.broadcast();
   String? token;
+  int connects = 0;
+  int closes = 0;
 
   @override
   ValueListenable<bool> get connected => _connected;
@@ -507,10 +524,17 @@ class FakePush implements PushClient {
   void emit(PushMessage m) => _ctrl.add(m);
 
   @override
-  void connect(String token) => this.token = token;
+  void connect(String token) {
+    connects++;
+    this.token = token;
+  }
 
+  /// 跟正式的推播一樣：關掉就是斷線。
   @override
-  void close() {}
+  void close() {
+    closes++;
+    _connected.value = false;
+  }
 }
 
 /// 可控制的單調時鐘。
