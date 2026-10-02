@@ -1,19 +1,20 @@
 // M2 動畫出圖：每個動畫依 t 截圖。GIF 用的影格（DPR 1、每秒 15 格）、分鏡的關鍵影格（DPR 2）、減少動態的前後兩張（DPR 2）。
 // 用法：node harness/anim.mjs [A-01,A-02…] [語言]；之後跑 python3 harness/compose_anim.py 做 GIF、分鏡圖、減少動態圖。
-// 語言是 en 或 th 時只拍分鏡的關鍵影格（存到 raw/<語言>/anim/），並在最後一格跑 capture.mjs 的量測（不做 GIF，不送核准，D25）。
+// 語言是 en 或 th 時只拍分鏡的關鍵影格（存到 raw/<語言>/anim/），並在最後一格跑 capture.mjs 的量測（泰文也檢查換行：斷在詞中間、拆開用詞表的詞；不做 GIF，不送核准，D25）。
 // 記憶體：跑之前先看 free -m（available ≥ 2000 MB），用 systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 包起來。
 import { chromium } from '@playwright/test';
 import { mkdir, writeFile, rm } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { startServer } from './server.mjs';
-import { measure } from './capture.mjs';
+import { measure, glossaryTerms } from './capture.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const LANG = process.argv[3] || 'zh-Hant';
 const OUT = LANG === 'zh-Hant' ? join(ROOT, 'raw', 'anim') : join(ROOT, 'raw', LANG, 'anim');
 const LQ = LANG === 'zh-Hant' ? '' : `&lang=${LANG}`;
 const LOCALE = { 'zh-Hant': 'zh-TW', en: 'en-US', th: 'th-TH' }[LANG] || 'zh-TW';
+const TERMS = LANG === 'th' ? glossaryTerms() : []; // 泰文：跟 capture.mjs 一樣檢查用詞表的詞有沒有被拆到兩行
 const FPS = 15;
 // 減少動態：前後兩張（t0／tEnd 是動畫本身的第一格、最後一格；其他是狀態的頁面 ID）
 const REDUCED = {
@@ -59,10 +60,11 @@ async function run(filter) {
           }
           // 英文、泰文：量最後一個關鍵影格（動畫停住的樣子），不拍減少動態
           if (LANG !== 'zh-Hant') {
-            const m = await page.evaluate(measure, []).catch((e) => ({ error: String(e) }));
+            const m = await page.evaluate(measure, TERMS).catch((e) => ({ error: String(e) }));
             await writeFile(join(dir, 'meta.json'), JSON.stringify({ id: a.id, name: a.name, uiLang: LANG, keys: a.keys, errors, ...m }, null, 1));
             const n = ['clipped', 'outside', 'wrapped', 'overlaps'].map((k) => (m[k] || []).length);
-            console.log(`${n.some((x) => x) || errors.length ? '!!' : 'ok'} ${a.id} ${LANG}  缺字串${(m.i18nMissing || []).length}  截${n[0]} 出框${n[1]} 換行${n[2]} 疊${n[3]}${errors.length ? ' 錯誤:' + errors.join('|') : ''}`);
+            const thBad = (m.thaiBreaks || []).filter((x) => x.midWord).length, thSplit = (m.thaiBreaks || []).filter((x) => x.splitTerms.length).length;
+            console.log(`${n.some((x) => x) || errors.length || thBad ? '!!' : 'ok'} ${a.id} ${LANG}  缺字串${(m.i18nMissing || []).length}${thBad ? `  泰文斷在詞中間${thBad}` : ''}${thSplit ? `  拆開用詞表的詞${thSplit}（要人看）` : ''}  截${n[0]} 出框${n[1]} 換行${n[2]} 疊${n[3]}${errors.length ? ' 錯誤:' + errors.join('|') : ''}`);
             await ctx.close();
             continue;
           }
