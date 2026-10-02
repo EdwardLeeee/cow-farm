@@ -33,6 +33,7 @@ from cowecon.params import DAY, HOUR, TZ_OFFSET_S
 
 from .breeds import breed_id, breed_of_genes
 
+CALF_BULL_PROB = 0.5  # 配種、借種生出公牛的機率（cowecon Farm.breed：rng.random() < 0.5，跟基因無關）
 TYPE_WIRE = ("dairy", "dual", "beef")  # 基因用途 0/1/2 的協定名稱；v0.2 的「耕牛」沿用 dual（見 docs/protocol.md）
 TYPE_INDEX = {w: i for i, w in enumerate(TYPE_WIRE)}
 UPGRADE_KINDS = ("pen", "bucket", "warehouse", "fresh", "field")
@@ -515,14 +516,27 @@ class Game:
 
     @staticmethod
     def _probs(sire_g: int, dam_g: int) -> dict:
+        """配種、借種預覽的機率（協定 3.7、4.3）。distribution 的形狀跟商店（3.5）一樣，公母各半另外乘進去。"""
         dist = offspring_distribution(sire_g, dam_g)
         type_probs = [0.0, 0.0, 0.0]
         for (t, _mask), pr in dist.items():
             type_probs[t] += pr
+        rows = [
+            {
+                "type": TYPE_WIRE[t],
+                "bull": bull,
+                "traits": mask,
+                "tier": bin(mask).count("1"),
+                "breed": breed_id(t, mask),
+                "p": dist[(t, mask)] * (CALF_BULL_PROB if bull else 1.0 - CALF_BULL_PROB),
+            }
+            for t, bull, mask in sorted((t, bull, mask) for (t, mask) in dist for bull in (False, True))
+        ]
         return {
             "tier_probs": tier_distribution(sire_g, dam_g),
             "type_probs": {TYPE_WIRE[i]: type_probs[i] for i in range(3)},
-            "bull_prob": 0.5,
+            "bull_prob": CALF_BULL_PROB,
+            "distribution": rows,
         }
 
     def breed_preview(self, pid: int, sire_id, dam_id, now: float) -> dict:

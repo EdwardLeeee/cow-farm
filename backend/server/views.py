@@ -11,6 +11,7 @@ import time
 from typing import Dict, List, Optional, Tuple
 
 from cowecon.farm import (
+    DAIRY,
     OX,
     Cow,
     beef_grade_probs,
@@ -352,6 +353,10 @@ def economy_view(fp) -> dict:
         "tier_mult": list(fp.tier_mult),  # 一般、優良、稀有、傳說：牛奶、牛肉的賣價倍率，也是耕牛的稻米產量倍率
         "beef_grade_mult": dict(zip(GRADE_NAMES, fp.beef_grade_mult)),
         "ox_rice_per_h": fp.rice_per_h[OX],  # 壯年耕牛每遊戲小時的稻米公斤數（× tier_mult × 年齡曲線）
+        "dairy_milk_per_h": fp.milk_per_h[DAIRY],  # 壯年母乳牛每遊戲小時產奶瓶數（× 年齡曲線；稀有度不影響產量）
+        "calf_grow_h": list(fp.tier_growth_h),  # 小牛長大要幾遊戲小時，依稀有度（params 的 tier_growth_h）
+        "peak_weight_kg": {TYPE_WIRE[i]: w for i, w in enumerate(fp.peak_weight_kg)},  # 母牛的最佳體重，依用途
+        "bull_weight_mult": fp.bull_weight_mult,  # 公牛的體重 = 母牛 × 這個
     }
 
 
