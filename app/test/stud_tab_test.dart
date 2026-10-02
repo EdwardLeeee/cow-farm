@@ -224,6 +224,19 @@ void main() {
     });
   }
 
+  testWidgets('可點的元件無障礙只讀自己的字：借種紀錄連結、上架鈕、市場的一列都不把旁邊的字併進來（8790 走查）', (tester) async {
+    Screen.w430.apply(tester);
+    final semantics = tester.ensureSemantics();
+    await showStud(tester, AppLang.zhHant);
+    expect(
+      tester.getSemantics(find.byKey(const Key('stud-log-link'))),
+      isSemantics(label: _zh.s18LogTitle, isButton: true),
+    );
+    expect(tester.getSemantics(find.byKey(const Key('list-14'))), isSemantics(label: _zh.list, isButton: true));
+    expect(tester.getSemantics(find.byKey(const Key('stud-listing-41'))).label, startsWith(_zh.breedName('holstein')));
+    semantics.dispose();
+  });
+
   testWidgets('借種紀錄的返回鈕：無障礙只讀「返回」，標題不併進按鈕（walk.cjs 在 8790 看到併成一顆）', (tester) async {
     Screen.w430.apply(tester);
     final semantics = tester.ensureSemantics();

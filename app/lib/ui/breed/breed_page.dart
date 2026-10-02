@@ -430,6 +430,7 @@ class PickCard extends StatelessWidget {
     };
     Widget faded(Widget child) => disabled ? Opacity(opacity: 0.45, child: child) : child;
     return Semantics(
+      container: true,
       button: true,
       selected: on,
       enabled: !disabled,

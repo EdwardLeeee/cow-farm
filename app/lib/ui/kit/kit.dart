@@ -38,6 +38,9 @@ enum ButtonKind {
   final Color color;
 }
 
+/// 一般 div 的一行（16px、行高 normal = 19 + 5）：裡面的粗體字比較小時，行高還是照 div 的（CSS 的 strut）。
+const kDivStrut = StrutStyle(fontFamily: AppText.family, fontSize: 16, height: 24 / 16);
+
 /// .btn：粗描邊、實心下陰影。[onPressed] 是 null 就停用；[busy] 時換成轉圈、也停用（G-06）。
 /// [block] 撐滿整行，字放不下可以換行（screens.css 第 12 條：英文、泰文放不下才換行）；不是 block 就不換行。
 class AppButton extends StatelessWidget {
@@ -49,6 +52,7 @@ class AppButton extends StatelessWidget {
     this.small = false,
     this.block = false,
     this.icon,
+    this.leading,
     this.busy = false,
     this.wrap = false,
   });
@@ -59,6 +63,9 @@ class AppButton extends StatelessWidget {
   final bool small;
   final bool block;
   final String? icon;
+
+  /// 自己畫的圖示，取代 [icon]（例：田地卡片的「叫回」，手掌外面有一圈綠底圓框）。
+  final Widget? leading;
   final bool busy;
 
   /// 不是整排寬的按鈕，被擠的時候字可以換行（頁首右邊的按鈕，screens.css 第 1 條）；放得下就照自己的寬度。
@@ -82,12 +89,18 @@ class AppButton extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         if (busy) ...[const Spinner(), const SizedBox(width: 6)],
-        if (!busy && icon != null) ...[AppIcon(icon!, size: small ? 18 : 22), const SizedBox(width: 6)],
+        if (!busy && (leading != null || icon != null)) ...[
+          leading ?? AppIcon(icon!, size: small ? 18 : 22),
+          const SizedBox(width: 6),
+        ],
         if (block || wrap) Flexible(child: text) else text,
       ],
     );
     final radius = BorderRadius.all(small ? AppRadii.r14 : AppRadii.r16);
+    // 自己一個無障礙節點（container）：不然同一張卡上的字會併進按鈕，例：田地卡片的「派耕牛」讀成
+    // 「第 2 塊田 空田 空田：派一頭成年耕牛來種稻。 派耕牛」（8790 走查找不到「派耕牛」）
     return Semantics(
+      container: true,
       button: true,
       enabled: enabled,
       // 按下：大按鈕往下 3、小按鈕往下 2，陰影變 1（G-11、G-12）；停用和處理中不變
@@ -115,18 +128,24 @@ class AppButton extends StatelessWidget {
   }
 }
 
-/// .card：卡片底、粗描邊、圓角 18、下陰影 4。
+/// .card：卡片底、粗描邊、圓角 18、下陰影 4。[color] 是換過底色的卡（例：田地長滿了的淡黃）。
 class AppCard extends StatelessWidget {
-  const AppCard({super.key, required this.child, this.padding = const EdgeInsets.fromLTRB(12, 10, 12, 12)});
+  const AppCard({
+    super.key,
+    required this.child,
+    this.padding = const EdgeInsets.fromLTRB(12, 10, 12, 12),
+    this.color = AppColors.paper,
+  });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
+  final Color color;
 
   @override
   Widget build(BuildContext context) => Container(
     padding: padding,
     decoration: BoxDecoration(
-      color: AppColors.paper,
+      color: color,
       border: Border.all(color: AppColors.ink, width: AppSizes.border),
       borderRadius: const BorderRadius.all(AppRadii.r18),
       boxShadow: AppShadows.solid(4),

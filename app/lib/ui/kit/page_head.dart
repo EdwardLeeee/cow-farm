@@ -108,6 +108,7 @@ class FilterChips extends StatelessWidget {
         for (final (i, label) in labels.indexed) ...[
           if (i > 0) const SizedBox(width: 6),
           Semantics(
+            container: true,
             button: true,
             selected: i == selected,
             child: Pressable(

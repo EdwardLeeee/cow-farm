@@ -227,6 +227,7 @@ class _PriceRow extends StatelessWidget {
     final s = Strings.of(context);
     final q = quote;
     return Semantics(
+      container: true,
       button: true,
       selected: on,
       child: Pressable(
@@ -632,6 +633,7 @@ class _ChipButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final enabled = onTap != null;
     return Semantics(
+      container: true,
       button: true,
       selected: on,
       enabled: enabled,

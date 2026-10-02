@@ -7,6 +7,7 @@ import '../l10n/l10n.dart';
 import '../l10n/strings.dart';
 import 'breed/breed_page.dart';
 import 'cow/cow_detail_page.dart';
+import 'fields/fields_page.dart';
 import 'kit/frame.dart';
 import 'market/market_page.dart';
 import 'ranch/pen_list.dart';
@@ -14,7 +15,6 @@ import 'ranch/ranch_page.dart';
 import '../state/game_model.dart';
 import 'widgets/action_button.dart';
 import 'screens/codex_screen.dart';
-import 'screens/fields_screen.dart';
 import 'screens/leaderboard_screen.dart';
 import 'shop/shop_page.dart';
 import 'start/start_flow.dart';
@@ -79,6 +79,9 @@ class _HomeShellState extends State<HomeShell> {
     } else if (m.tab == AppTab.breed) {
       // 配種（S08）：自己的外框，配種成功的提示疊在最上面
       page = const BreedPage();
+    } else if (m.tab == AppTab.fields) {
+      // 田地（S17）：自己的外框，選耕牛的面板、收成的提示疊在最上面
+      page = const FieldsPage();
     } else {
       page = AppFrame(tab: m.tab, content: _content(m), contentPadding: EdgeInsets.zero);
     }
@@ -122,7 +125,7 @@ class _HomeShellState extends State<HomeShell> {
       // 倉庫（S05-02）、牛舍清單（S03-07）
       AppTab.ranch => m.warehouseOpen ? const WarehousePage() : const PenListPage(),
       AppTab.market => const SizedBox.shrink(), // 市場是自己的整頁（MarketPage），不會走到這裡
-      AppTab.fields => const FieldsScreen(),
+      AppTab.fields => const SizedBox.shrink(), // 田地是自己的整頁（FieldsPage），不會走到這裡
       AppTab.breed => const SizedBox.shrink(), // 配種是自己的整頁（BreedPage），不會走到這裡
       AppTab.shop => const SizedBox.shrink(), // 商店是自己的整頁（ShopPage），不會走到這裡
       AppTab.records => const _Records(),
