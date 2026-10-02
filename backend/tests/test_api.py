@@ -19,6 +19,7 @@ from cowecon import DEFAULT
 from cowecon.farm import (
     Cow,
     beef_grade_probs,
+    cow_rice_rate,
     cow_type,
     draw_beef_grade,
     offspring_distribution,
@@ -568,13 +569,21 @@ def test_field_flow(h):
     ox = next(c for c in st["cows"] if c["bull"])  # 開局的小公牛是耕牛
     cow = next(c for c in st["cows"] if not c["bull"])
     assert ox["type"] == "dual" and "type_name" not in ox
+    assert ox["rice_per_h"] == 0.0 and cow["rice_per_h"] == 0.0  # 耕牛小牛、乳牛都是 0
     err(h.post("/v1/field/assign", tok, {"cow_id": ox["id"], "request_id": new_rid()}), 409, "cow_not_adult")
     err(h.post("/v1/field/assign", tok, {"cow_id": cow["id"], "request_id": new_rid()}), 409, "not_an_ox")
     h.advance(OB.starter_calf_remaining_s)
+    # 成年耕牛還沒下田：rice_per_h 是「下田的話」每小時的產量（S04-06「耕田 11 公斤稻米／時」），不是 0
+    idle = next(c for c in state(h, tok)["cows"] if c["id"] == ox["id"])
+    engine_ox = h.server.game.players[st["player_id"]].farm.cow_by_id(ox["id"])
+    assert not idle["working"] and idle["rice_per_h"] > 0
+    assert idle["rice_per_h"] == round(cow_rice_rate(FP, engine_ox, h.clock.now()), 2)
     r = h.post("/v1/field/assign", tok, {"cow_id": ox["id"], "request_id": new_rid()}).json()
     assert r["field"] == 0 and r["fields"][0]["cow_id"] == ox["id"]
     c = next(c for c in r["state"]["cows"] if c["id"] == ox["id"])
     assert c["working"] and c["field"] == 0 and not c["can_ship"] and not c["can_breed"]
+    assert c["rice_per_h"] == idle["rice_per_h"]  # 下田前後同一個值
+    assert r["fields"][0]["per_hour"] == pytest.approx(c["rice_per_h"], abs=0.005)  # 田的 per_hour 取到 6 位
     err(h.post("/v1/ship", tok, {"cow_id": ox["id"], "request_id": new_rid()}), 409, "cow_in_field")
     err(h.post("/v1/breed", tok, {"sire": ox["id"], "dam": cow["id"], "request_id": new_rid()}), 409, "cow_in_field")
     err(h.post("/v1/field/assign", tok, {"cow_id": ox["id"], "request_id": new_rid()}), 409, "cow_in_field")
