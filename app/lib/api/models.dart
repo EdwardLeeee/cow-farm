@@ -379,6 +379,13 @@ class Warehouse {
   double get beefTotal => serverBeefTotal ?? beefLots.fold(0, (a, l) => a + l.qty);
   double get riceTotal => serverRiceTotal ?? riceLots.fold(0, (a, l) => a + l.qty);
 
+  /// 那種商品的每一批。
+  List<Lot> lotsOf(Commodity c) => switch (c) {
+    Commodity.milk => milkLots,
+    Commodity.beef => beefLots,
+    Commodity.rice => riceLots,
+  };
+
   double total(Commodity c) => switch (c) {
     Commodity.milk => milkTotal,
     Commodity.beef => beefTotal,
@@ -910,6 +917,12 @@ class Quote {
   /// 24 小時的價格變化（幣，現價減 24 小時前）。畫面的漲跌顏色只看正負號。
   final double change24h;
   final double? ma24;
+
+  /// 比平常（基本價）高或低幾 %，四捨五入到整數（fixtures.js 的 vsBase）；伺服器沒給基本價是 null。只是顯示。
+  int? get vsBasePct {
+    final r = ratio ?? (basePrice != null && basePrice! > 0 ? price / basePrice! : null);
+    return r == null ? null : ((r - 1) * 100).round();
+  }
 
   /// 百分比（0.05 = +5%）。
   double get changePct {

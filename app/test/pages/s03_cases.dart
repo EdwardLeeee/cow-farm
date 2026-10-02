@@ -207,21 +207,46 @@ Future<GameModel> ranchModel({
 
 /// 收奶後伺服器回的結果：[collected] 瓶進了倉庫，奶桶剩 [left]；倉庫滿了就是 warehouse_full。
 class _CollectApi extends FakeGameApi {
-  _CollectApi({required this.collected, required this.left, this.warehouseFull = false, required this.after})
-    : super(state: ranchState(), market: ranchMarket());
+  _CollectApi({
+    required this.collected,
+    required this.left,
+    this.warehouseFull = false,
+    this.spoiled = 0,
+    required this.after,
+  }) : super(state: ranchState(), market: ranchMarket());
 
   final double collected;
   final double left;
   final bool warehouseFull;
+
+  /// 順便丟掉幾瓶壞掉的牛奶（S03-18）。
+  final double spoiled;
   final Map<String, dynamic> after;
 
   @override
   Future<Map<String, dynamic>> collect() async {
     calls.add('collect');
     stateJson = after;
-    return {'collected': collected, 'spoiled': 0.0, 'warehouse_full': warehouseFull};
+    return {'collected': collected, 'spoiled': spoiled, 'warehouse_full': warehouseFull};
   }
 }
+
+/// 全部商品一起大漲（[up]）或大跌的大新聞（S03-16、17）：commodity 是 null、targets 三種。
+Map<String, dynamic> _allNews(bool up) => {
+  'id': up ? 301 : 302,
+  'code': up ? 'all_up.1' : 'all_down.1',
+  'params': {},
+  'pct': up ? 0.22 : -0.21,
+  'commodity': null,
+  'targets': ['milk', 'beef', 'rice'],
+  'direction': up ? 'up' : 'down',
+  'big': true,
+  'time': t0 - 60,
+  'announce_at': t0 - 60,
+  'start_at': t0 - 60,
+  'end_at': t0 + 7200,
+  'state': 'active',
+};
 
 final _zh = Strings.forLang(AppLang.zhHant);
 
@@ -624,6 +649,50 @@ final s03Cases = <PageCase>[
     check: (tester) {
       expect(find.byKey(const Key('big-news')), findsOneWidget);
       expect(find.text(_zh.s03BigNewsGo), findsOneWidget);
+    },
+  ),
+  for (final up in [true, false])
+    PageCase(
+      up ? 'S03-16' : 'S03-17',
+      up ? '大新聞提示：全部商品一起大漲' : '大新聞提示：全部商品一起大跌',
+      (tester, lang) async => pumpAppIn(
+        tester,
+        await ranchModel(market: ranchMarket(news: [_allNews(up)])),
+        lang,
+        prefs: swipeHintSeen,
+      ),
+      crop: find.byKey(const Key('big-news')),
+      check: (tester) {
+        expect(find.byKey(const Key('big-news')), findsOneWidget);
+        expect(find.textContaining(_zh.s03BigNewsAll(chg: up ? '+22%' : '−21%'), findRichText: true), findsOneWidget);
+      },
+    ),
+  PageCase(
+    'S03-18',
+    '收奶成功，順便丟掉壞掉的牛奶',
+    (tester, lang) async {
+      final api = _CollectApi(
+        collected: 36.4,
+        left: 0,
+        spoiled: 2,
+        after: ranchState(
+          bucket: 0,
+          milkLots: [
+            {'qty': 36.4, 'tier': 0, 'freshness': 1.0},
+            {'qty': 60, 'tier': 0, 'freshness': 1.0},
+            {'qty': 48, 'tier': 1, 'freshness': 0.82},
+            {'qty': 22, 'tier': 3, 'freshness': 0.64},
+          ],
+        ),
+      );
+      await pumpAppIn(tester, await ranchModel(api: api), lang, prefs: swipeHintSeen);
+      await tester.tap(find.byKey(const Key('collect')));
+      await tester.pump();
+      await tester.pump();
+    },
+    crop: find.byKey(const Key('toast')),
+    check: (tester) {
+      expect(find.text(_zh.collectedSpoiled(v: '36.4', n: '2')), findsOneWidget);
     },
   ),
   PageCase(

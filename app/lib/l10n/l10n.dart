@@ -167,6 +167,23 @@ class Strings extends GeneratedStrings {
     return id == null ? null : '#${id.toString().padLeft(4, '0')}';
   }
 
+  /// 商品名（牛奶、牛肉、稻米）。
+  String commodity(Commodity c) => switch (c) {
+    Commodity.milk => milk,
+    Commodity.beef => beef,
+    Commodity.rice => rice,
+  };
+
+  /// 商品的單位（瓶、公斤）。
+  String unitOf(Commodity c) => switch (c) {
+    Commodity.milk => unitMilk,
+    Commodity.beef => unitBeef,
+    Commodity.rice => unitRice,
+  };
+
+  /// 新聞的商品標籤：【牛奶】；全部商品一起漲跌的是【全部】（fixtures.js 的 newsTag）。
+  String newsTag(NewsItem n) => n.commodity == null ? bothTag : commodityTag(name: commodity(n.commodity!));
+
   /// 新聞標題：伺服器送代碼，查字串表 `news.<code>`（協定 3.11）。字串表還沒有的新代碼回空字串，不讓畫面壞掉。
   String newsHeadline(NewsItem news) {
     final text = table['news.${news.code}'];

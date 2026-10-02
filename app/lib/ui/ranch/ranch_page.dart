@@ -87,7 +87,16 @@ class _RanchPageState extends State<RanchPage> {
         ),
       );
     } else {
-      _showToast(_Toast(ToastKind.ok, s.collected(v: oneDecimal(got))));
+      // 順便丟掉倉庫裡壞掉的牛奶（S03-18，D29）
+      final spoiled = (res['spoiled'] as num?)?.toDouble() ?? 0;
+      _showToast(
+        _Toast(
+          ToastKind.ok,
+          spoiled > 0
+              ? s.collectedSpoiled(v: oneDecimal(got), n: oneDecimal(spoiled))
+              : s.collected(v: oneDecimal(got)),
+        ),
+      );
     }
   }
 
@@ -214,8 +223,11 @@ class _RanchPageState extends State<RanchPage> {
               quote: m.market?.quotes[bigNews.commodity],
               upIsRed: settings.upIsRed,
               onClose: () => settings.markBigNewsSeen(bigNews.id),
+              // 去市場看看：到市場頁、選好那種商品（S03-15）
               onGo: () {
                 settings.markBigNewsSeen(bigNews.id);
+                // 全部商品的新聞不換商品
+                if (bigNews.commodity case final c?) m.selectMarket(c);
                 m.selectTab(AppTab.market);
               },
             ),
@@ -235,10 +247,10 @@ class _RanchPageState extends State<RanchPage> {
 
   /// 大新聞（收購價大漲或大跌 20% 以上，企劃書 4.7、D24、m3-backlog）：還沒看過的那一則，跳出一次（S03-15）。
   /// 觸發條件只看幅度，不看伺服器的 big（big 是 ±30–40% 的罕見新聞；ceo 2026-10-02）。
-  /// 全部商品一起漲跌的新聞：等 cow-ui 補「全部商品」的文案、使用者核准之前，先不跳。
+  /// 全部商品一起漲跌的也跳（S03-16、17，D29）。
   static NewsItem? _bigNews(GameModel m, SettingsController settings) {
     for (final n in m.market?.news ?? const <NewsItem>[]) {
-      if (n.pct.abs() >= 0.2 && n.commodity != null && !n.upcoming && !settings.bigNewsSeen(n.id)) return n;
+      if (n.pct.abs() >= 0.2 && !n.upcoming && !settings.bigNewsSeen(n.id)) return n;
     }
     return null;
   }
@@ -342,8 +354,7 @@ class _Ticker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = Strings.of(context);
-    final c = news.commodity;
-    final tag = c == null ? s.bothTag : s.commodityTag(name: commodityName(s, c));
+    final tag = s.newsTag(news);
     return Container(
       key: const Key('ticker'),
       padding: const EdgeInsets.fromLTRB(3, 0, 12, 0),
@@ -378,13 +389,6 @@ class _Ticker extends StatelessWidget {
     );
   }
 }
-
-/// 商品名（牛奶、牛肉、稻米）。
-String commodityName(Strings s, Commodity c) => switch (c) {
-  Commodity.milk => s.milk,
-  Commodity.beef => s.beef,
-  Commodity.rice => s.rice,
-};
 
 /// 一行字：放得下就不動；放不下就慢慢往左跑、接著再出現（設計稿 data-marquee）。手機開了「減少動態」就不跑，超出的切掉。
 class Marquee extends StatefulWidget {
@@ -589,20 +593,13 @@ class _BigNews extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = Strings.of(context);
-    final c = news.commodity!;
+    final c = news.commodity;
     final up = news.pct >= 0;
     final pct = '${up ? '+' : '−'}${(news.pct.abs() * 100).round()}%';
-    final unit = switch (c) {
-      Commodity.milk => s.unitMilk,
-      Commodity.beef => s.unitBeef,
-      Commodity.rice => s.unitRice,
-    };
-    final body = s.s03BigNewsBody(
-      name: commodityName(s, c),
-      chg: '\u0000',
-      price: priceText(quote?.price ?? 0),
-      unit: unit,
-    );
+    // 全部商品一起漲跌（S03-16、17）：說明句只寫漲跌幅，不寫單一商品的名字和價格
+    final body = c == null
+        ? s.s03BigNewsAll(chg: '\u0000')
+        : s.s03BigNewsBody(name: s.commodity(c), chg: '\u0000', price: priceText(quote?.price ?? 0), unit: s.unitOf(c));
     return Container(
       key: const Key('big-news'),
       padding: const EdgeInsets.all(12),
@@ -646,7 +643,19 @@ class _BigNews extends StatelessWidget {
                       border: Border.all(color: AppColors.ink, width: 2),
                       borderRadius: const BorderRadius.all(AppRadii.r16),
                     ),
-                    child: AppIcon(c.wire, size: 34),
+                    // 全部商品：三種商品的圖示（上兩個、下一個，.bn-ic.all）
+                    child: c == null
+                        ? const Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [AppIcon('milk', size: 22), SizedBox(width: 2), AppIcon('beef', size: 22)],
+                              ),
+                              AppIcon('rice', size: 22),
+                            ],
+                          )
+                        : AppIcon(c.wire, size: 34),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
