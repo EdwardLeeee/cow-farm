@@ -358,7 +358,7 @@ app 怎麼顯示：
 | `can_breed` | bool | 現在能配種（成年、沒配過、不在田裡、沒上架） |
 | `can_ship` | bool | 現在能出貨（成年、不在田裡、沒上架） |
 | `can_work` | bool | 現在能下田（成年耕牛、不在田裡、沒上架） |
-| `rice_per_h` | number | 耕牛在田裡時每小時產稻米（公斤；其他牛 0） |
+| `rice_per_h` | number | 耕牛**下田的話**每小時產的稻米（公斤，已乘稀有度和年齡曲線）。不管現在有沒有下田都給這個值：S04-06「耕田 11 公斤稻米／時」直接用。派下田以後，那塊田的 `fields[].per_hour` 是同一個數字（這裡取到小數 2 位、`per_hour` 取到 6 位）。耕牛小牛（還沒到 `adult_at`）和其他牛是 0 |
 | `grade_probs` | object／null | 現在出貨評到 A／B／C 的精確機率；小牛 null |
 | `origin` | string／null | 來源 `start` 開局、`A`／`B`／`C` 商店等級、`breed` 自己配種、`stud` 借種 |
 | `stud_fee` | object／null | PR 6：成年、沒配過種的公牛現在的借種費（1.6 節，上架前就先算好給 S04-04）；其他牛 null |
@@ -1052,3 +1052,4 @@ app 啟動時先打這個（還沒有 token 也能打），再決定要不要顯
 - 2026-10-02：2.3 節 `warehouse.beef_lots[]` 加 `breed`（出貨那頭牛的品種代號，S05-02「荷斯坦 #4 出貨」用；之前出貨的批次是 `null`）。存檔格式不變。
 - 2026-10-02：2.3 節 state 加 `economy`（`tier_mult`、`beef_grade_mult`、`ox_rice_per_h`，S05、S09 的倍數用；直接讀 params）。
 - 2026-10-02：2.3 節 `upgrades.bucket`、`warehouse`、`fresh` 加 `max`（最高等級；S10「第 1 / 4 級」用）。
+- 2026-10-02：2.3 節 `cows[].rice_per_h` 寫清楚：成年耕牛不管有沒有下田，都是「下田的話」每小時的產量（伺服器本來就這樣算，程式不變）。
