@@ -824,3 +824,8 @@
   .btn:not([disabled]):not(.disabled):active, button.card:not([disabled]):active, .icon-btn:not([disabled]):active, .gear:active, .pen-pill:active,
   .pick:not([disabled]):active, .dex-cell:active, .dock-toggle:active .dt-pill { background-image: linear-gradient(var(--press), var(--press)); }
 }
+
+/* 出貨評級的大框：字放不下時 kit.js 的 fitGrade() 把字包起來整組縮小（英文；繁中、泰文不會變） */
+.grade-big .gb-fit { display: inline-flex; align-items: baseline; }
+/* 借種紀錄：牧場名是很長、中間沒有空白的英文字時，可以在任何字母之間換行，不蓋到右邊的金額（5-1，ceo 2026-10-02；繁中不會變） */
+.log-row .grow { min-width: 0; overflow-wrap: anywhere; }

@@ -103,15 +103,21 @@ export function ranchPage(ctx, o = {}) {
   return frame(dev, { tab: 'ranch', scene: sc.svg, body, hud: o.hud || {}, overlays: over + (o.overlays || ''), offline: o.offline });
 }
 
+// 牛的狀態標籤：小牛、老牛、工作中、上架中、已配種（牛舍清單和點牛的名片都用這個）
+export function statusChips(c) {
+  const out = [];
+  if (c.age === 'calf') out.push(badge('calf', t('stageCalf')));
+  if (c.age === 'old') out.push(badge('old', t('stageOld')));
+  if (c.field != null) out.push(badge('working', t('badgeWorking')));
+  if (c.listed) out.push(badge('listed', t('badgeListed')));
+  if (c.bred) out.push(badge('bred', t('badgeBred')));
+  return out;
+}
+
 // 牛舍清單的一列
 export function cowListRow(c) {
   const b = BREEDS[c.breed], tier = tierOf(b), sep = t('g.sep');
-  const chips = [useChip(b.use), `<span class="use">${sexText(c.sex)}</span>`, tierChip(tier)];
-  if (c.age === 'calf') chips.push(badge('calf', t('stageCalf')));
-  if (c.age === 'old') chips.push(badge('old', t('stageOld')));
-  if (c.field != null) chips.push(badge('working', t('badgeWorking')));
-  if (c.listed) chips.push(badge('listed', t('badgeListed')));
-  if (c.bred) chips.push(badge('bred', t('badgeBred')));
+  const chips = [useChip(b.use), `<span class="use">${sexText(c.sex)}</span>`, tierChip(tier), ...statusChips(c)];
   let meta;
   if (c.age === 'calf') meta = t('growUp', { v: dur(c.grow_) });
   else if (c.field != null) meta = t('s03.metaField', { n: c.field + 1, rate: c.rice });
@@ -145,21 +151,22 @@ full('S03-04', '倉庫滿了只收一部分', (ctx) => ranchPage(ctx, {
 
 part('S03-05', '奶桶是 0：收奶鈕停用', '.bucket-card', (ctx) => ranchPage(ctx, { dock: { bucket: { qty: 0 } } }));
 
-full('S03-06', '點一頭牛：轉正面、跳出小名片', (ctx) => {
-  const c = COWS.find((x) => x.id === 12);
-  return ranchPage(ctx, {
-    herd: HERD.map((h) => (h.id === 12 ? { ...h, pose: 'front' } : h)),
-    pop: { id: 12, html: `<div class="name">${cowName(c)}</div><div class="chips" style="margin-top:4px">${useChip('dairy')}<span class="use">${sexName('cow')}</span>${tierChip(3)}</div><div class="meta">${t('s03.popMilk', { tier: tierName(3), n: 14 })}</div>${btn(t('s03.popDetail'), { small: true, block: true, kind: 'primary' })}` },
-  });
-});
+// 點牛的小名片：品種＋編號、用途、公母、稀有度、狀態標籤（scope.md S03-06；ceo 2026-10-02 補狀態）。
+// 下面那一行：產奶的母乳牛寫產奶，小牛寫長大還要，其他寫體重
+export function popHtml(c) {
+  const b = BREEDS[c.breed], tier = tierOf(b);
+  const chips = [useChip(b.use), `<span class="use">${sexName(c.sex)}</span>`, tierChip(tier), ...statusChips(c)];
+  const meta = c.age === 'calf' ? t('growUp', { v: dur(c.grow_) }) : b.use === 'dairy' && c.sex === 'cow' ? t('s03.popMilk', { tier: tierName(tier), n: c.milk }) : t('weight', { v: c.kg });
+  return `<div class="name">${cowName(c)}</div><div class="chips" style="margin-top:4px">${chips.join('')}</div><div class="meta">${meta}</div>${btn(t('s03.popDetail'), { small: true, block: true, kind: 'primary' })}`;
+}
+full('S03-06', '點一頭牛：轉正面、跳出小名片', (ctx) => ranchPage(ctx, {
+  herd: HERD.map((h) => (h.id === 12 ? { ...h, pose: 'front' } : h)),
+  pop: { id: 12, html: popHtml(COWS.find((x) => x.id === 12)) },
+}));
 
 // ---------- 點後排的牛：名片的位置（使用者 2026-10-02 核准「放到牛的下面」；合成時另外出一張「名片位置-狀態表」） ----------
 // 名片平常在頭頂上方 14、尖角朝下；上面放不下（名片上緣會碰到頂列：頂列下緣再留 6）就放到牛的下面（腳下 14）、尖角朝上
-const bullPop = (id) => {
-  const c = COWS.find((x) => x.id === id), b = BREEDS[c.breed];
-  return `<div class="name">${cowName(c)}</div><div class="chips" style="margin-top:4px">${useChip(b.use)}<span class="use">${sexName('bull')}</span>${tierChip(tierOf(b))}</div><div class="meta">${t('weight', { v: c.kg })}</div>${btn(t('s03.popDetail'), { small: true, block: true, kind: 'primary' })}`;
-};
-const tapBack = (ctx, id, noflip = false) => ranchPage(ctx, { herd: HERD.map((h) => (h.id === id ? { ...h, pose: 'front' } : h)), pop: { id, html: bullPop(id), noflip } });
+const tapBack = (ctx, id, noflip = false) => ranchPage(ctx, { herd: HERD.map((h) => (h.id === id ? { ...h, pose: 'front' } : h)), pop: { id, html: popHtml(COWS.find((x) => x.id === id)), noflip } });
 const popDraft = (id, name, render, x = {}) => part(id, name, '.phone', render, { board: '名片位置-狀態表', ...x });
 // S03-19 只是對照（舊的放法），留在狀態表上；只有繁中，不列進 scope.md 的頁面表格
 popDraft('S03-19', '點後排的牛：照原本的放法（頭頂上方），會蓋到頂列、跑馬燈和牛欄膠囊（只是對照）', (ctx) => tapBack(ctx, 14, true), { zhOnly: true });

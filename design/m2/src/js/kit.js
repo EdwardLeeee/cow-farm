@@ -115,6 +115,26 @@ export function placeCowPop(root) {
   return n;
 }
 
+// 出貨評級的大框（S20、A-10）：字放不下（框 116 寬，左右各留 6）時，整組等比例縮小，跟 app 的 FittedBox 一樣（ceo 2026-10-02，cow-app #85 量到英文「Grade B」蓋到框線）。
+// 繁中「A 級」、泰文「เกรด A」放得下，不會變
+export function fitGrade(root) {
+  let n = 0;
+  root.querySelectorAll('.grade-big').forEach((g) => {
+    const kids = [...g.children];
+    if (!kids.length) return;
+    const rs = kids.map((k) => k.getBoundingClientRect());
+    const wNow = Math.max(...rs.map((r) => r.right)) - Math.min(...rs.map((r) => r.left)), avail = g.clientWidth - 12;
+    if (wNow <= avail + 0.5) return;
+    const s = document.createElement('span');
+    s.className = 'gb-fit';
+    kids.forEach((k) => s.appendChild(k));
+    g.appendChild(s);
+    s.style.zoom = String(avail / s.offsetWidth);
+    n++;
+  });
+  return n;
+}
+
 // 開場（S01）的版本號一律在框的下面（ceo 2026-10-02，跟 app #61 一樣）：平常在最下面（安全區上面 12 px）；
 // 框太高、版本號會被蓋住時，接在框下面 12 px，整頁變長、可以往下捲，多出來的部分是草地。
 export function placeVersion(root) {

@@ -1,5 +1,5 @@
 // 路由：?id=S03-02&w=390 畫一個狀態；?list=1 列出全部狀態給出圖腳本；?lang=en｜th 換語言（預設繁中）。
-import { applyDevice, fitTitles, fitOriginTags, placeVersion, fitSwipeHint, fitMiniLines, placeCowPop } from './kit.js';
+import { applyDevice, fitTitles, fitOriginTags, placeVersion, fitSwipeHint, fitMiniLines, placeCowPop, fitGrade } from './kit.js';
 import { loadLang } from './i18n.js';
 
 const q = new URLSearchParams(location.search);
@@ -27,6 +27,7 @@ if (q.has('anim')) {
   window.__frame = async (t) => { a.frame(app, t, ctx); await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))); };
   window.__animMeta = { id: a.id, name: a.name, dur: a.dur, keys: a.keys, reduced: a.reduced, where: a.where, gifDpr: a.gifDpr || 1, loop: !!a.loop };
   await settle();
+  if (fitGrade(app)) await settle(); // 評級框放不下就整組縮小（A-10；繁中、泰文不會變）
   await window.__frame(0);
   window.__ready = true;
 } else if (q.has('list')) {
@@ -45,6 +46,7 @@ if (q.has('anim')) {
   if (fitOriginTags(app) + placeVersion(app)) await settle(); // 大圖的來源標籤不蓋到牛頭；開場的版本號不被框蓋住（繁中 430、390 不會變）
   if (fitSwipeHint(app) + fitMiniLines(app)) await settle(); // 牧場的滑動提示放不下就換行；小卡一行放不下就把左邊縮小（繁中不會變）
   if (placeCowPop(app)) await settle(); // 點後排的牛：名片上面放不下就放到牛的下面（前排的牛不變）
+  if (fitGrade(app)) await settle(); // 出貨評級的大框：字放不下就整組縮小（英文；繁中、泰文不會變）
   if (st.type === 'sheet') {
     document.body.style.background = '#FFF9EF';
     window.__size = { w: st.viewport.w, h: Math.ceil(app.scrollHeight) };
