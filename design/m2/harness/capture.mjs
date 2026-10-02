@@ -52,16 +52,17 @@ export function measure(terms = []) {
     rs.forEach((r) => { if (r.top > bottom - Math.min(4, r.height * 0.4)) { lines++; bottom = r.bottom; } else bottom = Math.max(bottom, r.bottom); });
     return { el, text: el.textContent.trim().replace(/\s+/g, ' ').slice(0, 40), fontSize: parseFloat(cs.fontSize), lines, nowrap: cs.whiteSpace === 'nowrap' || el.hasAttribute('data-oneline'), rect: rg.getBoundingClientRect() };
   });
-  // 捲動區（.content）外面的字：捲出畫面了，看不到，不算版面問題
+  // 捲動區（.content；開場頁變長可以捲時是 [data-scroll]，kit.js 的 placeVersion）外面的字：捲出畫面了，看不到，不算版面問題
+  const SCROLL = '.content, [data-scroll]';
   const outOfView = (el, r) => {
-    const c = el.closest('.content'); if (!c || getComputedStyle(c).overflowY === 'visible') return false;
+    const c = el.closest(SCROLL); if (!c || getComputedStyle(c).overflowY === 'visible') return false;
     const cr = c.getBoundingClientRect(); return r.bottom <= cr.top + 1 || r.top >= cr.bottom - 1;
   };
   const hiddenTexts = texts.filter((t) => outOfView(t.el, t.rect));
   const shown = texts.filter((t) => !outOfView(t.el, t.rect));
   // 看得到的那一塊：在捲動區裡的字，只算捲動區範圍內的部分
   const visRect = (el, r) => {
-    const c = el.closest('.content'); if (!c || getComputedStyle(c).overflowY === 'visible') return r;
+    const c = el.closest(SCROLL); if (!c || getComputedStyle(c).overflowY === 'visible') return r;
     const cr = c.getBoundingClientRect();
     const top = Math.max(r.top, cr.top), bottom = Math.min(r.bottom, cr.bottom);
     return { left: r.left, right: r.right, top, bottom, width: r.width, height: Math.max(0, bottom - top) };
@@ -83,7 +84,7 @@ export function measure(terms = []) {
         if (r.left < ar.left - 0.5 || r.right > ar.right + 0.5 || r.top < ar.top - 0.5 || r.bottom > ar.bottom + 0.5) {
           if (getComputedStyle(a).textOverflow === 'ellipsis' || (getComputedStyle(t.el).textOverflow === 'ellipsis' && a === t.el.parentElement)) { if (!truncated.includes(t.text)) truncated.push(t.text); break; }
           // 可以捲動的內容區：底下被切到只是「要往下捲才看得到」，另外記
-          if (a.classList.contains('content') && r.left >= ar.left - 0.5 && r.right <= ar.right + 0.5) belowFold.push(t.text);
+          if (a.matches(SCROLL) && r.left >= ar.left - 0.5 && r.right <= ar.right + 0.5) belowFold.push(t.text);
           else clipped.push({ text: t.text, by: String(a.className).slice(0, 40) });
           break;
         }
@@ -170,7 +171,7 @@ export function measure(terms = []) {
   const rectOf = memo((e) => e.getBoundingClientRect());
   const inOvl = memo((e) => !!e.closest(OVL));
   const inScene = memo((e) => !!e.closest('.scene'));
-  const scroller = memo((e) => { const c = e.closest('.content'); return c && getComputedStyle(c).overflowY !== 'visible' ? c : null; });
+  const scroller = memo((e) => { const c = e.closest(SCROLL); return c && getComputedStyle(c).overflowY !== 'visible' ? c : null; });
   const holds = (o, r) => o.left <= r.left + 1 && o.right >= r.right - 1 && o.top <= r.top + 1 && o.bottom >= r.bottom - 1;
   const cls = (e) => (e && e.getAttribute && e.getAttribute('class') ? '.' + e.getAttribute('class').trim().split(/\s+/)[0] : '');
   const what = (e) => { const p = picOf(e) || e; return `${p.tagName.toLowerCase()}${cls(p) || (cls(p.parentElement) ? '（在 ' + cls(p.parentElement) + ' 裡）' : '')}`.slice(0, 40); };

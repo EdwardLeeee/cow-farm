@@ -1,5 +1,5 @@
 // 路由：?id=S03-02&w=390 畫一個狀態；?list=1 列出全部狀態給出圖腳本；?lang=en｜th 換語言（預設繁中）。
-import { applyDevice, fitTitles } from './kit.js';
+import { applyDevice, fitTitles, fitOriginTags, placeVersion } from './kit.js';
 import { loadLang } from './i18n.js';
 
 const q = new URLSearchParams(location.search);
@@ -42,6 +42,7 @@ if (q.has('anim')) {
   if (out && out.after) await out.after(app, dev);
   await settle();
   if (fitTitles(app)) await settle(); // 大標題一行放不下就縮小（英文、泰文；繁中不會變）
+  if (fitOriginTags(app) + placeVersion(app)) await settle(); // 大圖的來源標籤不蓋到牛頭；開場的版本號不被框蓋住（繁中 430、390 不會變）
   if (st.type === 'sheet') {
     document.body.style.background = '#FFF9EF';
     window.__size = { w: st.viewport.w, h: Math.ceil(app.scrollHeight) };
