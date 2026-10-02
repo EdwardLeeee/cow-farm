@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 from starlette.websockets import WebSocketDisconnect
 
@@ -225,6 +227,10 @@ def test_delete_is_soft_and_leaves_no_personal_data(env):
     pid = a["player_id"]
     assert link(h, a["token"], "apple", "a-600", code="c6").status_code == 200
     assert link(h, a["token"], "google", "g-600").status_code == 200
+    # 先在「另一支手機」找回一次：原本的 token 變成 signed_in_elsewhere
+    old_token = a["token"]
+    a = {**a, "token": recover(h, "google", "g-600").json()["token"]}
+    err(h.get("/v1/state", old_token), 401, "signed_in_elsewhere")
     # 先留一些跟他有關的東西：上架、別人跟他借種、request_id 記錄
     h.advance(OB.starter_calf_remaining_s)
     bull = next(c for c in state(h, a["token"])["cows"] if c["bull"])
@@ -234,8 +240,10 @@ def test_delete_is_soft_and_leaves_no_personal_data(env):
     dam = next(c for c in state(h, b["token"])["cows"] if not c["bull"])
     borrow = {"listing_id": lst["id"], "dam": dam["id"], "price": lst["fee"]["price"], "request_id": new_rid()}
     assert h.post("/v1/stud/borrow", b["token"], borrow).status_code == 200
-    bull2 = h.post("/v1/collect", a["token"], {"request_id": new_rid()})
-    assert bull2.status_code == 200
+    assert h.post("/v1/collect", a["token"], {"request_id": new_rid()}).status_code == 200
+    milk = state(h, a["token"])["warehouse"]["milk_total"]
+    sold = h.post("/v1/sell", a["token"], {"commodity": "milk", "qty": milk, "request_id": new_rid()})
+    assert sold.status_code == 200, sold.text
     n_before = h.get("/v1/leaderboard", b["token"], kind="networth").json()["total"]
     # 刪除（帶 request_id）；回應掉了重送拿到同一個回應，不是 401
     rid = new_rid()
@@ -244,6 +252,7 @@ def test_delete_is_soft_and_leaves_no_personal_data(env):
     assert h.post("/v1/account/delete", a["token"], {"request_id": rid}).json() == r.json()
     err(h.get("/v1/state", a["token"]), 401, "unauthorized")
     err(h.post("/v1/account/delete", a["token"], {}), 401, "unauthorized")
+    err(h.get("/v1/state", old_token), 401, "unauthorized")  # 牧場刪了，更早那支手機也改回 unauthorized（5.7 節）
     # 空殼：只有編號和時間
     row = q(h, "SELECT * FROM players WHERE id=$1", pid)[0]
     assert row["ranch_name"] == "" and row["token_sha256"] is None and row["deleted_at"] is not None
@@ -252,6 +261,8 @@ def test_delete_is_soft_and_leaves_no_personal_data(env):
     assert not q(h, "SELECT 1 FROM stud_log WHERE lender_id=$1 OR borrower_id=$1", pid)
     text = db_text(h)
     assert NAME not in text and "a-600" not in text and "g-600" not in text and EMAIL not in text
+    # 設計如此：市場的成交紀錄留著（行情重算要用），連到的是只有編號的空殼，沒有個資
+    assert q(h, "SELECT 1 FROM trades WHERE player_id=$1", pid)
     # 任何畫面都看不到他：排行榜、借種市場；別人的借種紀錄顯示「已刪除的牧場」
     lb = h.get("/v1/leaderboard", b["token"], kind="networth").json()
     assert lb["total"] == n_before - 1 and pid not in {x["ranch"]["player_id"] for x in lb["entries"]}
@@ -264,6 +275,19 @@ def test_delete_is_soft_and_leaves_no_personal_data(env):
     # 同一個 Apple 帳號可以再綁新的牧場
     c = h.session("新的牧場")
     assert link(h, c["token"], "apple", "a-600", code="c7").status_code == 200
+
+
+def test_revocation_queue_runs_one_at_a_time(env):
+    """撤銷佇列同時被叫好幾次（解除、刪除後的背景那份＋定期那份）：同一筆只向 Apple 撤銷一次。
+    直接放進佇列（不經過解除），才不會被背景那份先處理掉、測不到同時跑的情況。"""
+    h, apple = env
+    h.client.portal.call(h.server.store.enqueue_revocation, h.server.accounts.cipher.encrypt("refresh-c51"))
+
+    async def three_at_once():
+        return await asyncio.gather(*(h.server.process_revocations() for _ in range(3)))
+
+    assert sorted(h.client.portal.call(three_at_once)) == [0, 0, 1]
+    assert apple.revoked == ["refresh-c51"] and not q(h, "SELECT * FROM apple_revoke_queue")
 
 
 def test_revocation_retries(env):
@@ -280,6 +304,15 @@ def test_revocation_retries(env):
     q(h, "UPDATE apple_revoke_queue SET next_try_at = now()")
     assert h.client.portal.call(h.server.process_revocations) == 1
     assert apple.revoked == ["refresh-c8"] and not q(h, "SELECT * FROM apple_revoke_queue")
+
+
+def test_delete_without_body(env):
+    """有些 HTTP 用戶端 POST 時完全不帶本文：刪除照樣成功（不是 400）。"""
+    h, _apple = env
+    tok = h.session()["token"]
+    r = h.client.post("/v1/account/delete", headers=h.auth(tok))
+    assert r.status_code == 200 and r.json()["deleted"] is True, r.text
+    err(h.get("/v1/state", tok), 401, "unauthorized")
 
 
 def test_deleted_ids_are_not_reused(db_dsn):

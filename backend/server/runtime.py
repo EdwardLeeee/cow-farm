@@ -225,6 +225,9 @@ class GameServer:
         self.ws: Dict[Any, int] = {}  # WebSocket → player_id
         self.last_seen: Dict[int, float] = {}  # player_id → 最後一次請求的現實時間
         self.tasks: List[asyncio.Task] = []
+        # 不等結果的背景工作（撤銷佇列、重讀維護狀態）。事件迴圈對 task 只留弱參照，這裡拿著才不會跑到一半被回收；關機時一起取消
+        self.bg_tasks: Set[asyncio.Task] = set()
+        self.revoke_lock = asyncio.Lock()  # 撤銷佇列同時只跑一份：不然兩份會讀到同一筆、向 Apple 撤銷兩次
         self.stats = {"ticks": 0, "bot_actions": 0, "errors": 0, "tick_lag_s": 0.0, "started_real": time.time()}
         self._lb_cache: Dict[str, Tuple[float, list]] = {}
         self.fingerprint = DEFAULT.fingerprint()
@@ -272,14 +275,16 @@ class GameServer:
             self.tasks.append(asyncio.create_task(self.process_revocations(), name="revoke"))
 
     async def stop(self) -> None:
-        for t in self.tasks:
+        tasks = self.tasks + list(self.bg_tasks)
+        for t in tasks:
             t.cancel()
-        for t in self.tasks:
+        for t in tasks:
             try:
                 await t
             except (asyncio.CancelledError, Exception):  # noqa: BLE001
                 pass
         self.tasks = []
+        self.bg_tasks.clear()
         for ws in list(self.ws):
             try:
                 await ws.close(code=1001)
@@ -554,7 +559,10 @@ class GameServer:
         return ident
 
     async def link_account(self, p: Player, provider: str, id_token, nonce, code) -> dict:
-        """綁定（協定 5.2 節）。Apple 要用 authorization code 換 refresh token（網路），在鎖外面換，換完再檢查一次。"""
+        """綁定（協定 5.2 節）。
+
+        Apple 要用 authorization code 換 refresh token（網路呼叫，最慢可能 15 秒）。不能在 write_lock 裡換：鎖住的時候
+        所有玩家的動作都要排隊。所以分三段：鎖裡檢查 → 鎖外換 → 鎖裡再檢查一次才寫入（中間可能有人先綁走）。"""
         ident = await self._verify(provider, id_token, nonce)
         key = (provider, ident.subject)
 
@@ -605,8 +613,11 @@ class GameServer:
                 done = check()
             except GameError:
                 if enc is not None:  # 換到了卻用不上：撤銷，不留 Apple 的授權
-                    await self.store.enqueue_revocation(enc)
-                    asyncio.ensure_future(self.process_revocations())
+                    try:
+                        await self.store.enqueue_revocation(enc)
+                        self._spawn(self.process_revocations())
+                    except Exception:  # noqa: BLE001  佇列寫不進去也要回原本的錯誤（409），不要變成 500
+                        log.exception("Apple refresh token 放進撤銷佇列失敗")
                 raise
             if not done:
                 linked_at = time.time()
@@ -627,7 +638,7 @@ class GameServer:
             del links[provider]
             for k in [k for k, v in self.link_owner.items() if v == p.pid and k[0] == provider]:
                 del self.link_owner[k]
-        asyncio.ensure_future(self.process_revocations())
+        self._spawn(self.process_revocations())
         return {"account": self.account_view(p.pid)}
 
     def _new_token(self) -> Tuple[str, bytes]:
@@ -692,7 +703,7 @@ class GameServer:
                 raise
             self._remove_player_memory(p)
         await self._close_player_ws(p.pid, "unauthorized", "牧場已經刪除")
-        asyncio.ensure_future(self.process_revocations())
+        self._spawn(self.process_revocations())
 
     async def switch_ranch(self, p: Player, ticket_code) -> Tuple[str, Player]:
         """換回那個牧場（協定 5.3 節）：刪除現在的牧場、發新登入憑證給那個牧場，同一個資料庫交易。"""
@@ -717,7 +728,7 @@ class GameServer:
             self._apply_rotation(target, th)
         await self._close_player_ws(p.pid, "unauthorized", "牧場已經刪除")
         await self._close_player_ws(target.pid, "signed_in_elsewhere", "這個牧場已經在另一支手機登入")
-        asyncio.ensure_future(self.process_revocations())
+        self._spawn(self.process_revocations())
         return token, target
 
     async def _close_player_ws(self, pid: int, code: str, message: str) -> None:
@@ -732,9 +743,19 @@ class GameServer:
                 pass
             self.ws.pop(ws, None)
 
+    def _spawn(self, coro) -> None:
+        """在背景跑，不等結果（見 bg_tasks）。"""
+        t = asyncio.get_running_loop().create_task(coro)
+        self.bg_tasks.add(t)
+        t.add_done_callback(self.bg_tasks.discard)
+
     async def process_revocations(self) -> int:
         """撤銷佇列（Apple 的 refresh token）：試一次，成功就刪，失敗延後重試（1 分鐘起、每次加倍、最多 1 小時）。
         TN3194：拿不到 token 也要完成刪除；這裡只是盡量讓 Apple 那邊也解除。回傳這次成功幾筆。"""
+        async with self.revoke_lock:
+            return await self._process_revocations()
+
+    async def _process_revocations(self) -> int:
         ok = 0
         try:
             rows = await self.store.revocations_due()
@@ -1029,7 +1050,7 @@ class GameServer:
     # ------------------------------------------------------------------ 維護
     def _on_admin_notify(self, _conn, _pid, _channel, payload) -> None:
         if payload == "maintenance":
-            asyncio.ensure_future(self.reload_maintenance())
+            self._spawn(self.reload_maintenance())
 
     def maintenance_view(self) -> Optional[dict]:
         """協定 6.1 節的 maintenance 物件；沒有安排維護是 None。開始時間到了就算維護中，直到腳本結束它

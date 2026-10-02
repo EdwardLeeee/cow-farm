@@ -77,7 +77,7 @@ class JwksVerifier:
         apple_client_ids: Sequence[str] = (),
         google_client_ids: Sequence[str] = (),
         jwk_clients: Optional[Dict[str, Any]] = None,
-        leeway_s: float = 30.0,
+        leeway_s: float = 30.0,  # 主機時間跟 Apple／Google 差 30 秒以內都接受（文件沒規定；PyJWT 預設 0）
     ):
         self.audiences = {"apple": tuple(apple_client_ids), "google": tuple(google_client_ids)}
         self.issuers = {"apple": (APPLE_ISSUER,), "google": GOOGLE_ISSUERS}
