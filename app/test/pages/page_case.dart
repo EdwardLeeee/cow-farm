@@ -14,6 +14,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 's01_s02_cases.dart';
 import 's03_cases.dart';
+import 's04_cases.dart';
 import 's05_cases.dart';
 import 's06_cases.dart';
 import 's19_cases.dart';
@@ -66,7 +67,16 @@ class PageCase {
 }
 
 /// 全部的頁面狀態。第 4 步每做好一組畫面，就把它的狀態加進來，並從 pages_test.dart 的待做清單拿掉。
-final List<PageCase> pageCases = [...startCases, ...s03Cases, ...s05Cases, ...s06Cases, ...s19Cases];
+final List<PageCase> pageCases = [
+  ...startCases,
+  ...s03Cases,
+  ...s04Cases,
+  ...s05Cases,
+  ...s06Cases,
+  ...s07Cases,
+  ...s19Cases,
+  ...s20Cases,
+];
 
 /// 載入 app 內建的字型和牛的圖的量測（cows.json）。測試環境預設不載字型，字會畫成方塊，量不準寬度，也看不出泰文怎麼斷行。
 Future<void> loadAppAssets() async {

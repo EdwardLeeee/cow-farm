@@ -16,6 +16,7 @@ import '../kit/cow_art.dart';
 import '../kit/cow_bits.dart';
 import '../kit/frame.dart';
 import '../kit/kit.dart';
+import '../kit/note_line.dart';
 import '../kit/press.dart';
 import '../widgets/action_button.dart';
 import '../widgets/ticker_builder.dart';
@@ -270,42 +271,6 @@ class SegControl extends StatelessWidget {
       ],
     ),
   );
-}
-
-enum NoteKind { info, warn }
-
-/// .rule-line.shop-rule（藍底，說明）、.note-line（橘底，提醒）：圖示加一句。
-class NoteLine extends StatelessWidget {
-  const NoteLine({super.key, required this.icon, required this.text, required this.kind});
-
-  final String icon;
-  final String text;
-  final NoteKind kind;
-
-  @override
-  Widget build(BuildContext context) {
-    final info = kind == NoteKind.info;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: info ? const Color(0xFFEAF5FF) : const Color(0xFFFFF1DC),
-        border: Border.all(color: info ? const Color(0xFFA9D2F2) : const Color(0xFFF3C98F), width: 2),
-        borderRadius: const BorderRadius.all(AppRadii.r12),
-      ),
-      child: Row(
-        children: [
-          AppIcon(icon, size: 18),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              text,
-              style: info ? AppText.style(13, weight: FontWeight.w900, lineHeight: 18) : KitText.warn(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 /// .grade-card：等級、說明、價格鈕；下面是用途、公母、稀有度的機率（伺服器給的）。

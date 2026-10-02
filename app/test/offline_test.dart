@@ -5,9 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'fakes.dart';
 
-FilledButton _btn(WidgetTester tester, String key) =>
-    tester.widget<FilledButton>(find.descendant(of: find.byKey(Key(key)), matching: find.byType(FilledButton)));
-
 void main() {
   testWidgets('斷線：頂列顯示「連線中…」，所有按鈕停用；連回來恢復', (tester) async {
     final (m, api, push) = await loadedModel(connected: false);
@@ -56,11 +53,8 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key('cow-1')));
     await tester.pump();
-    expect(_btn(tester, 'detail-ship').onPressed, isNull);
-    final breedBtn = tester.widget<OutlinedButton>(
-      find.descendant(of: find.byKey(const Key('detail-breed')), matching: find.byType(OutlinedButton)),
-    );
-    expect(breedBtn.onPressed, isNull);
+    expect(tester.widget<AppButton>(find.byKey(const Key('detail-ship'))).onPressed, isNull);
+    expect(tester.widget<AppButton>(find.byKey(const Key('detail-breed'))).onPressed, isNull);
 
     // 市場（S06）：確認賣出、¼½全部都停用
     await tester.tap(find.byKey(const Key('tab-market')));
