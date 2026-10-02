@@ -198,6 +198,21 @@ void main() {
     });
   }
 
+  testWidgets('借種紀錄的返回鈕：無障礙只讀「返回」，標題不併進按鈕（walk.cjs 在 8790 看到併成一顆）', (tester) async {
+    Screen.w430.apply(tester);
+    final semantics = tester.ensureSemantics();
+    await showStud(tester, AppLang.zhHant);
+    await tapStud(tester, find.byKey(const Key('stud-log-link')));
+    await tester.pump();
+    expect(
+      tester.getSemantics(find.byKey(const Key('btn-back'))),
+      isSemantics(label: _zh.back, isButton: true, hasTapAction: true),
+    );
+    // 標題和下面的小字是另一個節點（不能點）
+    expect(find.bySemanticsLabel(RegExp('^${_zh.s18LogTitle}\n')), findsOneWidget);
+    semantics.dispose();
+  });
+
   testWidgets('公牛被借走時，WebSocket 通知顯示一則提示並重抓 state（G-05）', (tester) async {
     final (m, api, push) = await loadedModel();
     await pumpApp(tester, m);
