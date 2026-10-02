@@ -38,6 +38,14 @@ enum ButtonKind {
   final Color color;
 }
 
+/// .hero-bg：大圖卡的天空草地（上 62% 天空、下面草地）。牛的詳細（S04）、圖鑑的品種（S09）用。
+const kHeroGradient = LinearGradient(
+  begin: Alignment.topCenter,
+  end: Alignment.bottomCenter,
+  colors: [Color(0xFFBFE6FF), Color(0xFFE4F6FF), Color(0xFFCDEFB4), Color(0xFFBDEBA4)],
+  stops: [0, 0.62, 0.625, 1],
+);
+
 /// 一般 div 的一行（16px、行高 normal = 19 + 5）：裡面的粗體字比較小時，行高還是照 div 的（CSS 的 strut）。
 const kDivStrut = StrutStyle(fontFamily: AppText.family, fontSize: 16, height: 24 / 16);
 

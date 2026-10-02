@@ -18,11 +18,6 @@ const pendingPageIds = {
   'S03-23',
   'S03-24',
   'S06-17',
-  'S09-01',
-  'S09-02',
-  'S09-03',
-  'S09-04',
-  'S09-05',
   'S11-03',
   'S11-05',
   'S12-01',
@@ -76,6 +71,12 @@ const pendingPageIds = {
   'A-12',
 };
 
+/// scope.md 裡不是 app 畫面的頁面 ID：沒有畫面狀態，也不會做（ceo 2026-10-03）。
+const notAppPageIds = {
+  // 1320 寬的 24 種全圖，給使用者核准外型用；牛的外型已由 cow_assets_test 的雜湊防漂移
+  'S09-05',
+};
+
 /// scope.md 表格裡的頁面 ID（每列第一欄）。
 Set<String> scopePageIds() {
   final md = File('../design/m2/scope.md').readAsStringSync();
@@ -86,7 +87,7 @@ void main() {
   setUpAll(loadAppAssets);
 
   group('頁面 ID（design/m2/scope.md）', () {
-    test('每個頁面 ID 不是有畫面狀態，就是在待做清單；做好的要從清單拿掉', () {
+    test('每個頁面 ID 不是有畫面狀態，就是在待做清單（或不是 app 畫面）；做好的要從清單拿掉', () {
       final scope = scopePageIds();
       expect(scope, hasLength(199), reason: 'scope.md 改了頁面 ID：待做清單和 pageCases 要跟著改');
       final done = {for (final c in pageCases) c.id};
@@ -94,7 +95,13 @@ void main() {
       expect(done.intersection(pendingPageIds), isEmpty, reason: '做好的頁面 ID 要從待做清單拿掉');
       expect(done.difference(scope), isEmpty, reason: 'scope.md 沒有這些頁面 ID');
       expect(pendingPageIds.difference(scope), isEmpty, reason: '待做清單裡有 scope.md 沒有的頁面 ID');
-      expect(scope.difference(done).difference(pendingPageIds), isEmpty, reason: '沒有畫面狀態、也不在待做清單');
+      expect(done.intersection(notAppPageIds), isEmpty, reason: '不是 app 畫面的頁面 ID 不會有畫面狀態');
+      expect(notAppPageIds.difference(scope), isEmpty, reason: '不是 app 畫面的清單裡有 scope.md 沒有的頁面 ID');
+      expect(
+        scope.difference(done).difference(pendingPageIds).difference(notAppPageIds),
+        isEmpty,
+        reason: '沒有畫面狀態、也不在待做清單',
+      );
     });
 
     test('手機尺寸和安全區跟設計稿 kit.js 的 DEVICES 一樣', () {

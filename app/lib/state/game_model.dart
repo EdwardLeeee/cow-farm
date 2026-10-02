@@ -184,6 +184,12 @@ class GameModel extends ChangeNotifier {
   /// 借種分頁按「借種紀錄」開的紀錄頁（S18-11）。
   bool studLogOpen = false;
 
+  /// 紀錄頁顯示「排行榜」（S12）還是「圖鑑」（S09）。
+  bool recordsRank = false;
+
+  /// 圖鑑打開的品種（S09-03、S09-04）；null 是列表。
+  String? codexBreed;
+
   /// 牧場場景裡每頭牛的位置：這次打開 app 期間同一頭牛一直在同一個位置（ceo 2026-10-02）。只是顯示用。
   final herdLayout = HerdLayout();
   String? detailCowKey;
@@ -670,6 +676,7 @@ class GameModel extends ChangeNotifier {
     penListOpen = false;
     warehouseOpen = false;
     studLogOpen = false;
+    codexBreed = null;
     _notify();
   }
 
@@ -718,6 +725,35 @@ class GameModel extends ChangeNotifier {
   void closeStudLog() {
     studLogOpen = false;
     _notify();
+  }
+
+  /// 紀錄頁換「圖鑑」或「排行榜」（S09、S12）。
+  void selectRecords({required bool rank}) {
+    recordsRank = rank;
+    codexBreed = null;
+    _notify();
+  }
+
+  /// 圖鑑的品種詳細（S09-03、S09-04）。
+  void openCodex(String breed) {
+    codexBreed = breed;
+    _notify();
+  }
+
+  void closeCodex() {
+    codexBreed = null;
+    _notify();
+  }
+
+  /// 遊戲時間 [t] 是手機時區的哪個時刻。現實時間用伺服器的：state 那一刻的 real_time，加上之後過了多久
+  /// （遊戲時間 ÷ 倍率）；不看手機的時鐘（還沒有 real_time 時才用）。
+  DateTime realLocalTime(double t) {
+    final st = state;
+    final scale = timeScale > 0 ? timeScale : 1;
+    final nowReal = st == null || st.realTime <= 0
+        ? DateTime.now().millisecondsSinceEpoch / 1000
+        : st.realTime + (gameNow - st.serverTime) / scale;
+    return DateTime.fromMillisecondsSinceEpoch(((nowReal - (gameNow - t) / scale) * 1000).round());
   }
 
   /// 市場換一種商品（S06）。

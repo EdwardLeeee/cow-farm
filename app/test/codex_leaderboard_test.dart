@@ -7,19 +7,34 @@ import 'package:flutter_test/flutter_test.dart';
 import 'fakes.dart';
 
 void main() {
-  testWidgets('圖鑑：24 個品種，已發現 2 種，其他顯示「？」（協定 2.3）', (tester) async {
+  testWidgets('圖鑑（S09）：24 格，已發現 2 種；點一格看品種詳細，返回鍵、返回鈕回到列表', (tester) async {
     final (m, _, _) = await loadedModel();
     await pumpApp(tester, m);
     m.selectTab(AppTab.records);
     await tester.pump();
-    expect(find.text('已發現 2 / 24'), findsOneWidget);
-    expect(find.text('？'), findsNWidgets(22));
     final zh = Strings.forLang(AppLang.zhHant);
-    expect(find.text('${zh.breedName('holstein')}\n一般'), findsOneWidget);
-    expect(find.text('${zh.breedName('highland')}\n優良'), findsOneWidget);
+    expect(find.text('2 / 24'), findsOneWidget);
+    expect(find.text(zh.breedName('holstein')), findsOneWidget);
     for (final breed in kCodexOrder) {
-      expect(find.byKey(Key('codex-$breed')), findsOneWidget);
+      expect(find.byKey(Key('codex-$breed'), skipOffstage: false), findsOneWidget, reason: breed);
     }
+
+    await tester.tap(find.byKey(const Key('codex-holstein')));
+    await tester.pump();
+    expect(m.codexBreed, 'holstein');
+    expect(find.text('No.01'), findsOneWidget);
+    // Android 的返回鍵：先關品種詳細，不是關掉 app
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+    expect(m.codexBreed, isNull);
+    expect(find.byKey(const Key('codex')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('codex-jersey')));
+    await tester.pump();
+    expect(find.text(zh.gUnknownBreed), findsOneWidget, reason: '娟珊還沒發現');
+    await tester.tap(find.byKey(const Key('btn-back')));
+    await tester.pump();
+    expect(m.codexBreed, isNull);
   });
 
   testWidgets('排行榜：三個分頁、自己的名次、電腦假玩家標「電腦」', (tester) async {

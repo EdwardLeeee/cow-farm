@@ -173,13 +173,7 @@ String logRanchText(Strings s, RanchRef? r) {
 /// 遊戲時間 [t] 換成手機時區的日期時刻：今天、昨天，或「9 月 29 日 13:05」。
 /// 現實時間用伺服器的：state 那一刻的 real_time，加上之後過了多久（遊戲時間 ÷ 倍率）；不看手機的時鐘。
 String logWhen(Strings s, GameModel m, double t) {
-  final st = m.state;
-  final scale = m.timeScale > 0 ? m.timeScale : 1;
-  final nowReal = st == null || st.realTime <= 0
-      ? DateTime.now().millisecondsSinceEpoch / 1000
-      : st.realTime + (m.gameNow - st.serverTime) / scale;
-  DateTime local(double sec) => DateTime.fromMillisecondsSinceEpoch((sec * 1000).round());
-  final now = local(nowReal), at = local(nowReal - (m.gameNow - t) / scale);
+  final now = m.realLocalTime(m.gameNow), at = m.realLocalTime(t);
   final days = calendarDaysBetween(now, at);
   return s.dateTime(today: days == 0, yesterday: days == 1, month: at.month, day: at.day, time: s.clock(at));
 }

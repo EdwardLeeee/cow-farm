@@ -198,32 +198,51 @@ class CowFace extends StatelessWidget {
 
 /// 牛的淺色剪影（設計稿 kit.js 的 cowSVG 加 sil: true）：整隻牛填 #C2B3A6，中間一個白字、深色描邊的「？」
 /// （字級是高的 0.42、基線在高的 0.62、描邊 max(1.5, 高 × 0.03)）。找不到這頭牛（S04-11）、還沒發現的品種（S08-06）用。
+/// [CowSilhouette.dark] 是深色的（sil: 'dark'，填 #2A1E1A、沒有「？」）：圖鑑還沒發現的品種（S09）。
 class CowSilhouette extends StatelessWidget {
   const CowSilhouette({
     super.key,
     required this.breed,
     this.bull = false,
     this.calf = false,
-    required this.size,
+    required double size,
     this.pad = 4,
-  });
+  }) : width = size,
+       height = size,
+       front = true,
+       dark = false;
+
+  const CowSilhouette.dark({
+    super.key,
+    required this.breed,
+    required this.width,
+    required this.height,
+    this.front = true,
+    this.pad = 4,
+  }) : bull = false,
+       calf = false,
+       dark = true;
 
   final String breed;
   final bool bull;
   final bool calf;
-  final double size;
+  final double width;
+  final double height;
+  final bool front;
   final double pad;
+  final bool dark;
 
   @override
-  Widget build(BuildContext context) => SizedBox.square(
-    dimension: size,
+  Widget build(BuildContext context) => SizedBox(
+    width: width,
+    height: height,
     child: Stack(
       children: [
         ColorFiltered(
-          colorFilter: const ColorFilter.mode(Color(0xFFC2B3A6), BlendMode.srcIn),
-          child: CowPicture(breed: breed, bull: bull, calf: calf, width: size, height: size, pad: pad),
+          colorFilter: ColorFilter.mode(dark ? const Color(0xFF2A1E1A) : const Color(0xFFC2B3A6), BlendMode.srcIn),
+          child: CowPicture(breed: breed, bull: bull, calf: calf, front: front, width: width, height: height, pad: pad),
         ),
-        Positioned.fill(child: CustomPaint(painter: _QuestionMark(size))),
+        if (!dark) Positioned.fill(child: CustomPaint(painter: _QuestionMark(height))),
       ],
     ),
   );
