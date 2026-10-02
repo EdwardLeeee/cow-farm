@@ -152,6 +152,8 @@
 .hero svg { position: relative; margin-top: 4px; }
 .origin-tag { position: absolute; left: 8px; top: 8px; font-size: 12px; font-weight: 900; background: rgba(255,255,255,0.9); border: 2px solid var(--ink); border-radius: 10px; padding: 0 7px; line-height: 18px; }
 .hero-note { position: relative; margin: 0 0 8px; background: rgba(255,255,255,0.9); border-radius: 10px; padding: 0 8px; }
+/* 來源標籤兩行還放不下（會蓋到牛頭）：改放到圖的下面、靠左（kit.js 的 fitOriginTags） */
+.origin-tag.below { position: relative; left: auto; top: auto; align-self: flex-start; margin: 2px 8px 8px; }
 .content.has-actions.rows-1 { bottom: calc(var(--safe-bottom) + var(--tab-h) + 74px); }
 .content.has-actions.rows-2 { bottom: calc(var(--safe-bottom) + var(--tab-h) + 134px); }
 .content.has-actions.rows-3 { bottom: calc(var(--safe-bottom) + var(--tab-h) + 162px); }

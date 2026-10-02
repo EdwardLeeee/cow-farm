@@ -39,6 +39,51 @@ export function fitTitles(root) {
   return n;
 }
 
+// 牛的大圖（S04，200×150、正面）左上角的來源標籤不能蓋到牛頭（ceo 2026-10-02）：
+// 24 種牛（公母、成年小牛）量過，牛頭最靠左的地方離牛圖左緣：一行標籤的高度內 42 px、兩行的高度內 38 px。
+// 1. 一行：右緣最多到「牛圖左緣 + 42 - 6」，放得下就不動（繁中 430、390 都放得下）。
+// 2. 放不下：在「來源：」後面換行（第一行「來源：」，第二行是值，不從詞的中間斷），右緣最多到「牛圖左緣 + 38 - 6」。
+// 3. 還是放不下：改放到圖的下面，一行、靠左。
+export const HERO_HEAD = { one: 42, two: 38, gap: 6 };
+export function fitOriginTags(root) {
+  let n = 0;
+  const pre = t('origin', { v: '\u0001' }).split('\u0001')[0]; // 「來源：」「From: 」「ที่มา: 」
+  root.querySelectorAll('.hero').forEach((hero) => {
+    const tag = hero.querySelector('.origin-tag'), pic = hero.querySelector(':scope > svg');
+    if (!tag || !pic) return;
+    const pl = pic.getBoundingClientRect().left, text = tag.textContent;
+    if (tag.getBoundingClientRect().right <= pl + HERO_HEAD.one - HERO_HEAD.gap + 0.5) return;
+    n++;
+    if (pre && text.startsWith(pre) && text.length > pre.length) {
+      tag.replaceChildren(pre.trim(), document.createElement('br'), text.slice(pre.length));
+      if (tag.getBoundingClientRect().right <= pl + HERO_HEAD.two - HERO_HEAD.gap + 0.5) return;
+      tag.replaceChildren(text);
+    }
+    tag.classList.add('below');
+  });
+  return n;
+}
+
+// 開場（S01）的版本號一律在框的下面（ceo 2026-10-02，跟 app #61 一樣）：平常在最下面（安全區上面 12 px）；
+// 框太高、版本號會被蓋住時，接在框下面 12 px，整頁變長、可以往下捲，多出來的部分是草地。
+export function placeVersion(root) {
+  const sp = root.querySelector('.splash'), box = sp && sp.querySelector('.splash-box'), ver = sp && sp.querySelector('.splash-ver');
+  if (!box || !ver) return 0;
+  const s = sp.getBoundingClientRect(), b = box.getBoundingClientRect(), v = ver.getBoundingClientRect();
+  if (v.top >= b.bottom + 12 - 0.5) return 0;
+  const top = b.bottom + 12 - s.top, safeBottom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom')) || 0;
+  const extra = top + v.height + 12 + safeBottom - s.height; // 整頁比畫面長多少
+  ver.style.top = `${top}px`; ver.style.bottom = 'auto';
+  if (extra > 0) {
+    sp.style.overflowX = 'hidden'; sp.style.overflowY = 'auto'; sp.dataset.scroll = ''; // 量測把它當捲動區
+    // 草地一直鋪到整頁的最下面；花草圖（原本固定 400 高）剛好切在整頁的底，不多出可以捲的空白
+    const g = sp.querySelector('.splash-ground'); if (g) g.style.bottom = `${-extra}px`;
+    const d = sp.querySelector('.splash-deco');
+    if (d) { d.setAttribute('preserveAspectRatio', 'xMidYMin slice'); d.style.height = `${s.height + extra - (d.getBoundingClientRect().top - s.top)}px`; }
+  }
+  return 1;
+}
+
 const SB_ICONS = (c = '#111114') => `
 <svg width="18" height="12" viewBox="0 0 18 12" aria-hidden="true"><g fill="${c}"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></g></svg>
 <svg width="16" height="12" viewBox="0 0 16 12" aria-hidden="true"><g fill="none" stroke="${c}" stroke-width="2" stroke-linecap="round"><path d="M1.5 4.2a9.5 9.5 0 0 1 13 0"/><path d="M4.2 7a5.6 5.6 0 0 1 7.6 0"/></g><circle cx="8" cy="10" r="1.6" fill="${c}"/></svg>
