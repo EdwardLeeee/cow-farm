@@ -64,7 +64,7 @@ export function dock(o = {}) {
     </article>
     <div class="dock-row">
       <article class="card mini storage">
-        <div class="card-head"><span class="card-title">${t('warehouseTitle')}</span><span class="cap nowrap${whFull ? ' err-text' : ''}">${whFull ? t('s03.milkFull') : t('s03.milkUsed', { pct: Math.round((milk / cap) * 100) })}</span></div>
+        <div class="card-head"><span class="card-title">${t('warehouseTitle')}</span><span class="cap nowrap">${whFull ? t('s03.milkFull') : t('s03.milkUsed', { pct: Math.round((milk / cap) * 100) })}</span></div>
         <div class="mini-line"><span class="ic">${icon('milk', 18)}</span>${t('milk')}<span class="num">${compact(milk)}</span><span class="u">${t('unitMilk')}</span>${fresh != null ? `<span class="r${fresh < 0.3 ? ' bad' : ''}">${icon(fresh < 0.3 ? 'leafBad' : fresh < 0.7 ? 'leafOld' : 'leaf', 13)}<span class="num">${Math.round(fresh * 100)}%</span></span>` : ''}</div>
         <div class="mini-line"><span class="ic">${icon('beef', 18)}</span>${t('beef')}<span class="num">${compact(beef)}</span><span class="u">${t('unitBeef')}</span></div>
         <div class="mini-line"><span class="ic">${icon('rice', 18)}</span>${t('rice')}<span class="num">${compact(rice)}</span><span class="u">${t('unitRice')}</span></div>

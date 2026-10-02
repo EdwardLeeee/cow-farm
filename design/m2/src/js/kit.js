@@ -64,6 +64,38 @@ export function fitOriginTags(root) {
   return n;
 }
 
+// 牧場第一次打開的滑動提示（S03-14）最寬到「畫面寬 − 32」；放不下一行（英文的窄手機）就把字換行、置中，
+// 提示的寬度就是「畫面寬 − 32」（跟 app 一樣，ceo 2026-10-02）。繁中放得下，不變。
+export function fitSwipeHint(root) {
+  const h = root.querySelector('.swipe-hint'), ph = root.querySelector('.phone');
+  if (!h || !ph) return 0;
+  const max = ph.getBoundingClientRect().width - 32;
+  if (h.getBoundingClientRect().width <= max + 0.5) return 0;
+  h.style.width = `${max}px`; h.style.whiteSpace = 'normal';
+  const txt = [...h.children].find((e) => e.tagName === 'SPAN' && !e.classList.contains('sh-arrow'));
+  if (txt) { txt.style.flex = '1 1 auto'; txt.style.minWidth = '0'; txt.style.textAlign = 'center'; }
+  return 1;
+}
+
+// 牧場面板小卡的一行（.mini-line）不換行；真的放不下（例：泰文 360 的最大數字）就把左邊那組（圖示、名稱、數字、單位）
+// 整組靠左縮小到放得下，右邊的欄位不動（跟 app 的 FittedBox(scaleDown) 一樣，ceo 2026-10-02）。繁中放得下，不變。
+export function fitMiniLines(root) {
+  let n = 0;
+  root.querySelectorAll('.mini-line').forEach((line) => {
+    if (line.scrollWidth <= line.clientWidth + 0.5) return;
+    const right = line.querySelector(':scope > .r');
+    const g = document.createElement('span');
+    g.className = 'ml-fit';
+    [...line.childNodes].filter((c) => c !== right).forEach((c) => g.appendChild(c));
+    line.insertBefore(g, right);
+    const gap = parseFloat(getComputedStyle(line).columnGap) || 0;
+    const avail = line.clientWidth - (right ? right.getBoundingClientRect().width + gap : 0);
+    g.style.zoom = String(Math.floor((avail / g.getBoundingClientRect().width) * 1000) / 1000);
+    n++;
+  });
+  return n;
+}
+
 // 開場（S01）的版本號一律在框的下面（ceo 2026-10-02，跟 app #61 一樣）：平常在最下面（安全區上面 12 px）；
 // 框太高、版本號會被蓋住時，接在框下面 12 px，整頁變長、可以往下捲，多出來的部分是草地。
 export function placeVersion(root) {

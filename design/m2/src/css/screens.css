@@ -44,6 +44,7 @@
 .mini-line .up { color: var(--up); }
 .mini-line .down { color: var(--down); }
 .mini-line .bad { color: #D9443F; }
+.mini-line .ml-fit { flex: none; display: inline-flex; align-items: center; gap: inherit; } /* 放不下時左邊那組包起來縮小（kit.js 的 fitMiniLines） */
 .mini .cap { font-size: 12px; font-weight: 700; color: var(--ink-2); }
 
 /* 被點到的牛：小名片 */
