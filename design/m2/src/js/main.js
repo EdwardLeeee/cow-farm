@@ -1,5 +1,5 @@
 // 路由：?id=S03-02&w=390 畫一個狀態；?list=1 列出全部狀態給出圖腳本；?lang=en｜th 換語言（預設繁中）。
-import { applyDevice } from './kit.js';
+import { applyDevice, fitTitles } from './kit.js';
 import { loadLang } from './i18n.js';
 
 const q = new URLSearchParams(location.search);
@@ -41,6 +41,7 @@ if (q.has('anim')) {
   app.innerHTML = typeof out === 'string' ? out : out.html;
   if (out && out.after) await out.after(app, dev);
   await settle();
+  if (fitTitles(app)) await settle(); // 大標題一行放不下就縮小（英文、泰文；繁中不會變）
   if (st.type === 'sheet') {
     document.body.style.background = '#FFF9EF';
     window.__size = { w: st.viewport.w, h: Math.ceil(app.scrollHeight) };
