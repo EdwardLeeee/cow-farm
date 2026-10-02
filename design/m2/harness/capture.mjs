@@ -185,7 +185,10 @@ export function measure(terms = []) {
       const breaks = []; let prev = null;
       tops.forEach((y, i) => { if (y == null) return; if (prev != null && y > prev + t.fontSize * 0.6) breaks.push(i); prev = y; });
       const bounds = new Set([...sg.segment(full)].map((s) => s.index));
-      const midWord = breaks.filter((b) => node[b] === node[b - 1] && !bounds.has(b) && /[\u0E00-\u0E7FA-Za-z]/.test(full[b - 1] || '') && /[\u0E00-\u0E7FA-Za-z]/.test(full[b] || ''));
+      // 換行的前一個字是 U+2060（看不見、沒有位置）時往前找真正的字，不然剛好斷在 U+2060 那裡（外來字最不該斷的地方）會漏掉
+      const prevChar = (b) => { let j = b - 1; while (j > 0 && full[j] === '\u2060') j--; return j; };
+      const atBound = (j, b) => { for (let i = j + 1; i <= b; i++) if (bounds.has(i)) return true; return false; };
+      const midWord = breaks.filter((b) => { const j = prevChar(b); return node[b] === node[j] && !atBound(j, b) && /[\u0E00-\u0E7FA-Za-z]/.test(full[j] || '') && /[\u0E00-\u0E7FA-Za-z]/.test(full[b] || ''); });
       // 用詞表的詞：忽略 U+2060（畫面上的字可能在任兩個字之間夾著 U+2060），記下畫面上的原樣
       const split = [];
       terms.forEach((w) => {
