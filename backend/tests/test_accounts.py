@@ -342,6 +342,30 @@ def test_action_queued_during_delete_is_unauthorized(env):
     assert (e.value.code, e.value.status) == ("unauthorized", 401)
 
 
+def test_reads_racing_a_delete_are_unauthorized(env):
+    """GET 驗過 token、還沒處理就被刪掉牧場（FastAPI 在執行緒裡跑 token 檢查，中間插得進刪除）：
+    回 401 unauthorized（協定 5.6），不是 500 internal。用「驗完 token 就把牧場拿掉」的 auth 模擬。"""
+    h, _apple = env
+    a = h.session()
+    cow = state(h, a["token"])["cows"][0]["id"]
+    real_auth, gone = h.server.auth, {}
+
+    def auth_then_deleted(token):
+        p = real_auth(token)
+        gone[p.pid] = h.server.game.players.pop(p.pid)
+        return p
+
+    h.server.auth = auth_then_deleted
+    try:
+        for path, params in (("/v1/state", {}), ("/v1/shop", {}), ("/v1/ship/preview", {"cow_id": cow})):
+            r = h.get(path, a["token"], **params)
+            h.server.game.players.update(gone)  # 放回去，下一個請求的 token 檢查才過得了
+            err(r, 401, "unauthorized")
+    finally:
+        h.server.auth = real_auth
+        h.server.game.players.update(gone)
+
+
 def test_deleted_ids_are_not_reused(db_dsn):
     """軟刪除的編號不會被新牧場重複使用，重開伺服器也一樣（#1234 不會一下是 A、一下是 B）。"""
     with Harness(db_dsn, accounts=fake_services()) as h:
