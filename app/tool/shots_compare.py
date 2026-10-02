@@ -41,21 +41,30 @@ def find_board(page_id, width):
 def compose(shot_path, out_path, page_id, width, lang):
     shot = Image.open(shot_path).convert('RGB')
     board_path, is_full = find_board(page_id, width)
-    board = Image.open(board_path).convert('RGB') if board_path else None
-    bw, bh = board.size if board else (0, 0)
+    if not board_path:
+        # 360、320 沒有設計稿（只量測）：只放 app 那張，標題和說明各一行
+        W, H = PAD + shot.width + PAD, HEAD + shot.height + PAD
+        im = Image.new('RGB', (W, H), BG)
+        d = ImageDraw.Draw(im)
+        d.text((PAD, 20), f'app  {page_id}  {lang}  {width}', font=font(34), fill=INK)
+        d.text((PAD, 72), '沒有設計稿（360、320 只量測）', font=font(20), fill=INK)
+        im.paste(shot, (PAD, HEAD))
+        d.rectangle([PAD - 2, HEAD - 2, PAD + shot.width + 1, HEAD + shot.height + 1], outline=INK, width=2)
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        im.save(out_path, optimize=True)
+        return None
+    board = Image.open(board_path).convert('RGB')
+    bw, bh = board.size
     # 整頁：app 截圖跟設計稿裡的手機畫面底部對齊（設計稿的手機畫面在最下面，下方留 PAD）
     shot_top = bh - PAD - shot.height if is_full and bh - PAD - shot.height >= HEAD else HEAD
-    W = (bw + PAD if board else PAD) + shot.width + PAD
+    W = bw + PAD + shot.width + PAD
     H = max(bh, shot_top + shot.height + PAD)
     im = Image.new('RGB', (W, H), BG)
     d = ImageDraw.Draw(im)
-    if board:
-        im.paste(board, (0, 0))
-    else:
-        d.text((PAD, 20), f'找不到 {page_id} 的設計稿', font=font(30), fill=INK)
-    x = (bw if board else 0) + PAD
+    im.paste(board, (0, 0))
+    x = bw + PAD
     d.text((x, 20), f'app  {page_id}  {lang}', font=font(34), fill=INK)
-    d.text((x, 72), os.path.basename(board_path) if board_path else '', font=font(20), fill=INK)
+    d.text((x, 72), os.path.basename(board_path), font=font(20), fill=INK)
     im.paste(shot, (x, shot_top))
     d.rectangle([x - 2, shot_top - 2, x + shot.width + 1, shot_top + shot.height + 1], outline=INK, width=2)
     os.makedirs(os.path.dirname(out_path), exist_ok=True)

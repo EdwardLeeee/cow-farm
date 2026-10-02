@@ -147,6 +147,7 @@ final startCases = <PageCase>[
       await pumpAppIn(tester, _fresh()..needsRanch = true, lang);
       await tester.enterText(find.byKey(const Key('ranch-name')), '小花的快樂');
       await tester.pump();
+      await tester.pump(); // 鍵盤開著時，捲到整顆「就叫這個」看得到（畫完那一格之後才捲）
     },
     check: (tester) {
       expect(find.text(_zh.s02Sub), findsNothing, reason: '鍵盤開著：標題縮小、牛和說明收起來');

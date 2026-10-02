@@ -20,73 +20,102 @@ class SplashScreen extends StatelessWidget {
     final mq = MediaQuery.of(context);
     final s = Strings.of(context);
     final w = mq.size.width, h = mq.size.height, top = h * 0.2;
+    // 版本號一律在框的下面；框太高（英文、泰文的窄手機）時整頁可以捲（ceo 2026-10-02）
     return ColoredBox(
       color: AppColors.cream,
-      child: Stack(
-        clipBehavior: Clip.hardEdge,
-        children: [
-          const Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFF94D3FF), Color(0xFFC4E9FF), Color(0xFFE4F6FF)],
-                  stops: [0, 0.42, 0.6],
-                ),
-              ),
-            ),
-          ),
-          Positioned(right: 36, top: mq.padding.top + 40, child: const _Sun()),
-          Positioned(
-            left: 0,
-            right: 0,
-            top: top,
-            child: Center(child: _Title(s.appTitle)),
-          ),
-          // 草地：比畫面左右各寬 20，上緣是一道弧
-          Positioned(left: -20, right: -20, top: top + 222, bottom: -20, child: const _Ground()),
-          Positioned(
-            left: 0,
-            right: 0,
-            top: top + 222,
-            bottom: 0,
-            child: CustomPaint(painter: _GrassPainter(w)),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            top: top + 78,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.end,
+      child: SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: h),
+          child: IntrinsicHeight(
+            child: Stack(
+              fit: StackFit.expand,
+              clipBehavior: Clip.hardEdge,
               children: [
-                const CowPicture(breed: 'holstein', width: 150, height: 150),
-                // margin-left: -18px：小牛疊在大牛右邊 18，整組（228 寬）置中
-                const SizedBox(
-                  width: 96 - 18,
-                  height: 96,
-                  child: OverflowBox(
-                    maxWidth: 96,
-                    alignment: Alignment.centerRight,
-                    child: CowPicture(breed: 'yellow', bull: true, calf: true, right: true, width: 96, height: 96),
+                // 天空的漸層照一個畫面的高度算；整頁變長時，多出來的部分是草地
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: 0,
+                  height: h,
+                  child: const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0xFF94D3FF), Color(0xFFC4E9FF), Color(0xFFE4F6FF)],
+                        stops: [0, 0.42, 0.6],
+                      ),
+                    ),
                   ),
+                ),
+                Positioned(right: 36, top: mq.padding.top + 40, child: const _Sun()),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: top,
+                  // 一行放不下（英文、泰文）就把字縮小到放得下；繁中放得下，不會變（ceo 2026-10-02）
+                  child: Center(
+                    child: FittedBox(fit: BoxFit.scaleDown, child: _Title(s.appTitle)),
+                  ),
+                ),
+                // 草地：比畫面左右各寬 20，上緣是一道弧
+                Positioned(left: -20, right: -20, top: top + 222, bottom: -20, child: const _Ground()),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: top + 222,
+                  bottom: 0,
+                  child: CustomPaint(painter: _GrassPainter(w)),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: top + 78,
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      CowPicture(breed: 'holstein', width: 150, height: 150),
+                      // margin-left: -18px：小牛疊在大牛右邊 18，整組（228 寬）置中
+                      SizedBox(
+                        width: 96 - 18,
+                        height: 96,
+                        child: OverflowBox(
+                          maxWidth: 96,
+                          alignment: Alignment.centerRight,
+                          child: CowPicture(
+                            breed: 'yellow',
+                            bull: true,
+                            calf: true,
+                            right: true,
+                            width: 96,
+                            height: 96,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // 框在 H × 0.2 + 262；版本號平常在最下面（安全區上面 12），框太高時接在框下面
+                Column(
+                  children: [
+                    SizedBox(height: top + 262),
+                    if (child != null) Padding(padding: const EdgeInsets.symmetric(horizontal: 24), child: child),
+                    const Spacer(),
+                    const SizedBox(height: 12),
+                    Text(
+                      s.s01Version(v: appVersion),
+                      key: const Key('app-version'),
+                      textAlign: TextAlign.center,
+                      style: AppText.style(12, weight: FontWeight.w700, color: const Color(0xFF3F7A3A)),
+                    ),
+                    SizedBox(height: mq.padding.bottom + 12),
+                  ],
                 ),
               ],
             ),
           ),
-          if (child != null) Positioned(left: 24, right: 24, top: top + 262, child: child!),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: mq.padding.bottom + 12,
-            child: Text(
-              s.s01Version(v: appVersion),
-              textAlign: TextAlign.center,
-              style: AppText.style(12, weight: FontWeight.w700, color: const Color(0xFF3F7A3A)),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -130,6 +159,7 @@ class _Title extends StatelessWidget {
       ..strokeJoin = StrokeJoin.round
       ..color = AppColors.ink;
     return Padding(
+      key: const Key('game-title'),
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Stack(
         children: [

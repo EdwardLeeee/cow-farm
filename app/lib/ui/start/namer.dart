@@ -96,7 +96,9 @@ String nameProblemText(Strings s, NameProblem p) => switch (p) {
 };
 
 /// S02 的頁面：牛和標題、名字卡、同名說明、「就叫這個」。鍵盤開著時標題縮小、牛和說明收起來（S02-03）。
-class NamerPage extends StatelessWidget {
+/// 鍵盤開著時，輸入框、字數和「就叫這個」都要在鍵盤上面看得到（m3-backlog）：每次版面變了（鍵盤打開、
+/// 提示從一行變兩行）就捲到整顆按鈕看得到，標題可以捲出畫面（ceo 2026-10-02）。
+class NamerPage extends StatefulWidget {
   const NamerPage({
     super.key,
     required this.controller,
@@ -125,18 +127,33 @@ class NamerPage extends StatelessWidget {
   final Widget? overlay;
 
   @override
+  State<NamerPage> createState() => _NamerPageState();
+}
+
+class _NamerPageState extends State<NamerPage> {
+  final _confirm = GlobalKey();
+
+  /// 鍵盤開著：捲到「就叫這個」整顆（含下面 4 的陰影）看得到；本來就看得到就不動。
+  void _revealConfirm(Duration _) {
+    final ctx = _confirm.currentContext;
+    if (!mounted || ctx == null || MediaQuery.viewInsetsOf(context).bottom == 0) return;
+    Scrollable.ensureVisible(ctx, alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final s = Strings.of(context);
     final mq = MediaQuery.of(context);
     final keyboard = mq.viewInsets.bottom > 0;
     return ListenableBuilder(
-      listenable: Listenable.merge([controller, focusNode]),
+      listenable: Listenable.merge([widget.controller, widget.focusNode]),
       builder: (context, _) {
-        final text = controller.text;
+        final text = widget.controller.text;
         final check = checkRanchName(text);
         final problem = text.isEmpty ? null : check.problem;
-        final error = problem != null ? nameProblemText(s, problem) : serverError;
-        final ok = text.isNotEmpty && check.problem == null && serverError == null;
+        final error = problem != null ? nameProblemText(s, problem) : widget.serverError;
+        final ok = text.isNotEmpty && check.problem == null && widget.serverError == null;
+        if (keyboard) WidgetsBinding.instance.addPostFrameCallback(_revealConfirm);
         return Stack(
           children: [
             Positioned.fill(child: PageBackground(safeTop: mq.padding.top)),
@@ -144,7 +161,8 @@ class NamerPage extends StatelessWidget {
               top: mq.padding.top,
               bottom: keyboard ? mq.viewInsets.bottom : mq.padding.bottom,
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(12, 4 + 6, 12, 16),
+                // 下面留 16（.content 的 padding）：按鈕外面那層已經包了 6（陰影），這裡只留 10
+                padding: const EdgeInsets.fromLTRB(12, 4 + 6, 12, 16 - 6),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -173,17 +191,17 @@ class NamerPage extends StatelessWidget {
                     NameCard(
                       width: check.width,
                       error: error,
-                      hint: filled ? s.s02Filled : s.s02WidthRule,
-                      focused: focusNode.hasFocus,
+                      hint: widget.filled ? s.s02Filled : s.s02WidthRule,
+                      focused: widget.focusNode.hasFocus,
                       field: TextField(
                         key: const Key('ranch-name'),
-                        controller: controller,
-                        focusNode: focusNode,
+                        controller: widget.controller,
+                        focusNode: widget.focusNode,
                         style: nameInputStyle(),
                         cursorColor: AppColors.ink,
                         cursorWidth: 2,
                         textInputAction: TextInputAction.done,
-                        onSubmitted: (_) => ok ? onConfirm(check.name) : null,
+                        onSubmitted: (_) => ok ? widget.onConfirm(check.name) : null,
                         decoration: InputDecoration.collapsed(
                           hintText: s.s02Placeholder,
                           hintStyle: AppText.style(20, weight: FontWeight.w700, color: AppColors.ink3),
@@ -194,7 +212,7 @@ class NamerPage extends StatelessWidget {
                         key: const Key('suggest'),
                         icon: 'sparkle',
                         block: true,
-                        onPressed: onSuggest,
+                        onPressed: widget.onSuggest,
                       ),
                     ),
                     if (!keyboard) ...[
@@ -202,18 +220,22 @@ class NamerPage extends StatelessWidget {
                       Text(s.s02SameName, textAlign: TextAlign.center, style: KitText.hint()),
                     ],
                     const SizedBox(height: 14),
-                    AppButton(
-                      s.s02Confirm,
-                      key: const Key('confirm-name'),
-                      kind: ButtonKind.primary,
-                      block: true,
-                      onPressed: ok ? () => onConfirm(check.name) : null,
+                    Padding(
+                      key: _confirm,
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: AppButton(
+                        s.s02Confirm,
+                        key: const Key('confirm-name'),
+                        kind: ButtonKind.primary,
+                        block: true,
+                        onPressed: ok ? () => widget.onConfirm(check.name) : null,
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
-            ?overlay,
+            ?widget.overlay,
           ],
         );
       },
