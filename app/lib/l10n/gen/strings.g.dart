@@ -75,10 +75,12 @@ const Map<String, List<String>> kPlaceholders = {
   'weight': ['v'],
   's03.metaValue': ['v'],
   'collected': ['v'],
+  'collectedSpoiled': ['n', 'v'],
   's03.partial': ['left', 'n'],
   's03.popMilk': ['n', 'tier'],
   'penSummary': ['slots', 'used'],
   's03.bigNewsBody': ['chg', 'name', 'price', 'unit'],
+  's03.bigNewsAll': ['chg'],
   's06.vsHigher': ['pct'],
   's06.vsLower': ['pct'],
   'priceUnit': ['unit'],
@@ -419,6 +421,7 @@ const Map<String, String> _zhHant = {
   'weight': '體重 {v} 公斤',
   's03.metaValue': '估值約 {v} 幣',
   'collected': '收了 {v} 瓶牛奶，放進倉庫了',
+  'collectedSpoiled': '收了 {v} 瓶牛奶，順便丟掉 {n} 瓶壞掉的牛奶',
   's03.partial': '倉庫滿了，收進 {n} 瓶，\n還有 {left} 瓶在奶桶裡',
   's03.popMilk': '產{tier}牛奶 {n} 瓶／時',
   's03.popDetail': '看詳細',
@@ -433,6 +436,7 @@ const Map<String, String> _zhHant = {
   's06.bigNews': '大新聞',
   'news.beef_up.1': '烤肉季開跑',
   's03.bigNewsBody': '{name}收購價 {chg}，現在 {price} 幣／{unit}',
+  's03.bigNewsAll': '全部商品的收購價 {chg}',
   's03.bigNewsGo': '去市場看看',
   's06.vsSame': '跟平常一樣',
   's06.vsHigher': '比平常高 {pct}',
@@ -1079,6 +1083,7 @@ const Map<String, String> _en = {
   'weight': 'Weight {v} kg',
   's03.metaValue': 'Value ~{v} coins',
   'collected': 'Collected {v} btl of milk, now in storage',
+  'collectedSpoiled': 'Collected {v} btl of milk, tossed {n} btl that spoiled',
   's03.partial': 'Storage full! Collected {n} btl.\n{left} btl still in the bucket',
   's03.popMilk': '{tier} milk {n} btl/h',
   's03.popDetail': 'Details',
@@ -1093,6 +1098,7 @@ const Map<String, String> _en = {
   's06.bigNews': 'Big news',
   'news.beef_up.1': 'BBQ season kicks off',
   's03.bigNewsBody': '{name} price {chg}, now {price} coins/{unit}',
+  's03.bigNewsAll': 'All prices {chg}',
   's03.bigNewsGo': 'Go to Market',
   's06.vsSame': 'Same as usual',
   's06.vsHigher': '{pct} above usual',
@@ -1630,7 +1636,7 @@ const Map<String, String> _th = {
   'pickForBreed': 'ไปผสมพันธุ์',
   'ship': 'ส่งขาย',
   's07.kgBeef': 'ได้เนื้อวัวราว {kg} กก.',
-  's07.beefPrice': 'ราคาเนื้อวัวตอนนี้ {price} เหรียญ/กก.',
+  's07.beefPrice': 'ราคาเนื้อวัวตอนนี้ {price} เหรียญ/⁠กก.',
   'loadingPreview': 'กำลังโหลดโอกาสได้แต่ละเกรด…',
   's07.probFailed': 'โหลดโอกาสได้แต่ละเกรดไม่สำเร็จ',
   'g.grade': 'เกรด {g}',
@@ -1733,14 +1739,15 @@ const Map<String, String> _th = {
   'commodityTag': '[{name}] ',
   'bothTag': '[ทั้งหมด] ',
   's03.swipeHint': 'เลื่อนซ้ายขวาเพื่อดูทั่วฟาร์ม',
-  's03.metaField': 'อยู่แปลงที่ {n} · ข้าว {rate} กก./ชม.',
+  's03.metaField': 'อยู่แปลงที่ {n} · ข้าว {rate} กก./⁠ชม.',
   's03.metaListed': 'ลงประกาศพ่อพันธุ์: {price} เหรียญ',
-  'milkRate': 'ให้นม {v} ขวด/ชม.',
+  'milkRate': 'ให้นม {v} ขวด/⁠ชม.',
   'weight': 'น้ำหนัก {v} กก.',
   's03.metaValue': 'มูลค่าราว {v} เหรียญ',
   'collected': 'เก็บนม {v} ขวด เข้าโกดังแล้ว',
+  'collectedSpoiled': 'เก็บนม {v} ขวด ทิ้งนมที่เสีย {n} ขวด',
   's03.partial': 'โกดังเต็ม เก็บเข้าได้ {n} ขวด\nยังเหลืออีก {left} ขวดในถังนม',
-  's03.popMilk': 'ให้นม{tier} {n} ขวด/ชม.',
+  's03.popMilk': 'ให้นม{tier} {n} ขวด/⁠ชม.',
   's03.popDetail': 'ดูรายละเอียด',
   'penSummary': 'คอกวัว {used} / {slots} ช่อง',
   's03.penFullSuffix': ' (เต็ม)',
@@ -1752,7 +1759,8 @@ const Map<String, String> _th = {
   'g.close': 'ปิด',
   's06.bigNews': 'ข่าวใหญ่',
   'news.beef_up.1': 'ฤดูปิ้งย่างเริ่มแล้ว',
-  's03.bigNewsBody': 'ราคารับซื้อ{name} {chg} ตอนนี้ {price} เหรียญ/{unit}',
+  's03.bigNewsBody': 'ราคารับซื้อ{name} {chg} ตอนนี้ {price} เหรียญ/⁠{unit}',
+  's03.bigNewsAll': 'ราคารับซื้อทุกอย่าง {chg}',
   's03.bigNewsGo': 'ไปดูที่ตลาด',
   's06.vsSame': 'เท่าปกติ',
   's06.vsHigher': 'สูงกว่าปกติ {pct}',
@@ -1760,8 +1768,8 @@ const Map<String, String> _th = {
   's06.loading': 'กำลังโหลดราคารับซื้อ…',
   's06.title': 'ราคารับซื้อตอนนี้',
   's06.tapToSell': 'แตะแถวเพื่อขาย',
-  'priceUnit': 'เหรียญ/{unit}',
-  's06.baseLine': 'ปกติ (ราคาพื้นฐาน): นม {milk} เหรียญ/ขวด, เนื้อวัว {beef} เหรียญ/กก., ข้าว {rice} เหรียญ/กก.',
+  'priceUnit': 'เหรียญ/⁠{unit}',
+  's06.baseLine': 'ปกติ (ราคาพื้นฐาน): นม {milk} เหรียญ/⁠ขวด, เนื้อวัว {beef} เหรียญ/⁠กก., ข้าว {rice} เหรียญ/⁠กก.',
   's06.multMilk': 'ราคาตลาด × ความหายาก × ความสด',
   's06.multBeef': 'ราคาตลาด × เกรด × ความหายาก × สภาพการเก็บ',
   's06.multRice': 'ราคาตลาด × สภาพการเก็บ',
@@ -1772,10 +1780,10 @@ const Map<String, String> _th = {
   'quoting': 'กำลังคำนวณ…',
   's06.quoteFailed': 'คำนวณไม่สำเร็จ',
   'estAvgPrice': 'ราคาเฉลี่ยโดยประมาณ',
-  'estAvgValue': '{avg} เหรียญ/{unit}',
+  'estAvgValue': '{avg} เหรียญ/⁠{unit}',
   's06.estTotalLabel': 'ยอดรวมโดยประมาณ',
   's06.marketPrice': 'ราคาตลาด',
-  'g.pricePer': '{price} เหรียญ/{unit}',
+  'g.pricePer': '{price} เหรียญ/⁠{unit}',
   's06.formula': 'ราคาที่ได้ = {mult}',
   's06.lots': ' ({n} ชุด)',
   's06.qty': 'จำนวน',
@@ -1792,9 +1800,9 @@ const Map<String, String> _th = {
   's04.age': 'อายุ',
   's04.growIn': 'จะโตในอีก',
   'g.milk': 'ให้นม',
-  'g.perHourMilk': 'ขวด/ชม.',
+  'g.perHourMilk': 'ขวด/⁠ชม.',
   'g.plow': 'ไถนา',
-  'g.perHourRice': 'กก./ชม.',
+  'g.perHourRice': 'กก./⁠ชม.',
   's04.useBeef': 'เนื้อมากสุด',
   's04.useBreed': 'ผสมพันธุ์',
   's04.weight': 'น้ำหนัก',
@@ -2913,6 +2921,9 @@ abstract class GeneratedStrings {
   /// `collected`：收了 {v} 瓶牛奶，放進倉庫了
   String collected({required Object v}) => fill('collected', {'v': v});
 
+  /// `collectedSpoiled`：收了 {v} 瓶牛奶，順便丟掉 {n} 瓶壞掉的牛奶
+  String collectedSpoiled({required Object n, required Object v}) => fill('collectedSpoiled', {'n': n, 'v': v});
+
   /// `s03.partial`：倉庫滿了，收進 {n} 瓶，\n還有 {left} 瓶在奶桶裡
   String s03Partial({required Object left, required Object n}) => fill('s03.partial', {'left': left, 'n': n});
 
@@ -2954,6 +2965,9 @@ abstract class GeneratedStrings {
 
   /// `s03.bigNewsBody`：{name}收購價 {chg}，現在 {price} 幣／{unit}
   String s03BigNewsBody({required Object chg, required Object name, required Object price, required Object unit}) => fill('s03.bigNewsBody', {'chg': chg, 'name': name, 'price': price, 'unit': unit});
+
+  /// `s03.bigNewsAll`：全部商品的收購價 {chg}
+  String s03BigNewsAll({required Object chg}) => fill('s03.bigNewsAll', {'chg': chg});
 
   /// `s03.bigNewsGo`：去市場看看
   String get s03BigNewsGo => table['s03.bigNewsGo']!;
