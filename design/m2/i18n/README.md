@@ -13,6 +13,7 @@
 
 - key 的取法、不翻譯的字、怎麼在設計稿換語言：見上一層的 `README.md`「字串表與語言」。
 - 檢查：`node design/m2/harness/i18ncheck.mjs`（牛名、新聞標題、取名詞庫跟來源一樣；程式用到的 key 都在；英文、泰文缺哪些、佔位符對不對）。
+- 改了這裡的任何一個檔，同一個 PR 要重產 `app/lib/l10n/gen/strings.g.dart`：在 `app/` 跑 `dart run tool/gen_l10n.dart`。app 的 `test/l10n_test.dart` 會比對，沒重產 CI 會紅。
 
 ## 給 cow-app：strings.dart 要跟著改的
 

@@ -691,3 +691,51 @@
   /* 320 寬：頂列的牧場名放不下時用「…」截短 */
   .farm-name { overflow: hidden; text-overflow: ellipsis; }
 }
+
+/* ================= 英文、泰文：放不下才換行（ceo 2026-10-02，measure/en-th-report.md 第 1–5、8–13、15 項） =================
+   繁中的字本來就放得下，所以這些規則在 430、390 不會改變繁中的畫面（出圖驗證過逐位元相同）。
+   字放不下時才換到下一行，或讓旁邊的東西換行；行高、字級都不變。 */
+/* 1. 頁面標題可換兩行；右邊的按鈕字也可換行，標題才有位置 */
+.page-head h1 { white-space: normal; overflow-wrap: anywhere; }
+.page-head .btn { white-space: normal; text-align: center; }
+/* 2. 選牛卡的名字最多兩行（卡片跟著變高） */
+.pick-name { white-space: normal; text-align: center; overflow-wrap: anywhere; }
+/* 3. 圖鑑格子的牛名可換兩行 */
+.dex-name { white-space: normal; text-align: center; overflow-wrap: anywhere; }
+/* 4. 開局禮物卡的牛名、說明可換行 */
+.gift b, .gift span { white-space: normal; text-align: center; }
+/* 5. 機率卡：名字可換行，稀有度、標籤、機率不縮；窄手機把間距縮小（繁中 320 寬原本超出 1–2 px） */
+.oc-name { white-space: normal; min-width: 0; overflow-wrap: anywhere; }
+.oc-row > .tier, .oc-row > .badge, .oc-p { flex: none; }
+/* 6. 牧場倉庫小卡的標頭可換到第二行 */
+.mini .card-head .cap { white-space: normal; text-align: right; min-width: 0; }
+/* 8. 倉庫批次：放不下時批次名稱換到下一行 */
+.lot-top { flex-wrap: wrap; }
+/* 9. 出貨評級列：放不下時收入換到下一行（靠右） */
+.grade-row { flex-wrap: wrap; }
+.grade-row .g-name { white-space: nowrap; }
+/* 10. 設施升級列：名稱可換行，價格鈕不縮 */
+.up-card .up-name { white-space: normal; }
+.up-card > .btn { flex: none; }
+/* 11. 賣出卡的數量列：三顆小按鈕放不下時換到下一行 */
+.qty-row { flex-wrap: wrap; }
+.chip-btn { flex: none; }
+/* 12. 並排的按鈕放不下時改成上下排；整排寬的按鈕字可換行 */
+.btn-row { flex-wrap: wrap; }
+.btn.block { white-space: normal; text-align: center; }
+/* 13. 牛舍清單的資料列可換行 */
+.cow-row .meta { white-space: normal; }
+/* 15. 新聞的時間、試算的金額放不下時換到下一行 */
+.n-tags { flex-wrap: wrap; }
+.est-row { flex-wrap: wrap; }
+/* 第二輪（重量後剩下的 320 寬）：奶桶的百分比、收起來的奶桶列、升級列的小字
+   （倉庫小卡的數字列不加換行：繁中 S03-09 的 390 寬會跟著變，違反逐位元相同） */
+.bucket-card .bk-top { flex-wrap: wrap; }
+.bs-top { flex-wrap: wrap; }
+.up-card .up-lv { white-space: normal; }
+@media (max-width: 339px) {
+  /* 320 寬的機率卡：間距縮小；還是放不下時，稀有度、標籤、機率換到第二行，名字整個留在第一行（泰文外來字牛名不會被硬拆） */
+  .oc-row { gap: 4px; padding-right: 8px; flex-wrap: wrap; }
+  /* 320 寬的圖鑑排 3 欄：4 欄時一格只剩 59 px，長的牛名（例 สตรอว์เบอร์รี）整個詞放不下 */
+  .dex-grid { grid-template-columns: repeat(3, 1fr); }
+}
