@@ -21,8 +21,10 @@ import '../kit/grade.dart';
 import '../kit/kit.dart';
 import '../kit/kv.dart';
 import '../kit/meter.dart';
+import '../kit/motion.dart';
 import '../kit/note_line.dart';
 import '../kit/page_head.dart';
+import '../ship/truck_scene.dart';
 import '../widgets/action_button.dart';
 import '../widgets/ticker_builder.dart';
 
@@ -74,6 +76,7 @@ class _CowDetailPageState extends State<CowDetailPage> {
   Future<void> _ship(Cow cow) async {
     final m = context.read<GameModel>();
     final navigator = Navigator.of(context);
+    final motion = AppMotion.read(context);
     final ok = await showDialog<bool>(
       context: context,
       barrierColor: Colors.transparent, // 暗幕由 AppDialog 自己畫
@@ -91,10 +94,26 @@ class _CowDetailPageState extends State<CowDetailPage> {
     }
     // 出貨成功這頁就關了（牛不在了），用事先拿到的 Navigator 開結果頁（S20）
     if (!navigator.mounted) return;
+    Route<void> result() => PageRouteBuilder<void>(
+      pageBuilder: (context, _, _) => ShipResultPage(cow: cow, result: res),
+      transitionsBuilder: (context, a, _, child) => FadeTransition(opacity: a, child: child),
+    );
+    if (!motion) {
+      // 減少動態：不播卡車，直接顯示評級結果（A-03 的減少動態版）
+      await navigator.push(result());
+      return;
+    }
+    // A-03 出貨卡車：播完（或點一下跳過）換成結果頁，白光接著結果頁淡入
     await navigator.push(
       PageRouteBuilder<void>(
-        pageBuilder: (context, _, _) => ShipResultPage(cow: cow, result: res),
-        transitionsBuilder: (context, a, _, child) => FadeTransition(opacity: a, child: child),
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+        pageBuilder: (context, _, _) => TruckScene(
+          cow: cow,
+          ranchName: m.ranchName,
+          herd: m.state?.cows ?? const [],
+          onDone: () => navigator.pushReplacement(result()),
+        ),
       ),
     );
   }

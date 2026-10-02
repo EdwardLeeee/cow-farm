@@ -10,7 +10,7 @@ import 'state/settings.dart';
 import 'storage/token_store.dart';
 import 'theme/app_theme.dart';
 import 'ui/kit/cow_art.dart';
-import 'ui/ranch/scene.dart';
+import 'ui/kit/motion.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,9 +26,9 @@ Future<void> main() async {
     push: WsPushClient(base: base),
     tokens: createTokenStore(),
   );
-  // 牧場的牛會走動、轉身（A-11、A-07）；測試裡沒有包這層，牛站在原位
+  // app 的動畫：牧場的牛會走動、轉身（A-11、A-07），出貨播卡車（A-03）；測試裡沒有包這層
   runApp(
-    HerdMotion(
+    AppMotion(
       enabled: true,
       child: CowFarmApp(model: model, settings: settings),
     ),
