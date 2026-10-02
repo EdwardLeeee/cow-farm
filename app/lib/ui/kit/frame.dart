@@ -153,177 +153,183 @@ class Hud extends StatelessWidget {
     final avatar = tiny ? 46.0 : (narrow ? 50.0 : 56.0);
     final face = tiny ? 42.0 : (narrow ? 46.0 : 52.0);
     final coinIcon = tiny ? 30.0 : 34.0;
-    return Row(
-      children: [
-        Expanded(
-          child: Row(
-            children: [
-              Flexible(
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    // .profile-text：頭像右邊的白底名牌，左邊被頭像蓋住 18（窄手機 16）
-                    Padding(
-                      padding: EdgeInsets.only(left: avatar - (narrow ? 16 : 18)),
-                      child: Container(
-                        height: narrow ? 46 : 48,
-                        padding: EdgeInsets.fromLTRB(narrow ? 20 : 24, 3, narrow ? 10 : 12, 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: AppColors.ink, width: AppSizes.border),
-                          borderRadius: const BorderRadius.horizontal(right: Radius.circular(24)),
-                          boxShadow: AppShadows.solid(),
-                        ),
-                        // 名字加等級列比名牌的內容區高 4：跟設計稿一樣上下各超出 2，不裁切（CSS 的 overflow: visible）
-                        child: OverflowBox(
-                          maxHeight: double.infinity,
-                          fit: OverflowBoxFit.deferToChild,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                name,
-                                key: const Key('hud-name'),
-                                maxLines: 1,
-                                softWrap: false,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppText.style(
-                                  long || tiny ? 13 : (narrow ? 14 : 15),
-                                  weight: FontWeight.w900,
-                                  lineHeight: narrow ? 18 : 19,
-                                  letterSpacing: long || narrow ? 0 : 0.3,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 5),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.yellow,
-                                      border: Border.all(color: AppColors.ink, width: 2),
-                                      borderRadius: const BorderRadius.all(Radius.circular(8)),
-                                    ),
-                                    child: Text(s.level(lv: d.level), style: AppText.number(12, lineHeight: 14)),
-                                  ),
-                                  const SizedBox(width: 5),
-                                  // 320 寬放不下時經驗條縮短（設計稿是超出名牌）
-                                  Flexible(
-                                    child: Semantics(
-                                      label: s.hudXp(pct: (xp * 100).round()),
-                                      child: _XpBar(width: tiny ? 38 : (narrow ? 44 : 58), fraction: xp),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+    // 頂列自己一個無障礙節點：裡面照名字、Lv、經驗、金幣、設定的順序讀。不然在牧場分頁會跟鋪滿整頁的場景
+    // 一起照位置排，變成「設定」先讀（8790 走查看到；ceo 2026-10-02：每個分頁的頂列順序都一樣）
+    return Semantics(
+      container: true,
+      explicitChildNodes: true,
+      child: Row(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Flexible(
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      // .profile-text：頭像右邊的白底名牌，左邊被頭像蓋住 18（窄手機 16）
+                      Padding(
+                        padding: EdgeInsets.only(left: avatar - (narrow ? 16 : 18)),
+                        child: Container(
+                          height: narrow ? 46 : 48,
+                          padding: EdgeInsets.fromLTRB(narrow ? 20 : 24, 3, narrow ? 10 : 12, 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: AppColors.ink, width: AppSizes.border),
+                            borderRadius: const BorderRadius.horizontal(right: Radius.circular(24)),
+                            boxShadow: AppShadows.solid(),
                           ),
-                        ),
-                      ),
-                    ),
-                    // .avatar：牛臉的圓頭像，疊在名牌左邊
-                    Positioned(
-                      left: 0,
-                      top: (narrow ? 46 : 48) / 2 - avatar / 2,
-                      child: Container(
-                        width: avatar,
-                        height: avatar,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: const Color(0xFFBFE6FF),
-                          border: Border.all(color: AppColors.ink, width: AppSizes.border),
-                          boxShadow: AppShadows.solid(),
-                        ),
-                        child: ClipOval(
+                          // 名字加等級列比名牌的內容區高 4：跟設計稿一樣上下各超出 2，不裁切（CSS 的 overflow: visible）
                           child: OverflowBox(
-                            maxWidth: face,
-                            maxHeight: face,
-                            child: Padding(
-                              padding: const EdgeInsets.only(top: 4),
-                              child: CowFace(size: face),
+                            maxHeight: double.infinity,
+                            fit: OverflowBoxFit.deferToChild,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  name,
+                                  key: const Key('hud-name'),
+                                  maxLines: 1,
+                                  softWrap: false,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppText.style(
+                                    long || tiny ? 13 : (narrow ? 14 : 15),
+                                    weight: FontWeight.w900,
+                                    lineHeight: narrow ? 18 : 19,
+                                    letterSpacing: long || narrow ? 0 : 0.3,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 5),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.yellow,
+                                        border: Border.all(color: AppColors.ink, width: 2),
+                                        borderRadius: const BorderRadius.all(Radius.circular(8)),
+                                      ),
+                                      child: Text(s.level(lv: d.level), style: AppText.number(12, lineHeight: 14)),
+                                    ),
+                                    const SizedBox(width: 5),
+                                    // 320 寬放不下時經驗條縮短（設計稿是超出名牌）
+                                    Flexible(
+                                      child: Semantics(
+                                        label: s.hudXp(pct: (xp * 100).round()),
+                                        child: _XpBar(width: tiny ? 38 : (narrow ? 44 : 58), fraction: xp),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(width: narrow ? 6 : 8),
-        // .coins：金幣膠囊，金幣圖示一半在外面
-        Padding(
-          padding: EdgeInsets.only(left: narrow ? 17 : 18),
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.centerLeft,
-            children: [
-              Container(
-                height: 40,
-                padding: EdgeInsets.fromLTRB(narrow ? 20 : 24, 0, narrow ? 10 : 12, 0),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  border: Border.all(color: AppColors.ink, width: AppSizes.border),
-                  borderRadius: const BorderRadius.all(Radius.circular(20)),
-                  boxShadow: AppShadows.solid(),
-                ),
-                child: Text(
-                  compact(coins, s.lang, from: narrow ? 100000 : 1000000),
-                  key: const Key('hud-coins'),
-                  style: AppText.number(tiny ? 15 : (narrow ? 17 : 18), lineHeight: tiny ? 15 : (narrow ? 17 : 18)),
-                ),
-              ),
-              Positioned(
-                left: tiny ? -16 : -19,
-                child: AppIcon('coin', size: coinIcon),
-              ),
-            ],
-          ),
-        ),
-        SizedBox(width: narrow ? 6 : 8),
-        Semantics(
-          button: true,
-          label: gearDot ? s.hudSettingsNotBacked : s.hudSettings,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white,
-                  border: Border.all(color: AppColors.ink, width: AppSizes.border),
-                  boxShadow: AppShadows.solid(),
-                ),
-                child: const AppIcon('gear', size: 24),
-              ),
-              if (gearDot)
-                Positioned(
-                  right: -3,
-                  top: -3,
-                  child: Container(
-                    key: const Key('gear-dot'),
-                    width: 14,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: const Color(0xFFFF6B5E),
-                      // CSS 寫 2.5px，boards 量出來是 2（Chrome 畫成 2px）；照核准的 boards
-                      border: Border.all(color: AppColors.ink, width: 2),
-                    ),
+                      // .avatar：牛臉的圓頭像，疊在名牌左邊
+                      Positioned(
+                        left: 0,
+                        top: (narrow ? 46 : 48) / 2 - avatar / 2,
+                        child: Container(
+                          width: avatar,
+                          height: avatar,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(0xFFBFE6FF),
+                            border: Border.all(color: AppColors.ink, width: AppSizes.border),
+                            boxShadow: AppShadows.solid(),
+                          ),
+                          child: ClipOval(
+                            child: OverflowBox(
+                              maxWidth: face,
+                              maxHeight: face,
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: CowFace(size: face),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
+          SizedBox(width: narrow ? 6 : 8),
+          // .coins：金幣膠囊，金幣圖示一半在外面
+          Padding(
+            padding: EdgeInsets.only(left: narrow ? 17 : 18),
+            child: Stack(
+              clipBehavior: Clip.none,
+              alignment: Alignment.centerLeft,
+              children: [
+                Container(
+                  height: 40,
+                  padding: EdgeInsets.fromLTRB(narrow ? 20 : 24, 0, narrow ? 10 : 12, 0),
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: AppColors.ink, width: AppSizes.border),
+                    borderRadius: const BorderRadius.all(Radius.circular(20)),
+                    boxShadow: AppShadows.solid(),
+                  ),
+                  child: Text(
+                    compact(coins, s.lang, from: narrow ? 100000 : 1000000),
+                    key: const Key('hud-coins'),
+                    style: AppText.number(tiny ? 15 : (narrow ? 17 : 18), lineHeight: tiny ? 15 : (narrow ? 17 : 18)),
+                  ),
+                ),
+                Positioned(
+                  left: tiny ? -16 : -19,
+                  child: AppIcon('coin', size: coinIcon),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: narrow ? 6 : 8),
+          Semantics(
+            button: true,
+            label: gearDot ? s.hudSettingsNotBacked : s.hudSettings,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                    border: Border.all(color: AppColors.ink, width: AppSizes.border),
+                    boxShadow: AppShadows.solid(),
+                  ),
+                  child: const AppIcon('gear', size: 24),
+                ),
+                if (gearDot)
+                  Positioned(
+                    right: -3,
+                    top: -3,
+                    child: Container(
+                      key: const Key('gear-dot'),
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: const Color(0xFFFF6B5E),
+                        // CSS 寫 2.5px，boards 量出來是 2（Chrome 畫成 2px）；照核准的 boards
+                        border: Border.all(color: AppColors.ink, width: 2),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
