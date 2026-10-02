@@ -1,7 +1,8 @@
 // 整合走查（headless Chromium，正式畫面 + 還沒換掉的 M1 分頁），每步截圖：
 //   開新牧場（S02 取名、歡迎）→ 收奶 → 賣奶（S06）→ 擴建牛舍、加大奶桶（S10）→ 抽 C 級（S19）→
 //   等小牛長大 → 出貨（S04 → S07 → S20）→ 田地：派耕牛、收成（M1）→ 賣稻米 → 叫回耕牛 →
-//   借種（S18）：上架、借別人的公牛、借種紀錄 → 圖鑑、排行榜（M1）
+//   借種（S18）：上架、借別人的公牛、借種紀錄 → 圖鑑、排行榜（M1）→
+//   另開一個新牧場（新的瀏覽器設定檔）：收奶賣奶、擴建牛舍 → 自己配種（S08）：開局的公母配、機率、新小牛、已配種
 //
 // 做法：打開 Flutter 網頁版的無障礙樹（flt-semantics），照按鈕的名字操作。正式畫面的分頁、配種頁上面的
 // 「自己配種／借種」都是按鈕；M1 畫面裡的次分頁（圖鑑／排行榜）是 tab。頂列的金幣沒有名字，讀「設定」前面最後一個數字。
@@ -39,12 +40,18 @@ const writeLog = () => fs.writeFileSync(
 
 (async () => {
   const browser = await chromium.launch({ headless: true, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
-  const ctx = await browser.newContext({ viewport: { width: 430, height: 932 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true, locale: 'zh-TW' });
-  const page = await ctx.newPage();
-  page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') log.push(`[${sec()}] console.${m.type()}: ${m.text().slice(0, 300)}`); });
-  page.on('pageerror', (e) => issue(`pageerror: ${e.message}`));
-  page.on('response', (r) => { if (r.url().includes('/v1/') && r.status() >= 400) note(`HTTP ${r.status()} ${r.request().method()} ${new URL(r.url()).pathname}`); });
-  page.on('websocket', (ws) => { note('ws open'); ws.on('close', () => note('ws close')); });
+  /// 新的瀏覽器設定檔（新的訪客 token），開一個分頁並記下錯誤、HTTP 4xx／5xx、WebSocket。
+  const newPage = async () => {
+    const ctx = await browser.newContext({ viewport: { width: 430, height: 932 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true, locale: 'zh-TW' });
+    const p = await ctx.newPage();
+    p.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') log.push(`[${sec()}] console.${m.type()}: ${m.text().slice(0, 300)}`); });
+    p.on('pageerror', (e) => issue(`pageerror: ${e.message}`));
+    p.on('response', (r) => { if (r.url().includes('/v1/') && r.status() >= 400) note(`HTTP ${r.status()} ${r.request().method()} ${new URL(r.url()).pathname}`); });
+    p.on('websocket', (ws) => { note('ws open'); ws.on('close', () => note('ws close')); });
+    return p;
+  };
+  /// 現在操作的分頁。第 11 步（自己配種）換一個新的瀏覽器設定檔，所以是 let；下面的小工具都讀這個變數。
+  let page = await newPage();
 
   // ---- 小工具 ----
   let n = 0;
@@ -177,22 +184,28 @@ const writeLog = () => fs.writeFileSync(
     return b ? tapIfEnabled(b, what) : false;
   };
 
+  /// 開新牧場：S02「幫我想一個」→「就叫這個」→ 歡迎 →「進牧場」。回傳歡迎卡的字。
+  const newRanch = async () => {
+    await page.goto(url, { waitUntil: 'load' });
+    await wait(7000);
+    await page.evaluate(() => document.querySelector('flt-semantics-placeholder')?.click());
+    await wait(1500);
+    await shot('s02-name');
+    await tap(button('幫我想一個'));
+    await wait(600);
+    await mark(); await tap(button('就叫這個'));
+    await wait(4000);
+    const welcome = (await labels()).find((x) => x.startsWith('歡迎來到')) || '';
+    await shot('welcome');
+    await tap(button('進牧場')).catch(() => {});
+    await wait(2500);
+    if ((await labels()).includes('連線中…')) issue('進牧場後顯示「連線中…」');
+    return welcome;
+  };
+
   // ---- 1. 開新牧場（S02 取名 → 歡迎）----
-  await page.goto(url, { waitUntil: 'load' });
-  await wait(7000);
-  await page.evaluate(() => document.querySelector('flt-semantics-placeholder')?.click());
-  await wait(1500);
-  await shot('s02-name');
-  await tap(button('幫我想一個'));
-  await wait(600);
-  await mark(); await tap(button('就叫這個'));
-  await wait(4000);
-  const welcome = (await labels()).find((x) => x.startsWith('歡迎來到')) || '';
-  await shot('welcome');
+  const welcome = await newRanch();
   step('開新牧場（取名、歡迎）', welcome !== '', welcome.replace(/\n/g, ' '));
-  await tap(button('進牧場')).catch(() => {});
-  await wait(2500);
-  if ((await labels()).includes('連線中…')) issue('進牧場後顯示「連線中…」');
   note(`初始金幣 ${await coins()}`);
   await shot('ranch');
 
@@ -425,6 +438,59 @@ const writeLog = () => fs.writeFileSync(
   const rank = ((await fullText()).match(/我的名次[^\n]*/) || [''])[0];
   await shot('leaderboard');
   step('排行榜（M1 紀錄）', rank !== '', rank);
+
+  // ---- 11. 自己配種（S08）：另開一個新牧場（新的瀏覽器設定檔），開局的小公牛長大以後跟開局的母牛直接配 ----
+  // 開局牛舍 2 格是滿的、小牛沒位子：先收奶賣奶、擴建牛舍（S10）
+  page = await newPage();
+  note(`第二個牧場（自己配種）：${(await newRanch()).replace(/\n/g, ' ')}`);
+  await tapIfEnabled(button('收奶'), '收奶');
+  if (!(await upgrade('擴建牛舍'))) issue('自己配種：擴建牛舍沒有成功，小牛沒有位子');
+  await tab('配種');
+  await tap(button('自己配種').first());
+  await wait(2000);
+  /// 「選公牛」「選母牛」底下第一頭能選的牛。
+  const pickUnder = async (title) => {
+    const all = await nodes();
+    const cut = all.findIndex((x) => x.label === title);
+    return (cut < 0 ? null : all.slice(cut + 1).find((x) => x.role === 'button' && /#\d+/.test(x.label) && !x.disabled)) || null;
+  };
+  let bred = '', odds = '';
+  const sire = await pickUnder('選公牛');
+  if (sire) await tapLabel(sire.label);
+  await wait(800);
+  await scrollUntil(async () => (await pickUnder('選母牛')) !== null);
+  const dam2 = await pickUnder('選母牛');
+  if (dam2) await tapLabel(dam2.label);
+  await wait(3000);
+  note(`自己配種：公牛 ${sire ? sire.label.replace(/\n/g, ' ') : '(沒有)'}，母牛 ${dam2 ? dam2.label.replace(/\n/g, ' ') : '(沒有)'}`);
+  const go = button(/^配種（/);
+  await scrollUntil(async () => (await go.count()) > 0);
+  await page.mouse.wheel(0, 300);
+  await wait(600);
+  odds = ((await nodes()).find((x) => x.label.startsWith('可能生出的小牛')) || {}).label || '';
+  note(`機率卡：${odds.replace(/\n/g, ' ') || '(沒看到)'}`);
+  await shot('breed-preview');
+  if (!sire || !dam2) issue('自己配種：選不到公牛或母牛');
+  else if (!(await go.count())) issue('自己配種：找不到配種鈕（捲到底也不在無障礙樹裡）');
+  else if (!(await enabled(go))) {
+    const all3 = await nodes();
+    const i0 = all3.findIndex((x) => x.label.startsWith('可能生出的小牛'));
+    const i1 = all3.findIndex((x) => x.role === 'button' && /^配種（/.test(x.label));
+    issue(`配種鈕停用：${i0 < 0 || i1 < 0 ? '?' : all3.slice(i0 + 1, i1).map((x) => x.label.replace(/\n/g, ' ')).join(' / ') || '(沒有提醒)'}`);
+  } else {
+    await mark(); await tap(go.first());
+    await wait(2500);
+    const toastText = ((await fullText()).match(/配種成功！[^\n]*/) || [''])[0];
+    await scrollUntil(async () => (await labels()).some((x) => x.startsWith('新小牛')), 4);
+    const doneBtn = (await button('已配種').count()) > 0;
+    const calfCard = (await labels()).find((x) => x.startsWith('新小牛')) || '';
+    await shot('breed-done');
+    if (doneBtn && calfCard) bred = `${toastText || '（提示已經消失）'}；${calfCard.replace(/\n/g, ' ')}；按鈕「已配種」`;
+    else issue(`配種之後沒看到「已配種」或新小牛：${await news()}`);
+    // 新小牛把牛舍佔滿了，「已配種」下面也不能跳「牛舍滿了」（ceo 2026-10-02）
+    if ((await labels()).some((x) => x.includes('牛舍滿了'))) issue('「已配種」下面出現「牛舍滿了」');
+  }
+  step('自己配種（S08）：機率、配種、新小牛、已配種', bred !== '' && odds !== '', bred);
 
   writeLog();
   await browser.close();
