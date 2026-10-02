@@ -471,7 +471,15 @@ class UpgradeInfo {
 /// 經濟倍數（協定 2.3 的 economy，直接讀伺服器的 params.py）。**只給畫面顯示**（例 S05「優良牛奶 ×1.3」），
 /// app 不能拿來自己算成交價或收入：要價格用 POST /v1/sell/quote、GET /v1/ship/preview。
 class Economy {
-  const Economy({this.tierMult = const [], this.beefGradeMult = const {}, this.oxRicePerH});
+  const Economy({
+    this.tierMult = const [],
+    this.beefGradeMult = const {},
+    this.oxRicePerH,
+    this.dairyMilkPerH,
+    this.calfGrowH = const [],
+    this.peakWeightKg = const {},
+    this.bullWeightMult,
+  });
 
   /// 一般、優良、稀有、傳說：牛奶、牛肉的賣價倍率，也是耕牛的稻米產量倍率。
   final List<double> tierMult;
@@ -481,6 +489,16 @@ class Economy {
 
   /// 壯年一般耕牛每遊戲小時的稻米公斤數。
   final double? oxRicePerH;
+
+  /// 壯年母乳牛每遊戲小時產幾瓶（再乘年齡曲線；稀有度不影響產量）。
+  final double? dairyMilkPerH;
+
+  /// 小牛長大要幾遊戲小時，依稀有度 0–3（S08-06「小牛長大 1–4 小時」）。
+  final List<double> calfGrowH;
+
+  /// 母牛的最佳體重，依用途；公牛 = 這個 × [bullWeightMult]。
+  final Map<CowType, double> peakWeightKg;
+  final double? bullWeightMult;
 
   /// 稀有度 [tier] 的倍率；沒有就是 null（畫面不寫倍數）。
   double? tier(int tier) => tier >= 0 && tier < tierMult.length ? tierMult[tier] : null;
@@ -498,6 +516,16 @@ class Economy {
           if (e.value is num) e.key: (e.value as num).toDouble(),
       },
       oxRicePerH: _dn(j['ox_rice_per_h']),
+      dairyMilkPerH: _dn(j['dairy_milk_per_h']),
+      calfGrowH: [
+        for (final e in _l(j['calf_grow_h']))
+          if (e is num) e.toDouble(),
+      ],
+      peakWeightKg: {
+        for (final e in _m(j['peak_weight_kg']).entries)
+          if (e.value is num) CowType.parse(e.key): (e.value as num).toDouble(),
+      },
+      bullWeightMult: _dn(j['bull_weight_mult']),
     );
   }
 }
@@ -1116,6 +1144,7 @@ class BreedPreview {
     this.bullProb,
     this.canBreed = true,
     this.blockers = const [],
+    this.distribution = const [],
   });
   final List<double> tierProbs; // 稀有度 0–3
   final StudFee? fee; // 借種費（自己配種免費，是 null）。借種時把 fee.price 原樣送回
@@ -1123,6 +1152,24 @@ class BreedPreview {
   final double? bullProb;
   final bool canBreed; // can_breed／can_borrow
   final List<Blocker> blockers;
+
+  /// 完整分布：每種（用途、公母、特徵組合）的機率（協定 3.7）。畫面一列一個品種，同品種的公母加起來（[byBreed]）。
+  final List<OffspringOdds> distribution;
+
+  /// 可能生出的品種和機率：同一個品種的公母兩列加起來；機率大的在前，一樣大的稀有的在前。
+  List<({String breed, int tier, double p})> get byBreed {
+    final sum = <String, ({String breed, int tier, double p})>{};
+    for (final d in distribution) {
+      final old = sum[d.breed];
+      sum[d.breed] = (breed: d.breed, tier: d.tier, p: (old?.p ?? 0) + d.p);
+    }
+    return sum.values.toList()..sort((a, b) {
+      final byP = b.p.compareTo(a.p);
+      if (byP != 0) return byP;
+      final byTier = b.tier.compareTo(a.tier);
+      return byTier != 0 ? byTier : a.breed.compareTo(b.breed);
+    });
+  }
 
   factory BreedPreview.fromJson(Map<String, dynamic> j) {
     final can = j['can_breed'] ?? j['can_borrow'];
@@ -1133,8 +1180,36 @@ class BreedPreview {
       bullProb: _dn(j['bull_prob']),
       canBreed: can is bool ? can : true,
       blockers: _blockers(j['blockers']),
+      distribution: [
+        for (final e in _l(j['distribution']))
+          if (e is Map) OffspringOdds.fromJson(e.cast<String, dynamic>()),
+      ],
     );
   }
+}
+
+/// 預覽分布的一列（協定 3.5、3.7 的 distribution）：品種、稀有度、用途、公母、機率。
+class OffspringOdds {
+  const OffspringOdds({
+    required this.breed,
+    required this.tier,
+    required this.type,
+    required this.bull,
+    required this.p,
+  });
+  final String breed;
+  final int tier;
+  final CowType type;
+  final bool bull;
+  final double p;
+
+  factory OffspringOdds.fromJson(Map<String, dynamic> j) => OffspringOdds(
+    breed: '${j['breed'] ?? ''}',
+    tier: _i(j['tier']).clamp(0, 3),
+    type: CowType.parse(j['type']),
+    bull: _b(j['bull']),
+    p: _d(j['p']),
+  );
 }
 
 class BreedResult {

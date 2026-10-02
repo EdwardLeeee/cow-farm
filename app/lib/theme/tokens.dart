@@ -66,6 +66,7 @@ abstract final class AppText {
   static const fallback = ['NotoSansThai'];
 
   /// 一般文字。[lineHeight] 是 CSS 的 line-height（px），沒給就用字型預設。
+  /// 字距沒給就是 0：外層 Material 3 的 bodyMedium 有 letterSpacing 0.25，不寫的話每個字都會多 0.25（設計稿沒有字距）。
   static TextStyle style(
     double size, {
     FontWeight weight = FontWeight.w400,
@@ -80,7 +81,7 @@ abstract final class AppText {
     fontVariations: [FontVariation.weight(weight.value.toDouble())],
     color: color,
     height: lineHeight == null ? null : lineHeight / size,
-    letterSpacing: letterSpacing,
+    letterSpacing: letterSpacing ?? 0,
   );
 
   /// 數字（base.css 的 .num）：特粗 900、等寬數字、字距 0.2。

@@ -85,7 +85,10 @@ enum BadgeKind {
   calf(Color(0xFFD5EBFF)),
   old(Color(0xFFE8E1D8)),
   full(Color(0xFFFFC2B6)),
-  fresh(AppColors.yellow);
+  fresh(AppColors.yellow),
+
+  /// .badge.new：還沒發現過的品種（S08-06）。
+  newBreed(AppColors.yellow);
 
   const BadgeKind(this.color);
   final Color color;

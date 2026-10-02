@@ -27,9 +27,16 @@ void main() {
           expect(tester.takeException(), isNull, reason: c);
         }
       }
-      // 次分頁也看一次
+      // 次分頁也看一次：配種、商店是正式畫面的分頁膠囊（seg-0、seg-1），紀錄還是 M1 的 Tab
+      if (tab == AppTab.breed || tab == AppTab.shop) {
+        for (final seg in ['seg-1', 'seg-0']) {
+          await tester.tap(find.byKey(Key(seg)));
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull, reason: '${tab.name} $seg');
+        }
+      }
       final tabs = find.byType(Tab);
-      if (tab == AppTab.breed || tab == AppTab.records) {
+      if (tab == AppTab.records) {
         expect(tabs.evaluate().length, greaterThan(1), reason: '${tab.name} 應該有次分頁');
       }
       for (var i = 0; i < tabs.evaluate().length; i++) {

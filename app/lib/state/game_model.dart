@@ -168,6 +168,9 @@ class GameModel extends ChangeNotifier {
   /// 商店顯示「設施」（S10）還是「抽牛」（S19）。
   bool shopFacility = false;
 
+  /// 配種頁顯示「借種」（S18）還是「自己配種」（S08）。
+  bool breedStud = false;
+
   /// 牧場場景裡每頭牛的位置：這次打開 app 期間同一頭牛一直在同一個位置（ceo 2026-10-02）。只是顯示用。
   final herdLayout = HerdLayout();
   String? detailCowKey;
@@ -598,6 +601,12 @@ class GameModel extends ChangeNotifier {
     selectTab(AppTab.shop);
   }
 
+  /// 配種頁換「自己配種」或「借種」（S08、S18）。
+  void selectBreed({required bool stud}) {
+    breedStud = stud;
+    _notify();
+  }
+
   /// 市場換一種商品（S06）。
   void selectMarket(Commodity c) {
     marketCommodity = c;
@@ -636,6 +645,7 @@ class GameModel extends ChangeNotifier {
   }
 
   void selectForBreeding(Cow cow) {
+    breedStud = false;
     if (cow.bull) {
       breedSireKey = cow.key;
     } else {
