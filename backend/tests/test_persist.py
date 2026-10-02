@@ -34,7 +34,7 @@ def test_each_class_round_trips():
         if i % 17 == 0:
             farm.sell_all_milk(ex.markets["milk"], t)
     farm.lots.append(Lot(2, 12.5, t))
-    farm.beef_lots.append(BeefLot(1, 250.0, 1.3, t, 9, 0))
+    farm.beef_lots.append(BeefLot(1, 250.0, 1.3, t, 9, 0, 0b101101))
     farm.rice_lots.append(RiceLot(40.5, t))
     farm.fields.append(Field(t, -1, 3.25))
 
@@ -46,6 +46,9 @@ def test_each_class_round_trips():
     assert Lot.from_dict(rt(lot.to_dict())).to_dict() == lot.to_dict()
     bl = farm.beef_lots[-1]
     assert BeefLot.from_dict(rt(bl.to_dict())).to_dict() == bl.to_dict()
+    assert BeefLot.from_dict(rt(bl.to_dict())).genes == 0b101101
+    old = BeefLot.from_dict([1, 250.0, 1.3, t, 9, 0])  # 2026-10-02 之前的存檔：6 個元素、沒有基因
+    assert old.genes is None and old.grade == 0 and old.cow_id == 9
     rl = farm.rice_lots[-1]
     assert RiceLot.from_dict(rt(rl.to_dict())).to_dict() == rl.to_dict()
     fl = farm.fields[-1]
@@ -57,6 +60,21 @@ def test_each_class_round_trips():
     assert Market.from_dict(DEFAULT.milk, rt(m.to_dict())).to_dict() == m.to_dict()
     assert Exchange.from_dict(DEFAULT, rt(ex.to_dict())).to_dict() == ex.to_dict()
     assert Farm.from_dict(DEFAULT, rt(farm.to_dict())).to_dict() == farm.to_dict()
+
+
+def test_old_save_beef_lots_without_genes():
+    """新程式讀舊存檔：2026-10-02 之前的牛肉批次是 6 個元素、沒有基因。整個牧場讀得進來，
+    genes 是 None（state 的 breed 給 null），其他欄位不變；再存一次就是 7 個元素。"""
+    farm = Farm(DEFAULT, T0, random.Random(1))
+    farm.beef_lots.append(BeefLot(1, 250.0, 1.3, T0, 9, 0, 0b101101))
+    old = rt(farm.to_dict())
+    old["beef_lots"] = [x[:6] for x in old["beef_lots"]]  # 舊程式存的樣子
+    back = Farm.from_dict(DEFAULT, old)
+    assert back.beef_lots[0].genes is None
+    assert back.beef_lots[0].to_dict() == old["beef_lots"][0] + [None]
+    assert {k: v for k, v in rt(back.to_dict()).items() if k != "beef_lots"} == {
+        k: v for k, v in old.items() if k != "beef_lots"
+    }
 
 
 def test_rng_state_keeps_gauss_cache():
