@@ -69,6 +69,7 @@
   - Apple／Google 連不上時（抓公鑰失敗、`/auth/token` 網路錯誤），伺服器現在回 `token_invalid`／`code_invalid`，app 會跟玩家說登入憑證有問題，其實是對方的伺服器掛了。評估要不要加一個 reason：會改協定，cow-ui 也要補文案。
   - `POST /v1/account/nonce` 不用登入，伺服器最多記 2 萬個 nonce，有人狂打會把別人的 nonce 擠掉。選主機時在反向代理加流量限制。
 - 部署時確認伺服器和反向代理都不記錄請求本文（request body）和 request_id（協定 1.3 節）。ceo 2026-10-02 裁示 `POST /v1/session` 的重送不改程式：request_id 在 10 分鐘內等於這個請求的憑證。M3 的伺服器程式沒有把 request_id 寫進日誌。
+- 反向代理的存取日誌不能記 `/v1/ws` 的查詢字串：WebSocket 的 token 放在網址的 `?token=`（協定第 7 節）。伺服器自己的日誌已經用 `server/logsafe.py` 把 `token=` 遮掉；nginx 預設的 `$request` 會記整個網址（cow-app 2026-10-02 在 app 的日誌發現同一件事，PR #58）。
 
 ## 不在第一版（試玩後，企劃書 v0.3 再決定）
 
