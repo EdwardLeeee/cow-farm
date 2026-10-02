@@ -85,3 +85,9 @@ jobs:
         working-directory: app
       - run: flutter test
         working-directory: app
+      # 日曆天（今天／昨天）的測試要在有夏令時間的時區才抓得到錯：runner 是 UTC，當地兩個午夜相減永遠是 24 小時。
+      # 紐約 2026-03-08 只有 23 小時（cow-app #104；ceo 2026-10-02）。
+      - run: flutter test test/l10n_test.dart
+        working-directory: app
+        env:
+          TZ: America/New_York
