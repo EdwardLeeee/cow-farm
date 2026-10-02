@@ -318,9 +318,28 @@ const writeLog = () => fs.writeFileSync(
   await shot('stud-listed');
   step('上架公牛（S18）', listed && unlistShown, unlistShown ? '我的公牛那一列換成「下架」' : '沒看到「下架」');
 
+  /// 清單只建畫面附近的元件，捲出去太遠的不在無障礙樹裡（市場的公牛一多，下面的母牛、借種鈕就找不到）：
+  /// 往下捲到 [has] 成立為止；scrollTop 捲回最上面。
+  const scrollUntil = async (has, max = 10) => {
+    await page.mouse.move(215, 600);
+    for (let k = 0; k < max; k++) {
+      if (await has()) return true;
+      await page.mouse.wheel(0, 400);
+      await wait(600);
+    }
+    return has();
+  };
+  const scrollTop = async () => { await page.mouse.move(215, 400); await page.mouse.wheel(0, -8000); await wait(800); };
+  /// 「選自己的母牛」底下第一頭能選的母牛。
+  const damRow = async () => {
+    const all = await nodes();
+    const cut = all.findIndex((x) => x.label === '選自己的母牛');
+    return (cut < 0 ? null : all.slice(cut + 1).find((x) => x.role === 'button' && /#\d+/.test(x.label) && !x.disabled)) || null;
+  };
+
   const rows0 = await listingRows();
   const cheapest = Math.min(...rows0.map((r) => r.price).filter((p) => p > 0));
-  note(`借種市場 ${rows0.length} 頭：${rows0.map((r) => r.price).join('、')} 幣`);
+  note(`借種市場（畫面上看得到的）${rows0.length} 頭：${rows0.map((r) => r.price).join('、')} 幣`);
   await earnUntil((Number.isFinite(cheapest) ? cheapest : 500) + 100);
   let borrowed = '';
   // 等賺錢的時候，挑好的那頭可能被別人借走（S18-10）或長大變貴（S18-12）：最多試三頭
@@ -331,17 +350,29 @@ const writeLog = () => fs.writeFileSync(
     if (!pick) { issue(`借種：沒有付得起的公牛（金幣 ${c}）`); break; }
     await tapLabel(pick.label);
     await wait(1500);
-    const all = await nodes();
-    const cut = all.findIndex((x) => x.label === '選自己的母牛');
-    const dam = cut < 0 ? null : all.slice(cut + 1).find((x) => x.role === 'button' && /#\d+/.test(x.label) && !x.disabled);
+    await scrollUntil(async () => (await damRow()) !== null);
+    const dam = await damRow();
     note(`借種：選 ${pick.label.replace(/\n/g, ' ')}，母牛 ${dam ? dam.label.replace(/\n/g, ' ') : '(沒有)'}`);
-    if (!dam) { issue('借種：沒有能借種的母牛'); break; }
+    if (!dam) { issue('借種：沒有能借種的母牛（捲到底也沒看到）'); break; }
     await tapLabel(dam.label);
     await wait(3000);
+    // 借種鈕在最下面：捲到它進了無障礙樹，再多捲一點，截圖看得到機率卡、提醒和借種鈕
+    const b = button(/^借種（/);
+    await scrollUntil(async () => (await b.count()) > 0);
+    await page.mouse.wheel(0, 300);
+    await wait(600);
     note(`機率卡：${(((await nodes()).find((x) => x.label.startsWith('可能生出的小牛')) || {}).label || '?').replace(/\n/g, ' ')}`);
     await shot('stud-preview');
-    const b = button(/^借種（/);
-    if (!(await enabled(b))) { issue(`借種鈕停用（金幣 ${await coins()}）`); break; }
+    if (!(await b.count())) { issue('找不到借種鈕（捲到底也不在無障礙樹裡）'); break; }
+    if (!(await enabled(b))) {
+      // 停用時把機率卡到借種鈕之間的字記下來（金幣不夠、牛舍滿了…），再看有沒有離線
+      const all2 = await nodes();
+      const i0 = all2.findIndex((x) => x.label.startsWith('可能生出的小牛'));
+      const i1 = all2.findIndex((x) => x.role === 'button' && /^借種（/.test(x.label));
+      const between = i0 < 0 || i1 < 0 ? '?' : all2.slice(i0 + 1, i1).map((x) => x.label.replace(/\n/g, ' ')).join(' / ');
+      issue(`借種鈕停用（金幣 ${await coins()}）：${between || '(沒有提醒)'}；離線：${all2.some((x) => /離線|連線中/.test(x.label))}`);
+      break;
+    }
     const c0 = await coins();
     await mark(); await tap(b.first());
     await wait(2500);
@@ -366,7 +397,9 @@ const writeLog = () => fs.writeFileSync(
   }
   step('借別人的公牛（S18）', borrowed !== '', borrowed);
 
-  // 借種紀錄（S18-11）：剛才借入的那一筆是「今天」；上架的公牛被別人借走的話，也會有一筆借出
+  // 借種紀錄（S18-11）：剛才借入的那一筆是「今天」；上架的公牛被別人借走的話，也會有一筆借出。
+  // 連結在最上面的「我的公牛」卡片裡：先捲回最上面（捲出畫面的元件不在無障礙樹裡）
+  await scrollTop();
   await tap(button('借種紀錄'));
   await wait(2500);
   const logRows = (await nodes()).filter((x) => /^(借入|借出)\n/.test(x.label)).map((x) => x.label.replace(/\n/g, ' '));
