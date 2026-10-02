@@ -78,11 +78,12 @@ export function fitSwipeHint(root) {
 }
 
 // 牧場面板小卡的一行（.mini-line）不換行；真的放不下（例：泰文 360 的最大數字）就把左邊那組（圖示、名稱、數字、單位）
-// 整組靠左縮小到放得下，右邊的欄位不動（跟 app 的 FittedBox(scaleDown) 一樣，ceo 2026-10-02）。繁中放得下，不變。
+// 整組靠左縮小到放得下，右邊的欄位不動（跟 app 的 FittedBox(scaleDown) 一樣，ceo 2026-10-02）。
+// 超出 3 px 以內不動：核准的繁中 390「S03-09 數字最大（量測用）」那一行本來就超出 3 px，不能讓核准的圖變了。
 export function fitMiniLines(root) {
   let n = 0;
   root.querySelectorAll('.mini-line').forEach((line) => {
-    if (line.scrollWidth <= line.clientWidth + 0.5) return;
+    if (line.scrollWidth <= line.clientWidth + 3.5) return;
     const right = line.querySelector(':scope > .r');
     const g = document.createElement('span');
     g.className = 'ml-fit';
