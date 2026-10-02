@@ -102,12 +102,16 @@ def main() -> None:
 
     sb = g["new_b_stud"]
     L.append(f"### 表 E：借種市場（最高借種價 {sb['top_price']:,.0f} 幣 ≈ 一頭壯年乳牛 {sb['top_price_days_of_milk']:.2f} 天的奶錢，{sb['milk_money_per_day']:,.0f} 幣／天，基本價）\n")
-    L.append("| 人數 | 每天成交 | 每人每天 | 玩家上架的比例 | 300 | 800 | 2,000 | 5,000 | 電腦假玩家 300 | 出借派借種收入（幣／週） | 佔出借派收入 | 單一出借派 30 天最多 |")
-    L.append("|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
+    # D26：借種費照公牛體重算，不再是固定幾檔，所以用價格區間分欄。by_price_mean 的 key 是「價格」或「價格_npc」（公營種牛站）。
+    bands = ((0, 1000), (1000, 3000), (3000, 10000), (10000, float("inf")))
+    L.append("| 人數 | 每天成交 | 每人每天 | 玩家上架的比例 | 未滿 1,000 幣 | 1,000–2,999 | 3,000–9,999 | 1 萬以上 | 其中公營種牛站 | 最高成交 | 出借派借種收入（幣／週） | 佔出借派收入 | 單一出借派 30 天最多 |")
+    L.append("|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
     for n, p in sb["pops"].items():
-        bp = p["by_price_mean"]
-        L.append(f"| {int(n):,} | {p['trades_per_day']:.1f} | {p['trades_per_player_day']:.2f} | {p['share_player_listing']:.0%} | {bp.get('300', 0):.0f} | {bp.get('800', 0):.0f} | {bp.get('2000', 0):.0f} | {bp.get('5000', 0):.0f} | {bp.get('300_npc', 0):.0f} | {p['lender_income_per_week']:,.0f} | {p['lender_income_share']:.1%} | {p['lender_income_max_30d']:,.0f} |")
-    L.append("\n（300／800／2,000／5,000 欄 = 各價位的成交筆數，多個 seed 平均。）\n")
+        bp = {(float(k.split("_")[0]), k.endswith("_npc")): v for k, v in p["by_price_mean"].items()}
+        counts = [sum(v for (price, _npc), v in bp.items() if lo <= price < hi) for lo, hi in bands]
+        npc = sum(v for (_price, is_npc), v in bp.items() if is_npc)
+        L.append(f"| {int(n):,} | {p['trades_per_day']:.1f} | {p['trades_per_player_day']:.2f} | {p['share_player_listing']:.0%} | " + " | ".join(f"{c:,.0f}" for c in counts) + f" | {npc:,.0f} | {p['max_trade_price']:,.0f} | {p['lender_income_per_week']:,.0f} | {p['lender_income_share']:.1%} | {p['lender_income_max_30d']:,.0f} |")
+    L.append("\n（價格區間欄 = 30 天的成交筆數，多個 seed 平均，含公營種牛站。借種費 = 公牛現在的體重 × 每公斤價格，見研究筆記第 10 節。）\n")
 
     sh = g["new_c_shop"]
     L.append("### 表 F：商店 A／B／C\n")
