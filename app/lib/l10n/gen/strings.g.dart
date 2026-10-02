@@ -466,7 +466,6 @@ const Map<String, String> _zhHant = {
   'tooMuch': '一次賣太多，均價會變差，要不要分批？',
   'sellConfirm': '確認賣出 {qty} {unit}',
   'newsTitle': '新聞',
-  's06.newsFictional': '全部是虛構的',
   's06.upcoming': '預告',
   's06.up': '看漲',
   's06.down': '看跌',
@@ -1133,7 +1132,6 @@ const Map<String, String> _en = {
   'tooMuch': 'Selling a lot at once lowers the average price. Split it up?',
   'sellConfirm': 'Sell {qty} {unit}',
   'newsTitle': 'News',
-  's06.newsFictional': 'All fictional',
   's06.upcoming': 'Upcoming',
   's06.up': 'Rising',
   's06.down': 'Falling',
@@ -1800,7 +1798,6 @@ const Map<String, String> _th = {
   'tooMuch': 'ขายทีเดียวเยอะเกินไป ราคาเฉลี่ยจะแย่ลง แบ่งขายหลายรอบดีไหม?',
   'sellConfirm': 'ยืนยันขาย {qty} {unit}',
   'newsTitle': 'ข่าว',
-  's06.newsFictional': 'ทั้งหมดเป็นเรื่องสมมติ',
   's06.upcoming': 'กำลังจะมา',
   's06.up': 'แนวโน้มขึ้น',
   's06.down': 'แนวโน้มลง',
@@ -3072,9 +3069,6 @@ abstract class GeneratedStrings {
 
   /// `newsTitle`：新聞
   String get newsTitle => table['newsTitle']!;
-
-  /// `s06.newsFictional`：全部是虛構的
-  String get s06NewsFictional => table['s06.newsFictional']!;
 
   /// `s06.upcoming`：預告
   String get s06Upcoming => table['s06.upcoming']!;
