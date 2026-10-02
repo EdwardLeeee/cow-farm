@@ -68,6 +68,9 @@ String compactBig(num n, AppLang lang) {
 /// 百分比：0.123 → 12.3%；整數不寫 .0（設計稿 pct：toFixed 之後去掉結尾的 .0）。
 String pct(num v, [int digits = 1]) => '${_stripZero((v * 100).toDouble().toStringAsFixed(digits))}%';
 
+/// 每小時的產量：整數不寫小數點，不然一位（14、14.3）。
+String rateText(double v) => fmt(v, v % 1 == 0 ? 0 : 1);
+
 String _stripZero(String s) => s.endsWith('.0') ? s.substring(0, s.length - 2) : s;
 
 /// 英文、泰文的縮寫（Intl compact、小數最多一位、四捨五入）：用整數算，避免 999,950 這種剛好在進位邊界的數字算錯。

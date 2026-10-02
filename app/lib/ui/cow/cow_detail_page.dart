@@ -19,6 +19,7 @@ import '../kit/cow_bits.dart';
 import '../kit/frame.dart';
 import '../kit/grade.dart';
 import '../kit/kit.dart';
+import '../kit/kv.dart';
 import '../kit/meter.dart';
 import '../kit/note_line.dart';
 import '../kit/page_head.dart';
@@ -168,9 +169,6 @@ String originText(Strings s, String? origin) => switch (origin) {
   'stud' => s.s04OriginStud,
   _ => '',
 };
-
-/// 每小時的產量：整數不寫小數點，不然一位（14、14.3）。
-String rateText(double v) => fmt(v, v % 1 == 0 ? 0 : 1);
 
 /// 公耕牛（成年、沒配過種的公耕牛）：可以下田，也可以上架借種，一共 4 個動作（D31，S04-14～16）。
 bool isStudOx(Cow cow, double now) => cow.bull && cow.type == CowType.dual && cow.isAdultAt(now) && !cow.bred;
@@ -426,7 +424,7 @@ class _Kv extends StatelessWidget {
   Widget build(BuildContext context) {
     final m = context.read<GameModel>();
     final s = Strings.of(context);
-    final cells = <(String, String, String?)>[];
+    final cells = <KvCell>[];
     // age_h 是拿到 state 那一刻的遊戲小時；加上之後走過的遊戲時間，再換成現實時間
     final ageH = cow.ageH, serverTime = m.state?.serverTime;
     if (ageH != null) {
@@ -448,66 +446,7 @@ class _Kv extends StatelessWidget {
       cells.add((s.s04Weight, fmt(cow.weightKg), s.gKg));
       cells.add((s.s04Value, s.s04About(v: fmt(cow.shipValue ?? 0)), s.gCoin));
     }
-    final value = _even(AppText.number(17, lineHeight: 22));
-    final unitStyle = _even(AppText.style(12, weight: FontWeight.w700, lineHeight: 22, letterSpacing: 0.2));
-    Widget cell((String, String, String?) c) {
-      final (k, v, unit) = c;
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: AppColors.lineSoft, width: 2),
-          borderRadius: const BorderRadius.all(AppRadii.r12),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              k,
-              softWrap: false,
-              style: AppText.style(12, weight: FontWeight.w700, color: AppColors.ink2, lineHeight: 16),
-            ),
-            // 有單位的那一行在 Chrome 是 25 高（小字往下多佔 3），沒有是 22
-            CssLine(
-              TextSpan(
-                style: value,
-                children: [
-                  TextSpan(text: v),
-                  // 「14 <small>瓶／時</small>」：空白是大字的，小字再往右 2
-                  if (unit != null) ...[
-                    TextSpan(
-                      text: ' ',
-                      style: value.copyWith(letterSpacing: 0.2 + 2),
-                    ),
-                    TextSpan(text: unit, style: unitStyle),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    // 兩欄、間距 8；同一排的兩格一樣高（CSS grid）
-    return Column(
-      key: const Key('kv'),
-      children: [
-        for (var i = 0; i < cells.length; i += 2) ...[
-          if (i > 0) const SizedBox(height: 8),
-          IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(child: cell(cells[i])),
-                const SizedBox(width: 8),
-                Expanded(child: i + 1 < cells.length ? cell(cells[i + 1]) : const SizedBox.shrink()),
-              ],
-            ),
-          ),
-        ],
-      ],
-    );
+    return KvGrid(key: const Key('kv'), cells: cells);
   }
 }
 

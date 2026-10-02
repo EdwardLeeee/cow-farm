@@ -128,9 +128,6 @@ class _StudLogPageState extends State<StudLogPage> {
   }
 }
 
-/// 一般 div 的一行（16px、行高 normal = 19 + 5）：裡面的粗體字比較小時，行高還是照 div 的（CSS 的 strut）。
-const kDivStrut = StrutStyle(fontFamily: AppText.family, fontSize: 16, height: 24 / 16);
-
 /// 借種紀錄是空的（S18-15）：卡片裡一句，全部、借出、借入各一句（樣子跟 S18-05 的空狀態一樣）。[filter] 是 0 全部、1 借出、2 借入。
 class LogEmptyCard extends StatelessWidget {
   const LogEmptyCard({super.key = const Key('log-empty'), required this.filter});

@@ -77,7 +77,7 @@ class TierChip extends StatelessWidget {
   }
 }
 
-/// .badge 的種類和底色。
+/// .badge 的種類和底色；.badge.lock（空田）的字是 ink-2、框是停用的淡色。
 enum BadgeKind {
   bred(AppColors.pink),
   working(AppColors.green),
@@ -88,10 +88,15 @@ enum BadgeKind {
   fresh(AppColors.yellow),
 
   /// .badge.new：還沒發現過的品種（S08-06）。
-  newBreed(AppColors.yellow);
+  newBreed(AppColors.yellow),
 
-  const BadgeKind(this.color);
+  /// .badge.lock：空田（S17）。
+  lock(AppColors.disabledBg, fg: AppColors.ink2, line: AppColors.disabledLine);
+
+  const BadgeKind(this.color, {this.fg = AppColors.ink, this.line = AppColors.ink});
   final Color color;
+  final Color fg;
+  final Color line;
 }
 
 /// .badge：狀態標籤（小牛、老牛、工作中、上架中、已配種…）。
@@ -108,10 +113,10 @@ class CowBadge extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 7),
     decoration: BoxDecoration(
       color: kind.color,
-      border: Border.all(color: AppColors.ink, width: 2),
+      border: Border.all(color: kind.line, width: 2),
       borderRadius: const BorderRadius.all(Radius.circular(11)),
     ),
-    child: Text(text, softWrap: false, style: _chipText()),
+    child: Text(text, softWrap: false, style: _chipText().copyWith(color: kind.fg)),
   );
 }
 

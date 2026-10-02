@@ -23,7 +23,6 @@ import '../kit/note_line.dart';
 import '../kit/press.dart';
 import '../widgets/action_button.dart';
 import 'breed_page.dart';
-import 'stud_log_page.dart';
 
 /// 「借種」分頁：我的公牛出借、借種市場、選自己的母牛、可能生出的小牛、借種。[seg] 是最上面的分頁膠囊。
 class StudTab extends StatefulWidget {
