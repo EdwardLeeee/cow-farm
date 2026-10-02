@@ -220,7 +220,8 @@ class TestStudMarket(unittest.TestCase):
         self.assertEqual(sum(1 for l in sm.listings.values() if l.owner is None), FP.npc_stud_listings)
 
     def test_npc_station_keeps_one_of_each_type(self):
-        """公營種牛站乳牛、耕牛、肉牛各一（協定第 4 節）：借走哪一頭就補哪一種，不是輪流補。"""
+        """公營種牛站乳牛、耕牛、肉牛各一（協定第 4 節）：借走哪一頭就補哪一種，不是輪流補；
+        連續借走同一種用途好幾次，那種用途也一直補得回來（ceo 2026-10-02）。"""
         sm, t, rng = self.sm, self.t, random.Random(4)
 
         def station(m):
@@ -228,7 +229,7 @@ class TestStudMarket(unittest.TestCase):
 
         sm.npc_refill(t, rng)
         self.assertEqual(station(sm), [0, 1, 2])
-        for ctype in (1, 2, 1, 0, 0):  # 依序借走耕牛、肉牛、耕牛、乳牛、乳牛
+        for ctype in (1, 1, 1, 2, 0, 0, 0):  # 連續借走耕牛三次、肉牛一次、乳牛三次：每次都補回同一種
             lid = next(lst.lid for lst in sm.listings.values() if lst.owner is None and lst.ctype == ctype)
             sm._remove(lid)  # 等於被借走：借種成功以後，伺服器和模擬都會呼叫 npc_refill
             sm.npc_refill(t, rng)
