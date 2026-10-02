@@ -521,7 +521,9 @@ class GameModel extends ChangeNotifier {
         final m = market;
         market = m == null
             ? MarketInfo(quotes: quotes, recent: const {}, news: const [])
-            : m.copyWith(quotes: {...m.quotes, ...quotes});
+            : m.copyWith(
+                quotes: {...m.quotes, for (final e in quotes.entries) e.key: e.value.mergedOver(m.quotes[e.key])},
+              );
         if (serverTime != null) {
           for (final e in quotes.entries) {
             final key = (e.key, '1h');

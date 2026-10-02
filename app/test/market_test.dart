@@ -209,6 +209,18 @@ void main() {
     expect(find.textContaining(kStringTables['zh-Hant']!['news.milk_up.2']!), findsWidgets);
   });
 
+  testWidgets('WebSocket 推的價格沒有基本價（協定第 7 節）：「平常」那一行、比平常的顏色照舊', (tester) async {
+    Screen.w390.apply(tester);
+    final (m, push) = await showMarket(tester, AppLang.zhHant);
+    push.emit(const MarketPush({Commodity.milk: Quote(price: 9.0, change24h: -1.2)}, null));
+    await tester.pump(Duration.zero);
+    await tester.pump();
+    expect(m.market!.quotes[Commodity.milk]!.basePrice, 12);
+    expect(find.text(_zh.s06BaseLine(milk: '12', beef: '12', rice: '5')), findsOneWidget);
+    // 9 ÷ 基本價 12 = 比平常低 25%
+    expect(_vsColor(tester, 'milk'), AppColors.down(upIsRed: true));
+  });
+
   testWidgets('牧場的大新聞「去市場看看」：到市場、選好那種商品（S03-15）', (tester) async {
     Screen.w390.apply(tester);
     final m = await ranchModel(

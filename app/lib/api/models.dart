@@ -934,6 +934,17 @@ class Quote {
     return before.abs() < 1e-9 ? 0 : change24h / before;
   }
 
+  /// WebSocket 每秒推的 market 只有 price、change_24h、change_24h_pct、ma24（協定第 7 節），沒有基本價：
+  /// 基本價沿用 [GET /v1/market] 拿到的那一份；ratio 是舊價格算的，不留（改用新價格 ÷ 基本價）。
+  Quote mergedOver(Quote? old) => Quote(
+    price: price,
+    change24h: change24h,
+    ma24: ma24 ?? old?.ma24,
+    serverPct: serverPct,
+    basePrice: basePrice ?? old?.basePrice,
+    ratio: basePrice == null ? null : ratio,
+  );
+
   factory Quote.fromJson(Map<String, dynamic> j) => Quote(
     price: _d(_pick(j, ['price'])),
     change24h: _d(_pick(j, ['change_24h', 'change'])),
