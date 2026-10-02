@@ -65,6 +65,8 @@
 .filter { display: flex; gap: 6px; flex-wrap: nowrap; }
 .filter button { min-height: 44px; padding: 0 14px; border-radius: 22px; border: 2.5px solid var(--ink); background: #FFFFFF; font-size: 14px; font-weight: 700; white-space: nowrap; }
 .filter button.on { background: var(--yellow); font-weight: 900; }
+/* 篩選膠囊不換行；放不下（英文、泰文窄手機）時可以左右滑，跟選牛小卡那一列一樣延伸到畫面邊緣（設計稿畫成切掉；app 可以滑，cow-app #70） */
+.filter[data-hscroll] { margin-left: -12px; margin-right: -12px; padding: 0 12px; overflow: hidden; }
 .cow-row .right .num { font-size: 15px; }
 .cow-row .right .u { font-size: 11px; font-weight: 700; color: var(--ink-2); }
 .cow-row .note { font-size: 12px; font-weight: 700; line-height: 16px; color: var(--ink-2); white-space: nowrap; }
