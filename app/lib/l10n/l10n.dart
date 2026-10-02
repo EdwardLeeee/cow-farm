@@ -46,7 +46,7 @@ final _placeholder = RegExp(r'\{(\w+)\}');
 /// 手機時區的兩個時刻差幾個日曆天（[at] 是 [now] 的前一天就是 1），決定寫「今天」「昨天」還是日期。
 /// 只看年月日、用 UTC 相減：當地的兩個午夜相減，遇到夏令時間切換那天只有 23 小時，inDays 會是 0（昨天變成「今天」）。
 int calendarDaysBetween(DateTime now, DateTime at) =>
-    DateTime(now.year, now.month, now.day).difference(DateTime(at.year, at.month, at.day)).inDays;
+    DateTime.utc(now.year, now.month, now.day).difference(DateTime.utc(at.year, at.month, at.day)).inDays;
 
 /// 給畫面用的字串：`Strings.of(context).tabRanch`、`Strings.of(context).level(lv: 3)`。
 ///
