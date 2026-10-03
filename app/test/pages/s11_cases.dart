@@ -1,7 +1,9 @@
 // S11 升級慶祝與提示的頁面狀態（設計稿 s10.js 的 S11）。
-// S11-03（新手引導卡放哪裡、什麼時候出現）和 S11-05（備份提醒，「現在備份」要開 S13）等 ceo 決定，還在待做清單。
+// S11-03 新手引導卡：卡片本身照局部表；什麼時候出、放哪裡、右上角的 × 在 coach_test。
+// S11-05（備份提醒，「現在備份」要開 S13）等備份牧場（#127）合併，還在待做清單。
 import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/ui/kit/frame.dart';
+import 'package:cowfarm/ui/ranch/coach_card.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -29,6 +31,22 @@ final s11Cases = [
       expect(find.text(_zh.s11Earned(v: '7,500')), findsOneWidget);
       expect(find.text(_zh.s11Ribbon), findsOneWidget);
       expect(find.byKey(const Key('level-up-ok')), findsOneWidget);
+    },
+  ),
+  PageCase(
+    'S11-03',
+    '新手引導提示（第 15 分鐘、第 20 分鐘）',
+    (tester, lang) => pumpSheet(tester, lang, [
+      CoachCard(kind: CoachKind.pen, penPrice: 280, onGo: () {}),
+      CoachCard(kind: CoachKind.bull, onGo: () {}),
+    ]),
+    crop: find.byKey(const Key('sheet')),
+    check: (tester) {
+      expect(find.text(_zh.s11CoachPenTitle), findsOneWidget);
+      expect(find.text(_zh.s11CoachPenBody(price: '280')), findsOneWidget);
+      expect(find.text(_zh.s11CoachBullTitle), findsOneWidget);
+      expect(find.text(_zh.s11CoachPenGo), findsOneWidget);
+      expect(find.text(_zh.s11CoachBullGo), findsOneWidget);
     },
   ),
   PageCase(

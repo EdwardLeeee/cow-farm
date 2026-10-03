@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../fakes.dart';
 import 'g_cases.dart';
 import 's01_s02_cases.dart';
 import 's03_cases.dart';
@@ -107,8 +108,9 @@ Future<void> loadAppAssets() async {
 }
 
 /// 手機語言是 [lang] 的設定（第一次打開跟著手機語言）；[prefs] 是先存好的偏好（例：面板收起來了）。
+/// 新手引導卡（S11-03）預設都看過了（[coachSeenPrefs]），設計稿的牧場狀態都沒有引導卡。
 SettingsController settingsFor(AppLang lang, [Map<String, String> prefs = const {}]) =>
-    SettingsController(MemoryPrefsStore({...prefs}), deviceLocales: () => [lang.locale]);
+    SettingsController(MemoryPrefsStore({...coachSeenPrefs, ...prefs}), deviceLocales: () => [lang.locale]);
 
 /// 牧場的滑動提示已經看過（S03-14 以外的牧場狀態都是這樣）。
 const swipeHintSeen = {SettingsController.swipeHintKey: '1'};

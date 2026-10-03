@@ -52,6 +52,7 @@ class SettingsController extends ChangeNotifier {
   static const bigNewsKey = 'cowfarm_big_news_seen';
   static const soundKey = 'cowfarm_sound';
   static const backupSeenKey = 'cowfarm_backup_seen';
+  static const coachSeenKey = 'cowfarm_coach_seen';
 
   AppLang? _chosenLang;
   bool? _upIsRed;
@@ -60,6 +61,7 @@ class SettingsController extends ChangeNotifier {
   List<String> _bigNewsSeen = [];
   bool _soundOn = true;
   bool _backupSeen = false;
+  Set<String> _coachSeen = {};
 
   /// 打開 app 時讀一次（main.dart 在 runApp 之前呼叫，第一個畫面就是對的語言）。
   Future<void> load() async {
@@ -72,6 +74,8 @@ class SettingsController extends ChangeNotifier {
     _bigNewsSeen = seen == null || seen.isEmpty ? [] : seen.split(',');
     _soundOn = await _store.getString(soundKey) != '0';
     _backupSeen = await _store.getString(backupSeenKey) == '1';
+    final coach = await _store.getString(coachSeenKey);
+    _coachSeen = coach == null || coach.isEmpty ? {} : coach.split(',').toSet();
     notifyListeners();
   }
 
@@ -131,6 +135,16 @@ class SettingsController extends ChangeNotifier {
     _swipeHintSeen = true;
     notifyListeners();
     await _store.setString(swipeHintKey, '1');
+  }
+
+  /// 新手引導卡（S11-03）每張只出現一次：記在手機上，照牧場分開（刪掉牧場、開新牧場會再出一次）。
+  /// [card] 是 pen（牛舍可以擴建了）或 bull（小公牛長大了）。
+  bool coachSeen(String card, int? playerId) => _coachSeen.contains('$card@${playerId ?? 0}');
+
+  Future<void> markCoachSeen(String card, int? playerId) async {
+    if (!_coachSeen.add('$card@${playerId ?? 0}')) return;
+    notifyListeners();
+    await _store.setString(coachSeenKey, _coachSeen.join(','));
   }
 
   /// 大新聞提示（S03-15）每則只跳出一次：記住最近 50 則看過的新聞 id。
