@@ -13,7 +13,7 @@
   "design/m2/src/cow/r1/cowgen.js": "1935ca123df02952bfc2c3ba4ed768a4101e009477d1258ce018eb060096db42",
   "design/m2/src/cow/r11.js": "6320eccb9408e09ad5ee4a983d2c30e1a9341461d08bad9b2665994b4147b06e",
   "design/m2/src/cow/render.js": "d4aa6d2d5424a517065cc814a5ee3bf77258bf285891beff7ca9c8ecdeacf3c8",
-  "design/m2/src/js/icons.js": "92dd626743890d44653ce59fe6ac462288ef00e50ede0984f1f12433070d14ee",
+  "design/m2/src/js/icons.js": "b0891468bc4c9d31ff1cf6ef7f27c0852d542b22bb3e19b5d2c81d1545b2adb0",
   "design/m2/src/js/scene.js": "2711f239a02174a5a8f45f5ed02da8891d26350170bf720380c73c07fa6c7d5c",
   "design/m2/src/js/truck.js": "3731ad8d2be15bc3ab095511aa41ca2befa924b28d54888b94b70de3abdb741a"
  },
@@ -317,6 +317,11 @@
    "w": 24,
    "h": 24,
    "sha256": "6d77824e4cade1c19458aede4caa9541a2df699f1da5cc818655c5f2173aad75"
+  },
+  "icons/pencil.svg": {
+   "w": 16,
+   "h": 16,
+   "sha256": "15c7c2667a06c03883e3f90afebb9d95d1c3e4070a23ba82c02c83ea360ffa98"
   },
   "icons/swan.svg": {
    "w": 20,
