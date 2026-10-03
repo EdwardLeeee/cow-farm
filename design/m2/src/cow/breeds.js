@@ -178,6 +178,7 @@ export function genesFor(entry) {
     ...base, patternColor: base.patternColor || base.coat, breed: entry.breed, sex: entry.sex || 'cow', age: entry.age || 'adult',
     seed: entry.seed ?? base.seed, collar: 'bell', overlay: base.overlay || 'none',
   };
-  g.horns = hornsFor(g);
+  // 第 15 輪草稿：特殊牛可以指定角（例如宙斯牛是肉牛但有角）；小牛照舊是小角芽。24 種和雜種牛都沒有指定，跟原本一樣
+  g.horns = base.horns && g.age !== 'calf' ? base.horns : hornsFor(g);
   return g;
 }

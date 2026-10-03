@@ -68,7 +68,7 @@ function palette(g, faceKind) {
     nostril: dark ? '#8E5F63' : '#C98088',
     eye: dark ? '#140D0D' : '#2E1D19',
     hoof: dark ? '#1C1414' : '#5A4038', hoofHi: dark ? '#1C1414' : '#5A4038',
-    horn: g.horns === 'buffalo' ? '#C9BEB2' : '#FFF1CF', hornTip: g.horns === 'buffalo' ? '#857A6F' : '#E6C98F',
+    horn: g.hornColor || (g.horns === 'buffalo' ? '#C9BEB2' : '#FFF1CF'), hornTip: g.hornTip || (g.horns === 'buffalo' ? '#857A6F' : '#E6C98F'),
     tuft: g.pattern === 'patches' ? g.patternColor : shade(coat, dark ? 0.08 : -0.18),
     fringe: shade(coat, dark ? 0.1 : 0.06),
     // 乳房：粉紅袋子＋深一點的奶頭，黑牛也用粉紅，才看得出來
@@ -275,6 +275,10 @@ function drawHead(P, C, g, p, H, r) {
   if (H.kind === '67' && (g.pattern === 'patches' || g.pattern === 'strawberry')) {
     paintPattern(P, C, makePattern(g, r, [{ cx: H.cx + H.rx * 0.8, cy: H.cy - H.ry * 0.55, r: H.hw * 0.2 }], H.pts));
   }
+  if (g.pattern === 'bolt') { // 第 15 輪草稿 宙斯牛：額頭一道小閃電
+    const k = H.kind === '66' ? H.hh : H.hw;
+    bolt(P, H.cx, H.cy - H.ry * (H.kind === '66' ? 0.46 : 0.5), k * 0.3, 0.2, g.patternColor, g.patternEdge || shade(g.patternColor, -0.25));
+  }
   if (g.pattern === 'stars') { // M2 星空牛：額頭一顆小星星（在亮光的另一邊）
     const k = H.kind === '66' ? H.hh : H.hw;
     star(P, H.cx - P.lx * H.rx * 0.36, H.cy - H.ry * (H.kind === '66' ? 0.5 : 0.52), k * 0.1, g.patternColor);
@@ -377,9 +381,68 @@ function curls(P, C, r, B, pose) {
     P.raw(`<path d="M${f(x - size * 0.9)},${f(y + size * 0.1)}a${f(size * 0.62)},${f(size * 0.62)} 0 1 1 ${f(size * 1.05)},${f(size * 0.45)}" fill="none" stroke="${col}" stroke-width="${f(w)}" stroke-linecap="round"/>`);
   }));
 }
+// ---------- 第 15 輪草稿：特殊牛的花紋（v0.3 第 13.3 節；使用者還沒核准，24 種和雜種牛都不會用到） ----------
+// 不畫任何宗教符號：閃電（宙斯牛）、祥雲只當裝飾（青牛）、金色捲紋（聖白牛，額頭不加記號）
+const r2 = (v) => Math.round(v * 100) / 100;
+// 一道閃電（Z 字形）：(x, y) 中心、s 長度、rot 轉幾度（弧度）
+function bolt(P, x, y, s, rot, color, edge) {
+  const pts = [[-0.2, -0.5], [0.18, -0.5], [0.03, -0.1], [0.24, -0.1], [-0.16, 0.5], [-0.03, 0.05], [-0.24, 0.05]];
+  const c = Math.cos(rot), sn = Math.sin(rot);
+  const d = `M${pts.map(([u, v]) => `${r2(x + (u * c - v * sn) * s)},${r2(y + (u * sn + v * c) * s)}`).join('L')}Z`;
+  P.raw(`<path d="${d}" fill="${color}" stroke="${edge}" stroke-width="${r2(s * 0.05)}" stroke-linejoin="round"/>`);
+}
+// 祥雲：三個圓鼓起來、底部平，右邊捲一圈；dir 1 往右捲、-1 往左
+function cloudMark(P, x, y, s, dir, fill, line) {
+  P.raw(`<g transform="translate(${r2(x)} ${r2(y)}) scale(${r2(dir * s)} ${r2(s)})">`
+    + `<path d="M-0.9 0.2C-1.08 0.2 -1.12 -0.1 -0.86 -0.18C-0.86 -0.46 -0.5 -0.56 -0.32 -0.38C-0.25 -0.74 0.26 -0.76 0.34 -0.4C0.56 -0.56 0.93 -0.38 0.86 -0.05C1.06 0 1.03 0.2 0.85 0.2Z" fill="${fill}"/>`
+    + `<path d="M0.85 0.2C1.28 0.22 1.34 -0.26 1.06 -0.32C0.88 -0.36 0.8 -0.14 0.97 -0.07" fill="none" stroke="${fill}" stroke-width="0.14" stroke-linecap="round"/>`
+    + `<path d="M-0.56 -0.04C-0.42 -0.22 -0.2 -0.2 -0.12 -0.04M0.1 -0.12C0.26 -0.32 0.52 -0.26 0.56 -0.04" fill="none" stroke="${line}" stroke-width="0.08" stroke-linecap="round"/></g>`);
+}
+// 金色捲紋：一條 S 形的藤，兩頭捲起來，中間兩片小葉子
+function goldScroll(P, x, y, s, dir, color) {
+  P.raw(`<g transform="translate(${r2(x)} ${r2(y)}) scale(${r2(dir * s)} ${r2(s)})" fill="none" stroke="${color}" stroke-linecap="round">`
+    + `<path d="M-1 0.12C-0.62 -0.52 -0.02 0.52 0.5 -0.08C0.76 -0.4 1.08 -0.2 0.98 0.06C0.9 0.24 0.68 0.16 0.72 0.02" stroke-width="0.13"/>`
+    + `<path d="M-1 0.12C-1.12 0.32 -0.86 0.42 -0.8 0.26" stroke-width="0.11"/>`
+    + `<path d="M-0.36 -0.1C-0.34 -0.36 -0.14 -0.42 -0.06 -0.36C-0.12 -0.18 -0.24 -0.1 -0.36 -0.1Z" fill="${color}" stroke-width="0.04"/>`
+    + `<path d="M0.2 0.14C0.3 0.38 0.5 0.4 0.56 0.32C0.46 0.16 0.32 0.12 0.2 0.14Z" fill="${color}" stroke-width="0.04"/></g>`);
+}
+function paintSpecial(P, g, pose, B) {
+  const side = pose === 'side', col = g.patternColor, edge = g.patternEdge || shade(col, -0.25);
+  if (g.pattern === 'bolt') {
+    if (side) {
+      const { cx, cy, rx, ry, D } = B;
+      bolt(P, cx + rx * 0.08, cy - ry * 0.05, D * 0.62, -0.32, col, edge);
+      bolt(P, cx + rx * 0.62, cy + ry * 0.12, D * 0.42, -0.22, col, edge);
+      bolt(P, cx - rx * 0.5, cy + ry * 0.2, D * 0.36, -0.42, col, edge);
+    } else bolt(P, B.rx * 0.34, B.cy + B.ry * 0.05, B.W * 0.36, -0.28, col, edge);
+  }
+  if (g.pattern === 'cloud') {
+    if (side) {
+      const { cx, cy, rx, ry, D } = B;
+      cloudMark(P, cx - rx * 0.24, cy - ry * 0.2, D * 0.2, 1, col, edge);
+      cloudMark(P, cx + rx * 0.52, cy + ry * 0.3, D * 0.16, -1, col, edge);
+      cloudMark(P, cx + rx * 0.2, cy + ry * 0.55, D * 0.1, 1, col, edge);
+    } else {
+      cloudMark(P, -B.rx * 0.36, B.cy + B.ry * 0.1, B.W * 0.12, 1, col, edge);
+      cloudMark(P, B.rx * 0.42, B.cy + B.ry * 0.4, B.W * 0.09, -1, col, edge);
+    }
+  }
+  if (g.pattern === 'gold') {
+    if (side) {
+      const { cx, cy, rx, ry, D } = B;
+      goldScroll(P, cx + rx * 0.05, cy + ry * 0.05, D * 0.34, 1, col);
+      goldScroll(P, cx + rx * 0.62, cy - ry * 0.25, D * 0.2, -1, col);
+      goldScroll(P, cx - rx * 0.55, cy + ry * 0.35, D * 0.18, -1, col);
+    } else {
+      goldScroll(P, -B.rx * 0.32, B.cy + B.ry * 0.25, B.W * 0.16, 1, col);
+      goldScroll(P, B.rx * 0.36, B.cy - B.ry * 0.05, B.W * 0.13, -1, col);
+    }
+  }
+}
 // 在身體的裁切範圍裡畫新花紋（只有新品種會進來，第 11 輪的 10 種不會呼叫到任何東西）
 function paintExtras(P, C, g, r, pose, B) {
   if (g.curly) curls(P, C, r, B, pose);
+  if (g.pattern === 'bolt' || g.pattern === 'cloud' || g.pattern === 'gold') paintSpecial(P, g, pose, B);
   if (g.pattern === 'stars') {
     const side = pose === 'side';
     const S = side
