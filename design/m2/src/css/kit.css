@@ -130,6 +130,7 @@
 .badge.listed { background: var(--orange); }
 .badge.calf { background: #D5EBFF; }
 .badge.old { background: #E8E1D8; }
+.badge.mix { background: #E6DED4; }
 .badge.full { background: #FFC2B6; }
 .badge.new { background: var(--yellow); }
 .badge.lock { background: #EFE8DF; color: var(--ink-2); border-color: var(--disabled-line); }

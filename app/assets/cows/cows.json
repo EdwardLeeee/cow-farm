@@ -4,11 +4,12 @@
   "座標：每張 SVG 自己的座標（跟 viewBox 同一套），原點在腳底中間，往上是負的；x0、y0 是 viewBox 的原點，w、h 是寬高（留邊 4）。",
   "face 是臉的圓（點牛的範圍）、headTop 是頭頂（泡泡的位置）、shadow 是腳底影子的橢圓（中心 y = 1）、height 是從腳底到頭頂的高。",
   "年紀只有 calf、adult：老牛用 adult 的圖。朝右只有 right 為 true 的品種有，其他品種朝右時把朝左的圖左右翻轉。",
-  "變體：seeds 的長度就是變體數，app 用「牛的編號 mod 變體數」挑。"
+  "變體：seeds 的長度就是變體數，app 用「牛的編號 mod 變體數」挑。",
+  "雜種牛（breeds 裡 mix 為 true）：照用途挑，乳牛 mixDairy、耕牛 mixDraft、肉牛 mixBeef；只有 adult（小牛一律用 CALF_LOOK 那個品種的小牛圖）。"
  ],
  "generator": {
-  "design/m2/harness/assetexport.mjs": "9c806b561653815785fd4808ecba4d2c9d235dd91e84f0ae9f9be4aca06c7631",
-  "design/m2/src/cow/breeds.js": "8a1563caa470739a78b3b7d33f49d0b3043985b194f560ce0a3a7d466543ae26",
+  "design/m2/harness/assetexport.mjs": "b7521ae458423974ffeecc6e0d7877299e672b2117e468c73952258b51ec0615",
+  "design/m2/src/cow/breeds.js": "a7f37d682deea250586c15bac9eaa28a551825b28fcf7ab7766526a48d75ecf8",
   "design/m2/src/cow/calf.js": "3d773e00d3f42d69b9de1b2de366e9af4f25f46645fdcf47a5146b063d84c29b",
   "design/m2/src/cow/q.js": "161f0ebf2cffa8d8baf19f095bab63f04c6d55004155fd078942b2aae7b5fbee",
   "design/m2/src/cow/r1/cowgen.js": "1935ca123df02952bfc2c3ba4ed768a4101e009477d1258ce018eb060096db42",
@@ -186,6 +187,27 @@
     1074
    ],
    "right": true
+  },
+  "mixDairy": {
+   "seeds": [
+    71
+   ],
+   "right": false,
+   "mix": true
+  },
+  "mixDraft": {
+   "seeds": [
+    73
+   ],
+   "right": false,
+   "mix": true
+  },
+  "mixBeef": {
+   "seeds": [
+    75
+   ],
+   "right": false,
+   "mix": true
   }
  },
  "images": {
@@ -13388,6 +13410,270 @@
     "ry": 6.32
    },
    "sha256": "eb3ba8e20ecc86b31bcca9e73b29063a68ab58d124f02fff20182bddae8f0a23"
+  },
+  "mixDairy_cow_adult_side_left_v0": {
+   "w": 118.05,
+   "h": 85.14,
+   "x0": -62.67,
+   "y0": -81.14,
+   "height": 77.14,
+   "face": {
+    "cx": -28.89,
+    "cy": -46.82,
+    "r": 28.06
+   },
+   "headTop": {
+    "x": -28.89,
+    "y": -77.14
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 45.18,
+    "ry": 5.98
+   },
+   "sha256": "525ff54a2cb7434b687708abe60a2e30b95d64cace0aa0b84037eb060f95c813"
+  },
+  "mixDairy_cow_adult_front_left_v0": {
+   "w": 81.56,
+   "h": 103.54,
+   "x0": -41.86,
+   "y0": -99.54,
+   "height": 95.54,
+   "face": {
+    "cx": 0,
+    "cy": -65.32,
+    "r": 24.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -95.54
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 37.78,
+    "ry": 6.67
+   },
+   "sha256": "c4883a129dd28476c2bad3896f8941178553f69ebef59f9df3b057fdb80c6925"
+  },
+  "mixDairy_bull_adult_side_left_v0": {
+   "w": 141.32,
+   "h": 101.47,
+   "x0": -75.48,
+   "y0": -97.47,
+   "height": 93.47,
+   "face": {
+    "cx": -34.42,
+    "cy": -52.62,
+    "r": 35.13
+   },
+   "headTop": {
+    "x": -34.42,
+    "y": -93.47
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 54.38,
+    "ry": 7.19
+   },
+   "sha256": "7248453b9778d3a0ad29c0de68166a9acf57f536f67026de1af6dc3bf51773f0"
+  },
+  "mixDairy_bull_adult_front_left_v0": {
+   "w": 94.38,
+   "h": 122.03,
+   "x0": -47.27,
+   "y0": -118.03,
+   "height": 114.03,
+   "face": {
+    "cx": 0,
+    "cy": -72.95,
+    "r": 30.44
+   },
+   "headTop": {
+    "x": 0,
+    "y": -114.03
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 43.04,
+    "ry": 7.3
+   },
+   "sha256": "589b77d1bfe12bf9ea57f053ce5561a60742f2ae299471e64d54cf139d20a374"
+  },
+  "mixDraft_cow_adult_side_left_v0": {
+   "w": 122.51,
+   "h": 89.68,
+   "x0": -64.35,
+   "y0": -85.68,
+   "height": 81.68,
+   "face": {
+    "cx": -29.79,
+    "cy": -50.42,
+    "r": 28.93
+   },
+   "headTop": {
+    "x": -29.79,
+    "y": -81.68
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 46.58,
+    "ry": 6.64
+   },
+   "sha256": "b96d78a7d8764974411ba083adc744bd9296eeaa0ab66869f354600a82cefc79"
+  },
+  "mixDraft_cow_adult_front_left_v0": {
+   "w": 93.24,
+   "h": 101.59,
+   "x0": -47.7,
+   "y0": -97.59,
+   "height": 93.59,
+   "face": {
+    "cx": 0,
+    "cy": -62.44,
+    "r": 25.07
+   },
+   "headTop": {
+    "x": 0,
+    "y": -93.59
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 42.93,
+    "ry": 6.3
+   },
+   "sha256": "654c398d52733d636fc62dfe8a79d7df17e142f87e62d0f56fe8e95f4c4dc92e"
+  },
+  "mixDraft_bull_adult_side_left_v0": {
+   "w": 146.73,
+   "h": 106.72,
+   "x0": -77.53,
+   "y0": -102.72,
+   "height": 98.72,
+   "face": {
+    "cx": -35.48,
+    "cy": -56.61,
+    "r": 36.21
+   },
+   "headTop": {
+    "x": -35.48,
+    "y": -98.72
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 56.07,
+    "ry": 7.99
+   },
+   "sha256": "5d2c275ba70da7c344991a0f9997782dbdebd2bc60e7f371a4b9809ee8c51e35"
+  },
+  "mixDraft_bull_adult_front_left_v0": {
+   "w": 105.26,
+   "h": 120.19,
+   "x0": -53.93,
+   "y0": -116.19,
+   "height": 112.19,
+   "face": {
+    "cx": 0,
+    "cy": -69.84,
+    "r": 31.38
+   },
+   "headTop": {
+    "x": 0,
+    "y": -112.19
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 48.9,
+    "ry": 6.89
+   },
+   "sha256": "3fe5e7f69dc21fa7c8ceaff0e459826a359ef8dbabe76f39af30a99ac58b4f4a"
+  },
+  "mixBeef_cow_adult_side_left_v0": {
+   "w": 133.61,
+   "h": 91.59,
+   "x0": -69.03,
+   "y0": -87.59,
+   "height": 83.59,
+   "face": {
+    "cx": -33.15,
+    "cy": -55.35,
+    "r": 30.37
+   },
+   "headTop": {
+    "x": -33.15,
+    "y": -83.59
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 51.24,
+    "ry": 7.7
+   },
+   "sha256": "48f47ba8ac4d75e97257b800199a684931ae3640151f38162e116873e72e108b"
+  },
+  "mixBeef_cow_adult_front_left_v0": {
+   "w": 112.98,
+   "h": 95.28,
+   "x0": -57.57,
+   "y0": -91.28,
+   "height": 87.28,
+   "face": {
+    "cx": 0,
+    "cy": -63.93,
+    "r": 26.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -87.28
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 51.51,
+    "ry": 6.42
+   },
+   "sha256": "2b7cf1fa1f5715c1c6008158026528985a2e834dba07ff52511d20433ea4b37f"
+  },
+  "mixBeef_bull_adult_side_left_v0": {
+   "w": 160.13,
+   "h": 105.22,
+   "x0": -83.21,
+   "y0": -101.22,
+   "height": 97.22,
+   "face": {
+    "cx": -39.51,
+    "cy": -61.97,
+    "r": 38.02
+   },
+   "headTop": {
+    "x": -39.51,
+    "y": -97.22
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 61.67,
+    "ry": 9.27
+   },
+   "sha256": "2452eb8f4b2a37a35f41217d8289a20e90bb04127accf13f12700b023c625b92"
+  },
+  "mixBeef_bull_adult_front_left_v0": {
+   "w": 127.74,
+   "h": 108.78,
+   "x0": -65.17,
+   "y0": -104.78,
+   "height": 100.78,
+   "face": {
+    "cx": 0,
+    "cy": -71.55,
+    "r": 32.95
+   },
+   "headTop": {
+    "x": 0,
+    "y": -100.78
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 58.68,
+    "ry": 7.03
+   },
+   "sha256": "99e77b4c2b8a550fb09b25eb76d56982b664184f0def190af5570f94e0065e84"
   }
  }
 }

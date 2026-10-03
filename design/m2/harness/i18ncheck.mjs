@@ -17,7 +17,8 @@ const errs = [];
 
 // 1. 牛
 const { BREEDS, INTRO, TRAIT_NAME } = await import(pathToFileURL(join(ROOT, 'src/cow/breeds.js')).href);
-for (const [k, b] of Object.entries(BREEDS)) {
+for (const [k0, b] of Object.entries(BREEDS)) {
+  const k = b.mix ? 'mix' : k0; // 雜種牛三種體型共用 breed.mix.*
   if (zh[`breed.${k}.name`] !== b.name) errs.push(`breed.${k}.name 跟 breeds.js 不一樣：${zh[`breed.${k}.name`]} ≠ ${b.name}`);
   if (zh[`breed.${k}.intro`] !== INTRO[k]) errs.push(`breed.${k}.intro 跟 breeds.js 不一樣`);
 }
@@ -83,7 +84,7 @@ for (const k of used) if (zh[k] == null) errs.push(`程式用到 ${k}，字串�
 const unused = Object.keys(zh).filter((k) => !used.has(k) && ![...dyn].some((p) => k.startsWith(p)));
 
 const ph = (s) => [...String(s).matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(',');
-console.log(`繁中 ${Object.keys(zh).length} 個 key；牛 ${Object.keys(BREEDS).length} 種；新聞標題 ${headlines} 則；取名詞庫最長「${longestZh}」寬度 ${nameWidth(longestZh)}；程式直接用到 ${used.size} 個`);
+console.log(`繁中 ${Object.keys(zh).length} 個 key；牛 ${Object.values(BREEDS).filter((b) => !b.mix).length} 種＋雜種牛；新聞標題 ${headlines} 則；取名詞庫最長「${longestZh}」寬度 ${nameWidth(longestZh)}；程式直接用到 ${used.size} 個`);
 if (unused.length) console.log(`沒用到的 key（${unused.length}）：${unused.join('、')}`);
 
 // 4. 其他語言

@@ -54,11 +54,16 @@ export function dateText(w) {
   return t('date.md', { m: w.m, d: w.d, time: w.time });
 }
 // 牛的名字、用途、稀有度、公母
-export const breedName = (k) => t(`breed.${k}.name`);
-export const breedIntro = (k) => t(`breed.${k}.intro`);
+// 雜種牛（mixDairy、mixDraft、mixBeef，v0.3 第 1.1 節）三種體型共用一個名字和介紹：breed.mix.*
+const strKey = (k) => (/^mix[A-Z]/.test(k) ? 'mix' : k);
+export const breedName = (k) => t(`breed.${strKey(k)}.name`);
+export const breedIntro = (k) => t(`breed.${strKey(k)}.intro`);
 export const useName = (use) => t({ dairy: 'typeDairy', draft: 'typeDual', beef: 'typeBeef' }[use]);
 export const tierName = (n) => t(`tier${n}`);
 export const sexName = (sex) => t(sex === 'bull' ? 'bull' : 'cow');
 export const cowName = (breed, id) => `${breedName(breed)} #${id}`;
 // 小牛還不知道品種（v0.3，第 13 輪 02-A）：叫「小乳牛／小耕牛／小肉牛 #編號」，長大才換成品種名
 export const calfName = (use, id) => `${t(`calf.${use}`)} #${id}`;
+// 飼料（v0.3 第 2.1 節，D35 補充 3）：牧草、乾草、燕麥、苜蓿、玉米、豆粕；一串飼料用頓號連起來
+export const FEEDS = ['grass', 'hay', 'oats', 'alfalfa', 'corn', 'soy'];
+export const feedList = (ks) => ks.map((k) => t(`feed.${k}`)).join(t('g.listSep'));

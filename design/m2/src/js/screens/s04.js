@@ -1,8 +1,8 @@
 // S04 牛的詳細資料
 import { frame, btn, badge, tierChip, useChip, sexText, icon, fmt, cowSVG, sheet, toast, empty, calfLook, BREEDS } from '../kit.js';
-import { COWS, cowById, pct, studFee, STUD_RATE, BEST_BULL_KG } from '../fixtures.js';
-import { tierOf } from '../../cow/breeds.js';
-import { t, dur, cowName, calfName, tierName } from '../i18n.js';
+import { COWS, cowById, pct, studFee, STUD_RATE, BEST_BULL_KG, MIX_COW } from '../fixtures.js';
+import { tierOf, MIX_MULT } from '../../cow/breeds.js';
+import { t, dur, cowName, calfName, tierName, feedList } from '../i18n.js';
 
 export const GRADE_BG = { A: '#FFD45E', B: '#CFE6FF', C: '#FFD9C2' };
 export function gradeBar(p) {
@@ -14,7 +14,8 @@ export function gradeBar(p) {
 export function detailPage(ctx, c, o = {}) {
   const b = BREEDS[c.breed], tier = tierOf(b);
   const calf = c.age === 'calf';
-  const chips = [useChip(b.use), `<span class="use">${sexText(c.sex)}</span>`, ...(calf ? [] : [tierChip(tier)])];
+  // 雜種牛（v0.3 第 1.1 節）不放稀有度，改成「雜種」標籤
+  const chips = [useChip(b.use), `<span class="use">${sexText(c.sex)}</span>`, ...(calf ? [] : b.mix ? [badge('mix', t('badgeMix'))] : [tierChip(tier)])];
   if (c.age === 'calf') chips.push(badge('calf', t('stageCalf')));
   if (c.age === 'old') chips.push(badge('old', t('stageOld')));
   if (c.field != null) chips.push(badge('working', t('badgeWorking')));
@@ -34,7 +35,7 @@ export function detailPage(ctx, c, o = {}) {
   const content = `<div class="stack">
     <div class="page-head"><button class="icon-btn" aria-label="${t('back')}">${icon('back', 22)}</button><div class="grow"><h1>${calf ? calfName(b.use, c.id) : cowName(c.breed, c.id)}</h1><div class="chips" style="margin-top:3px">${chips.join('')}</div></div></div>
     <article class="card hero"><div class="hero-bg"></div>${cowSVG(calfLook(c), { w: 200, h: 150, pose: 'front', pad: 4 })}
-      <span class="origin-tag">${t('origin', { v: origin })}</span>${c.age === 'old' ? `<p class="hint hero-note">${t('s04.oldNote')}</p>` : calf ? `<p class="hint hero-note">${t('s04.calfUnknown')}</p>` : ''}</article>
+      <span class="origin-tag">${t('origin', { v: origin })}</span>${c.age === 'old' ? `<p class="hint hero-note">${t('s04.oldNote')}</p>` : calf ? `<p class="hint hero-note">${t('s04.calfUnknown')}</p>` : b.mix ? `<p class="hint hero-note">${t('s04.mixNote', { feeds: feedList(c.missed), mult: MIX_MULT })}</p>` : ''}</article>
     ${o.note ? `<p class="warn-text note-line">${icon('warn', 18)}<span>${o.note}</span></p>` : ''}
     <div class="kv">${cells.map(([k, v]) => `<div class="cell"><div class="k">${k}</div><div class="v num">${v}</div></div>`).join('')}</div>
     ${probs}
@@ -105,5 +106,9 @@ full('S04-15', '公耕牛：在田裡工作', (ctx) => detailPage(ctx, cowById(2
 full('S04-16', '公耕牛：上架中', (ctx) => detailPage(ctx, { ...idleOx, listed: FEE2 }, {
   buttons: `${oxRow(btn(t('g.assign'), { kind: 'green', ic: 'sprout', disabled: true }), btn(t('unlist'), { ic: 'tag' }))}${breedBtn(true)}${shipBtn(true)}</div>`,
 }));
+
+// 雜種牛（v0.3 第 1.1 節；使用者 2026-10-03 選第 13 輪 03-A）：名字「雜種牛 #20」、「雜種」標籤、不放稀有度；
+// 圖下面寫小時候沒吃到哪幾種、倍數 ×0.6。配種、出貨跟一般牛一樣（公的也能上架借種、耕牛也能下田）
+full('S04-17', '雜種牛：小時候沒吃到指定的飼料', (ctx) => detailPage(ctx, MIX_COW, { buttons: `<div class="btn-row">${breedBtn(false)}${shipBtn(false)}</div>` }));
 
 export default { id: 'S04', name: '牛的詳細資料', states: S };

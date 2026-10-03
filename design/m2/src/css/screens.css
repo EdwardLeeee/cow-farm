@@ -386,6 +386,21 @@
 .dex-hero { padding: 0; overflow: hidden; }
 .dex-pics { position: relative; display: flex; justify-content: center; align-items: flex-end; gap: 4px; padding: 8px 0 6px; }
 .dex-intro { font-size: 16px; font-weight: 700; line-height: 24px; padding: 0 2px; }
+/* 雜種牛（v0.3 第 1.1 節，第 13 輪 03-A）：「其他」那一格整排寬，三種體型並排、名字在右邊（寬度小於 390 時名字換到下面）；
+   詳細頁三種體型的正面並排，下面寫用途 */
+.dex-mix-tile { grid-column: 1 / -1; flex-direction: row; justify-content: center; gap: 10px; padding: 4px 10px 6px; }
+.dm-pics { display: flex; align-items: flex-end; line-height: 0; }
+.dm-text { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.dm-text .dex-name { font-size: 15px; line-height: 20px; }
+.mix-pics { gap: 2px; padding: 10px 0 8px; }
+.mix-pics .mp { display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 0; }
+.mix-pics .use { line-height: 18px; }
+/* 雜種牛長大揭曉（S03-25，A-13 長成雜種牛時的結尾）：名字卡裡多一行橘字（少吃了哪幾種）、說明和「好」 */
+.gs-adult.on { opacity: 1; }
+.reveal-name.mix-end { width: min(300px, calc(100% - 32px)); padding: 10px 16px 16px; }
+.mix-end .mr-why { margin-top: 2px; font-size: 16px; line-height: 22px; text-align: center; }
+.mix-end .mr-hint { text-align: center; line-height: 19px; }
+.mix-end .btn { margin-top: 6px; }
 
 /* S09-05 24 種全圖（大張，不是手機畫面） */
 .all-sheet { width: 1320px; padding: 28px 32px 32px; background: #FFF9EF; }
@@ -805,6 +820,8 @@
   /* 畫面寬度小於 390（360、320）的圖鑑排 3 欄：4 欄時 360 寬一格只剩約 69 px，英文的「Black Velvet Dairy」「Cotton Candy Highland」
      要換三行（cow-app #116、ceo 2026-10-03）。排 3 欄以後三種語言的牛名都不超過兩行；430、390 照舊 4 欄 */
   .dex-grid { grid-template-columns: repeat(3, 1fr); }
+  .dex-mix-tile { flex-direction: column; gap: 2px; }
+  .dm-text { align-items: center; }
 }
 
 /* 按下狀態表（G-11～G-13）的排版：每種元件一塊，各狀態並排，放不下就換行；橘色字是註解 */
