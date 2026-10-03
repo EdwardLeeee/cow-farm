@@ -12,6 +12,10 @@
   display: grid; place-items: center;
 }
 .avatar svg { width: 52px; height: 52px; margin-top: 4px; }
+/* 頭像右下角的小鉛筆（D34，使用者 2026-10-03：「換頭像就是點頭像（有筆提示了）」）：點頭像打開牧場資料。
+   頭像本身切圓（overflow: hidden），所以鉛筆放在頭像旁邊、疊在右下角；窄手機頭像變小，鉛筆跟著挪 */
+.profile { position: relative; }
+.hud-edit { position: absolute; left: 38px; top: 38px; z-index: 3; width: 22px; height: 22px; border-radius: 11px; background: var(--yellow); border: 2px solid var(--ink); display: grid; place-items: center; line-height: 0; }
 .profile-text {
   margin-left: -18px; min-width: 0; height: 48px; padding: 3px 12px 4px 24px; background: #FFFFFF;
   border: 3px solid var(--ink); border-radius: 0 24px 24px 0; box-shadow: 0 3px 0 var(--ink);
@@ -222,6 +226,7 @@
   .hud { gap: 6px; }
   .avatar { width: 50px; height: 50px; }
   .avatar svg { width: 46px; height: 46px; }
+  .hud-edit { left: 32px; top: 31px; width: 20px; height: 20px; border-radius: 10px; }
   .profile-text { margin-left: -16px; padding: 3px 10px 4px 20px; height: 46px; }
   .farm-name { font-size: 14px; line-height: 18px; letter-spacing: 0; }
   .xp { width: 44px; }
@@ -231,6 +236,7 @@
 @media (max-width: 339px) {
   .avatar { width: 46px; height: 46px; }
   .avatar svg { width: 42px; height: 42px; }
+  .hud-edit { left: 29px; top: 28px; }
   .farm-name { font-size: 13px; }
   .xp { width: 38px; }
   .num-coins { font-size: 15px; }

@@ -262,7 +262,7 @@ export function hud({ ranch = RANCH, coins, level, xp, gear = true, w = 390, dot
   const coinText = compact(c, w < 390 ? 100000 : 1000000);
   return `<header class="hud">
     <div class="profile">
-      <div class="avatar">${cowFace({ breed: 'holstein' }, 46)}</div>
+      <div class="avatar">${cowFace({ breed: 'holstein' }, 46)}</div><i class="hud-edit" aria-hidden="true">${icon('pencil', 13)}</i>
       <div class="profile-text">
         <div class="farm-name${nameWidth(ranch.name) > 12 ? ' long' : ''}" data-oneline>${ranch.name}</div>
         <div class="farm-level"><span class="lv num">${t('level', { lv })}</span><span class="xp" aria-label="${t('hud.xp', { pct: x })}"><i style="width:${x}%"></i></span></div>
