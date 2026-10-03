@@ -80,13 +80,25 @@ const writeLog = () => fs.writeFileSync(
   const tap = async (loc) => { await loc.dispatchEvent('click'); };
   const button = (name) => page.getByRole('button', { name, exact: typeof name === 'string' });
   const enabled = async (loc) => (await loc.count()) > 0 && (await loc.first().getAttribute('aria-disabled')) !== 'true';
-  const tab = async (name) => { await tap(button(name).last()); await wait(900); };
+  /// 場主升級慶祝（S11-01）：跳出來就記下升到幾級，按「好」關掉（在哪一頁升級就在哪一頁跳）。
+  const levelUps = [];
+  const closeLevelUp = async () => {
+    const all = await labels();
+    if (!all.includes('場主升級')) return;
+    const i = all.indexOf('Lv');
+    levelUps.push(i >= 0 ? `Lv ${all[i + 1]}` : '?');
+    await shot(`level-up-${levelUps.length}`);
+    await tap(button('好').first());
+    await wait(600);
+  };
+  const tab = async (name) => { await closeLevelUp(); await tap(button(name).last()); await wait(900); };
   const subTab = async (name) => { await tap(page.getByRole('tab', { name, exact: true }).first()); await wait(900); };
   let before = [];
   const mark = async () => { before = await labels(); };
   /// 按下去之後多出來的字（提示、對話框）。
   const news = async () => {
     await wait(1000);
+    await closeLevelUp();
     const now = await labels();
     return now.filter((x) => !before.includes(x) && !x.includes('\n') && !/^[\d,.]+萬?$/.test(x)).slice(0, 6).join(' / ') || '(沒有新訊息)';
   };
@@ -450,6 +462,8 @@ const writeLog = () => fs.writeFileSync(
   const rank = ((await fullText()).match(/我的名次[^\n]*/) || [''])[0];
   await shot('leaderboard');
   step('排行榜（M1 紀錄）', rank !== '', rank);
+
+  step('升級慶祝（S11-01）', levelUps.length > 0, levelUps.join('、'));
 
   // ---- 11. 自己配種（S08）：另開一個新牧場（新的瀏覽器設定檔），開局的小公牛長大以後跟開局的母牛直接配 ----
   // 開局牛舍 2 格是滿的、小牛沒位子：先收奶賣奶、擴建牛舍（S10）

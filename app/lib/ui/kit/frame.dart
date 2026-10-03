@@ -9,6 +9,7 @@ import '../../l10n/l10n.dart';
 import '../../state/game_model.dart';
 import '../../theme/tokens.dart';
 import '../../util/ranch_name.dart';
+import '../level/level_up.dart';
 import 'app_icon.dart';
 import 'cow_art.dart';
 import 'press.dart';
@@ -106,6 +107,8 @@ class AppFrame extends StatelessWidget {
               child: const Center(child: OfflinePill()),
             ),
           ...overlays,
+          // 場主升級慶祝（S11-01）：在哪一頁升級就在哪一頁跳，蓋在最上面
+          if (m.levelUp case final up?) LevelUpOverlay(level: up.level, levelAt: up.levelAt, onOk: m.dismissLevelUp),
         ],
       ),
     );

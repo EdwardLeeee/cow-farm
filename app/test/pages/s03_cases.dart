@@ -300,8 +300,8 @@ Future<void> pumpSheet(WidgetTester tester, AppLang lang, List<Widget> children,
   await tester.pump();
 }
 
-/// G-02／G-03 的一個頂列（.g-hud：高 64，頂列在上面 6、左右跟內容區一樣留 12）。
-Widget _hudRow(HudData d, {bool dot = false}) => SizedBox(
+/// G-02／G-03、S11-04 的一個頂列（.g-hud：高 64，頂列在上面 6、左右跟內容區一樣留 12）。
+Widget hudRow(HudData d, {bool dot = false}) => SizedBox(
   height: 64,
   child: Padding(
     padding: const EdgeInsets.only(top: 6, bottom: 6),
@@ -777,7 +777,7 @@ final s03Cases = <PageCase>[
   PageCase(
     'G-02',
     '頂列：牧場名、等級、經驗條、金幣、設定',
-    (tester, lang) => pumpSheet(tester, lang, [_hudRow(_ranchHud)]),
+    (tester, lang) => pumpSheet(tester, lang, [hudRow(_ranchHud)]),
     crop: find.byKey(const Key('sheet')),
     check: (tester) {
       expect(find.text('12,480'), findsOneWidget);
@@ -788,11 +788,11 @@ final s03Cases = <PageCase>[
     'G-03',
     '頂列：金幣很多、等級兩位數、剛開局、名字最長（量測用）',
     (tester, lang) => pumpSheet(tester, lang, [
-      _hudRow(const HudData(name: '晨光河畔牧場', level: 14, xp: 0.96, coins: 999999)),
-      _hudRow(const HudData(name: '晨光河畔牧場', level: 14, xp: 0.03, coins: 9876543)),
-      _hudRow(const HudData(name: '晨光河畔牧場', level: 1, xp: 0, coins: 100)),
-      _hudRow(const HudData(name: '晨光河畔牧場小屋', level: 4, xp: 0.41, coins: 12480)),
-      _hudRow(const HudData(name: 'MorningRiverFarm', level: 4, xp: 0.41, coins: 12480)),
+      hudRow(const HudData(name: '晨光河畔牧場', level: 14, xp: 0.96, coins: 999999)),
+      hudRow(const HudData(name: '晨光河畔牧場', level: 14, xp: 0.03, coins: 9876543)),
+      hudRow(const HudData(name: '晨光河畔牧場', level: 1, xp: 0, coins: 100)),
+      hudRow(const HudData(name: '晨光河畔牧場小屋', level: 4, xp: 0.41, coins: 12480)),
+      hudRow(const HudData(name: 'MorningRiverFarm', level: 4, xp: 0.41, coins: 12480)),
     ]),
     crop: find.byKey(const Key('sheet')),
     check: (tester) {
@@ -844,7 +844,7 @@ final s03Cases = <PageCase>[
   PageCase(
     'G-10',
     '頂列齒輪的小點：還沒備份牧場、也還沒打開過「備份牧場」頁',
-    (tester, lang) => pumpSheet(tester, lang, [_hudRow(_ranchHud, dot: true)]),
+    (tester, lang) => pumpSheet(tester, lang, [hudRow(_ranchHud, dot: true)]),
     crop: find.byKey(const Key('sheet')),
     check: (tester) {
       expect(find.byKey(const Key('gear-dot')), findsOneWidget);
