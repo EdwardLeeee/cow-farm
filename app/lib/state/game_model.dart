@@ -486,8 +486,9 @@ class GameModel extends ChangeNotifier {
   /// 選好的公牛母牛、剛生的小牛、場景的位置都不能留給新牧場。
   void _clearRanchView() {
     state = null;
-    // 舊牧場還沒按「好」的升級慶祝（S11-01）不能留到新牧場
+    // 舊牧場還沒按「好」的升級慶祝（S11-01）、還沒按掉的備份提醒（S11-05）不能留到新牧場
     levelUp = null;
+    backupRemind = false;
     authLost = null;
     welcomePending = false;
     binding = false;
@@ -757,6 +758,20 @@ class GameModel extends ChangeNotifier {
   /// 按了慶祝卡的「好」。
   void dismissLevelUp() {
     levelUp = null;
+    _notify();
+  }
+
+  /// 升到 Lv2 以後提醒備份牧場（S11-05）：慶祝卡關掉以後跳一次。要不要跳由畫面決定（能登入的建置、還沒備份、
+  /// 這支手機還沒對這個牧場提醒過；設定存在手機上）。
+  bool backupRemind = false;
+
+  void remindBackup() {
+    backupRemind = true;
+    _notify();
+  }
+
+  void closeBackupRemind() {
+    backupRemind = false;
     _notify();
   }
 
