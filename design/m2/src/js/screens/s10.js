@@ -1,7 +1,7 @@
 // S19 商店抽牛（A／B／C 等級，機率公開）、S10 設施升級、S11 升級與解鎖提示
 import { frame, btn, seg, icon, fmt, cowSVG, dialog, toast, tierChip, useChip, badge, hud } from '../kit.js';
-import { SHOP, SHOP_TYPE, UPGRADES, RANCH } from '../fixtures.js';
-import { t, dur, cowName, useName, sexName, tierName } from '../i18n.js';
+import { SHOP, SHOP_TYPE, UPGRADES, RANCH, CALF_GROW_H } from '../fixtures.js';
+import { t, dur, cowName, calfName, useName, sexName, tierName } from '../i18n.js';
 import { ranchPage } from './s03.js';
 
 const GC = { A: '#FFD45E', B: '#CFE6FF', C: '#FFD9C2' };
@@ -40,9 +40,11 @@ full19('S19-05', '抽到的結果', (ctx) => shopPage(ctx, {
   hud: { coins: RANCH.coins - 3200 },
   overlays: dialog({
     title: t('drawnTitle', { g: 'A' }),
-    body: `<div class="draw-pic">${cowSVG({ breed: 'highland', age: 'calf', seed: 97 }, { w: 170, h: 150 })}</div>
-      <p class="draw-name">${cowName('highland', 17)}</p><div class="chips" style="justify-content:center">${useChip('draft')}<span class="use">${sexName('cow')}</span>${tierChip(1)}${badge('calf', t('stageCalf'))}</div>
-      <p class="hint" style="text-align:center;margin-top:6px">${t('s19.drawnDraft', { time: dur({ h: 2 }) })}</p>`,
+    // v0.3（ceo 2026-10-03 定）：抽到的也是小牛、長大才揭曉品種：只看得出用途和公母，另外列這個等級公開的稀有度機率
+    body: `<div class="draw-pic">${cowSVG({ breed: 'yellow', sex: 'cow', age: 'calf', seed: 97 }, { w: 170, h: 150 })}</div>
+      <p class="draw-name">${calfName('draft', 17)}</p><div class="chips" style="justify-content:center">${useChip('draft')}<span class="use">${sexName('cow')}</span>${badge('calf', t('stageCalf'))}</div>
+      <div class="draw-odds"><span class="hint">${t('s19.drawnOdds')}</span><div class="do-row">${SHOP[0].tier.map((p, i) => `<span class="do-cell">${tierChip(i)}<b class="num">${p}%</b></span>`).join('')}</div></div>
+      <p class="hint" style="text-align:center;margin-top:6px">${t('s19.drawnDraft', { time: dur({ h: CALF_GROW_H }) })}</p>`,
     buttons: btn(t('ok'), { kind: 'primary' }),
   }),
 }));
@@ -115,7 +117,7 @@ part11('S11-04', '頂列經驗條：快升級、剛升級', '#crop', (ctx) => fr
 
 // 新手引導卡在牧場頁：跑馬燈下面 12、左右各 12，蓋在「我的牛」上面（關掉就回來）；開局第 15 分鐘的牧場（還沒升級、小公牛還沒長大）
 full11('S11-06', '新手引導卡在牧場頁', (ctx) => ranchPage(ctx, {
-  herd: [{ id: 1, breed: 'holstein', x: 96, y: 420, facing: 'right', depth: 1, milk: true }, { id: 2, breed: 'yellow', sex: 'bull', age: 'calf', seed: 33, x: 262, y: 432, facing: 'left', depth: 1 }],
+  herd: [{ id: 1, breed: 'holstein', x: 70, y: 420, facing: 'right', depth: 1, milk: true }, { id: 2, breed: 'yellow', sex: 'bull', age: 'calf', seed: 33, x: 410, y: 334, facing: 'right', depth: 0 }],
   pen: { used: 2, slots: 2 },
   hud: { level: 1, xp: 64, coins: 412 },
   dock: { bucket: { qty: 6.2, cap: 28, perHour: 14 }, milkLots: [{ qty: 9, tier: 0, fresh: 1 }], cap: 150, beef: 0, rice: 0 },
@@ -124,7 +126,7 @@ full11('S11-06', '新手引導卡在牧場頁', (ctx) => ranchPage(ctx, {
 
 // 升到 Lv2 的慶祝卡關掉以後出現一次（D22；企劃書 4.11）。這時候還沒備份、也沒打開過備份頁，所以頂列的齒輪上有小點。
 full11('S11-05', '升到 Lv2 之後：提醒備份牧場（只出現一次）', (ctx) => ranchPage(ctx, {
-  herd: [{ id: 1, breed: 'holstein', x: 96, y: 420, facing: 'right', depth: 1, milk: true }, { id: 2, breed: 'yellow', sex: 'bull', x: 268, y: 436, facing: 'left', depth: 1 }],
+  herd: [{ id: 1, breed: 'holstein', x: 70, y: 420, facing: 'right', depth: 1, milk: true }, { id: 2, breed: 'yellow', sex: 'bull', x: 410, y: 334, facing: 'right', depth: 0 }],
   pen: { used: 2, slots: 3 },
   hud: { level: 2, xp: 12, coins: 660, dot: true },
   dock: { bucket: { qty: 9.8, cap: 28, perHour: 14 }, milkLots: [{ qty: 18, tier: 0, fresh: 1 }], cap: 150, beef: 0, rice: 22 },

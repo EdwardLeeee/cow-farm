@@ -5,6 +5,7 @@
 import { drawCow } from '../cow/render.js';
 import { rng } from '../cow/r1/cowgen.js';
 import { BREEDS } from '../cow/breeds.js';
+import { calfBow, hasBow } from '../cow/calf.js';
 
 const L = '#4B3326';
 const SW = 390, SH = 844;
@@ -18,7 +19,7 @@ export const HERD = [
   { id: 8, breed: 'holstein', sex: 'bull', seed: 23, x: 318, y: 338, facing: 'left', depth: 0 },
   { id: 14, breed: 'jersey', sex: 'bull', seed: 85, x: 104, y: 344, facing: 'right', depth: 0 },
   { id: 3, breed: 'holstein', x: 70, y: 420, facing: 'right', depth: 1, milk: true },
-  { id: 15, breed: 'holstein', age: 'calf', seed: 31, x: 186, y: 424, facing: 'right', depth: 1 },
+  { id: 15, breed: 'holstein', sex: 'cow', age: 'calf', seed: 31, x: 186, y: 424, facing: 'right', depth: 1 },
   { id: 7, breed: 'jersey', x: 310, y: 422, facing: 'left', depth: 1, milk: true },
   { id: 12, breed: 'strawberry', x: 122, y: 522, facing: 'right', depth: 2, milk: true },
   { id: 11, breed: 'wagyu', x: 724, y: 552, facing: 'left', depth: 2 },
@@ -147,7 +148,9 @@ export function ranchScene(dev, herd = HERD, { extra = '', wide = false, pan = 0
     const cow = drawCow({ breed: c.breed, sex: c.sex, age: c.age, seed: c.seed, pose: c.pose || 'side' }, { x: c.x, y: c.y, scale: s, facing: c.facing, id: `rs${i}` });
     const [hx, hy] = cow.headTop;
     const spk = BREEDS[c.breed].legend ? sparkle(hx + 24 * s, hy + 8, 5.5 * s) + sparkle(hx - 22 * s, hy + 16, 3.6 * s) : '';
-    o.push(`<g class="herd-cow" data-cow="${c.id}" data-x="${c.x}" data-y="${c.y}" data-facing="${c.facing}" data-pose="${c.pose || 'side'}" data-calf="${c.age === 'calf' ? 1 : 0}"><ellipse cx="${cow.shadow.cx}" cy="${c.y + 1}" rx="${cow.shadow.rx}" ry="${cow.shadow.ry}" fill="#86CC70"/><g class="cow-body">${cow.svg}${spk}</g></g>`);
+    // 母小牛頭上的蝴蝶結（第 13 輪 02-A）
+    const bow = hasBow(c) ? calfBow(cow, c.pose || 'side', c.facing).svg : '';
+    o.push(`<g class="herd-cow" data-cow="${c.id}" data-x="${c.x}" data-y="${c.y}" data-facing="${c.facing}" data-pose="${c.pose || 'side'}" data-calf="${c.age === 'calf' ? 1 : 0}"><ellipse cx="${cow.shadow.cx}" cy="${c.y + 1}" rx="${cow.shadow.rx}" ry="${cow.shadow.ry}" fill="#86CC70"/><g class="cow-body">${cow.svg}${bow}${spk}</g></g>`);
     anchors[c.id] = { head: F.map([hx, hy]), face: F.map([cow.face.cx, cow.face.cy]), faceR: cow.face.r * F.k, foot: F.map([c.x, c.y]), scale: s * F.k };
   });
   o.push(extra);

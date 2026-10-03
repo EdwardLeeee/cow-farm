@@ -165,6 +165,7 @@ const Map<String, List<String>> kPlaceholders = {
   'err.not_yet_available': ['time'],
   's16.eta': ['date'],
   'date.mdw': ['d', 'm', 'time', 'w'],
+  'anim.grownUp': ['cow'],
   'anim.dexCount': ['n', 'total'],
   'namegen.pattern': ['first', 'second', 'third'],
   's21.badgeCount': ['n', 'total'],
@@ -353,6 +354,9 @@ const Map<String, String> _zhHant = {
   'upFresh': '冷藏設備',
   'effectFresh': '保鮮 {a} → {b} 小時',
   'stageCalf': '小牛',
+  'calf.dairy': '小乳牛',
+  'calf.draft': '小耕牛',
+  'calf.beef': '小肉牛',
   'stageOld': '老牛',
   'badgeWorking': '工作中',
   'badgeListed': '上架中',
@@ -375,6 +379,7 @@ const Map<String, String> _zhHant = {
   's19.penFull': '牛舍滿了（{used} / {slots} 格），先擴建或出貨',
   'drawnTitle': '{g} 級抽到了！',
   's19.drawnDraft': '長大還要 {time}。長大後可以派去田裡種稻。',
+  's19.drawnOdds': '長大可能是：',
   'upPen': '擴建牛舍',
   'effectPen': '{a} → {b} 格',
   's10.penTimes': '擴建過 {n} 次',
@@ -518,6 +523,7 @@ const Map<String, String> _zhHant = {
   'recallFirst': '在第 {n} 塊田工作，先叫回來才能出貨或配種',
   's04.recall': '叫回來',
   's04.calfHint': '小牛長大以後才能配種、出貨。',
+  's04.calfUnknown': '長大才知道是什麼品種',
   's04.cantBreedYet': '還不能配種',
   'shipNotAdult': '小牛還不能出貨',
   's04.noteBred': '已配種：每頭牛一輩子只能配種一次',
@@ -622,7 +628,7 @@ const Map<String, String> _zhHant = {
   'subRank': '排行榜',
   's09.found': '已發現',
   's09.allFound': '{n} 種全部發現了！圖鑑榜上會顯示你完成了。',
-  's09.hint': '小牛出生、抽到或借種生下新品種，就會記在這裡。',
+  's09.hint': '小牛長大、揭曉成新品種時，就會記在這裡。',
   's09.useCount': '{use} {n} 種',
   's09.howDairy': '爸媽都是乳牛',
   's09.howBeef': '爸媽都是肉牛',
@@ -780,6 +786,7 @@ const Map<String, String> _zhHant = {
   'anim.beep': '嗶',
   'anim.thanks': '謝謝你的照顧！',
   'anim.newBreed': '發現新品種！',
+  'anim.grownUp': '{cow} 長大了！',
   'anim.dexCount': '圖鑑 已發現 {n} / {total}',
   'news.milk_up.1': '學校午餐加訂鮮奶',
   'news.milk_up.2': '連日高溫，冰品店大量進貨',
@@ -1110,6 +1117,9 @@ const Map<String, String> _en = {
   'upFresh': 'Cooler',
   'effectFresh': 'Stays fresh {a} → {b}h',
   'stageCalf': 'Calf',
+  'calf.dairy': 'Dairy calf',
+  'calf.draft': 'Draft calf',
+  'calf.beef': 'Beef calf',
   'stageOld': 'Senior',
   'badgeWorking': 'Working',
   'badgeListed': 'Listed',
@@ -1132,6 +1142,7 @@ const Map<String, String> _en = {
   's19.penFull': 'Barn full ({used} / {slots}). Expand it or ship a cow first.',
   'drawnTitle': 'Grade {g} draw!',
   's19.drawnDraft': 'Grows up in {time}. Once grown, send it to the fields to grow rice.',
+  's19.drawnOdds': 'Could grow into:',
   'upPen': 'Expand barn',
   'effectPen': '{a} → {b} slots',
   's10.penTimes': 'Expanded ×{n}',
@@ -1275,6 +1286,7 @@ const Map<String, String> _en = {
   'recallFirst': 'Working in Field {n}. Call it back to ship or breed.',
   's04.recall': 'Call back',
   's04.calfHint': 'Calves can breed or be shipped once grown up.',
+  's04.calfUnknown': 'Breed revealed when grown up',
   's04.cantBreedYet': 'Can\'t breed yet',
   'shipNotAdult': 'Can\'t ship yet',
   's04.noteBred': 'Bred: each cow can breed only once in its life',
@@ -1380,7 +1392,7 @@ const Map<String, String> _en = {
   'subRank': 'Rankings',
   's09.found': 'Found',
   's09.allFound': 'All {n} found! Your Collection ranking will show it\'s complete.',
-  's09.hint': 'New breeds you get from births, draws, or borrowed bulls are recorded here.',
+  's09.hint': 'New breeds are recorded here when your calves grow up.',
   's09.useCount': '{use} breeds: {n}',
   's09.howDairy': 'Both parents are Dairy',
   's09.howBeef': 'Both parents are Beef',
@@ -1538,6 +1550,7 @@ const Map<String, String> _en = {
   'anim.beep': 'Beep',
   'anim.thanks': 'Thanks for taking care of me!',
   'anim.newBreed': 'New breed found!',
+  'anim.grownUp': '{cow} is all grown up!',
   'anim.dexCount': 'Collection: {n} / {total} found',
   'news.milk_up.1': 'Schools order extra milk for lunch',
   'news.milk_up.2': 'Heat wave has ice cream shops stocking up',
@@ -1867,6 +1880,9 @@ const Map<String, String> _th = {
   'upFresh': 'ห้องเย็น',
   'effectFresh': 'คงความ⁠สด {a} → {b} ชม.',
   'stageCalf': 'ลูกวัว',
+  'calf.dairy': 'ลูกวัวนม',
+  'calf.draft': 'ลูกวัวงาน',
+  'calf.beef': 'ลูกวัวเนื้อ',
   'stageOld': 'วัยชรา',
   'badgeWorking': 'ไถนาอยู่',
   'badgeListed': 'ลงประกาศอยู่',
@@ -1889,6 +1905,7 @@ const Map<String, String> _th = {
   's19.penFull': 'คอกวัวเต็มแล้ว ({used} / {slots} ช่อง) ขยายคอกหรือส่งขายก่อน',
   'drawnTitle': 'ได้วัวเกรด {g} แล้ว!',
   's19.drawnDraft': 'จะโตในอีก {time} พอโตแล้วส่งไปไถนาปลูกข้าวได้',
+  's19.drawnOdds': 'โตแล้วอาจเป็น:',
   'upPen': 'ขยายคอกวัว',
   'effectPen': '{a} → {b} ช่อง',
   's10.penTimes': 'ขยายแล้ว {n} ครั้ง',
@@ -2032,6 +2049,7 @@ const Map<String, String> _th = {
   'recallFirst': 'กำลังไถนาอยู่ที่แปลงที่ {n} ต้องเรียกกลับก่อนจึงจะส่งขายหรือผสมพันธุ์ได้',
   's04.recall': 'เรียกกลับ',
   's04.calfHint': 'ลูกวัวต้องโตก่อนจึงจะผสมพันธุ์หรือส่งขายได้',
+  's04.calfUnknown': 'จะรู้สายพันธุ์เมื่อโตแล้ว',
   's04.cantBreedYet': 'ยังผสมพันธุ์ไม่ได้',
   'shipNotAdult': 'ลูกวัวยังส่งขายไม่ได้',
   's04.noteBred': 'ผสมพันธุ์แล้ว: วัวแต่ละตัวผสมพันธุ์ได้ครั้งเดียวในชีวิต',
@@ -2137,7 +2155,7 @@ const Map<String, String> _th = {
   'subRank': 'อันดับ',
   's09.found': 'พบแล้ว',
   's09.allFound': 'พบครบทั้ง {n} สายพันธุ์แล้ว! อันดับคอลเลกชันจะแสดงว่าคุณสะสมครบ',
-  's09.hint': 'ได้สายพันธุ์ใหม่จากลูกวัวที่เกิด การสุ่ม หรือการยืมพ่อพันธุ์ จะถูกบันทึกไว้ที่นี่',
+  's09.hint': 'เมื่อลูกวัวโตและเผยเป็นสายพันธุ์ใหม่ จะถูกบันทึกไว้ที่นี่',
   's09.useCount': '{use} {n} สายพันธุ์',
   's09.howDairy': 'พ่อแม่เป็นวัวนมทั้งคู่',
   's09.howBeef': 'พ่อแม่เป็นวัวเนื้อทั้งคู่',
@@ -2295,6 +2313,7 @@ const Map<String, String> _th = {
   'anim.beep': 'ปี๊น',
   'anim.thanks': 'ขอบคุณที่ดูแลนะ!',
   'anim.newBreed': 'พบสายพันธุ์ใหม่!',
+  'anim.grownUp': '{cow} โตแล้ว!',
   'anim.dexCount': 'คอลเลกชัน พบแล้ว {n} / {total}',
   'news.milk_up.1': 'โรงเรียนสั่งนมสดเพิ่มสำหรับมื้อกลางวัน',
   'news.milk_up.2': 'อากาศร้อนจัดหลายวัน ร้านไอศกรีมแห่สั่งของ',
@@ -2988,6 +3007,15 @@ abstract class GeneratedStrings {
   /// `stageCalf`：小牛
   String get stageCalf => table['stageCalf']!;
 
+  /// `calf.dairy`：小乳牛
+  String get calfDairy => table['calf.dairy']!;
+
+  /// `calf.draft`：小耕牛
+  String get calfDraft => table['calf.draft']!;
+
+  /// `calf.beef`：小肉牛
+  String get calfBeef => table['calf.beef']!;
+
   /// `stageOld`：老牛
   String get stageOld => table['stageOld']!;
 
@@ -3053,6 +3081,9 @@ abstract class GeneratedStrings {
 
   /// `s19.drawnDraft`：長大還要 {time}。長大後可以派去田裡種稻。
   String s19DrawnDraft({required Object time}) => fill('s19.drawnDraft', {'time': time});
+
+  /// `s19.drawnOdds`：長大可能是：
+  String get s19DrawnOdds => table['s19.drawnOdds']!;
 
   /// `upPen`：擴建牛舍
   String get upPen => table['upPen']!;
@@ -3483,6 +3514,9 @@ abstract class GeneratedStrings {
   /// `s04.calfHint`：小牛長大以後才能配種、出貨。
   String get s04CalfHint => table['s04.calfHint']!;
 
+  /// `s04.calfUnknown`：長大才知道是什麼品種
+  String get s04CalfUnknown => table['s04.calfUnknown']!;
+
   /// `s04.cantBreedYet`：還不能配種
   String get s04CantBreedYet => table['s04.cantBreedYet']!;
 
@@ -3795,7 +3829,7 @@ abstract class GeneratedStrings {
   /// `s09.allFound`：{n} 種全部發現了！圖鑑榜上會顯示你完成了。
   String s09AllFound({required Object n}) => fill('s09.allFound', {'n': n});
 
-  /// `s09.hint`：小牛出生、抽到或借種生下新品種，就會記在這裡。
+  /// `s09.hint`：小牛長大、揭曉成新品種時，就會記在這裡。
   String get s09Hint => table['s09.hint']!;
 
   /// `s09.useCount`：{use} {n} 種
@@ -4268,6 +4302,9 @@ abstract class GeneratedStrings {
 
   /// `anim.newBreed`：發現新品種！
   String get animNewBreed => table['anim.newBreed']!;
+
+  /// `anim.grownUp`：{cow} 長大了！
+  String animGrownUp({required Object cow}) => fill('anim.grownUp', {'cow': cow});
 
   /// `anim.dexCount`：圖鑑 已發現 {n} / {total}
   String animDexCount({required Object n, required Object total}) => fill('anim.dexCount', {'n': n, 'total': total});

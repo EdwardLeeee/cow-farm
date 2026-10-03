@@ -60,3 +60,5 @@ export const useName = (use) => t({ dairy: 'typeDairy', draft: 'typeDual', beef:
 export const tierName = (n) => t(`tier${n}`);
 export const sexName = (sex) => t(sex === 'bull' ? 'bull' : 'cow');
 export const cowName = (breed, id) => `${breedName(breed)} #${id}`;
+// 小牛還不知道品種（v0.3，第 13 輪 02-A）：叫「小乳牛／小耕牛／小肉牛 #編號」，長大才換成品種名
+export const calfName = (use, id) => `${t(`calf.${use}`)} #${id}`;

@@ -43,7 +43,6 @@ function detailPage(ctx, k, { found = true } = {}) {
   if (b.use === 'draft') stats.push([t('g.plow'), `${(11 * MULT[tier]).toFixed(1).replace(/\.0$/, '')} <small>${t('g.perHourRice')}</small>`]);
   stats.push([t('s09.bestKg'), `${BEST[b.use]} <small>${t('g.kg')}</small>`]);
   stats.push([t('s09.mult'), `×${MULT[tier].toFixed(1)} <small>${b.use === 'draft' ? t('s09.multBeef') : ''}</small>`]);
-  stats.push([t('s09.calfGrow'), `${[1, 2, 4, 8][tier]} <small>${t('g.hourUnit')}</small>`]);
   const pics = found
     ? `<div class="dex-pics">${cowSVG({ breed: k, pose: 'side' }, { w: 160, h: 130, pose: 'side' })}${cowSVG({ breed: k }, { w: 130, h: 130 })}</div>`
     : `<div class="dex-pics">${cowSVG({ breed: k, pose: 'side' }, { w: 160, h: 130, pose: 'side', sil: 'dark' })}</div>`;

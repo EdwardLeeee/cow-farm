@@ -1,8 +1,8 @@
 // S04 牛的詳細資料
-import { frame, btn, badge, tierChip, useChip, sexText, icon, fmt, cowSVG, sheet, toast, empty, BREEDS } from '../kit.js';
+import { frame, btn, badge, tierChip, useChip, sexText, icon, fmt, cowSVG, sheet, toast, empty, calfLook, BREEDS } from '../kit.js';
 import { COWS, cowById, pct, studFee, STUD_RATE, BEST_BULL_KG } from '../fixtures.js';
 import { tierOf } from '../../cow/breeds.js';
-import { t, dur, cowName, tierName } from '../i18n.js';
+import { t, dur, cowName, calfName, tierName } from '../i18n.js';
 
 export const GRADE_BG = { A: '#FFD45E', B: '#CFE6FF', C: '#FFD9C2' };
 export function gradeBar(p) {
@@ -13,7 +13,8 @@ export function gradeBar(p) {
 // c：牛（fixtures 的格式）；o.buttons 覆寫按鈕區；o.note 橘字提醒
 export function detailPage(ctx, c, o = {}) {
   const b = BREEDS[c.breed], tier = tierOf(b);
-  const chips = [useChip(b.use), `<span class="use">${sexText(c.sex)}</span>`, tierChip(tier)];
+  const calf = c.age === 'calf';
+  const chips = [useChip(b.use), `<span class="use">${sexText(c.sex)}</span>`, ...(calf ? [] : [tierChip(tier)])];
   if (c.age === 'calf') chips.push(badge('calf', t('stageCalf')));
   if (c.age === 'old') chips.push(badge('old', t('stageOld')));
   if (c.field != null) chips.push(badge('working', t('badgeWorking')));
@@ -31,9 +32,9 @@ export function detailPage(ctx, c, o = {}) {
       <div class="card-head"><span class="card-title">${t('shipGradeTitle')}</span><span class="card-sub">${t('s04.gradeHint')}</span></div>
       <div style="margin-top:8px">${gradeBar(c.probs)}</div></article>` : '';
   const content = `<div class="stack">
-    <div class="page-head"><button class="icon-btn" aria-label="${t('back')}">${icon('back', 22)}</button><div class="grow"><h1>${cowName(c.breed, c.id)}</h1><div class="chips" style="margin-top:3px">${chips.join('')}</div></div></div>
-    <article class="card hero"><div class="hero-bg"></div>${cowSVG({ breed: c.breed, sex: c.sex, age: c.age === 'calf' ? 'calf' : 'adult', seed: c.seed }, { w: 200, h: 150, pose: 'front', pad: 4 })}
-      <span class="origin-tag">${t('origin', { v: origin })}</span>${c.age === 'old' ? `<p class="hint hero-note">${t('s04.oldNote')}</p>` : ''}</article>
+    <div class="page-head"><button class="icon-btn" aria-label="${t('back')}">${icon('back', 22)}</button><div class="grow"><h1>${calf ? calfName(b.use, c.id) : cowName(c.breed, c.id)}</h1><div class="chips" style="margin-top:3px">${chips.join('')}</div></div></div>
+    <article class="card hero"><div class="hero-bg"></div>${cowSVG(calfLook(c), { w: 200, h: 150, pose: 'front', pad: 4 })}
+      <span class="origin-tag">${t('origin', { v: origin })}</span>${c.age === 'old' ? `<p class="hint hero-note">${t('s04.oldNote')}</p>` : calf ? `<p class="hint hero-note">${t('s04.calfUnknown')}</p>` : ''}</article>
     ${o.note ? `<p class="warn-text note-line">${icon('warn', 18)}<span>${o.note}</span></p>` : ''}
     <div class="kv">${cells.map(([k, v]) => `<div class="cell"><div class="k">${k}</div><div class="v num">${v}</div></div>`).join('')}</div>
     ${probs}

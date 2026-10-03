@@ -7,14 +7,15 @@
   "parts/sparkle：半徑 10，中心在 (0, 0)；描邊 1.6，設計稿畫小的星星時描邊不縮。"
  ],
  "generator": {
-  "design/m2/harness/assetexport.mjs": "57cfbc5f63bf1df2f9f492e9d1edd0cd54b89d3295a3146afe2202eff92ea9a3",
+  "design/m2/harness/assetexport.mjs": "9c806b561653815785fd4808ecba4d2c9d235dd91e84f0ae9f9be4aca06c7631",
   "design/m2/src/cow/breeds.js": "8a1563caa470739a78b3b7d33f49d0b3043985b194f560ce0a3a7d466543ae26",
+  "design/m2/src/cow/calf.js": "3d773e00d3f42d69b9de1b2de366e9af4f25f46645fdcf47a5146b063d84c29b",
   "design/m2/src/cow/q.js": "161f0ebf2cffa8d8baf19f095bab63f04c6d55004155fd078942b2aae7b5fbee",
   "design/m2/src/cow/r1/cowgen.js": "1935ca123df02952bfc2c3ba4ed768a4101e009477d1258ce018eb060096db42",
   "design/m2/src/cow/r11.js": "6320eccb9408e09ad5ee4a983d2c30e1a9341461d08bad9b2665994b4147b06e",
   "design/m2/src/cow/render.js": "d4aa6d2d5424a517065cc814a5ee3bf77258bf285891beff7ca9c8ecdeacf3c8",
   "design/m2/src/js/icons.js": "d0c81cc471ef6e432bdb587f64a51cfb64dbeaf4913ca558fa4d4e15412fcee8",
-  "design/m2/src/js/scene.js": "2711f239a02174a5a8f45f5ed02da8891d26350170bf720380c73c07fa6c7d5c",
+  "design/m2/src/js/scene.js": "6d3a904b47b3c7d40be2868b1934dc646b5d7d8ee411f25f6a55d14264764003",
   "design/m2/src/js/truck.js": "3731ad8d2be15bc3ab095511aa41ca2befa924b28d54888b94b70de3abdb741a"
  },
  "anchors": {
