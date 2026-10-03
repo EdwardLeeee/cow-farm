@@ -101,6 +101,12 @@ const writeLog = () => fs.writeFileSync(
     await shot(`level-up-${levelUps.length}`);
     await tap(button('好').first());
     await wait(600);
+    // 升到 Lv2 以後的備份提醒（S11-05）只在設好登入的建置出現；網頁試玩版沒有備份功能，不能跳
+    if ((await labels()).some((x) => x.includes('把牧場備份起來'))) {
+      issue('網頁版關掉升級慶祝以後跳出備份提醒（S11-05）');
+      await tap(button('之後再說').first()).catch(() => {});
+      await wait(600);
+    }
   };
   const tab = async (name) => { await closeLevelUp(); await tap(button(name).last()); await wait(900); };
   const subTab = async (name) => { await tap(page.getByRole('tab', { name, exact: true }).first()); await wait(900); };

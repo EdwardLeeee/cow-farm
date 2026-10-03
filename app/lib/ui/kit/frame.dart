@@ -10,6 +10,7 @@ import '../../state/game_model.dart';
 import '../../state/settings.dart';
 import '../../theme/tokens.dart';
 import '../../util/ranch_name.dart';
+import '../level/backup_remind.dart';
 import '../level/level_up.dart';
 import 'app_icon.dart';
 import 'cow_art.dart';
@@ -112,11 +113,35 @@ class AppFrame extends StatelessWidget {
               child: const Center(child: OfflinePill()),
             ),
           ...overlays,
-          // 場主升級慶祝（S11-01）：在哪一頁升級就在哪一頁跳，蓋在最上面
-          if (m.levelUp case final up?) LevelUpOverlay(level: up.level, levelAt: up.levelAt, onOk: m.dismissLevelUp),
+          // 場主升級慶祝（S11-01）：在哪一頁升級就在哪一頁跳，蓋在最上面。
+          // Lv2 以上的慶祝卡關掉以後，可能接著提醒備份牧場（S11-05，只出現一次）
+          if (m.levelUp case final up?)
+            LevelUpOverlay(
+              level: up.level,
+              levelAt: up.levelAt,
+              onOk: () {
+                final remind = BackupRemindDialog.shouldRemind(m, context.read<SettingsController>(), up.level);
+                m.dismissLevelUp();
+                if (remind) m.remindBackup();
+              },
+            )
+          else if (m.backupRemind)
+            BackupRemindDialog(
+              onLater: () => _closeBackupRemind(context, m),
+              onNow: () {
+                _closeBackupRemind(context, m);
+                m.openSettingsView(SettingsView.backup);
+              },
+            ),
         ],
       ),
     );
+  }
+
+  /// 備份提醒（S11-05）的兩顆按鈕都算提醒過（記在手機上，照牧場分開）。
+  static void _closeBackupRemind(BuildContext context, GameModel m) {
+    context.read<SettingsController>().markBackupReminded(m.state?.playerId);
+    m.closeBackupRemind();
   }
 }
 
