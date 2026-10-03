@@ -1,0 +1,87 @@
+/* 第 13 輪草稿的樣式：v0.3 照顧牧場（D35）。顏色和元件沿用 M2 設計稿（design/m2/src/css） */
+
+/* ---------- 說明圖的版面（不是畫面的一部分） ---------- */
+body { background: #FFF9EF; }
+.board { padding: 28px 36px 36px; background: #FFF9EF; }
+.b-label { display: inline-block; font-size: 22px; font-weight: 900; line-height: 34px; padding: 0 14px; background: var(--yellow); border: 3px solid var(--ink); border-radius: 12px; }
+.b-title { margin-top: 12px; font-size: 26px; font-weight: 900; line-height: 34px; }
+.b-sub { margin-top: 4px; font-size: 16px; font-weight: 700; line-height: 24px; color: var(--ink-2); }
+.b-row { display: grid; gap: 30px 40px; margin-top: 22px; align-items: start; }
+.b-cell { margin: 0; }
+.b-cell figcaption { min-height: 68px; margin-bottom: 10px; font-size: 14px; font-weight: 700; line-height: 20px; color: #C2541B; }
+.b-cell figcaption b { display: block; font-size: 18px; font-weight: 900; line-height: 26px; color: var(--ink); }
+.b-cell .phone { outline: 2px solid #E2D4C2; }
+.b-notes { margin: 24px 0 0; padding-left: 22px; font-size: 15px; font-weight: 700; line-height: 24px; color: var(--ink-2); }
+.b-notes b { color: var(--ink); }
+.note-tag { position: absolute; z-index: 95; padding: 2px 10px; background: #FFFFFF; border: 2px solid #C2541B; border-radius: 10px; font-size: 13px; font-weight: 900; line-height: 20px; color: #C2541B; white-space: nowrap; }
+
+/* 排排站（不是手機畫面）：一格一頭牛，下面寫是什麼 */
+.lineup { display: grid; gap: 14px; padding: 18px; background: linear-gradient(180deg, #E6F5FF 0, #F1FAE8 62%, #E3F2D3 100%); border: 3px solid var(--ink); border-radius: 22px; }
+.lu-cell { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 6px 10px; background: rgba(255, 255, 255, 0.72); border: 2px solid #E2D4C2; border-radius: 16px; }
+.lu-cell svg { display: block; }
+.lu-cell b { font-size: 16px; font-weight: 900; line-height: 22px; }
+.lu-cell span { font-size: 13px; font-weight: 700; line-height: 18px; color: var(--ink-2); }
+.lu-head { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 10px; font-size: 18px; font-weight: 900; }
+.lu-head small { font-size: 14px; font-weight: 700; color: var(--ink-2); }
+
+/* ---------- 飼料（v0.3 第 2 節：牧草、燕麥、苜蓿、玉米） ---------- */
+.feed-ic { display: inline-block; line-height: 0; vertical-align: middle; }
+.feed-chip { display: inline-flex; align-items: center; gap: 3px; height: 26px; padding: 0 8px 0 4px; background: #FFFFFF; border: 2px solid var(--ink); border-radius: 13px; font-size: 13px; font-weight: 900; white-space: nowrap; }
+
+/* ---------- 05 小牛卡片：可能長出的特徵、要吃的飼料、吃了沒 ---------- */
+.trait-card .card-head { margin-bottom: 6px; }
+.tr-row { display: flex; align-items: center; gap: 8px; min-height: 52px; border-top: 2px dashed var(--line-soft); }
+.tr-row:first-of-type { border-top: 0; }
+.tr-name { flex: none; display: inline-flex; align-items: center; gap: 6px; min-width: 96px; font-size: 15px; font-weight: 900; }
+.tr-p { font-size: 15px; color: var(--ink-2); }
+.tr-row .grow { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tr-done { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; font-weight: 900; color: #3E8E2F; white-space: nowrap; }
+.tr-todo { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; font-weight: 900; color: #C2541B; white-space: nowrap; }
+.tr-zero .tr-name, .tr-zero .tr-p { color: var(--ink-3); }
+.tr-note { margin-top: 6px; }
+/* 方向 B：三個飼料格 */
+.feed-slots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
+.fs { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px 8px; background: #FFFFFF; border: 2.5px solid var(--ink); border-radius: 16px; }
+.fs b { font-size: 14px; line-height: 19px; }
+.fs .hint { font-size: 12px; line-height: 16px; }
+.fs .fs-p { font-size: 13px; font-weight: 900; }
+.fs.done { background: #EAF8E0; }
+.fs.todo { background: #FFF4E5; border-color: #E8964A; }
+.fs.zero { background: var(--disabled-bg); border-color: var(--disabled-line); color: var(--ink-3); }
+.fs.zero .fs-p, .fs.zero b { color: var(--ink-3); }
+.fs .fs-mark { position: absolute; right: -6px; top: -6px; line-height: 0; }
+.fs-feed { display: inline-flex; align-items: center; gap: 2px; font-size: 12px; font-weight: 900; }
+/* 牧場頁：小牛頭上的「想吃」泡泡（方向 A 有字、方向 B 只有飼料） */
+.want { position: absolute; transform: translate(-50%, -100%); display: flex; align-items: center; gap: 3px; padding: 2px 9px 2px 4px; background: #FFFFFF; border: 2.5px solid var(--ink); border-radius: 15px; box-shadow: 0 3px 0 var(--ink); font-size: 13px; font-weight: 900; line-height: 22px; white-space: nowrap; margin-top: -10px; }
+.want::after { content: ""; position: absolute; left: 50%; bottom: -9px; width: 12px; height: 12px; margin-left: -6px; background: #FFFFFF; border-right: 2.5px solid var(--ink); border-bottom: 2.5px solid var(--ink); transform: rotate(45deg); }
+.want.think { padding: 3px; border-radius: 50%; }
+.want.think::after { width: 9px; height: 9px; border-radius: 50%; transform: none; bottom: -14px; margin-left: -2px; border: 2.5px solid var(--ink); }
+.want-dot { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: #FFFFFF; border: 2px solid var(--ink); }
+/* 快長大的提醒卡（牧場頁，一頭一張，可以關） */
+.grow-alert { position: absolute; left: 12px; right: 12px; top: calc(var(--safe-top) + var(--hud-h) + 56px); z-index: 60; display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 12px; background: #FFF6D6; }
+.grow-alert .ga-pic { flex: none; width: 56px; height: 56px; border-radius: 16px; background: #E4F4DA; border: 2px solid var(--ink); overflow: hidden; display: grid; place-items: end center; line-height: 0; }
+.grow-alert b { font-size: 15px; line-height: 20px; }
+.grow-alert p { font-size: 13px; font-weight: 700; line-height: 19px; color: var(--ink-2); margin-top: 2px; }
+.grow-alert .bn-close { position: absolute; right: 2px; top: 2px; }
+.grow-alert .btn { flex: none; margin-top: 18px; }
+
+/* ---------- 04 大便、病牛、清大便 ---------- */
+.poop { position: absolute; transform: translate(-50%, -100%); line-height: 0; pointer-events: none; }
+.sick-tag { position: absolute; transform: translate(-50%, -100%); line-height: 0; margin-top: -6px; }
+.gesture { position: absolute; line-height: 0; pointer-events: none; z-index: 40; }
+.swipe-trail { position: absolute; inset: 0; z-index: 39; pointer-events: none; }
+.sick-pop { position: absolute; z-index: 50; width: 236px; padding: 10px 12px 12px; }
+.sick-pop .row { gap: 8px; }
+.sick-pop b { font-size: 16px; }
+.sick-pop .hint { font-size: 12.5px; line-height: 18px; }
+.sick-pop .btn { margin-top: 8px; }
+.badge.sick { background: #D6F0E4; color: #2E6B4E; border-color: #2E6B4E; }
+.badge.sick2 { background: #FFD7D2; }
+.dirty { position: absolute; left: 12px; top: calc(var(--safe-top) + var(--hud-h) + 56px); z-index: 30; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px 0 8px; background: #FFFFFF; border: 3px solid var(--ink); border-radius: 17px; box-shadow: 0 3px 0 var(--ink); font-size: 14px; font-weight: 900; }
+.dirty .warn-text { font-size: 13px; }
+
+/* ---------- 03 雜種牛：圖鑑格、揭曉卡 ---------- */
+.dex-mix { display: grid; grid-template-columns: repeat(4, 86px); gap: 8px; }
+.reveal-card { display: flex; align-items: center; gap: 12px; padding: 12px; }
+.reveal-card b { font-size: 16px; line-height: 22px; }
+.reveal-card p { font-size: 13px; font-weight: 700; line-height: 19px; color: var(--ink-2); margin-top: 2px; }
