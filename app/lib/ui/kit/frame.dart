@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../l10n/format.dart';
 import '../../l10n/l10n.dart';
 import '../../state/game_model.dart';
+import '../../state/settings.dart';
 import '../../theme/tokens.dart';
 import '../../util/ranch_name.dart';
 import '../level/level_up.dart';
@@ -135,17 +136,24 @@ class HudData {
 /// 頂列（G-02）：頭像、牧場名、等級和經驗條、金幣、設定。
 /// 窄手機（寬度 < 390、< 340）照 kit.css 的兩段 @media 縮小；牧場名顯示寬度超過 12 時字縮小，再放不下用「…」截短（D23）。
 class Hud extends StatelessWidget {
-  const Hud({super.key, this.data, this.gearDot = false});
+  const Hud({super.key, this.data, this.gearDot});
 
   /// 沒給就讀 GameModel。
   final HudData? data;
 
-  /// 齒輪上的小點（G-10：還沒備份牧場、也還沒打開過「備份牧場」頁）。「備份牧場」頁（S13）做好之前一律不顯示。
-  final bool gearDot;
+  /// 齒輪上的小點（G-10：還沒備份牧場、也還沒打開過「備份牧場」頁）。null 就照 [showBackupDot] 算。
+  final bool? gearDot;
+
+  /// G-10：能登入的建置（GameModel.canSignIn）、牧場還沒綁任何帳號、這支手機還沒打開過「備份牧場」頁。
+  static bool showBackupDot(GameModel m, SettingsController settings) =>
+      m.canSignIn && m.state != null && m.accountLinks.isEmpty && !settings.backupSeen;
 
   @override
   Widget build(BuildContext context) {
     final d = data ?? HudData.of(context.watch<GameModel>());
+    final gearDot =
+        this.gearDot ??
+        (data == null && showBackupDot(context.watch<GameModel>(), context.watch<SettingsController>()));
     final s = Strings.of(context);
     final w = MediaQuery.sizeOf(context).width;
     final narrow = w < 390, tiny = w < 340;

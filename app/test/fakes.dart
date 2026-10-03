@@ -668,11 +668,11 @@ Map<String, dynamic> switchedState() => {
   },
 };
 
-/// 帳號已經綁了別的牧場（協定 5.2 的 409 account_in_use）：那個牧場是晨光河畔牧場 #1234，Lv 7。
-ApiException accountInUse({String provider = 'apple', String ticket = 'ticket-1'}) =>
+/// 帳號已經綁了別的牧場（協定 5.2 的 409 account_in_use）：那個牧場是晨光河畔牧場 #1234，預設 Lv 7。
+ApiException accountInUse({String provider = 'apple', String ticket = 'ticket-1', int level = 7}) =>
     ApiException(409, 'account_in_use', '這個帳號已經綁了別的牧場', {
       'provider': provider,
-      'ranch': {'player_id': 1234, 'name': '晨光河畔牧場', 'name_words': null, 'is_bot': false, 'level': 7},
+      'ranch': {'player_id': 1234, 'name': '晨光河畔牧場', 'name_words': null, 'is_bot': false, 'level': level},
       'switch_ticket': ticket,
       'ticket_expires_at_real': t0 + 600,
     });

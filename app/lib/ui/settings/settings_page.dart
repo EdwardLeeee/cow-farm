@@ -1,8 +1,8 @@
 // S13 設定（設計稿 s13.js 的 settings、S13-17 語言、S13-18 漲跌顏色）。頂列的齒輪打開；整頁，沒有頂列和分頁列。
-// 刪除牧場（S13-03）在 delete_page.dart。
-// 先不顯示的兩列（ceo 2026-10-03，不放按了沒反應的列）：
-// - 「備份牧場」（S13-02 以後、S13-10）：下一個 PR 做；之後也只在有 Apple／Google 登入設定的建置顯示。
-// - 「隱私權政策」：網頁 M5 才有，網址填好以後再加，用瀏覽器打開。
+// 備份牧場（S13-02 以後）在 backup_page.dart，刪除牧場（S13-03）在 delete_page.dart。
+// - 「備份牧場」那一列（S13-01、S13-10）只在設好 Apple／Google 登入的建置顯示（GameModel.canSignIn；ceo 2026-10-03），
+//   網頁試玩版、沒設 client ID 的建置沒有。
+// - 「隱私權政策」先不顯示：網頁 M5 才有，網址填好以後再加，用瀏覽器打開（ceo 2026-10-03，不放按了沒反應的列）。
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -17,16 +17,18 @@ import '../kit/frame.dart';
 import '../kit/kit.dart';
 import '../kit/page_head.dart';
 import '../kit/press.dart';
+import 'backup_page.dart';
 import 'delete_page.dart';
 import 'settings_kit.dart';
 
-/// 設定：照 [GameModel.settingsView] 顯示設定主頁、語言或刪除牧場。
+/// 設定：照 [GameModel.settingsView] 顯示設定主頁、語言、備份牧場或刪除牧場。
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 
   @override
   Widget build(BuildContext context) => switch (context.watch<GameModel>().settingsView) {
     SettingsView.language => const LanguagePage(),
+    SettingsView.backup when context.read<GameModel>().canSignIn => const BackupPage(),
     SettingsView.delete => const DeletePage(),
     _ => const SettingsHome(),
   };
@@ -105,6 +107,7 @@ class _SettingsHomeState extends State<SettingsHome> {
     final m = context.watch<GameModel>();
     final settings = context.watch<SettingsController>();
     final s = Strings.of(context);
+    final backed = m.accountLinks.isNotEmpty;
     const chevron = AppIcon('chevron', size: 18);
     return SettingsFrame(
       title: s.s13Title,
@@ -150,6 +153,23 @@ class _SettingsHomeState extends State<SettingsHome> {
         SetGroup(
           key: const Key('set-account'),
           rows: [
+            if (m.canSignIn)
+              SetRow(
+                key: const Key('set-backup'),
+                icon: 'backup',
+                label: s.s13BackupTitle,
+                sub: s.s13BackupSub,
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    BackupBadge(backed: backed),
+                    const SizedBox(width: 4),
+                    chevron,
+                  ],
+                ),
+                semanticsLabel: '${s.s13BackupTitle} ${backed ? s.s13Backed : s.s13NotBacked}',
+                onTap: () => m.openSettingsView(SettingsView.backup),
+              ),
             SetRow(
               key: const Key('set-delete'),
               icon: 'trash',

@@ -99,7 +99,7 @@ void main() {
     ]) {
       expect(tester.getSemantics(find.byKey(Key(key))), isSemantics(label: label, hasTapAction: true), reason: key);
     }
-    expect(find.byKey(const Key('set-backup')), findsNothing, reason: '備份牧場下一個 PR 做');
+    expect(find.byKey(const Key('set-backup')), findsNothing, reason: '沒設登入的建置沒有備份牧場（backup_page_test）');
     handle.dispose();
   });
 
