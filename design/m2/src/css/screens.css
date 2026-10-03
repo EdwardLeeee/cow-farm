@@ -217,6 +217,7 @@
 .lot .u { font-size: 12px; font-weight: 700; margin-right: 2px; }
 .lot-name { font-size: 12px; font-weight: 700; color: var(--ink-2); }
 .lot .badge { margin-left: auto; }
+.lot .badge.mix { margin-left: 0; } /* 雜種的批次：「雜種」放在稀有度的位置（S05-06） */
 .lot-fresh { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12px; font-weight: 700; }
 .lot-fresh .bar { flex: 1; height: 12px; }
 .lot-fresh .num { font-size: 14px; min-width: 36px; text-align: right; }
@@ -397,6 +398,11 @@
 .mix-pics .use { line-height: 18px; }
 /* 雜種牛長大揭曉（S03-25，A-13 長成雜種牛時的結尾）：名字卡裡多一行橘字（少吃了哪幾種）、說明和「好」 */
 .gs-adult.on { opacity: 1; }
+.mix-title { max-width: calc(100% - 32px); margin-bottom: 4px; font-size: 24px; line-height: 30px; text-align: center; }
+.grow-stage.mix-stage { width: 200px; height: 166px; }
+.mix-stage svg { width: auto; height: 100%; }
+/* 矮的手機（320×568）：牛縮小、標題再小一點，名字卡才不會碰到上下的安全區 */
+@media (max-height: 640px) { .grow-stage.mix-stage { height: 112px; } .mix-title { font-size: 20px; line-height: 26px; } .reveal-name.mix-end { gap: 4px; padding: 8px 14px 12px; } .mix-end .mr-hint { line-height: 17px; } }
 .reveal-name.mix-end { width: min(300px, calc(100% - 32px)); padding: 10px 16px 16px; }
 .mix-end .mr-why { margin-top: 2px; font-size: 16px; line-height: 22px; text-align: center; }
 .mix-end .mr-hint { text-align: center; line-height: 19px; }

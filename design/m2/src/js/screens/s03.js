@@ -250,8 +250,8 @@ full('S03-14', '第一次打開牧場：提示可以左右滑動（只出現一�
 // 說明倍數和配種照樣可能長出稀有的品種；要按「好」才關（一般的長大揭曉點一下就關）。不接 A-06
 function mixGrown(ctx) {
   const c = MIX_COW;
-  const inner = `<div class="disc-title gs-title">${t('anim.grownUp', { cow: calfName('dairy', c.id) })}</div>
-    <div class="grow-stage"><div class="gs-adult on">${cowSVG({ breed: c.breed, sex: c.sex }, { w: 200, h: 176 })}</div></div>
+  const inner = `<div class="disc-title gs-title mix-title">${t('anim.grownUp', { cow: calfName('dairy', c.id) })}</div>
+    <div class="grow-stage mix-stage"><div class="gs-adult on">${cowSVG({ breed: c.breed, sex: c.sex }, { w: 180, h: 158 })}</div></div>
     <div class="reveal-name gs-name mix-end"><b>${cowName(c)}</b><div class="chips">${useChip('dairy')}<span class="use">${sexName(c.sex)}</span>${badge('mix', t('badgeMix'))}</div>
       <p class="warn-text mr-why">${t('anim.mixGrown', { feeds: feedList(c.missed) })}</p>
       <p class="hint mr-hint">${t('anim.mixHint', { mult: MIX_MULT })}</p>
