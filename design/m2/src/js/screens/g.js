@@ -39,7 +39,7 @@ part('G-07', '牛的標籤：用途、稀有度、狀態', '#crop', (ctx) => she
 part('G-08', '小牛長大倒數卡（配種、借種共用）', '#crop', (ctx) => sheet(ctx, `<div class="card calf-card">
   <div class="calf-pic">${cowSVG({ breed: 'holstein', sex: 'cow', age: 'calf', seed: 91 }, { w: 84, h: 84, pose: 'front' })}</div>
   <div class="grow"><div class="row" style="gap:6px"><b style="font-size:16px">${t('g.newCalf', { cow: calfName('dairy', 16) })}</b></div><div class="chips" style="margin:4px 0">${useChip('dairy')}<span class="use">${sexName('cow')}</span>${badge('calf', t('stageCalf'))}</div>
-  <div class="hint">${t('growUp', { v: `<b class="num">${dur({ h: 7, m: 42 })}</b>` })}</div>${bar(4, { color: 'yellow' })}</div></div>`));
+  <div class="hint">${t('growUp', { v: `<b class="num">${dur({ h: 2, m: 42 })}</b>` })}</div>${bar(10, { color: 'yellow' })}</div></div>`));
 
 part('G-09', '下拉重新整理', '#crop', (ctx) => sheet(ctx, `<div class="g-pull"><div class="pull-ind"><span class="spinner"></span>${t('g.refreshing')}</div>
   <div class="card" style="opacity:.9"><div class="row" style="gap:8px">${cowSVG({ breed: 'chocolate', sex: 'bull', seed: 75 }, { w: 56, h: 56 })}<div><b>${t('g.breedSex', { breed: breedName('chocolate'), sex: sexName('bull') })}</b><div class="hint">${tierName(2)}${t('g.sep')}${t('costCoins', { v: fmt(2000) })}</div></div></div></div></div>`));

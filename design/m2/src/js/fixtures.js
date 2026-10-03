@@ -11,7 +11,7 @@ export const COWS = [
   { id: 3, breed: 'holstein', sex: 'cow', age: 'adult', age_: { d: 2, h: 5 }, milk: 14, kg: 212, value: 2514, probs: { A: 0.397, B: 0.441, C: 0.162 }, origin: 'start' },
   { id: 7, breed: 'jersey', sex: 'cow', age: 'adult', age_: { d: 1, h: 20 }, milk: 14, kg: 196, value: 3102, probs: { A: 0.402, B: 0.437, C: 0.161 }, origin: 'B' },
   { id: 12, breed: 'strawberry', sex: 'cow', age: 'adult', age_: { d: 1, h: 2 }, milk: 14, kg: 174, value: 5520, probs: { A: 0.487, B: 0.402, C: 0.111 }, origin: 'breed' },
-  { id: 15, breed: 'holstein', sex: 'cow', age: 'calf', seed: 31, age_: { m: 18 }, grow_: { m: 42 }, origin: 'breed' },
+  { id: 15, breed: 'holstein', sex: 'cow', age: 'calf', seed: 31, age_: { h: 2, m: 18 }, grow_: { m: 42 }, origin: 'breed' },
   { id: 2, breed: 'yellow', sex: 'bull', age: 'adult', age_: { d: 3, h: 1 }, kg: 431, value: 5108, probs: { A: 0.416, B: 0.428, C: 0.156 }, rice: 11, field: 0, origin: 'start' },
   { id: 9, breed: 'highland', sex: 'cow', age: 'adult', age_: { d: 2, h: 9 }, kg: 377, value: 5832, probs: { A: 0.401, B: 0.439, C: 0.16 }, rice: 14.3, field: 2, origin: 'A' },
   { id: 5, breed: 'angus', sex: 'bull', age: 'adult', age_: { d: 2, h: 14 }, kg: 790, value: 9420, probs: { A: 0.448, B: 0.414, C: 0.138 }, listed: 870, origin: 'C' },

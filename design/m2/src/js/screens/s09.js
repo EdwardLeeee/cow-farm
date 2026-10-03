@@ -43,7 +43,6 @@ function detailPage(ctx, k, { found = true } = {}) {
   if (b.use === 'draft') stats.push([t('g.plow'), `${(11 * MULT[tier]).toFixed(1).replace(/\.0$/, '')} <small>${t('g.perHourRice')}</small>`]);
   stats.push([t('s09.bestKg'), `${BEST[b.use]} <small>${t('g.kg')}</small>`]);
   stats.push([t('s09.mult'), `×${MULT[tier].toFixed(1)} <small>${b.use === 'draft' ? t('s09.multBeef') : ''}</small>`]);
-  stats.push([t('s09.calfGrow'), `${[1, 2, 4, 8][tier]} <small>${t('g.hourUnit')}</small>`]);
   const pics = found
     ? `<div class="dex-pics">${cowSVG({ breed: k, pose: 'side' }, { w: 160, h: 130, pose: 'side' })}${cowSVG({ breed: k }, { w: 130, h: 130 })}</div>`
     : `<div class="dex-pics">${cowSVG({ breed: k, pose: 'side' }, { w: 160, h: 130, pose: 'side', sil: 'dark' })}</div>`;
@@ -51,7 +50,7 @@ function detailPage(ctx, k, { found = true } = {}) {
     <div class="page-head"><button class="icon-btn" aria-label="${t('back')}">${icon('back', 22)}</button><div class="grow"><h1>${found ? breedName(k) : t('g.unknownBreed')}</h1><div class="chips" style="margin-top:3px">${useChip(b.use)}${tierChip(tier)}${found ? '' : badge('lock', t('s09.notFoundYet'))}</div></div><span class="dex-no">${t('s09.no', { n: String(CODEX_ORDER.indexOf(k) + 1).padStart(2, '0') })}</span></div>
     <article class="card dex-hero"><div class="hero-bg"></div>${pics}</article>
     ${found ? `<p class="dex-intro">${breedIntro(k)}</p>
-    <div class="kv">${stats.map(([a, v]) => `<div class="cell"><div class="k">${a}</div><div class="v num">${v}</div></div>`).join('')}</div>
+    <div class="kv${stats.length === 3 ? ' kv3' : ''}">${stats.map(([a, v]) => `<div class="cell"><div class="k">${a}</div><div class="v num">${v}</div></div>`).join('')}</div>
     <article class="card"><div class="card-head"><span class="card-title pink">${icon('heart', 16)}${t('s09.howTitle')}</span></div><p class="hint" style="margin-top:6px;color:var(--ink)">${hintFor(b)}</p></article>
     <p class="hint">${t('s09.firstFound', { date: t('date.mdOnly', { m: 9, d: 30 }), n: k === 'holstein' ? 3 : 1 })}</p>`
       : `<article class="card"><div class="empty"><div class="t1">${t('s09.unknownTitle')}</div><div class="t2">${t('s09.unknownBody', { use: useName(b.use), tier: tierName(tier) })}</div></div></article>`}
