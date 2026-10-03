@@ -1,12 +1,14 @@
 // Apple／Google 登入按鈕（設計稿 s13.js 的 sso；screens.css 的 .sso、.sso.apple、.sso.google、.sso-mark）。
 // 備份牧場（S13-02）和之後的找回牧場（S14-02）共用。
 //
-// 照核准的設計稿畫：Apple 黑底白字、Google 白底細外框，兩顆一樣大，48 高、圓角 16、字 17 粗、標誌和字隔 8。
+// 照核准的設計稿畫：Apple 黑底白字、Google 白底細外框，兩顆一樣大，48 高、圓角 16、字 17、標誌和字隔 8。
+// 字照 #126：Apple、Google 各自一個 key（s13.ssoApple、s13.ssoGoogle，照官方的叫法）；Apple 粗（700），Google 是 Medium
+// （500，Google 規範 40 高、Google Sans Medium 14／20 等比例放大到 48 高；ceo 2026-10-03）。
 // 設計稿的虛線方塊是標誌的位置，放官方的標誌：
 // - Apple：sign_in_with_apple 套件的 AppleLogoPainter（套件的按鈕寫死 .SF Pro Text 字型，字照設計稿就自己排）。
 // - Google：Google 官方素材包（signin-assets.zip，2026-04 版）的「G」，原樣切出來不縮放、不改色（m3-backlog：可以內建
 //   官方的 G、註明來源）。assets/sso/ 的 1x～4x 各對應素材包的同一種解析度。
-// Google 規格的字是 Google Sans Medium 14／20，設計稿是 17 粗；字級由 cow-ui 定（ceo 2026-10-03），先照設計稿。
+// Google Sans 能不能放進 app 要先確認授權，確認前用 app 的字型（#126）。
 import 'package:flutter/material.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart' show AppleLogoPainter;
 
@@ -31,7 +33,7 @@ class SsoButton extends StatelessWidget {
     final s = Strings.of(context);
     final apple = provider == SignInProvider.apple;
     final fg = apple ? Colors.white : _googleText;
-    final label = s.s13SsoSignIn(name: provider.label);
+    final label = apple ? s.s13SsoApple : s.s13SsoGoogle;
     return Semantics(
       container: true,
       button: true,
@@ -65,7 +67,12 @@ class SsoButton extends StatelessWidget {
                       maxLines: 1,
                       softWrap: false,
                       overflow: TextOverflow.fade,
-                      style: AppText.style(17, weight: FontWeight.w700, lineHeight: 22, color: fg),
+                      style: AppText.style(
+                        17,
+                        weight: apple ? FontWeight.w700 : FontWeight.w500,
+                        lineHeight: 22,
+                        color: fg,
+                      ),
                     ),
                   ),
                 ],

@@ -73,6 +73,9 @@
 - Android：「By default Android backups data on Google Drive. It can cause exception java.security.InvalidKeyException: Failed to unwrap key.」README 的做法：`android:allowBackup="false"`，或用 `fullBackupContent`／`dataExtractionRules` 排除它的 SharedPreferences。
 - iOS：`IOSOptions(accessibility: KeychainAccessibility.first_unlock_this_device)`：開機後解鎖過一次就讀得到，不會隨備份搬到新手機（backend-findings 的建議）。
 - 現況：`storage/token_store_io.dart` 用預設的 `FlutterSecureStorage()`，兩個都還沒設；AndroidManifest 沒有備份規則。
+- **做法（ceo 2026-10-03 同意）**：Android `allowBackup="false"`，Android 12 起的換機轉移用 `data_extraction_rules.xml` 把**整個 SharedPreferences** 排除。
+  - 原因：flutter_secure_storage 11 存 token 用好幾個 SharedPreferences 檔（`FlutterSecureStorage`、`FlutterSecureKeyStorage`、`FlutterSecureStorageConfiguration:…`），名字隨版本變，一個一個排除升版容易漏。
+  - 連帶的：語言、漲跌顏色、音效、看過的提示在 Android 換手機後回到預設。遊戲資料都在伺服器，可以接受。
 
 ## 2. 速度
 

@@ -65,6 +65,7 @@ class AppFrame extends StatelessWidget {
     this.body = const [],
     this.underlays = const [],
     this.overlays = const [],
+    this.offlinePill = true,
   });
 
   /// 選中的分頁；null 是沒有分頁列的頁面。
@@ -76,6 +77,9 @@ class AppFrame extends StatelessWidget {
   final List<Widget> body;
   final List<Widget> underlays;
   final List<Widget> overlays;
+
+  /// 斷線時在頂列下面畫「連線中…」（S15-01）。沒有頂列、有頁面標題的頁面自己放在標題那一列（S13-20），這裡不畫。
+  final bool offlinePill;
 
   @override
   Widget build(BuildContext context) {
@@ -100,7 +104,7 @@ class AppFrame extends StatelessWidget {
           ...body,
           if (hud) Positioned(left: 12, right: 12, top: safe.top + 6, height: FrameSizes.hud, child: const Hud()),
           if (tab != null) Positioned(left: 0, right: 0, bottom: 0, child: AppTabBar(active: tab!)),
-          if (offline)
+          if (offline && offlinePill)
             Positioned(
               left: 0,
               right: 0,

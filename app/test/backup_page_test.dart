@@ -180,9 +180,9 @@ void main() {
     await showBackup(tester, AppLang.zhHant, api: api);
     expect(
       tester.getSemantics(find.byKey(const Key('sso-apple'))),
-      isSemantics(label: _zh.s13SsoSignIn(name: 'Apple'), isButton: true, hasTapAction: true),
+      isSemantics(label: _zh.s13SsoApple, isButton: true, hasTapAction: true),
     );
-    tester.semantics.tap(find.semantics.byLabel(_zh.s13SsoSignIn(name: 'Apple')));
+    tester.semantics.tap(find.semantics.byLabel(_zh.s13SsoApple));
     await tester.pump();
     await tester.pump();
     expect(api.linkRequests.single.provider, SignInProvider.apple);

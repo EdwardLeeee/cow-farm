@@ -365,6 +365,23 @@ final s13Cases = [
     },
   ),
   PageCase(
+    'S13-20',
+    '設定頁斷線：「連線中…」放在標題那一列',
+    (tester, lang) async {
+      final m = await showSettings(tester, lang, signIn: FakeSignIn());
+      (m.push as FakePush).isConnected = false;
+      await tester.pump();
+    },
+    check: (tester) {
+      final pill = find.byKey(const Key('offline-pill'));
+      expect(pill, findsOneWidget, reason: '只有標題列那一顆，頂列下面的不畫');
+      final back = tester.getRect(find.byKey(const Key('btn-back')));
+      expect(tester.getCenter(pill).dy, closeTo(back.center.dy, 1), reason: '跟返回鈕同一列');
+      expect(tester.getRect(pill).right, greaterThan(tester.getRect(find.byKey(const Key('me-card'))).right - 2));
+      expect(find.text(_zh.s13Title), findsOneWidget);
+    },
+  ),
+  PageCase(
     'S13-17',
     '語言：繁體中文、English、ไทย',
     (tester, lang) async {

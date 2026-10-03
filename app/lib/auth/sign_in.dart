@@ -15,7 +15,7 @@ enum SignInProvider {
   /// 協定的值。
   final String wire;
 
-  /// 畫面上的名字（「使用 {name} 登入」「{name} 帳號」），不翻譯。
+  /// 畫面上的名字（「{name} 帳號」「已綁定 {name} 帳號」），不翻譯。登入按鈕的字各自一個 key（s13.ssoApple、s13.ssoGoogle）。
   final String label;
 
   static SignInProvider? fromWire(String v) => switch (v) {

@@ -70,9 +70,12 @@ class SettingsFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final m = context.read<GameModel>();
+    final m = context.watch<GameModel>();
+    // 斷線（S15-01）：沒有頂列，「連線中…」放在標題那一列的右邊（S13-20，#126）
+    final offline = m.state != null && !m.online && m.maintenance == null && m.authLost == null;
     return AppFrame(
       hud: false,
+      offlinePill: false,
       contentPadding: EdgeInsets.zero,
       content: SingleChildScrollView(
         key: scrollKey,
@@ -80,7 +83,12 @@ class SettingsFrame extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            PageHead(title: title, onBack: m.settingsBack),
+            PageHead(
+              title: title,
+              onBack: m.settingsBack,
+              action: offline ? const OfflinePill() : null,
+              actionFixed: true,
+            ),
             for (final c in children) ...[const SizedBox(height: AppSizes.gap), c],
           ],
         ),
