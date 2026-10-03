@@ -12,7 +12,7 @@
 
 v0.3 照顧（除了 Z，每種玩法都會）：每次上線先清大便、處理病牛（值得就治療，不值得就出貨）；牛群到 HELPER_MIN_COWS 頭
 就一直雇著打掃小幫手（預付到 HELPER_AHEAD_D 天後）；照自己的玩法餵飼料（PROFILES 的 feed：B 豆粕、D 牧草、其他玉米），
-稀有小牛先吃指定的飼料，還沒吃齊就 45 分鐘後回來再餵（care_return）；B、F 買得起就換更快的地板（PROFILES 的 floor）。
+稀有小牛先吃指定的飼料，還沒吃齊就 45 分鐘後回來再餵（care_return）；買得起就換最快的地板（PROFILES 的 floor）。
 
 每次上線的順序：清大便、病牛 → 賣（或存）→ 出貨已配過種的到期牛 → 配種（自己的公牛優先，沒有就借種）→ 出貨其餘到期牛
 → 耕牛下田 → （L）上架公牛 → 花錢：小幫手、商店補空格、奶桶、田地（F）／倉庫冷藏（T）、地板、擴建牛舍 → 餵飼料。
@@ -71,17 +71,17 @@ SHOP_CHOICE_SCALE = 1000.0  # 挑商店等級的個人差異（隨機效用的�
 GRASS, HAY, OAT, ALFALFA, CORN, SOY = range(6)
 PROFILES: Dict[str, dict] = {
     "D": {"pref": (1.25, 1.0, 1.0), "rarity": 0.0, "milker": "decline", "fields": False, "hold": False, "lend": False,
-          "care": "full", "feed": GRASS, "floor": 0},
+          "care": "full", "feed": GRASS, "floor": 2},
     "B": {"pref": (1.0, 1.0, 1.25), "rarity": 0.0, "milker": "peak", "fields": False, "hold": False, "lend": False,
           "care": "full", "feed": SOY, "floor": 2},
     "F": {"pref": (1.0, 1.25, 1.0), "rarity": 0.0, "milker": "decline", "fields": True, "hold": False, "lend": False,
-          "care": "full", "feed": CORN, "floor": 1},
+          "care": "full", "feed": CORN, "floor": 2},
     "C": {"pref": (1.0, 1.0, 1.0), "rarity": 0.6, "milker": "decline", "fields": False, "hold": False, "lend": False,
-          "care": "full", "feed": CORN, "floor": 0},
+          "care": "full", "feed": CORN, "floor": 2},
     "T": {"pref": (1.25, 1.0, 1.0), "rarity": 0.0, "milker": "decline", "fields": False, "hold": True, "lend": False,
-          "care": "full", "feed": CORN, "floor": 0},
+          "care": "full", "feed": CORN, "floor": 2},
     "L": {"pref": (1.0, 1.0, 1.0), "rarity": 0.2, "milker": "decline", "fields": False, "hold": False, "lend": True,
-          "care": "full", "feed": CORN, "floor": 0},
+          "care": "full", "feed": CORN, "floor": 2},
     "Z": {"pref": (1.25, 1.0, 1.0), "rarity": 0.0, "milker": "decline", "fields": False, "hold": False, "lend": False,
           "care": "lazy", "feed": None, "floor": 0},
     "W": {"pref": (1.25, 1.0, 1.0), "rarity": 0.0, "milker": "decline", "fields": False, "hold": False, "lend": False,
@@ -459,7 +459,8 @@ def hire_helper(b: Bot, now: float) -> None:
 
 
 def change_floor(b: Bot, now: float) -> None:
-    """B、F：買得起（留兩頭 C 級小牛的錢）就換想要的地板。"""
+    """買得起（留兩頭 C 級小牛的錢）就換想要的地板。照顧好的玩法都換青草地（×1.5）：100 人的試跑裡只有 B、F 換的話，
+    B 的收入多將近五成，六種玩法差到 1.8 倍；大家都換才是玩家實際會做的。"""
     f = b.farm
     i = b.prof["floor"]
     if not i or f.floor == i:

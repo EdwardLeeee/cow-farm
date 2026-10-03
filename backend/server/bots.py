@@ -17,7 +17,7 @@
 
 v0.3 照顧（除了 Z，每種玩法都會）：每次上線先清大便、處理病牛（值得就治療，不值得就出貨）；牛群到 HELPER_MIN_COWS 頭
 就一直雇著打掃小幫手（預付到 HELPER_AHEAD_D 天後）；照自己的玩法餵飼料（PROFILES 的 feed：B 豆粕、D 牧草、其他玉米），
-稀有小牛先吃指定的飼料，還沒吃齊就 45 分鐘後回來再餵（care_return）；B、F 買得起就換更快的地板（PROFILES 的 floor）。
+稀有小牛先吃指定的飼料，還沒吃齊就 45 分鐘後回來再餵（care_return）；買得起就換最快的地板（PROFILES 的 floor）。
 
 每次上線的順序：清大便、病牛 → 賣（或存）→ 出貨已配過種的到期牛 → 配種（自己的公牛優先，沒有就借種）→ 出貨其餘到期牛
 → 耕牛下田 →（L）上架公牛 → 花錢：小幫手、商店補空格、奶桶、田地（F）／倉庫冷藏（T）、地板、擴建牛舍 → 餵飼料。
@@ -100,16 +100,16 @@ SHOP_CHOICE_SCALE = 1000.0  # 挑商店等級的個人差異（隨機效用的�
 
 # v0.3：care = 照顧（full 照顧好、lazy 懶得照顧）；feed = 平常餵哪種飼料（None 不餵）；floor = 想換的地板（0 = 泥土地不換）
 GRASS, HAY, OAT, ALFALFA, CORN, SOY = range(6)
-_BASE = {"rarity": 0.0, "milker": "decline", "fields": False, "hold": False, "lend": False, "care": "full", "floor": 0}
+_BASE = {"rarity": 0.0, "milker": "decline", "fields": False, "hold": False, "lend": False, "care": "full", "floor": 2}
 PROFILES: Dict[str, dict] = {
     "D": {**_BASE, "pref": (1.25, 1.0, 1.0), "feed": GRASS},
-    "B": {**_BASE, "pref": (1.0, 1.0, 1.25), "milker": "peak", "feed": SOY, "floor": 2},
-    "F": {**_BASE, "pref": (1.0, 1.25, 1.0), "fields": True, "feed": CORN, "floor": 1},
+    "B": {**_BASE, "pref": (1.0, 1.0, 1.25), "milker": "peak", "feed": SOY},
+    "F": {**_BASE, "pref": (1.0, 1.25, 1.0), "fields": True, "feed": CORN},
     "C": {**_BASE, "pref": (1.0, 1.0, 1.0), "rarity": 0.6, "feed": CORN},
     "T": {**_BASE, "pref": (1.25, 1.0, 1.0), "hold": True, "feed": CORN},
     "L": {**_BASE, "pref": (1.0, 1.0, 1.0), "rarity": 0.2, "lend": True, "feed": CORN},
-    "Z": {**_BASE, "pref": (1.25, 1.0, 1.0), "care": "lazy", "feed": None},
-    "W": {**_BASE, "pref": (1.25, 1.0, 1.0), "feed": None},
+    "Z": {**_BASE, "pref": (1.25, 1.0, 1.0), "care": "lazy", "feed": None, "floor": 0},
+    "W": {**_BASE, "pref": (1.25, 1.0, 1.0), "feed": None, "floor": 0},
 }
 
 
@@ -554,7 +554,7 @@ def hire_helper(b: Bot, now: float) -> None:
 
 
 def change_floor(b: Bot, now: float) -> None:
-    """B、F：買得起（留兩頭 C 級小牛的錢）就換想要的地板。"""
+    """買得起（留兩頭 C 級小牛的錢）就換想要的地板（照顧好的玩法都換青草地，說明見研究模擬的 sim/bots.py）。"""
     f = b.farm
     i = b.prof["floor"]
     if not i or f.floor == i:
