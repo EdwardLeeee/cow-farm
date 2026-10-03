@@ -17,6 +17,7 @@ const imp = (p) => import(pathToFileURL(join(M2, p)).href);
 
 const { BREEDS, CODEX_ORDER } = await imp('src/cow/breeds.js');
 const { drawCow } = await imp('src/cow/render.js');
+const { calfBow, hasBow } = await imp('src/cow/calf.js');
 const { ICON_NAMES, TAB_KEYS, icon, tabIcon } = await imp('src/js/icons.js');
 const { backdrop, sparkle, HERD, WIDE } = await imp('src/js/scene.js');
 const { TK, truckBack, truckFront, wheel, A03_HERD } = await imp('src/js/truck.js');
@@ -51,9 +52,12 @@ function cowFile(entry, facing) {
   const r = drawCow(entry, { x: 0, y: 0, scale: 1, facing, id: 'c' });
   // bbox 是模型座標；朝右時畫面上的範圍左右對調。原點在腳底，往上是負的
   const [bx0, bx1] = facing === 'right' ? [-r.bbox.x1, -r.bbox.x0] : [r.bbox.x0, r.bbox.x1];
-  const x0 = f(bx0 * r.scale - PAD), x1 = f(bx1 * r.scale + PAD), y0 = f(-r.height - PAD), y1 = PAD;
+  // 母小牛頭上的蝴蝶結（第 13 輪 02-A；design/m2/src/cow/calf.js）：圖的上緣算到蝴蝶結頂
+  const bow = hasBow(entry) ? calfBow(r, entry.pose, facing) : null;
+  const top = bow ? Math.min(-r.height, bow.top) : -r.height;
+  const x0 = f(bx0 * r.scale - PAD), x1 = f(bx1 * r.scale + PAD), y0 = f(top - PAD), y1 = PAD;
   const w = f(x1 - x0), h = f(y1 - y0);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x0} ${y0} ${w} ${h}" width="${w}" height="${h}">${r.svg}</svg>\n`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x0} ${y0} ${w} ${h}" width="${w}" height="${h}">${r.svg}${bow ? bow.svg : ''}</svg>\n`;
   const meta = {
     w, h, x0, y0, height: f(r.height),
     face: { cx: f(r.face.cx), cy: f(r.face.cy), r: f(r.face.r) },
@@ -86,7 +90,7 @@ function cows() {
       '年紀只有 calf、adult：老牛用 adult 的圖。朝右只有 right 為 true 的品種有，其他品種朝右時把朝左的圖左右翻轉。',
       '變體：seeds 的長度就是變體數，app 用「牛的編號 mod 變體數」挑。',
     ],
-    generator: closure(['src/cow/breeds.js', 'src/cow/render.js']),
+    generator: closure(['src/cow/breeds.js', 'src/cow/render.js', 'src/cow/calf.js']),
     breeds,
     images,
   };

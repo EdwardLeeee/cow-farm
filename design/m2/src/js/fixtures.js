@@ -1,7 +1,7 @@
 // M2 假資料：數字照企劃書第 5 節與協定（牛奶 12 幣／瓶、牛肉 12 幣／公斤、稻米 5 幣／公斤；ceo 2026-10-01）。
 // 牧場名只用詞庫 backend/server/data/ranch_words.json 的詞；別人的牧場名加「#編號」。時間一律是真實時間。
 import { BREEDS, tierOf } from '../cow/breeds.js';
-import { t, LANG, cowName as nameOf } from './i18n.js';
+import { t, LANG, cowName as nameOf, calfName } from './i18n.js';
 
 export const RANCH = { name: '晨光河畔牧場', tag: '#1234', level: 4, earned: 5120, levelAt: 3500, nextAt: 7500, coins: 12480 };
 export const xpPct = (r = RANCH) => Math.round(((r.earned - r.levelAt) / (r.nextAt - r.levelAt)) * 100);
@@ -24,7 +24,7 @@ export const cowById = (id) => COWS.find((c) => c.id === id);
 export const breedOf = (c) => BREEDS[c.breed];
 export const useOf = (c) => BREEDS[c.breed].use;
 export const tierOfCow = (c) => tierOf(BREEDS[c.breed]);
-export const cowName = (c) => nameOf(c.breed, c.id);
+export const cowName = (c) => (c.age === 'calf' ? calfName(BREEDS[c.breed].use, c.id) : nameOf(c.breed, c.id));
 
 export const BUCKET = { qty: 36.4, cap: 42, perHour: 42, level: 1 };
 export const WAREHOUSE = {

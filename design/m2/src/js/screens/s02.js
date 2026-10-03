@@ -2,7 +2,7 @@
 // 打字取名；「幫我想一個」從詞庫隨機組一個填進去，玩家可以再改。長度用顯示寬度算：中文字算 2，英文字母、數字、泰文字算 1，總共 2–16（最多 8 個中文字）。
 // 不收 emoji 和控制字元（為了排版）；不做不雅字過濾、檢舉、封鎖（D23）。名字不必唯一，顯示時加「#1234」。
 import { frame, btn, cowSVG, icon, dialog, nameWidth } from '../kit.js';
-import { t, tb, dur, cowName, sexName } from '../i18n.js';
+import { t, tb, dur, cowName, calfName, sexName } from '../i18n.js';
 
 // 系統鍵盤：實作時是手機自己的鍵盤，設計稿畫成灰色色塊（高度照各手機常見的鍵盤高度）
 export const KB_H = { 430: 300, 390: 292, 360: 280, 320: 254 };
@@ -43,7 +43,7 @@ full('S02-02', '取好名字：歡迎卡與開局的牛', (ctx) => page(ctx, {
     body: `<p style="text-align:center">${t('s02.gifts')}</p>
       <div class="gift-row">
         <div class="gift">${cowSVG({ breed: 'holstein' }, { w: 96, h: 96, pose: 'front' })}<b>${cowName('holstein', 1)}</b><span>${sexName('cow')}${t('g.sep')}${t('s02.giftMilk')}</span></div>
-        <div class="gift">${cowSVG({ breed: 'yellow', sex: 'bull', age: 'calf', seed: 33 }, { w: 96, h: 96, pose: 'front' })}<b>${cowName('yellow', 2)}</b><span>${sexName('bull')}${t('g.sep')}${t('g.growsIn', { time: dur({ m: 20 }) })}</span></div>
+        <div class="gift">${cowSVG({ breed: 'yellow', sex: 'bull', age: 'calf', seed: 33 }, { w: 96, h: 96, pose: 'front' })}<b>${calfName('draft', 2)}</b><span>${sexName('bull')}${t('g.sep')}${t('g.growsIn', { time: dur({ m: 20 }) })}</span></div>
       </div>
       <div class="gift-coin">${icon('coin', 26)}${t('costCoins', { v: '<b class="num">100</b>' })}　${icon('pail', 22)}${t('s02.giftBucket', { n: '<b class="num">20</b>' })}</div>
       <p class="hint" style="text-align:center;margin-top:4px">${t('s02.boost', { h: 1, x: 5 })}</p>`,

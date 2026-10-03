@@ -1,8 +1,9 @@
 // S08 配種（自己的公牛 × 自己的母牛）與 S18 借種市場。每頭牛一輩子只能配種一次（公母都一樣，借出去也算）。
-import { frame, btn, seg, badge, tierChip, useChip, icon, fmt, cowSVG, toast, dialog, BREEDS } from '../kit.js';
+import { frame, btn, seg, badge, tierChip, useChip, icon, fmt, cowSVG, toast, dialog, calfLook, BREEDS } from '../kit.js';
 import { COWS, cowById, STUD, STUD_INCOME, STUD_LOG, FOUND, RANCH, studFee, LONG_NAMES } from '../fixtures.js';
 import { tierOf } from '../../cow/breeds.js';
-import { t, tb, dur, dateText, cowName, breedName, sexName, LANG } from '../i18n.js';
+import { CALF_LOOK } from '../../cow/calf.js';
+import { t, tb, dur, dateText, cowName, calfName, breedName, sexName, LANG } from '../i18n.js';
 
 // 可能生出的小牛（配種預覽）：還沒發現的品種顯示剪影和「？？？」（企劃書 4.5）
 const OUTCOME = [
@@ -19,8 +20,8 @@ function pickCard(c, { on = false, reason = '' } = {}) {
   const b = BREEDS[c.breed];
   return `<button class="pick${on ? ' on' : ''}${reason ? ' off' : ''}"${reason ? ' disabled' : ''}>
     ${on ? `<span class="pick-check">${icon('ok', 22)}</span>` : ''}
-    <span class="pick-pic">${cowSVG({ breed: c.breed, sex: c.sex, age: c.age === 'calf' ? 'calf' : 'adult', seed: c.seed }, { w: 84, h: 76, pad: 3 })}</span>
-    <span class="pick-name">${breedName(c.breed)}<span class="pid"> #${c.id}</span></span>
+    <span class="pick-pic">${cowSVG(calfLook(c), { w: 84, h: 76, pad: 3 })}</span>
+    <span class="pick-name">${c.age === 'calf' ? t(`calf.${b.use}`) : breedName(c.breed)}<span class="pid"> #${c.id}</span></span>
     <span class="pick-meta">${reason ? badge(reason, t(REASON[reason])) : tierChip(tierOf(b))}</span>
   </button>`;
 }
@@ -74,9 +75,10 @@ function breedPage(ctx, o = {}) {
 // name：小牛的名字（品種＋編號）；grow：長大還要多久
 // 長大的進度：已經過的時間 ÷ 這個稀有度要長的時間（left 是還要多久，{ h, m }）
 export const growPct = (tier, left) => { const all = CALF_GROW_H[tier] * 60; return ((all - ((left.h || 0) * 60 + (left.m || 0))) / all) * 100; };
-export function calfCard(name, tier, grow, { breed = 'jersey', seed = 91, pct = 2 } = {}) {
-  return `<div class="card calf-card"><div class="calf-pic">${cowSVG({ breed, age: 'calf', seed }, { w: 84, h: 84, pose: 'front' })}</div>
-    <div class="grow"><b style="font-size:16px">${t('g.newCalf', { cow: name })}</b><div class="chips" style="margin:4px 0">${tierChip(tier)}${badge('calf', t('stageCalf'))}</div>
+// 小牛倒數卡：剛出生的小牛還不知道品種（v0.3，第 13 輪 02-A）：照用途的一般品種畫、叫「小乳牛 #編號」，不放稀有度
+export function calfCard(use, id, sex, grow, { seed = 91, pct = 2 } = {}) {
+  return `<div class="card calf-card"><div class="calf-pic">${cowSVG({ breed: CALF_LOOK[use], sex, age: 'calf', seed }, { w: 84, h: 84, pose: 'front' })}</div>
+    <div class="grow"><b style="font-size:16px">${t('g.newCalf', { cow: calfName(use, id) })}</b><div class="chips" style="margin:4px 0">${useChip(use)}<span class="use">${sexName(sex)}</span>${badge('calf', t('stageCalf'))}</div>
     <div class="hint">${t('growUp', { v: `<b class="num">${grow}</b>` })}</div><div class="bar yellow" style="margin-top:6px"><i style="width:${pct}%"></i></div></div></div>`;
 }
 
@@ -92,7 +94,7 @@ part('S08-05', '機率計算失敗（3 秒後自動再試）', '.outcome-card', 
 full('S08-06', '可能生出的小牛與機率（沒發現過的顯示「？」）', (ctx) => breedPage(ctx, { sire: 0, dam: 0, st: 'ok', scrollTo: '.outcome-card' }));
 part('S08-07', '伺服器說不能配：原因、按鈕停用', '#crop', (ctx) => frame(ctx.dev, { tab: 'breed', content: `<div id="crop" class="stack">${outcomeCard('ok')}<p class="warn-text note-line">${icon('warn', 18)}<span>${t('s08.alreadyBred', { cow: cowName('holstein', 3) })}</span></p>${btn(t('s08.breedBtnFree'), { kind: 'pink', block: true, ic: 'heart', disabled: true })}</div>` }));
 part('S08-08', '牛舍滿了', '#crop', (ctx) => frame(ctx.dev, { tab: 'breed', content: `<div id="crop" class="stack"><p class="warn-text note-line">${icon('warn', 18)}<span>${t('s08.penFull')}</span></p>${btn(t('s08.breedBtnFree'), { kind: 'pink', block: true, ic: 'heart', disabled: true })}</div>` }));
-full('S08-09', '配種成功：小牛倒數', (ctx) => breedPage(ctx, { sire: 0, dam: 0, st: 'ok', btnDisabled: true, btnLabel: t('s08.bredBtn'), after: calfCard(cowName('jersey', 16), 1, dur({ h: 1, m: 58 })), scrollTo: '.calf-card', overlays: toast('ok', t('breedDone', { cow: cowName('jersey', 16) })) }));
+full('S08-09', '配種成功：小牛倒數', (ctx) => breedPage(ctx, { sire: 0, dam: 0, st: 'ok', btnDisabled: true, btnLabel: t('s08.bredBtn'), after: calfCard('dairy', 16, 'cow', dur({ h: 1, m: 58 })), scrollTo: '.calf-card', overlays: toast('ok', t('breedDone', { cow: calfName('dairy', 16) })) }));
 part('S08-11', '斷線：機率卡顯示「連線中…」', '.outcome-card', (ctx) => breedPage(ctx, { sire: 0, dam: 0, st: 'offline', offline: true }));
 
 // ---------------- S18 借種市場 ----------------
@@ -148,7 +150,7 @@ part18('S18-05', '市場：載入中、載入失敗、沒有人上架', '#crop',
 full18('S18-06', '選了公牛和母牛：機率、費用、借種', (ctx) => studPage(ctx, { sel: 2, dam: 0, outcome: 'ok', scrollTo: '.outcome-card' }));
 part18('S18-07', '還沒選母牛', '#crop', (ctx) => frame(ctx.dev, { tab: 'breed', content: `<div id="crop" class="stack">${outcomeCard('none', { fee: t('s18.feeLine', { price: fmt(1820) }), none: t('pickListing') })}${btn(t('borrow', { price: fmt(1820) }), { kind: 'pink', block: true, ic: 'heart', disabled: true })}</div>` }));
 part18('S18-08', '金幣不夠、牛舍滿了', '#crop', (ctx) => frame(ctx.dev, { tab: 'breed', content: `<div id="crop" class="stack"><p class="warn-text note-line">${icon('warn', 18)}<span>${t('notEnoughCoins', { n: fmt(1520) })}</span></p><p class="warn-text note-line">${icon('warn', 18)}<span>${t('s08.penFull')}</span></p>${btn(t('borrow', { price: fmt(1820) }), { kind: 'pink', block: true, ic: 'heart', disabled: true })}</div>` }));
-full18('S18-09', '借種成功：小牛倒數', (ctx) => studPage(ctx, { sel: 2, dam: 0, outcome: 'ok', btnDisabled: true, btnLabel: t('s18.borrowedBtn'), hud: { coins: RANCH.coins - 1820 }, after: calfCard(cowName('chocolate', 16), 2, dur({ h: 3, m: 58 }), { breed: 'chocolate', seed: 93, pct: growPct(2, { h: 3, m: 58 }) }), scrollTo: '.calf-card', overlays: toast('ok', t('borrowed', { price: fmt(1820) })) }));
+full18('S18-09', '借種成功：小牛倒數', (ctx) => studPage(ctx, { sel: 2, dam: 0, outcome: 'ok', btnDisabled: true, btnLabel: t('s18.borrowedBtn'), hud: { coins: RANCH.coins - 1820 }, after: calfCard('dairy', 16, 'cow', dur({ h: 3, m: 58 }), { seed: 93, pct: growPct(2, { h: 3, m: 58 }) }), scrollTo: '.calf-card', overlays: toast('ok', t('borrowed', { price: fmt(1820) })) }));
 part18('S18-10', '借種失敗：公牛已經被借走', '.dialog', (ctx) => studPage(ctx, { sel: 2, dam: 0, outcome: 'ok', scrollTo: '.outcome-card', overlays: dialog({ title: t('s18.goneTitle'), body: `<p style="text-align:center">${tb('s18.goneBody')}</p>`, buttons: btn(t('s18.reloadMarket'), { kind: 'primary', ic: 'refresh' }) }) }));
 part18('S18-12', '借種費變了：公牛長大，價格跟剛剛看的不一樣', '.dialog', (ctx) => studPage(ctx, { sel: 3, dam: 0, outcome: 'ok', scrollTo: '.outcome-card', overlays: dialog({ title: t('s18.feeChangedTitle'), body: `<p style="text-align:center">${tb('s18.feeChangedBody', { old: `<b class="num">${fmt(1050)}</b>`, now: `<b class="num">${fmt(1090)}</b>` })}</p>`, buttons: `${btn(t('cancel'))}${btn(t('s18.borrowNew', { price: fmt(1090) }), { kind: 'pink' })}` }) }));
 part18('S18-13', '名字最長：8 個中文字、16 個英文字母（量測用）', '.list', (ctx) => frame(ctx.dev, { tab: 'breed', content: `<div class="list">${[{ ...STUD[2], owner: LONG_NAMES.cjk, tag: '#5821' }, { ...STUD[4], owner: LONG_NAMES.latin, tag: '#0907' }, { ...STUD[0], owner: LONG_NAMES.cjk }].map((l) => studRow(l)).join('')}</div>` }));

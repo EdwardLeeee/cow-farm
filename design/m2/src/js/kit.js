@@ -1,9 +1,10 @@
 // M2 共用元件：回傳 HTML 字串。外觀在 css/kit.css。
 import { icon, tabIcon } from './icons.js';
 import { drawCow, SIL_DEFS } from '../cow/render.js';
+import { calfBow, hasBow, CALF_LOOK } from '../cow/calf.js';
 import { BREEDS, USE_NAME, TIER_NAME, tierOf } from '../cow/breeds.js';
 import { RANCH, xpPct, fmt, compact } from './fixtures.js';
-import { t, tierName, useName, sexName, cowName } from './i18n.js';
+import { t, tierName, useName, sexName, cowName, calfName } from './i18n.js';
 import { nameWidth } from './namewidth.js';
 
 // ---------- 裝置 ----------
@@ -231,17 +232,20 @@ let uid = 0;
 const SIL_LIGHT = `<filter id="silL" x="-10%" y="-10%" width="120%" height="120%"><feFlood flood-color="#C2B3A6"/><feComposite in2="SourceAlpha" operator="in"/></filter>`;
 export function cowSVG(entry, { w = 80, h = 80, pose = 'front', facing = 'left', sil = false, pad = 4, cls = '' } = {}) {
   const e = { ...entry, pose };
+  const bow = hasBow(e);
   const r0 = drawCow(e, { scale: 1, facing: 'left' });
-  const x0 = r0.bbox.x0 * r0.scale, x1 = r0.bbox.x1 * r0.scale, ch = r0.height;
+  // 母小牛頭上有蝴蝶結（第 13 輪 02-A）：圖的高度算到蝴蝶結頂
+  const x0 = r0.bbox.x0 * r0.scale, x1 = r0.bbox.x1 * r0.scale, ch = bow ? Math.max(r0.height, -calfBow(r0, pose, 'left').top) : r0.height;
   const k = Math.min((w - pad * 2) / (x1 - x0), (h - pad * 2) / ch);
   const cx = w / 2 - (facing === 'right' ? -(x0 + x1) / 2 : (x0 + x1) / 2) * k;
   const id = `cw${uid++}`;
   const r = drawCow(e, { x: cx, y: h - pad, scale: k, facing, id, sil: !!sil });
+  const b = bow ? calfBow(r, pose, facing).svg : '';
   if (sil && sil !== 'dark') {
     const q = `<text x="${w / 2}" y="${h * 0.62}" text-anchor="middle" font-family="Noto Sans CJK TC" font-weight="900" font-size="${Math.round(h * 0.42)}" fill="#FFFFFF" stroke="#8A6F60" stroke-width="${Math.max(1.5, h * 0.03)}" paint-order="stroke">？</text>`;
-    return `<svg class="${cls}" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true"><defs>${SIL_LIGHT}</defs>${r.svg.replace('url(#sil)', 'url(#silL)')}${q}</svg>`;
+    return `<svg class="${cls}" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true"><defs>${SIL_LIGHT}</defs>${r.svg.replace('url(#sil)', 'url(#silL)')}${b ? `<g filter="url(#silL)">${b}</g>` : ''}${q}</svg>`;
   }
-  return `<svg class="${cls}" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true">${sil ? `<defs>${SIL_DEFS}</defs>` : ''}${r.svg}</svg>`;
+  return `<svg class="${cls}" viewBox="0 0 ${w} ${h}" width="${w}" height="${h}" aria-hidden="true">${sil ? `<defs>${SIL_DEFS}</defs>` : ''}${r.svg}${b ? (sil ? `<g filter="url(#sil)">${b}</g>` : b) : ''}</svg>`;
 }
 // 只取臉（頭像）
 export function cowFace(entry, size = 46) {
@@ -336,11 +340,13 @@ export function sheet({ title = '', body = '', cls = '' } = {}) {
 export function empty({ pic = '', t1 = '', t2 = '', action = '' } = {}) {
   return `<div class="empty">${pic ? `<div class="pic">${pic}</div>` : ''}${t1 ? `<div class="t1">${t1}</div>` : ''}${t2 ? `<div class="t2">${t2}</div>` : ''}${action}</div>`;
 }
+// 一頭牛的圖：小牛照用途的一般品種畫（v0.3，第 13 輪 02-A：小時候只有 6 種樣子）
+export const calfLook = (c) => (c.age === 'calf' ? { breed: CALF_LOOK[BREEDS[c.breed].use], sex: c.sex, age: 'calf', seed: c.seed } : { breed: c.breed, sex: c.sex, age: c.age === 'old' ? 'adult' : c.age, seed: c.seed });
 export function cowRow(c, { right = '', meta = '', chips = '', dim = false, pic = true, extra = '', cls = '' } = {}) {
   const b = BREEDS[c.breed];
   return `<article class="card cow-row${dim ? ' dim' : ''} ${cls}">
-    ${pic ? `<div class="pic">${cowSVG({ breed: c.breed, sex: c.sex, age: c.age === 'old' ? 'adult' : c.age, seed: c.seed }, { w: 60, h: 60, pad: 3 })}</div>` : ''}
-    <div class="info"><div class="name">${cowName(c.breed, c.id)}</div>${chips ? `<div class="chips" style="margin-top:3px">${chips}</div>` : ''}${meta ? `<div class="meta">${meta}</div>` : ''}${extra}</div>
+    ${pic ? `<div class="pic">${cowSVG(calfLook(c), { w: 60, h: 60, pad: 3 })}</div>` : ''}
+    <div class="info"><div class="name">${c.age === 'calf' ? calfName(b.use, c.id) : cowName(c.breed, c.id)}</div>${chips ? `<div class="chips" style="margin-top:3px">${chips}</div>` : ''}${meta ? `<div class="meta">${meta}</div>` : ''}${extra}</div>
     ${right ? `<div class="right">${right}</div>` : ''}
   </article>`;
 }
