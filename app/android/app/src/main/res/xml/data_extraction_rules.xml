@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12 起的雲端備份、換機轉移規則（AndroidManifest 的 dataExtractionRules）。
+     SharedPreferences 整個不搬：flutter_secure_storage 存 token 用好幾個 SharedPreferences 檔（名字隨版本變），
+     一起排除最穩；語言、漲跌顏色等設定換手機要重選，遊戲資料都在伺服器。 -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="." />
+    </device-transfer>
+</data-extraction-rules>

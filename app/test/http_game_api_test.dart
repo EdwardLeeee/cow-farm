@@ -3,9 +3,12 @@ import 'dart:convert';
 import 'package:cowfarm/api/game_api.dart';
 import 'package:cowfarm/api/http_game_api.dart';
 import 'package:cowfarm/api/models.dart';
+import 'package:cowfarm/auth/sign_in.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+
+import 'fakes.dart';
 
 void main() {
   final base = Uri.parse('http://127.0.0.1:8787');
@@ -280,4 +283,149 @@ void main() {
       expect(jsonDecode(r.body), {'request_id': '6f1c8e2a-3b4d-4e5f-8a9b-0c1d2e3f4a5b'});
     }
   });
+
+  group('備份牧場（協定 5.1–5.4）', () {
+    test('nonce：POST /v1/account/nonce，回 nonce', () async {
+      late http.Request req;
+      final client = MockClient((r) async {
+        req = r;
+        return http.Response(jsonEncode({'nonce': 'pX3v0Qm8', 'expires_at_real': 1790772011.2}), 200);
+      });
+      final api = HttpGameApi(base: base, client: client, sleep: noSleep)..token = 'tok';
+      expect(await api.accountNonce(), 'pX3v0Qm8');
+      expect(req.method, 'POST');
+      expect(req.url.path, '/v1/account/nonce');
+      expect(jsonDecode(req.body), <String, dynamic>{});
+    });
+
+    test('綁定：Apple 帶 authorization_code、Google 不帶；回 account.links', () async {
+      final reqs = <http.Request>[];
+      final client = MockClient((r) async {
+        reqs.add(r);
+        final provider = (jsonDecode(r.body) as Map)['provider'];
+        return http.Response(
+          jsonEncode({
+            'linked': {'provider': provider, 'linked_at_real': 1790771411.2},
+            'account': {
+              'links': [
+                {'provider': provider, 'linked_at_real': 1790771411.2},
+              ],
+            },
+          }),
+          200,
+        );
+      });
+      final api = HttpGameApi(base: base, client: client, sleep: noSleep)..token = 'tok';
+      final links = await api.linkAccount(
+        provider: SignInProvider.apple,
+        idToken: 'eyJ.apple',
+        nonce: 'n1',
+        authorizationCode: 'c1',
+        requestId: 'r1',
+      );
+      expect(links.single.provider, 'apple');
+      expect(links.single.linkedAtReal, 1790771411.2);
+      await api.linkAccount(provider: SignInProvider.google, idToken: 'eyJ.google', nonce: 'n2', requestId: 'r2');
+      expect(reqs.map((r) => r.url.path), ['/v1/account/link', '/v1/account/link']);
+      expect(reqs.first.headers['Authorization'], 'Bearer tok');
+      expect(jsonDecode(reqs[0].body), {
+        'provider': 'apple',
+        'id_token': 'eyJ.apple',
+        'nonce': 'n1',
+        'authorization_code': 'c1',
+        'request_id': 'r1',
+      });
+      expect(jsonDecode(reqs[1].body), {
+        'provider': 'google',
+        'id_token': 'eyJ.google',
+        'nonce': 'n2',
+        'request_id': 'r2',
+      });
+    });
+
+    test('帳號已經綁了別的牧場：409 account_in_use，detail 讀成那個牧場和 switch_ticket', () async {
+      final client = MockClient(
+        (r) async => _json({
+          'error': {
+            'code': 'account_in_use',
+            'message': '這個帳號已經綁了別的牧場',
+            'detail': {
+              'provider': 'apple',
+              'ranch': {'player_id': 17, 'name': '青草小丘農莊', 'name_words': null, 'is_bot': false, 'level': 5},
+              'switch_ticket': 't9Qx',
+              'ticket_expires_at_real': 1790772011.2,
+            },
+          },
+        }, 409),
+      );
+      final api = HttpGameApi(base: base, client: client, sleep: noSleep)..token = 'tok';
+      try {
+        await api.linkAccount(provider: SignInProvider.apple, idToken: 'x', nonce: 'n', requestId: 'r');
+        fail('應該丟 ApiException');
+      } on ApiException catch (e) {
+        expect(e.code, 'account_in_use');
+        expect(e.token, 'tok', reason: '錯誤帶著送出時的 token');
+        final c = LinkConflict.fromDetail(e.detail)!;
+        expect(c.ticket, 't9Qx');
+        expect(c.ranch.playerId, 17);
+        expect(c.ranch.name, '青草小丘農莊');
+        expect(c.ranch.level, 5);
+      }
+    });
+
+    test('換回：帶 switch_ticket 和給的 request_id，沒收到回應重送也一樣；回新的 token 和那個牧場', () async {
+      final reqs = <http.Request>[];
+      final client = MockClient((r) async {
+        reqs.add(r);
+        if (reqs.length == 1) throw http.ClientException('timeout');
+        return _json({
+          'token': 'Zk1',
+          'player_id': 17,
+          'ranch_name': '青草小丘農莊',
+          'created': false,
+          'state': sampleStateJson(),
+        });
+      });
+      final api = HttpGameApi(base: base, client: client, sleep: noSleep)..token = 'tok';
+      final s = await api.switchAccount(ticket: 't9Qx', requestId: 'r9');
+      expect(s.token, 'Zk1');
+      expect(s.playerId, 17);
+      expect(s.created, isFalse);
+      expect(s.state, isNotNull);
+      expect(reqs, hasLength(2));
+      for (final r in reqs) {
+        expect(r.url.path, '/v1/account/switch');
+        expect(jsonDecode(r.body), {'switch_ticket': 't9Qx', 'request_id': 'r9'});
+      }
+    });
+
+    test('解除：POST /v1/account/unlink，回剩下的綁定', () async {
+      late http.Request req;
+      final client = MockClient((r) async {
+        req = r;
+        return http.Response(
+          jsonEncode({
+            'account': {
+              'links': [
+                {'provider': 'google', 'linked_at_real': 1790771411.2},
+              ],
+            },
+          }),
+          200,
+        );
+      });
+      final api = HttpGameApi(base: base, client: client, sleep: noSleep)..token = 'tok';
+      final links = await api.unlinkAccount(SignInProvider.apple, requestId: 'r3');
+      expect(links.map((l) => l.provider), ['google']);
+      expect(req.url.path, '/v1/account/unlink');
+      expect(jsonDecode(req.body), {'provider': 'apple', 'request_id': 'r3'});
+    });
+  });
 }
+
+/// UTF-8 的 JSON 回應（http.Response 的字串預設用 latin1，中文會出錯）。
+http.Response _json(Object body, [int status = 200]) => http.Response.bytes(
+  utf8.encode(jsonEncode(body)),
+  status,
+  headers: {'content-type': 'application/json; charset=utf-8'},
+);

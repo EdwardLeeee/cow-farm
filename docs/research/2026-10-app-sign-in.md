@@ -103,7 +103,11 @@
 
 ## 5. 對現有程式的影響（S13 PR B 的工作清單）
 
-- `pubspec.yaml`：加 `sign_in_with_apple`、`google_sign_in`（版本釘死，理由見第 4 節）。
+- `pubspec.yaml`：加 `sign_in_with_apple` 8.2.0；Google 加 `google_sign_in_android` 7.2.17、`google_sign_in_ios` 6.3.6、`google_sign_in_platform_interface` 3.1.0（就是 `google_sign_in` 7.2.0 用的那三個；版本釘死，理由見第 4 節）。
+  - **不直接依賴 `google_sign_in`**：它的網頁實作（`google_sign_in_web` 1.1.3）在 app 啟動、註冊套件時就去載 `https://accounts.google.com/gsi/client`（`GoogleSignInPlugin` 的建構式呼叫 `loadWebSdk()`），網頁試玩版沒有登入也會每次連 Google。
+  - 只依賴 Android、iOS 的實作時，Flutter 工具照樣在手機上註冊（`flutter_tools` 的 `_resolveImplementationOfPlugin`：只有一個候選就用它），網頁版就沒有 Google 的實作。
+  - app 呼叫共用介面的 `init`、`authenticate`、`signOut`，跟 `google_sign_in` 7.2.0 的 `initialize`、`authenticate`、`signOut` 裡面呼叫的是同一組，第 4 節方案 A 的分析不變。
+  - Apple 的網頁實作（`sign_in_with_apple_web`）註冊時什麼都不做，不用排除。
 - **什麼時候顯示登入**：建置時用 `--dart-define` 填 Google 的 client ID（伺服器用的 Web client ID；iOS 另外要 iOS client ID）。沒填、或是網頁版，就不顯示「備份牧場」那一列、S15-03 和 S14 的「找回我的牧場」，齒輪也不放小點（G-10）。
 - `lib/auth/sign_in.dart`（新）：`SignInService` 介面，回傳「拿到憑證（id_token、nonce、Apple 另有 authorization_code）」「玩家取消」「失敗」三種結果。
   - 真的實作只在玩家按下按鈕時才建；Google 每次按都先拿 nonce、重新 `initialize()`（第 4 節方案 A）。

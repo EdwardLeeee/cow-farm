@@ -32,6 +32,13 @@ dependencies:
   flutter_svg: ^2.3.0
   # 牧場場景（D4、T3）：牛走動（A-11）、轉身（A-07）。版本同 T2 的測試版。
   flame: 1.38.2
+  # Apple／Google 登入（備份、找回牧場；研究筆記 docs/research/2026-10-app-sign-in.md）。版本釘死：Google 每次登入
+  # 換 nonce 的做法（方案 A）是讀這幾個版本的程式推的，升版要重看。Google 不直接依賴 google_sign_in：它的網頁實作
+  # 一註冊就載 Google 的腳本；這三個就是 google_sign_in 7.2.0 用的版本。
+  sign_in_with_apple: 8.2.0
+  google_sign_in_android: 7.2.17
+  google_sign_in_ios: 6.3.6
+  google_sign_in_platform_interface: 3.1.0
 
 dev_dependencies:
   flutter_test:

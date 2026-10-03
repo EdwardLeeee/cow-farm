@@ -51,6 +51,7 @@ class SettingsController extends ChangeNotifier {
   static const swipeHintKey = 'cowfarm_swipe_hint_seen';
   static const bigNewsKey = 'cowfarm_big_news_seen';
   static const soundKey = 'cowfarm_sound';
+  static const backupSeenKey = 'cowfarm_backup_seen';
 
   AppLang? _chosenLang;
   bool? _upIsRed;
@@ -58,6 +59,7 @@ class SettingsController extends ChangeNotifier {
   bool _swipeHintSeen = false;
   List<String> _bigNewsSeen = [];
   bool _soundOn = true;
+  bool _backupSeen = false;
 
   /// 打開 app 時讀一次（main.dart 在 runApp 之前呼叫，第一個畫面就是對的語言）。
   Future<void> load() async {
@@ -69,6 +71,7 @@ class SettingsController extends ChangeNotifier {
     final seen = await _store.getString(bigNewsKey);
     _bigNewsSeen = seen == null || seen.isEmpty ? [] : seen.split(',');
     _soundOn = await _store.getString(soundKey) != '0';
+    _backupSeen = await _store.getString(backupSeenKey) == '1';
     notifyListeners();
   }
 
@@ -109,6 +112,16 @@ class SettingsController extends ChangeNotifier {
     _dockCollapsed = collapsed;
     notifyListeners();
     await _store.setString(dockKey, collapsed ? '1' : '0');
+  }
+
+  /// 打開過「備份牧場」頁（S13-02）：頂列齒輪的小點（G-10）就不再出現，沒備份也一樣。
+  bool get backupSeen => _backupSeen;
+
+  Future<void> markBackupSeen() async {
+    if (_backupSeen) return;
+    _backupSeen = true;
+    notifyListeners();
+    await _store.setString(backupSeenKey, '1');
   }
 
   /// 第一次進牧場的「左右滑動」提示看過了（S03-14，只出現一次）。
