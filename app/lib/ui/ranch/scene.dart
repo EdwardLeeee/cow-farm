@@ -1,16 +1,16 @@
 // 牧場場景（設計稿 design/m2/src/js/scene.js 的 ranchScene）：背景是 cow-ui 匯出的 assets/ui/scenes/ranch.svg
-// （兩個螢幕寬 780×844，不含牛），照 fit() 等比例放大、置中裁切（cover）；牛一頭一頭疊上去，腳底對準位置，後面的先畫。
-// 這一版是靜態場景：手指可以左右拖動（不滑行，A-12 的慣性在第 6 步），牛不會走動（A-11 在第 5 步換成 Flame）。
+// （兩個螢幕寬 780×844，不含牛），照 fit() 等比例放大、置中裁切（cover）；牛畫在 Flame 裡（ranch_game.dart），
+// 腳底對準位置，後面的先畫，會走動（A-11）、轉身（A-07）。手指可以左右拖動（不滑行，A-12 的慣性在第 6 步）。
 import 'dart:math' as math;
 
+import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-import '../../api/breeds.dart';
 import '../../api/models.dart';
-import '../../theme/tokens.dart';
 import '../kit/cow_art.dart';
 import 'herd.dart';
+import 'ranch_game.dart';
 
 /// 場景的寬度：兩個螢幕寬（scene.js 的 WIDE）。一個螢幕 390×844。
 const kSceneWidth = 780.0;
@@ -62,7 +62,8 @@ class CowPlacement {
   /// 圖上的 1 單位是螢幕上的幾點。
   final double unit;
 
-  static CowPlacement? of(SceneCow c, SceneFit fit) {
+  /// [dx]：往右走出去多遠（場景座標，牛走動時；往左是負的）。
+  static CowPlacement? of(SceneCow c, SceneFit fit, {double dx = 0}) {
     final art = CowArt.instance;
     if (art == null) return null;
     final cow = c.cow;
@@ -78,7 +79,7 @@ class CowPlacement {
     final m = art.meta(name);
     if (m == null) return null;
     final s = c.slot.scale * _sceneScale * fit.k;
-    final feet = fit.map(c.slot.x, c.slot.y);
+    final feet = fit.map(c.slot.x + dx, c.slot.y);
     // 圖的原點在腳底；左右翻的時候以腳底為軸
     final left = mirror ? feet.dx - (m.x0 + m.w) * s : feet.dx + m.x0 * s;
     final image = Rect.fromLTWH(left, feet.dy + m.y0 * s, m.w * s, m.h * s);
@@ -90,12 +91,37 @@ class CowPlacement {
   }
 }
 
+/// 牧場的牛會不會走動、轉身（A-11、A-07）。app 打開時是開的（main.dart）；沒有包這個的時候（測試）關著，牛站在原位，
+/// 跟靜態的設計稿一樣。手機設定了「減少動態」也一樣關著。
+class HerdMotion extends InheritedWidget {
+  const HerdMotion({super.key, required this.enabled, required super.child});
+
+  final bool enabled;
+
+  static bool of(BuildContext context) =>
+      (context.dependOnInheritedWidgetOfExactType<HerdMotion>()?.enabled ?? false) &&
+      !MediaQuery.disableAnimationsOf(context);
+
+  @override
+  bool updateShouldNotify(HerdMotion oldWidget) => oldWidget.enabled != enabled;
+}
+
 /// 牧場場景：背景加上牛。[onPan] 給了就可以左右拖動（拖動時回報新的 pan）。
-class RanchScene extends StatelessWidget {
-  const RanchScene({super.key, required this.cows, required this.pan, this.onPan, this.onTapCow, this.onTapEmpty});
+/// [game] 是畫牛的 Flame 遊戲：牧場頁自己留著，泡泡和小名片才知道停下來的牛在哪裡。
+class RanchScene extends StatefulWidget {
+  const RanchScene({
+    super.key,
+    required this.cows,
+    required this.pan,
+    this.game,
+    this.onPan,
+    this.onTapCow,
+    this.onTapEmpty,
+  });
 
   final List<SceneCow> cows;
   final double pan;
+  final RanchGame? game;
   final ValueChanged<double>? onPan;
   final ValueChanged<Cow>? onTapCow;
 
@@ -107,102 +133,57 @@ class RanchScene extends StatelessWidget {
       [...cows]..sort((a, b) => a.slot.y != b.slot.y ? a.slot.y.compareTo(b.slot.y) : a.slot.x.compareTo(b.slot.x));
 
   @override
+  State<RanchScene> createState() => _RanchSceneState();
+}
+
+class _RanchSceneState extends State<RanchScene> {
+  RanchGame? _own;
+
+  RanchGame get _game => widget.game ?? (_own ??= RanchGame());
+
+  @override
   Widget build(BuildContext context) {
+    final animate = HerdMotion.of(context);
+    final dpr = MediaQuery.devicePixelRatioOf(context);
     return LayoutBuilder(
       builder: (context, c) {
-        final fit = SceneFit(c.biggest, pan);
+        final fit = SceneFit(c.biggest, widget.pan);
+        final game = _game..configure(widget.cows, fit, dpr, animate: animate);
         final scene = ClipRect(
           child: Stack(
             children: [
               Positioned(
-                left: fit.ox - pan * fit.k,
+                left: fit.ox - widget.pan * fit.k,
                 top: fit.oy,
                 width: kSceneWidth * fit.k,
                 height: kScreenHeight * fit.k,
                 child: SvgPicture.asset('assets/ui/scenes/ranch.svg', fit: BoxFit.fill, excludeFromSemantics: true),
               ),
-              for (final cow in paintOrder(cows)) ..._cowLayers(cow, fit),
+              Positioned.fill(child: GameWidget(game: game)),
             ],
           ),
         );
-        if (onPan == null && onTapEmpty == null) return scene;
+        final onTapCow = widget.onTapCow, onTapEmpty = widget.onTapEmpty, onPan = widget.onPan;
+        if (onPan == null && onTapCow == null && onTapEmpty == null) return scene;
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
-          onTap: onTapEmpty,
-          onHorizontalDragUpdate: onPan == null ? null : (d) => onPan!((pan - d.delta.dx / fit.k).clamp(0.0, kMaxPan)),
+          // 點到牛（現在的位置，前面的優先）就是點牛，不然是點空地
+          onTapUp: onTapCow == null && onTapEmpty == null
+              ? null
+              : (d) {
+                  final cow = game.cowAt(d.localPosition);
+                  if (cow != null && onTapCow != null) {
+                    onTapCow(cow);
+                  } else if (cow == null) {
+                    onTapEmpty?.call();
+                  }
+                },
+          onHorizontalDragUpdate: onPan == null
+              ? null
+              : (d) => onPan((widget.pan - d.delta.dx / fit.k).clamp(0.0, kMaxPan)),
           child: scene,
         );
       },
     );
   }
-
-  List<Widget> _cowLayers(SceneCow c, SceneFit fit) {
-    final p = CowPlacement.of(c, fit);
-    if (p == null) return const [];
-    Widget pic = SvgPicture.asset(
-      'assets/cows/svg/${p.name}.svg',
-      width: p.image.width,
-      height: p.image.height,
-      fit: BoxFit.fill,
-      excludeFromSemantics: true,
-    );
-    if (p.mirror) pic = Transform.flip(flipX: true, child: pic);
-    final legend = breedInfo(c.cow.breed)?.tier == 3;
-    return [
-      Positioned.fromRect(
-        rect: p.shadow,
-        child: const DecoratedBox(
-          decoration: ShapeDecoration(color: Color(0xFF86CC70), shape: OvalBorder()),
-        ),
-      ),
-      Positioned.fromRect(
-        rect: p.image,
-        child: onTapCow == null
-            ? pic
-            : GestureDetector(key: Key('scene-cow-${c.cow.id}'), onTap: () => onTapCow!(c.cow), child: pic),
-      ),
-      if (legend)
-        Positioned.fill(
-          child: IgnorePointer(child: CustomPaint(painter: _Sparkles(p.head, p.unit / fit.k, fit.k))),
-        ),
-    ];
-  }
-}
-
-/// 傳說品種頭上的兩顆星星（scene.js 的 sparkle）：右上大的、左上小的。
-class _Sparkles extends CustomPainter {
-  _Sparkles(this.head, this.s, this.k);
-
-  final Offset head;
-  final double s; // 設計稿的 SCALE × 1.04
-  final double k;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    void star(Offset c, double r) {
-      final path = Path()
-        ..moveTo(c.dx, c.dy - r)
-        ..quadraticBezierTo(c.dx + r * 0.18, c.dy - r * 0.18, c.dx + r, c.dy)
-        ..quadraticBezierTo(c.dx + r * 0.18, c.dy + r * 0.18, c.dx, c.dy + r)
-        ..quadraticBezierTo(c.dx - r * 0.18, c.dy + r * 0.18, c.dx - r, c.dy)
-        ..quadraticBezierTo(c.dx - r * 0.18, c.dy - r * 0.18, c.dx, c.dy - r)
-        ..close();
-      canvas.drawPath(path, Paint()..color = const Color(0xFFFFE27A));
-      canvas.drawPath(
-        path,
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.6 * k
-          ..strokeJoin = StrokeJoin.round
-          ..color = AppColors.ink,
-      );
-    }
-
-    // sparkle(hx + 24s, hy + 8, 5.5s)、sparkle(hx − 22s, hy + 16, 3.6s)：位移 8、16 是場景座標，不跟著牛縮放
-    star(head + Offset(24 * s * k, 8 * k), 5.5 * s * k);
-    star(head + Offset(-22 * s * k, 16 * k), 3.6 * s * k);
-  }
-
-  @override
-  bool shouldRepaint(_Sparkles old) => old.head != head || old.s != s || old.k != k;
 }
