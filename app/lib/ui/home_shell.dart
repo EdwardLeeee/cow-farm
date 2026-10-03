@@ -141,7 +141,12 @@ class _HomeShellState extends State<HomeShell> {
         if (m.settingsView != null) {
           m.settingsBack();
         } else if (m.profileOpen) {
-          m.closeProfile();
+          // 改名頁回到牧場資料，牧場資料回到原本那一頁
+          if (m.renameOpen) {
+            m.closeRename();
+          } else {
+            m.closeProfile();
+          }
         } else if (m.detailCowKey != null) {
           m.closeCow();
         } else if (m.tab == AppTab.breed && m.studLogOpen) {

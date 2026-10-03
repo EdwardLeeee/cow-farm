@@ -1,8 +1,10 @@
 // S21 牧場資料（D34；設計稿 s21.js、screens.css 的 .prof-card、.ach-*）。點頂列的頭像打開；整頁，沒有頂列和分頁列。
-// - 牧場卡：大頭像（右下角小鉛筆）、牧場名（鉛筆加箭頭）、「#1234・Lv 4」。換頭像（S21-02）、改名（S21-04）是下一個 PR，
-//   這一版頭像和名字還不能按。
+// - 牧場卡：大頭像（右下角小鉛筆）、牧場名（鉛筆加箭頭）、「#1234・Lv 4」。點頭像換頭像（S21-02，avatar_sheet.dart），
+//   點牧場名進改名頁（S21-04，rename_page.dart）；改好、換好了在這一頁跳提示（S21-09、S21-10）。
 // - 成就徽章：伺服器給的 `state.achievements`（暫定協定，cow-back 定案時跟著改）。舊的伺服器沒有，就不放這張卡。
 //   點一個徽章打開詳細（S21-11 已解鎖、S21-12 還沒解鎖、S21-13 分階段）。
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -19,6 +21,9 @@ import '../kit/kit.dart';
 import '../kit/meter.dart';
 import '../kit/press.dart';
 import '../settings/settings_page.dart' show SettingsFrame, ranchMeta;
+import '../widgets/action_button.dart' show actionErrorTextWith;
+import 'avatar_sheet.dart';
+import 'rename_page.dart';
 
 /// 徽章的圖示和解鎖以後的底色（設計稿 s21.js 的 BADGES 的 ic、bg）。
 /// - 圖示是 AppIcon 的名字；`tab_market_on` 是分頁列的市場圖示（固定 28，設計稿的 tabIcon），`txt:` 開頭的畫字。
@@ -78,20 +83,92 @@ class _ProfilePageState extends State<ProfilePage> {
   /// 打開詳細的徽章（S21-11～13）。
   String? _detail;
 
+  /// 換頭像的面板開著（S21-02）。
+  bool _avatarOpen = false;
+  final _avatarSheet = GlobalKey<AvatarSheetState>();
+
+  /// 下面的提示（改好名字、換好頭像、失敗）。
+  ({ToastKind kind, String text})? _toast;
+  Timer? _toastTimer;
+
+  @override
+  void dispose() {
+    _toastTimer?.cancel();
+    super.dispose();
+  }
+
+  void _showToast(ToastKind kind, String text) {
+    _toastTimer?.cancel();
+    setState(() => _toast = (kind: kind, text: text));
+    _toastTimer = Timer(const Duration(milliseconds: 2500), () {
+      if (mounted) setState(() => _toast = null);
+    });
+  }
+
+  Future<void> _setAvatar(String breed) async {
+    final m = context.read<GameModel>();
+    final s = Strings.of(context, listen: false);
+    final r = await m.setAvatar(breed);
+    if (!mounted) return;
+    switch (r.error) {
+      case null:
+        setState(() => _avatarOpen = false);
+        _showToast(ToastKind.ok, s.s21AvatarDone);
+      case ApiActionError(:final error) when error.code == 'avatar_locked':
+        _avatarSheet.currentState?.showLocked(breed);
+      case ApiActionError(:final error) when error.maintenance || error.unauthorized:
+        break; // 整個畫面會換成 S16-01／S15-03
+      case final ActionError e:
+        _showToast(ToastKind.err, actionErrorTextWith(s, m, e));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final m = context.watch<GameModel>();
     final s = Strings.of(context);
     final st = m.state;
+    if (m.renameOpen) {
+      return RenamePage(onRenamed: () => _showToast(ToastKind.ok, s.s21RenamedFirst(price: fmt(renamePrice(m)))));
+    }
     final badges = knownBadges(st?.achievements ?? const []);
     final detail = badges.where((a) => a.key == _detail).firstOrNull;
+    final avatar = st?.profile.avatarBreed ?? 'holstein';
+    final safe = MediaQuery.paddingOf(context);
     return SettingsFrame(
       title: s.s21Title,
       scrollKey: const Key('profile'),
       onBack: m.closeProfile,
-      overlays: [if (detail != null) BadgeSheet(achievement: detail, onClose: () => setState(() => _detail = null))],
+      overlays: [
+        if (detail != null) BadgeSheet(achievement: detail, onClose: () => setState(() => _detail = null)),
+        if (_avatarOpen)
+          AvatarSheet(
+            key: _avatarSheet,
+            current: avatar,
+            found: st?.codex.keys.toSet() ?? const {},
+            busy: m.busy,
+            onUse: _setAvatar,
+            onClose: () => setState(() => _avatarOpen = false),
+          ),
+        // .no-tab .toast：下面留安全區加 16
+        if (_toast case final t?)
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: safe.bottom + 16,
+            child: Center(
+              child: ToastPill(t.text, kind: t.kind, key: const Key('toast')),
+            ),
+          ),
+      ],
       children: [
-        ProfileCard(breed: st?.profile.avatarBreed ?? 'holstein', name: m.ranchName, meta: ranchMeta(s, m)),
+        ProfileCard(
+          breed: avatar,
+          name: m.ranchName,
+          meta: ranchMeta(s, m),
+          onAvatar: () => setState(() => _avatarOpen = true),
+          onName: m.openRename,
+        ),
         if (badges.isNotEmpty) BadgeCard(badges: badges, onOpen: (a) => setState(() => _detail = a.key)),
       ],
     );
@@ -100,11 +177,24 @@ class _ProfilePageState extends State<ProfilePage> {
 
 /// .card.prof-card：大頭像、牧場名（鉛筆加箭頭）、「#1234・Lv 4」（內距 12 12 12 14，頭像和字隔 14）。
 class ProfileCard extends StatelessWidget {
-  const ProfileCard({super.key, required this.breed, required this.name, required this.meta});
+  const ProfileCard({
+    super.key,
+    required this.breed,
+    required this.name,
+    required this.meta,
+    required this.onAvatar,
+    required this.onName,
+  });
 
   final String breed;
   final String name;
   final String meta;
+
+  /// 點頭像：換頭像（S21-02）。
+  final VoidCallback onAvatar;
+
+  /// 點牧場名：改名頁（S21-04）。
+  final VoidCallback onName;
 
   @override
   Widget build(BuildContext context) => AppCard(
@@ -112,15 +202,28 @@ class ProfileCard extends StatelessWidget {
     padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
     child: Row(
       children: [
-        SizedBox.square(
-          dimension: 80,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              BigAvatar(breed: breed),
-              // .hud-edit.big：右下角的小鉛筆（28、鉛筆 15），超出頭像 4
-              const Positioned(left: 56, top: 56, child: HudEdit(size: 28, icon: 15)),
-            ],
+        // .prof-av：頭像加小鉛筆是一顆按鈕（浮起的元件：按下往下移、陰影變薄）
+        Semantics(
+          container: true,
+          button: true,
+          label: Strings.of(context).s21AvatarTitle,
+          onTap: onAvatar,
+          excludeSemantics: true,
+          child: Pressable(
+            key: const Key('prof-av'),
+            lift: 3,
+            onTap: onAvatar,
+            builder: (context, look) => SizedBox.square(
+              dimension: 80,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  BigAvatar(breed: breed, shadow: look.shadow),
+                  // .hud-edit.big：右下角的小鉛筆（28、鉛筆 15），超出頭像 4
+                  const Positioned(left: 56, top: 56, child: HudEdit(size: 28, icon: 15)),
+                ],
+              ),
+            ),
           ),
         ),
         const SizedBox(width: 14),
@@ -128,28 +231,44 @@ class ProfileCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // .prof-name：最少 44 高，名字放不下用「…」截短，後面鉛筆 14、箭頭 16
-              ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 44),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // 字照 Chrome 的基線（.prof-name b 的行高 26）：Flutter 照 Material 3 的 even 分行高，會低 0.7
-                    Flexible(
-                      child: CssLine(
-                        TextSpan(
-                          text: name,
-                          style: AppText.style(20, weight: FontWeight.w900, lineHeight: 26),
-                        ),
-                        textKey: const Key('prof-name'),
-                        ellipsis: true,
+              // .prof-name：一顆平的按鈕（按下蓋一層顏色），最少 44 高，名字放不下用「…」截短，後面鉛筆 14、箭頭 16
+              Semantics(
+                container: true,
+                button: true,
+                label: name,
+                hint: Strings.of(context).s21RenameTitle,
+                onTap: onName,
+                excludeSemantics: true,
+                child: Pressable(
+                  key: const Key('prof-name-btn'),
+                  onTap: onName,
+                  builder: (context, look) => PressTint(
+                    tint: look.tint,
+                    borderRadius: const BorderRadius.all(AppRadii.r12),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 44),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // 字照 Chrome 的基線（.prof-name b 的行高 26）：Flutter 照 Material 3 的 even 分行高，會低 0.7
+                          Flexible(
+                            child: CssLine(
+                              TextSpan(
+                                text: name,
+                                style: AppText.style(20, weight: FontWeight.w900, lineHeight: 26),
+                              ),
+                              textKey: const Key('prof-name'),
+                              ellipsis: true,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const AppIcon('pencil', size: 14),
+                          const SizedBox(width: 2),
+                          const AppIcon('chevron', size: 16),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 6),
-                    const AppIcon('pencil', size: 14),
-                    const SizedBox(width: 2),
-                    const AppIcon('chevron', size: 16),
-                  ],
+                  ),
                 ),
               ),
               const SizedBox(height: 2),
@@ -165,9 +284,12 @@ class ProfileCard extends StatelessWidget {
 /// .avatar.xl：80 的圓頭像（框 3、下陰影 3），牛臉 74、margin-top 6。框裡只有 74 高：CSS 的 grid 格子照內容撐成 80，
 /// place-items: center 在撐大的格子裡沒有作用，所以臉從框裡的上緣往下 6 開始放，下面超出的被圓裁掉（同 CowPicBox）。
 class BigAvatar extends StatelessWidget {
-  const BigAvatar({super.key, required this.breed});
+  const BigAvatar({super.key, required this.breed, this.shadow = 3});
 
   final String breed;
+
+  /// 下陰影（按下時變 1）。
+  final double shadow;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -178,7 +300,7 @@ class BigAvatar extends StatelessWidget {
       shape: BoxShape.circle,
       color: const Color(0xFFBFE6FF),
       border: Border.all(color: AppColors.ink, width: AppSizes.border),
-      boxShadow: AppShadows.solid(),
+      boxShadow: AppShadows.solid(shadow),
     ),
     child: ClipOval(
       child: Stack(
