@@ -167,6 +167,12 @@ const Map<String, List<String>> kPlaceholders = {
   'date.mdw': ['d', 'm', 'time', 'w'],
   'anim.dexCount': ['n', 'total'],
   'namegen.pattern': ['first', 'second', 'third'],
+  's21.badgeCount': ['n', 'total'],
+  's21.badgeDate': ['date'],
+  's21.avatarCount': ['n', 'total'],
+  's21.avatarLocked': ['name'],
+  's21.renamePaid': ['price'],
+  's21.renamedFirst': ['price'],
 };
 
 const Map<String, String> _zhHant = {
@@ -654,6 +660,7 @@ const Map<String, String> _zhHant = {
   's13.ssoApple': '使用 Apple 登入',
   's13.ssoGoogle': '使用 Google 登入',
   's13.privacy': '只用來找回牧場，不會留下你的 email 和姓名。',
+  's13.ssoOffline': '連上網路以後才能登入',
   's13.notBacked': '還沒備份',
   's13.backed': '已備份',
   's13.title': '設定',
@@ -864,6 +871,65 @@ const Map<String, String> _zhHant = {
   'namegen.third.11': '牧野',
   'namegen.pattern': '{first}{second}{third}',
   's18.deletedRanch': '已刪除的牧場',
+  's21.title': '牧場資料',
+  's21.badges': '成就徽章',
+  's21.badgeCount': '已解鎖 {n} / {total}',
+  's21.badgeDate': '{date} 解鎖',
+  's21.badgeLocked': '還沒解鎖',
+  's21.avatarTitle': '換頭像',
+  's21.avatarUse': '用這個頭像',
+  's21.avatarFoundOnly': '只有圖鑑裡發現過的能選',
+  's21.avatarCount': '已發現 {n} / {total} 種；還沒發現的，發現以後就能用',
+  's21.avatarLocked': '還沒發現「{name}」，在圖鑑發現以後就能用',
+  's21.avatarDone': '頭像換好了！',
+  's21.renameTitle': '改牧場名',
+  's21.renameFree': '改名（免費）',
+  's21.renamePaid': '改名（{price} 幣）',
+  's21.renamedFirst': '牧場名改好了！下次改名要 {price} 幣',
+  'ach.firstMilk.name': '第一桶奶',
+  'ach.firstMilk.cond': '第一次收奶',
+  'ach.firstSale.name': '開張大吉',
+  'ach.firstSale.cond': '第一次在市場賣出東西',
+  'ach.firstShip.name': '第一趟出貨',
+  'ach.firstShip.cond': '第一次出貨',
+  'ach.gradeA.name': 'A 級牧場',
+  'ach.gradeA.cond': '出貨評到 A 級 10 次',
+  'ach.newLife.name': '新生命',
+  'ach.newLife.cond': '第一次配種生出小牛',
+  'ach.borrow.name': '借將成功',
+  'ach.borrow.cond': '第一次借到別人的公牛',
+  'ach.popularBull.name': '搶手公牛',
+  'ach.popularBull.cond': '自己的公牛被借走 10 次',
+  'ach.rice.name': '稻香滿倉',
+  'ach.rice.cond': '累計收成 1,000 公斤稻米',
+  'ach.codex.name.1': '圖鑑新手',
+  'ach.codex.cond.1': '發現 5 種牛',
+  'ach.codex.name.2': '圖鑑達人',
+  'ach.codex.cond.2': '發現 12 種牛',
+  'ach.codex.name.3': '圖鑑大師',
+  'ach.codex.cond.3': '發現全部 24 種牛',
+  'ach.legend.name': '傳說誕生',
+  'ach.legend.cond': '擁有一頭傳說牛',
+  'ach.level.name.1': '牧場主 Lv 10',
+  'ach.level.cond.1': '升到 Lv 10',
+  'ach.level.name.2': '牧場主 Lv 20',
+  'ach.level.cond.2': '升到 Lv 20',
+  'ach.rich.name.1': '小富翁',
+  'ach.rich.cond.1': '總資產到 100,000 幣',
+  'ach.rich.name.2': '大富翁',
+  'ach.rich.cond.2': '總資產到 1,000,000 幣',
+  'ach.tailwind.name': '順風車',
+  'ach.tailwind.cond': '在超級大事件期間賣出東西',
+  'ach.weekChamp.name': '週冠軍',
+  'ach.weekChamp.cond': '本週收入排行榜第 1 名',
+  'ach.pureBreed.name': '純種飼育',
+  'ach.pureBreed.cond': '照品種的飼料養大一頭稀有以上的小牛（沒變雜種）',
+  'ach.healer.name': '妙手回春',
+  'ach.healer.cond': '治好一頭病牛',
+  'ach.clean.name': '乾淨牧場',
+  'ach.clean.cond': '連續 7 天沒有牛生病',
+  'ach.trucks.name': '卡車收藏家',
+  'ach.trucks.cond': '擁有 3 種卡車造型',
 };
 
 const Map<String, String> _en = {
@@ -1352,6 +1418,7 @@ const Map<String, String> _en = {
   's13.ssoApple': 'Sign in with Apple',
   's13.ssoGoogle': 'Sign in with Google',
   's13.privacy': 'Only used to recover your ranch. We don\'t keep your email or name.',
+  's13.ssoOffline': 'Connect to the internet to sign in',
   's13.notBacked': 'Not backed up',
   's13.backed': 'Backed up',
   's13.title': 'Settings',
@@ -1561,6 +1628,65 @@ const Map<String, String> _en = {
   'namegen.third.10': 'Croft',
   'namegen.third.11': 'Lea',
   'namegen.pattern': '{first}{second} {third}',
+  's21.title': 'Ranch profile',
+  's21.badges': 'Badges',
+  's21.badgeCount': 'Unlocked {n}/{total}',
+  's21.badgeDate': 'Unlocked {date}',
+  's21.badgeLocked': 'Not unlocked yet',
+  's21.avatarTitle': 'Change avatar',
+  's21.avatarUse': 'Use this avatar',
+  's21.avatarFoundOnly': 'Only breeds you\'ve found',
+  's21.avatarCount': 'Found {n}/{total} breeds. Find more to unlock them.',
+  's21.avatarLocked': 'You haven\'t found {name} yet. Find it to use it.',
+  's21.avatarDone': 'Avatar changed!',
+  's21.renameTitle': 'Rename ranch',
+  's21.renameFree': 'Rename (free)',
+  's21.renamePaid': 'Rename ({price} coins)',
+  's21.renamedFirst': 'Ranch renamed! Next rename: {price} coins',
+  'ach.firstMilk.name': 'First pail',
+  'ach.firstMilk.cond': 'Collect milk for the first time',
+  'ach.firstSale.name': 'Open for business',
+  'ach.firstSale.cond': 'Sell something at the market for the first time',
+  'ach.firstShip.name': 'First shipment',
+  'ach.firstShip.cond': 'Ship a cow for the first time',
+  'ach.gradeA.name': 'Grade A ranch',
+  'ach.gradeA.cond': 'Get grade A on 10 shipments',
+  'ach.newLife.name': 'New life',
+  'ach.newLife.cond': 'Get your first calf from breeding',
+  'ach.borrow.name': 'Borrowed a star',
+  'ach.borrow.cond': 'Borrow another rancher\'s bull for the first time',
+  'ach.popularBull.name': 'In-demand bull',
+  'ach.popularBull.cond': 'Have your bulls borrowed 10 times',
+  'ach.rice.name': 'Full granary',
+  'ach.rice.cond': 'Harvest 1,000 kg of rice in total',
+  'ach.codex.name.1': 'Breed spotter',
+  'ach.codex.cond.1': 'Find 5 breeds',
+  'ach.codex.name.2': 'Breed expert',
+  'ach.codex.cond.2': 'Find 12 breeds',
+  'ach.codex.name.3': 'Breed master',
+  'ach.codex.cond.3': 'Find all 24 breeds',
+  'ach.legend.name': 'A legend is born',
+  'ach.legend.cond': 'Own a legendary cow',
+  'ach.level.name.1': 'Rancher Lv 10',
+  'ach.level.cond.1': 'Reach Lv 10',
+  'ach.level.name.2': 'Rancher Lv 20',
+  'ach.level.cond.2': 'Reach Lv 20',
+  'ach.rich.name.1': 'Well-off',
+  'ach.rich.cond.1': 'Reach 100,000 coins in net worth',
+  'ach.rich.name.2': 'Tycoon',
+  'ach.rich.cond.2': 'Reach 1,000,000 coins in net worth',
+  'ach.tailwind.name': 'Rode the wave',
+  'ach.tailwind.cond': 'Sell something during a super boom',
+  'ach.weekChamp.name': 'Weekly champion',
+  'ach.weekChamp.cond': 'Rank #1 in weekly income',
+  'ach.pureBreed.name': 'Purebred keeper',
+  'ach.pureBreed.cond': 'Raise a rare-or-better calf on its breed\'s feed (no crossbreed)',
+  'ach.healer.name': 'Healing hands',
+  'ach.healer.cond': 'Cure a sick cow',
+  'ach.clean.name': 'Spotless ranch',
+  'ach.clean.cond': 'Go 7 days in a row with no sick cows',
+  'ach.trucks.name': 'Truck collector',
+  'ach.trucks.cond': 'Own 3 truck styles',
 };
 
 const Map<String, String> _th = {
@@ -2049,6 +2175,7 @@ const Map<String, String> _th = {
   's13.ssoApple': 'ลงชื่อเข้าด้วย Apple',
   's13.ssoGoogle': 'ลงชื่อเข้าใช้ด้วย Google',
   's13.privacy': 'ใช้เพื่อกู้คืนฟาร์มเท่านั้น ไม่เก็บอีเมลและชื่อของคุณ',
+  's13.ssoOffline': 'เชื่อมต่ออินเทอร์เน็ตก่อนจึงจะลงชื่อเข้าใช้ได้',
   's13.notBacked': 'ยังไม่ได้สำรอง',
   's13.backed': 'สำรองแล้ว',
   's13.title': 'ตั้งค่า',
@@ -2258,6 +2385,65 @@ const Map<String, String> _th = {
   'namegen.third.10': 'ทุ่งหญ้า',
   'namegen.third.11': 'คอกวัว',
   'namegen.pattern': '{third}{first}{second}',
+  's21.title': 'ข้อมูลฟาร์ม',
+  's21.badges': 'เหรียญความสำเร็จ',
+  's21.badgeCount': 'ปลดล็อกแล้ว {n}/{total}',
+  's21.badgeDate': 'ปลดล็อกเมื่อ {date}',
+  's21.badgeLocked': 'ยังไม่ได้ปลดล็อก',
+  's21.avatarTitle': 'เปลี่ยนรูปโปรไฟล์',
+  's21.avatarUse': 'ใช้รูปนี้',
+  's21.avatarFoundOnly': 'เลือกได้เฉพาะสายพันธุ์ที่พบแล้ว',
+  's21.avatarCount': 'พบแล้ว {n}/{total} สายพันธุ์ สายพันธุ์ที่ยังไม่พบจะใช้ได้เมื่อพบแล้ว',
+  's21.avatarLocked': 'ยังไม่พบ{name} จะใช้ได้เมื่อพบแล้ว',
+  's21.avatarDone': 'เปลี่ยนรูปโปรไฟล์แล้ว!',
+  's21.renameTitle': 'เปลี่ยนชื่อฟาร์ม',
+  's21.renameFree': 'เปลี่ยนชื่อ (ฟรี)',
+  's21.renamePaid': 'เปลี่ยนชื่อ ({price} เหรียญ)',
+  's21.renamedFirst': 'เปลี่ยนชื่อฟาร์มแล้ว! ครั้งต่อไปใช้ {price} เหรียญ',
+  'ach.firstMilk.name': 'นมถังแรก',
+  'ach.firstMilk.cond': 'เก็บนมครั้งแรก',
+  'ach.firstSale.name': 'เปิดร้านวันแรก',
+  'ach.firstSale.cond': 'ขายของที่ตลาดครั้งแรก',
+  'ach.firstShip.name': 'ส่งวัวครั้งแรก',
+  'ach.firstShip.cond': 'ส่งวัวออกจากฟาร์มครั้งแรก',
+  'ach.gradeA.name': 'ฟาร์มเกรด A',
+  'ach.gradeA.cond': 'ได้เกรด A จากการส่งวัว 10 ครั้ง',
+  'ach.newLife.name': 'ชีวิตใหม่',
+  'ach.newLife.cond': 'ได้ลูกวัวจากการผสมพันธุ์ครั้งแรก',
+  'ach.borrow.name': 'ยืมพ่อพันธุ์สำเร็จ',
+  'ach.borrow.cond': 'ยืมพ่อพันธุ์ของฟาร์มอื่นครั้งแรก',
+  'ach.popularBull.name': 'พ่อพันธุ์ยอดนิยม',
+  'ach.popularBull.cond': 'พ่อพันธุ์ของคุณถูกยืม 10 ครั้ง',
+  'ach.rice.name': 'ยุ้งข้าวเต็ม',
+  'ach.rice.cond': 'เก็บเกี่ยวข้าวรวม 1,000 กก.',
+  'ach.codex.name.1': 'นักสะสมมือใหม่',
+  'ach.codex.cond.1': 'พบวัว 5 สายพันธุ์',
+  'ach.codex.name.2': 'นักสะสมตัวยง',
+  'ach.codex.cond.2': 'พบวัว 12 สายพันธุ์',
+  'ach.codex.name.3': 'ปรมาจารย์สายพันธุ์',
+  'ach.codex.cond.3': 'พบวัวครบ 24 สายพันธุ์',
+  'ach.legend.name': 'ตำนานถือกำเนิด',
+  'ach.legend.cond': 'มีวัวระดับตำนาน 1 ตัว',
+  'ach.level.name.1': 'เจ้าของฟาร์ม Lv 10',
+  'ach.level.cond.1': 'ถึง Lv 10',
+  'ach.level.name.2': 'เจ้าของฟาร์ม Lv 20',
+  'ach.level.cond.2': 'ถึง Lv 20',
+  'ach.rich.name.1': 'เศรษฐีน้อย',
+  'ach.rich.cond.1': 'ทรัพย์สินรวมถึง 100,000 เหรียญ',
+  'ach.rich.name.2': 'เศรษฐีใหญ่',
+  'ach.rich.cond.2': 'ทรัพย์สินรวมถึง 1,000,000 เหรียญ',
+  'ach.tailwind.name': 'โต้คลื่นราคา',
+  'ach.tailwind.cond': 'ขายของระหว่างบูมสุดขีด',
+  'ach.weekChamp.name': 'แชมป์ประจำสัปดาห์',
+  'ach.weekChamp.cond': 'ได้อันดับ 1 รายได้ประจำสัปดาห์',
+  'ach.pureBreed.name': 'เลี้ยงพันธุ์แท้',
+  'ach.pureBreed.cond': 'เลี้ยงลูกวัวระดับหายากขึ้นไปด้วยอาหารตามสายพันธุ์จนโต (ไม่กลายเป็นพันธุ์ผสม)',
+  'ach.healer.name': 'มือหมอ',
+  'ach.healer.cond': 'รักษาวัวป่วยให้หาย 1 ตัว',
+  'ach.clean.name': 'ฟาร์มสะอาด',
+  'ach.clean.cond': 'ไม่มีวัวป่วยติดต่อกัน 7 วัน',
+  'ach.trucks.name': 'นักสะสมรถบรรทุก',
+  'ach.trucks.cond': 'มีรถบรรทุก 3 แบบ',
 };
 
 /// 每個 key 一個成員：沒有佔位符的是 getter，有佔位符的是方法、佔位符是具名參數。
@@ -3723,6 +3909,9 @@ abstract class GeneratedStrings {
   /// `s13.privacy`：只用來找回牧場，不會留下你的 email 和姓名。
   String get s13Privacy => table['s13.privacy']!;
 
+  /// `s13.ssoOffline`：連上網路以後才能登入
+  String get s13SsoOffline => table['s13.ssoOffline']!;
+
   /// `s13.notBacked`：還沒備份
   String get s13NotBacked => table['s13.notBacked']!;
 
@@ -4352,4 +4541,181 @@ abstract class GeneratedStrings {
 
   /// `s18.deletedRanch`：已刪除的牧場
   String get s18DeletedRanch => table['s18.deletedRanch']!;
+
+  /// `s21.title`：牧場資料
+  String get s21Title => table['s21.title']!;
+
+  /// `s21.badges`：成就徽章
+  String get s21Badges => table['s21.badges']!;
+
+  /// `s21.badgeCount`：已解鎖 {n} / {total}
+  String s21BadgeCount({required Object n, required Object total}) => fill('s21.badgeCount', {'n': n, 'total': total});
+
+  /// `s21.badgeDate`：{date} 解鎖
+  String s21BadgeDate({required Object date}) => fill('s21.badgeDate', {'date': date});
+
+  /// `s21.badgeLocked`：還沒解鎖
+  String get s21BadgeLocked => table['s21.badgeLocked']!;
+
+  /// `s21.avatarTitle`：換頭像
+  String get s21AvatarTitle => table['s21.avatarTitle']!;
+
+  /// `s21.avatarUse`：用這個頭像
+  String get s21AvatarUse => table['s21.avatarUse']!;
+
+  /// `s21.avatarFoundOnly`：只有圖鑑裡發現過的能選
+  String get s21AvatarFoundOnly => table['s21.avatarFoundOnly']!;
+
+  /// `s21.avatarCount`：已發現 {n} / {total} 種；還沒發現的，發現以後就能用
+  String s21AvatarCount({required Object n, required Object total}) => fill('s21.avatarCount', {'n': n, 'total': total});
+
+  /// `s21.avatarLocked`：還沒發現「{name}」，在圖鑑發現以後就能用
+  String s21AvatarLocked({required Object name}) => fill('s21.avatarLocked', {'name': name});
+
+  /// `s21.avatarDone`：頭像換好了！
+  String get s21AvatarDone => table['s21.avatarDone']!;
+
+  /// `s21.renameTitle`：改牧場名
+  String get s21RenameTitle => table['s21.renameTitle']!;
+
+  /// `s21.renameFree`：改名（免費）
+  String get s21RenameFree => table['s21.renameFree']!;
+
+  /// `s21.renamePaid`：改名（{price} 幣）
+  String s21RenamePaid({required Object price}) => fill('s21.renamePaid', {'price': price});
+
+  /// `s21.renamedFirst`：牧場名改好了！下次改名要 {price} 幣
+  String s21RenamedFirst({required Object price}) => fill('s21.renamedFirst', {'price': price});
+
+  /// `ach.firstMilk.name`：第一桶奶
+  String get achFirstMilkName => table['ach.firstMilk.name']!;
+
+  /// `ach.firstMilk.cond`：第一次收奶
+  String get achFirstMilkCond => table['ach.firstMilk.cond']!;
+
+  /// `ach.firstSale.name`：開張大吉
+  String get achFirstSaleName => table['ach.firstSale.name']!;
+
+  /// `ach.firstSale.cond`：第一次在市場賣出東西
+  String get achFirstSaleCond => table['ach.firstSale.cond']!;
+
+  /// `ach.firstShip.name`：第一趟出貨
+  String get achFirstShipName => table['ach.firstShip.name']!;
+
+  /// `ach.firstShip.cond`：第一次出貨
+  String get achFirstShipCond => table['ach.firstShip.cond']!;
+
+  /// `ach.gradeA.name`：A 級牧場
+  String get achGradeAName => table['ach.gradeA.name']!;
+
+  /// `ach.gradeA.cond`：出貨評到 A 級 10 次
+  String get achGradeACond => table['ach.gradeA.cond']!;
+
+  /// `ach.newLife.name`：新生命
+  String get achNewLifeName => table['ach.newLife.name']!;
+
+  /// `ach.newLife.cond`：第一次配種生出小牛
+  String get achNewLifeCond => table['ach.newLife.cond']!;
+
+  /// `ach.borrow.name`：借將成功
+  String get achBorrowName => table['ach.borrow.name']!;
+
+  /// `ach.borrow.cond`：第一次借到別人的公牛
+  String get achBorrowCond => table['ach.borrow.cond']!;
+
+  /// `ach.popularBull.name`：搶手公牛
+  String get achPopularBullName => table['ach.popularBull.name']!;
+
+  /// `ach.popularBull.cond`：自己的公牛被借走 10 次
+  String get achPopularBullCond => table['ach.popularBull.cond']!;
+
+  /// `ach.rice.name`：稻香滿倉
+  String get achRiceName => table['ach.rice.name']!;
+
+  /// `ach.rice.cond`：累計收成 1,000 公斤稻米
+  String get achRiceCond => table['ach.rice.cond']!;
+
+  /// `ach.codex.name.1`：圖鑑新手
+  String get achCodexName1 => table['ach.codex.name.1']!;
+
+  /// `ach.codex.cond.1`：發現 5 種牛
+  String get achCodexCond1 => table['ach.codex.cond.1']!;
+
+  /// `ach.codex.name.2`：圖鑑達人
+  String get achCodexName2 => table['ach.codex.name.2']!;
+
+  /// `ach.codex.cond.2`：發現 12 種牛
+  String get achCodexCond2 => table['ach.codex.cond.2']!;
+
+  /// `ach.codex.name.3`：圖鑑大師
+  String get achCodexName3 => table['ach.codex.name.3']!;
+
+  /// `ach.codex.cond.3`：發現全部 24 種牛
+  String get achCodexCond3 => table['ach.codex.cond.3']!;
+
+  /// `ach.legend.name`：傳說誕生
+  String get achLegendName => table['ach.legend.name']!;
+
+  /// `ach.legend.cond`：擁有一頭傳說牛
+  String get achLegendCond => table['ach.legend.cond']!;
+
+  /// `ach.level.name.1`：牧場主 Lv 10
+  String get achLevelName1 => table['ach.level.name.1']!;
+
+  /// `ach.level.cond.1`：升到 Lv 10
+  String get achLevelCond1 => table['ach.level.cond.1']!;
+
+  /// `ach.level.name.2`：牧場主 Lv 20
+  String get achLevelName2 => table['ach.level.name.2']!;
+
+  /// `ach.level.cond.2`：升到 Lv 20
+  String get achLevelCond2 => table['ach.level.cond.2']!;
+
+  /// `ach.rich.name.1`：小富翁
+  String get achRichName1 => table['ach.rich.name.1']!;
+
+  /// `ach.rich.cond.1`：總資產到 100,000 幣
+  String get achRichCond1 => table['ach.rich.cond.1']!;
+
+  /// `ach.rich.name.2`：大富翁
+  String get achRichName2 => table['ach.rich.name.2']!;
+
+  /// `ach.rich.cond.2`：總資產到 1,000,000 幣
+  String get achRichCond2 => table['ach.rich.cond.2']!;
+
+  /// `ach.tailwind.name`：順風車
+  String get achTailwindName => table['ach.tailwind.name']!;
+
+  /// `ach.tailwind.cond`：在超級大事件期間賣出東西
+  String get achTailwindCond => table['ach.tailwind.cond']!;
+
+  /// `ach.weekChamp.name`：週冠軍
+  String get achWeekChampName => table['ach.weekChamp.name']!;
+
+  /// `ach.weekChamp.cond`：本週收入排行榜第 1 名
+  String get achWeekChampCond => table['ach.weekChamp.cond']!;
+
+  /// `ach.pureBreed.name`：純種飼育
+  String get achPureBreedName => table['ach.pureBreed.name']!;
+
+  /// `ach.pureBreed.cond`：照品種的飼料養大一頭稀有以上的小牛（沒變雜種）
+  String get achPureBreedCond => table['ach.pureBreed.cond']!;
+
+  /// `ach.healer.name`：妙手回春
+  String get achHealerName => table['ach.healer.name']!;
+
+  /// `ach.healer.cond`：治好一頭病牛
+  String get achHealerCond => table['ach.healer.cond']!;
+
+  /// `ach.clean.name`：乾淨牧場
+  String get achCleanName => table['ach.clean.name']!;
+
+  /// `ach.clean.cond`：連續 7 天沒有牛生病
+  String get achCleanCond => table['ach.clean.cond']!;
+
+  /// `ach.trucks.name`：卡車收藏家
+  String get achTrucksName => table['ach.trucks.name']!;
+
+  /// `ach.trucks.cond`：擁有 3 種卡車造型
+  String get achTrucksCond => table['ach.trucks.cond']!;
 }
