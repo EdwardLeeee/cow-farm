@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'g_cases.dart';
 import 's01_s02_cases.dart';
 import 's03_cases.dart';
 import 's04_cases.dart';
@@ -84,6 +85,7 @@ final List<PageCase> pageCases = [
   ...s18Cases,
   ...s19Cases,
   ...s20Cases,
+  ...gCases,
 ];
 
 /// 載入 app 內建的字型和牛的圖的量測（cows.json）。測試環境預設不載字型，字會畫成方塊，量不準寬度，也看不出泰文怎麼斷行。

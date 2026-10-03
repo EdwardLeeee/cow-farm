@@ -40,6 +40,9 @@ class _ShopPageState extends State<ShopPage> {
   /// 剛升級完的那一列（S10-05：淡綠底）。
   UpgradeKind? _done;
 
+  /// 正在升級的設施：那一顆轉圈寫「處理中…」，其他的停用（G-06）。
+  UpgradeKind? _upgrading;
+
   @override
   void initState() {
     super.initState();
@@ -95,8 +98,10 @@ class _ShopPageState extends State<ShopPage> {
     final m = context.read<GameModel>();
     final s = Strings.of(context, listen: false);
     final before = m.state?.upgrades[kind];
+    setState(() => _upgrading = kind);
     final r = await m.upgrade(kind);
     if (!mounted) return;
+    setState(() => _upgrading = null);
     final err = r.error;
     if (err != null) {
       if (err case ApiActionError(:final error) when error.maintenance || error.unauthorized) return;
@@ -201,7 +206,7 @@ class _ShopPageState extends State<ShopPage> {
           coins: st.coins,
           done: _done == k,
           canAct: m.canAct,
-          busy: m.busy,
+          busy: _upgrading == k,
           onUpgrade: () => _upgrade(k),
         ),
       ],
@@ -453,6 +458,8 @@ class _UpgradeCard extends StatelessWidget {
   final double coins;
   final bool done;
   final bool canAct;
+
+  /// 這個設施正在升級（等伺服器回覆）。
   final bool busy;
   final VoidCallback onUpgrade;
 
@@ -511,12 +518,12 @@ class _UpgradeCard extends StatelessWidget {
           );
         } else {
           action = AppButton(
-            s.costCoins(v: fmt(cost)),
+            busy ? s.gBusy : s.costCoins(v: fmt(cost)),
             key: Key('up-${kind.wire}'),
             small: true,
             kind: ButtonKind.primary,
             icon: 'coin',
-            busy: busy && canAct,
+            busy: busy,
             onPressed: canAct && !short && !busy ? onUpgrade : null,
           );
         }

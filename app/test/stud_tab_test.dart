@@ -1,5 +1,7 @@
 // S18 借種市場（正式畫面）：上架、下架、選公牛和母牛、借種、對話框（借不到、借種費變了）、錢不夠、借種紀錄、通知。
 // 畫面狀態本身（S18-01～15）在 test/pages/s18_cases.dart。
+import 'dart:async';
+
 import 'package:cowfarm/api/game_api.dart';
 import 'package:cowfarm/api/models.dart';
 import 'package:cowfarm/l10n/l10n.dart';
@@ -283,5 +285,23 @@ void main() {
     );
     expect(find.text(text), findsOneWidget);
     expect(api.calls, contains('state'));
+  });
+
+  testWidgets('G-09 下拉重新整理：最上面出現「轉圈＋重新整理中…」（不用 Material 的轉圈），抓完就收起來', (tester) async {
+    Screen.w430.apply(tester);
+    final api = StudApi();
+    await showStud(tester, AppLang.zhHant, api: api);
+    api.studGate = Completer<void>();
+    final before = api.calls.where((c) => c == 'stud').length;
+    await tester.fling(studScrollable, const Offset(0, 400), 1000);
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(api.calls.where((c) => c == 'stud').length, before + 1);
+    expect(find.byKey(const Key('pull-indicator')), findsOneWidget);
+    expect(find.byType(RefreshProgressIndicator), findsNothing);
+    api.studGate!.complete();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.byKey(const Key('pull-indicator')), findsNothing);
   });
 }
