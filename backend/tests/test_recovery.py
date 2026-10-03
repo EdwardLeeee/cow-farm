@@ -209,12 +209,13 @@ def test_real_server_survives_sigkill(tmp_path):
         ]
         health_before = c.get("/healthz").json()
         assert health_before["ticks"] > 20 and health_before["bot_actions"] > 0
-        # 價格歷史是記憶體先更新、再寫進資料庫：等下一個 tick 開始（上一個 tick 的寫入一定已經完成），
-        # 確定 hist_before 的最後一點已經寫入，再強制關機。沒等的話，最後一點可能還沒寫入，重開後會重算出些微不同的價格。
+        # 價格歷史是記憶體先更新、再寫進資料庫，而且機器忙的時候伺服器會一次算好幾個 tick 才寫一次（healthz 的
+        # tick_t 只是記憶體裡的進度）。直接查資料庫，等 hist_before 的最後一點真的寫進 price_history 再強制關機。
+        # 沒等的話，那幾個 tick 重開後會重算；重算時真人在線人數照現實時間算，價格會差一點點（2026-10-03 在負載下遇過）。
         t_last = hist_before[-1][0]
         deadline = time.time() + 30  # 機器忙的時候等久一點；等不到就明確失敗，不要帶著沒寫完的價格往下測
-        while c.get("/healthz").json()["tick_t"] < t_last + 60:
-            assert time.time() < deadline, "30 秒內沒有等到下一個 tick"
+        while not asyncio.run(_price_written(dsn, "milk", t_last)):
+            assert time.time() < deadline, "30 秒內最後一點價格還沒寫進資料庫"
             time.sleep(0.05)
         os.kill(proc.pid, signal.SIGKILL)
         proc.wait(timeout=10)
@@ -244,6 +245,18 @@ def test_real_server_survives_sigkill(tmp_path):
     assert "Traceback" not in text, text[-3000:]
     assert "從資料庫回復" in text
     assert "WebSocket /v1/ws?token=***" in text and s["token"] not in text  # token 不寫進日誌
+
+
+async def _price_written(dsn: str, commodity: str, t: float) -> bool:
+    import asyncpg
+
+    conn = await asyncpg.connect(dsn)
+    try:
+        return await conn.fetchval(
+            "SELECT EXISTS(SELECT 1 FROM price_history WHERE commodity=$1 AND t=$2)", commodity, t
+        )
+    finally:
+        await conn.close()
 
 
 async def _ws_once(token: str) -> None:
