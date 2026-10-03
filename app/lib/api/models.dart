@@ -131,12 +131,15 @@ List<Blocker> _blockers(Object? v) =>
 // ---------------------------------------------------------------------------
 /// 牧場：排行榜、借種上架的主人、借種紀錄的對方、借種通知的借方。顯示方式見 Strings.ranchName。
 class RanchRef {
-  const RanchRef({this.playerId, this.name, this.nameWords, this.isBot = false, this.level});
+  const RanchRef({this.playerId, this.name, this.nameWords, this.isBot = false, this.level, this.avatar});
   final int? playerId; // 公營種牛站是 null（不顯示 #編號）
   final String? name; // 真人自己取的名字；電腦是 null
   final List<int>? nameWords; // 電腦牧場名的三組詞編號；真人是 null
   final bool isBot;
   final int? level; // 公營種牛站是 null
+
+  /// 頭像的品種代號（S21；暫定協定）：真人才有，電腦、公營種牛站是 null。null 的頭像畫荷斯坦。
+  final String? avatar;
 
   static RanchRef? fromJson(Object? v) {
     if (v is! Map) return null;
@@ -148,6 +151,7 @@ class RanchRef {
       nameWords: words is List && words.length == 3 ? [for (final w in words) _i(w)] : null,
       isBot: _b(j['is_bot']),
       level: j['level'] is num ? (j['level'] as num).toInt() : null,
+      avatar: j['avatar'] is String ? j['avatar'] as String : null,
     );
   }
 }
@@ -480,6 +484,7 @@ class Economy {
     this.peakWeightKg = const {},
     this.bullWeightMult,
     this.fieldCapH,
+    this.renamePrice,
   });
 
   /// 一般、優良、稀有、傳說：牛奶、牛肉的賣價倍率，也是耕牛的稻米產量倍率。
@@ -503,6 +508,9 @@ class Economy {
 
   /// 一塊田最多存這頭耕牛壯年幾小時的產量（S17「最多存 8 小時的量」）；田的上限 = [oxRicePerH] × 稀有度倍率 × 這個。
   final double? fieldCapH;
+
+  /// 改名的價錢（S21；第一次免費，看 [RanchProfile.renames]）。暫定協定 `economy.rename_price`，舊的伺服器沒有。
+  final double? renamePrice;
 
   /// 稀有度 [tier] 的倍率；沒有就是 null（畫面不寫倍數）。
   double? tier(int tier) => tier >= 0 && tier < tierMult.length ? tierMult[tier] : null;
@@ -531,6 +539,7 @@ class Economy {
       },
       bullWeightMult: _dn(j['bull_weight_mult']),
       fieldCapH: _dn(j['field_cap_h']),
+      renamePrice: _dn(j['rename_price']),
     );
   }
 }
@@ -627,6 +636,8 @@ class GameState {
     this.accountLinks = const [],
     this.maintenance,
     this.economy,
+    this.profile = const RanchProfile(),
+    this.achievements,
   });
 
   final double serverTime; // 遊戲時間 Unix 秒
@@ -657,6 +668,12 @@ class GameState {
   /// 經濟倍數（協定 2.3 的 economy）：只給畫面顯示說明數字，帳一律由伺服器算。舊的伺服器沒有，是 null。
   final Economy? economy;
 
+  /// 牧場資料（S21）：頭像、改過幾次名。舊的伺服器沒有：頭像是荷斯坦、改名次數不知道。
+  final RanchProfile profile;
+
+  /// 成就徽章（S21，18 個）。舊的伺服器沒有，是 null（牧場資料頁不放徽章卡，免得全部顯示成還沒解鎖）。
+  final List<Achievement>? achievements;
+
   /// 綁定、解除以後換掉 [accountLinks]（協定 5.2、5.4 的回應只有 account），其他照舊，等下一次 state 校正。
   GameState withAccountLinks(List<AccountLink> links) => GameState(
     serverTime: serverTime,
@@ -680,6 +697,8 @@ class GameState {
     accountLinks: links,
     maintenance: maintenance,
     economy: economy,
+    profile: profile,
+    achievements: achievements,
   );
 
   double? gradePrice(String grade) {
@@ -731,7 +750,85 @@ class GameState {
       accountLinks: AccountLink.listFrom(account),
       maintenance: Maintenance.fromJson(j['maintenance']),
       economy: Economy.fromJson(j['economy']),
+      profile: RanchProfile.fromJson(j['profile']),
+      achievements: Achievement.listFrom(j['achievements']),
     );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// S21 牧場資料（D34）。暫定協定：欄位名稱是 cow-app 的提案（ceo 2026-10-03 同意），cow-back 定案時跟著改。
+// ---------------------------------------------------------------------------
+/// `state.profile`：頭像（品種代號，null 是荷斯坦）、改過幾次名（0 代表下次改名免費）。
+class RanchProfile {
+  const RanchProfile({this.avatar, this.renames});
+  final String? avatar;
+  final int? renames;
+
+  /// 頭像畫哪一種牛（沒選過是荷斯坦）。
+  String get avatarBreed => avatar ?? 'holstein';
+
+  static RanchProfile fromJson(Object? v) {
+    if (v is! Map) return const RanchProfile();
+    final j = v.cast<String, dynamic>();
+    return RanchProfile(
+      avatar: j['avatar'] is String ? j['avatar'] as String : null,
+      renames: j['renames'] is num ? (j['renames'] as num).toInt() : null,
+    );
+  }
+}
+
+/// 分階段的徽章（圖鑑新手／達人／大師…）的一階：目標、解鎖的遊戲時間（還沒是 null）。
+class AchievementTier {
+  const AchievementTier({required this.goal, this.unlockedAt});
+  final double goal;
+  final double? unlockedAt;
+}
+
+/// `state.achievements` 的一筆：key 跟設計稿 s21.js 的 BADGES 一樣。
+/// 一般的有 [unlockedAt]（還沒是 null）、有計數的再加 [progress]／[goal]；分階段的有 [tiers]（每一階的目標和解鎖時間）和 [progress]。
+/// 目標數字由伺服器給，app 不寫死。時間跟 `codex[].found_at` 一樣是遊戲時間。
+class Achievement {
+  const Achievement({required this.key, this.unlockedAt, this.progress, this.goal, this.tiers = const []});
+  final String key;
+  final double? unlockedAt;
+  final double? progress;
+  final double? goal;
+  final List<AchievementTier> tiers;
+
+  bool get staged => tiers.isNotEmpty;
+
+  /// 分階段的解鎖到第幾階（0 是還沒）。
+  int get tierAt => tiers.where((t) => t.unlockedAt != null).length;
+
+  bool get unlocked => staged ? tierAt > 0 : unlockedAt != null;
+
+  /// 格子和詳細裡的進度（現在、目標）：分階段的寫下一階的目標，全部解鎖了沒有；一般的還沒解鎖、有計數才有。
+  (double, double)? get progressPair {
+    final n = progress;
+    if (n == null) return null;
+    if (staged) return tierAt < tiers.length ? (n, tiers[tierAt].goal) : null;
+    final g = goal;
+    return g != null && !unlocked ? (n, g) : null;
+  }
+
+  static List<Achievement>? listFrom(Object? v) {
+    if (v is! List) return null;
+    return [
+      for (final e in v)
+        if (e is Map && e['key'] is String)
+          Achievement(
+            key: e['key'] as String,
+            unlockedAt: _dn(e['unlocked_at']),
+            progress: _dn(e['progress']),
+            goal: _dn(e['goal']),
+            tiers: [
+              for (final t in _l(e['tiers']))
+                if (t is Map && t['goal'] is num)
+                  AchievementTier(goal: (t['goal'] as num).toDouble(), unlockedAt: _dn(t['unlocked_at'])),
+            ],
+          ),
+    ];
   }
 }
 

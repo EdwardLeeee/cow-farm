@@ -258,7 +258,7 @@ class WelcomeBackPage extends StatelessWidget {
           key: const Key('welcome-card'),
           child: Row(
             children: [
-              const _BigAvatar(),
+              _BigAvatar(breed: st?.profile.avatarBreed ?? 'holstein'),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -298,7 +298,10 @@ class WelcomeBackPage extends StatelessWidget {
 
 /// .welcome .avatar：56 的牛臉圓頭像（框 3、下陰影 3），臉 52、往下 4（跟頂列的頭像一樣）。
 class _BigAvatar extends StatelessWidget {
-  const _BigAvatar();
+  const _BigAvatar({required this.breed});
+
+  /// 牧場選的頭像（S21；沒選過是荷斯坦）。
+  final String breed;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -310,11 +313,14 @@ class _BigAvatar extends StatelessWidget {
       border: Border.all(color: AppColors.ink, width: AppSizes.border),
       boxShadow: AppShadows.solid(),
     ),
-    child: const ClipOval(
+    child: ClipOval(
       child: OverflowBox(
         maxWidth: 52,
         maxHeight: 52,
-        child: Padding(padding: EdgeInsets.only(top: 4), child: CowFace(size: 52)),
+        child: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: CowFace(breed: breed, size: 52),
+        ),
       ),
     ),
   );

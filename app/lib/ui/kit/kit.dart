@@ -503,9 +503,10 @@ class RenderBtnRow extends RenderBox
 
 /// .sheet 加 .backdrop：從下面滑上來的面板（暗幕、上緣 3px 框、上面兩個圓角 26、把手、標題）。點暗幕關掉。
 class AppSheet extends StatelessWidget {
-  const AppSheet({super.key, required this.title, required this.children, required this.onClose, this.maxHeight});
+  const AppSheet({super.key, this.title, required this.children, required this.onClose, this.maxHeight});
 
-  final String title;
+  /// 標題（.sheet h2）；null 是沒有標題的面板（S21 的徽章詳細，名稱放在大圖下面）。
+  final String? title;
   final List<Widget> children;
   final VoidCallback onClose;
 
@@ -554,8 +555,10 @@ class AppSheet extends StatelessWidget {
                     ),
                   ),
                 ),
-                Text(title, style: AppText.style(18, weight: FontWeight.w900, lineHeight: 24)),
-                const SizedBox(height: 10),
+                if (title case final t?) ...[
+                  Text(t, style: AppText.style(18, weight: FontWeight.w900, lineHeight: 24)),
+                  const SizedBox(height: 10),
+                ],
                 ...children,
               ],
             ),
@@ -573,11 +576,14 @@ class AppSheet extends StatelessWidget {
 /// 字型是 Noto Sans CJK 的 hhea（ascent 1.16、descent 0.288 字級）。
 /// 只排一行；[wrap] 的話，一行放不下（英文、泰文的窄手機）就照一般的字換行。
 class CssLine extends StatelessWidget {
-  const CssLine(this.span, {super.key, this.textKey, this.wrap = false, this.textAlign});
+  const CssLine(this.span, {super.key, this.textKey, this.wrap = false, this.textAlign, this.ellipsis = false});
 
   final TextSpan span;
   final Key? textKey;
   final bool wrap;
+
+  /// 放不下時用「…」截短（CSS 的 text-overflow: ellipsis；S21 的牧場名）。
+  final bool ellipsis;
 
   /// 放不下、換行的時候怎麼對齊（一行的時候由外層決定位置）。
   final TextAlign? textAlign;
@@ -625,7 +631,13 @@ class CssLine extends StatelessWidget {
       child: Baseline(
         baseline: above,
         baselineType: TextBaseline.alphabetic,
-        child: Text.rich(span, key: textKey, softWrap: false),
+        child: Text.rich(
+          span,
+          key: textKey,
+          softWrap: false,
+          maxLines: ellipsis ? 1 : null,
+          overflow: ellipsis ? TextOverflow.ellipsis : null,
+        ),
       ),
     );
     if (!wrap) return line();

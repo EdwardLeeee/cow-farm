@@ -9,8 +9,11 @@ import '../kit/kit.dart';
 import '../kit/press.dart';
 
 /// .avatar.sm：46×46 的牛臉圓頭像（框 3、下陰影 2）。臉 40×40，往下 3（grid 置中，臉的上緣在框裡 1.5）。
+/// [breed] 是牧場選的頭像（S21；沒選過是荷斯坦）。
 class SmallAvatar extends StatelessWidget {
-  const SmallAvatar({super.key});
+  const SmallAvatar({super.key, this.breed = 'holstein'});
+
+  final String breed;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -22,10 +25,10 @@ class SmallAvatar extends StatelessWidget {
       border: Border.all(color: AppColors.ink, width: AppSizes.border),
       boxShadow: AppShadows.solid(2),
     ),
-    child: const ClipOval(
+    child: ClipOval(
       child: Stack(
         clipBehavior: Clip.none,
-        children: [Positioned(left: 0, top: 1.5, child: CowFace(size: 40))],
+        children: [Positioned(left: 0, top: 1.5, child: CowFace(breed: breed, size: 40))],
       ),
     ),
   );
@@ -33,9 +36,12 @@ class SmallAvatar extends StatelessWidget {
 
 /// .me-card：自己牧場的卡片（頭像、牧場名、「#1234・Lv 4」）。[trailing] 是右邊的備份狀態（S13-02）。
 class MeCard extends StatelessWidget {
-  const MeCard({super.key, required this.name, required this.meta, this.trailing});
+  const MeCard({super.key, required this.name, required this.meta, this.trailing, this.avatar = 'holstein'});
 
   final String name;
+
+  /// 頭像的品種（S21 的 `state.profile.avatar`）。
+  final String avatar;
 
   /// 第二行（「#1234・Lv 4」）。
   final String meta;
@@ -47,7 +53,7 @@ class MeCard extends StatelessWidget {
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
     child: Row(
       children: [
-        const SmallAvatar(),
+        SmallAvatar(breed: avatar),
         const SizedBox(width: 10),
         Expanded(
           child: Column(
