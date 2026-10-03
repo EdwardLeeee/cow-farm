@@ -766,6 +766,7 @@ v2 拿掉 `price`（看 `fee.price`）、`type_name`、`tier_name`、`owner_id`�
 ```
 
 - 機率欄位（`tier_probs`、`type_probs`、`bull_prob`、`distribution[]`）同 `breed/preview`（3.7）。`blockers[]`：`own_listing`、`cow_not_adult`、`already_bred`、`cow_in_field`、`cow_listed`、`pen_full`、`not_enough_coins`（`need`、`have`）、`listing_gone`。
+- 上架已經不在市場上（那頭公牛被別人借走、或主人下架）時，**不回 200**，回 `404 listing_not_found`（`detail.listing_id`）：預覽要用那頭公牛的基因和體重算借種費和小牛機率，上架不在就算不出來。`blockers` 的 `listing_gone` 是另一種情況：上架還在市場上，但那頭公牛已經不能借（主人的牧場刪除了，或公牛已經配過種）。兩種 app 都顯示 S18-10（字串表都是 `err.listing_gone`），再重抓 `GET /v1/stud` 更新清單。
 - PR 6：`fee` 取代 v1 的 `price`。借種時把 `fee.price` 原樣送回。
 
 ### 4.4 `POST /v1/stud/borrow` 借種
@@ -791,7 +792,7 @@ v2 拿掉 `price`（看 `fee.price`）、`type_name`、`tier_name`、`owner_id`�
   ```
 
 - 錢從借的人扣、同一個交易加到主人（主人在線的話會收到 WebSocket `stud`）；重送同一個 request_id 不會重複付錢。
-- 錯誤：`listing_not_found`（404，已被借走或下架）、`own_listing`、`invalid_pair`（dam 是公牛）、`cow_not_found`、`cow_not_adult`、`already_bred`、`cow_in_field`、`cow_listed`、`pen_full`、`not_enough_coins`、`listing_gone`、`price_changed`。
+- 錯誤：`listing_not_found`（404，已被借走或下架；跟預覽一樣，見 4.3）、`own_listing`、`invalid_pair`（dam 是公牛）、`cow_not_found`、`cow_not_adult`、`already_bred`、`cow_in_field`、`cow_listed`、`pen_full`、`not_enough_coins`、`listing_gone`、`price_changed`。
 
 ### 4.5 `POST /v1/stud/list` 上架、`POST /v1/stud/unlist` 下架
 
@@ -1064,3 +1065,4 @@ app 啟動時先打這個（還沒有 token 也能打），再決定要不要顯
 - 2026-10-02：3.7、4.3 節預覽加 `distribution[]`（每個品種的機率，S08-06、S18-06）；2.3 節 `economy` 加 `dairy_milk_per_h`、`calf_grow_h`、`peak_weight_kg`、`bull_weight_mult`（S08-06、S09-03；直接讀 params）。設計稿缺口清單第 1 類（1-1～1-3）。
 - 2026-10-02：1.6、第 4 節寫清楚公營種牛站：每種用途至少一頭（#89 起伺服器照這樣補）；基因照商店 C 級的機率抽，大多是一般公牛（約 3% 是優良以上）。欄位不變。
 - 2026-10-03：2.3 節 `economy` 加 `field_cap_h`（S17「最多存 8 小時的量」，直接讀 params）；寫清楚 `rice.per_hour`（所有有牛的田加起來，長滿的也算）、`fields[].per_hour`（長滿了也不是 0；有沒有長滿看 `rice ≥ capacity`）和 `fields[].capacity` 的算法（壯年產量，不乘年齡曲線）。伺服器的行為不變。
+- 2026-10-03：4.3 節寫清楚：上架已經不在市場上時預覽回 `404 listing_not_found`（伺服器本來就這樣），`blockers` 的 `listing_gone` 是上架還在、公牛不能借；app 兩種都顯示 S18-10。只改說明。
