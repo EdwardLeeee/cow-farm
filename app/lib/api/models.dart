@@ -557,6 +557,33 @@ class AccountLink {
 
   factory AccountLink.fromJson(Map<String, dynamic> j) =>
       AccountLink(provider: '${j['provider'] ?? ''}', linkedAtReal: _dn(j['linked_at_real']));
+
+  /// `account.links`（綁定、解除的回應也是這個形狀，協定 5.2、5.4）。
+  static List<AccountLink> listFrom(Object? account) =>
+      _l(_m(account)['links']).map((e) => AccountLink.fromJson(_m(e))).toList();
+}
+
+/// 綁定時帳號已經綁了別的牧場（協定 5.2 的 409 account_in_use；S13-08「這個帳號已經備份了另一個牧場」）。
+/// 玩家選「換回那個牧場」並再確認（S13-09）後，用 [ticket] 打 `POST /v1/account/switch`。
+class LinkConflict {
+  const LinkConflict({required this.provider, required this.ranch, required this.ticket, this.ticketExpiresAtReal});
+  final String provider;
+  final RanchRef ranch; // 那個牧場：名字、#編號、等級
+  final String ticket; // switch_ticket：10 分鐘內有效、只能用一次
+  final double? ticketExpiresAtReal;
+
+  /// 從錯誤的 detail 讀；少了牧場或 ticket 就是 null（當成一般的錯誤）。
+  static LinkConflict? fromDetail(Map<String, dynamic> d) {
+    final ranch = RanchRef.fromJson(d['ranch']);
+    final ticket = d['switch_ticket'];
+    if (ranch == null || ticket is! String || ticket.isEmpty) return null;
+    return LinkConflict(
+      provider: '${d['provider'] ?? ''}',
+      ranch: ranch,
+      ticket: ticket,
+      ticketExpiresAtReal: _dn(d['ticket_expires_at_real']),
+    );
+  }
 }
 
 /// 維護（協定第 6 節）：/v1/status、/v1/state、WS 都用這個形狀；沒有安排維護是 null。
@@ -630,6 +657,31 @@ class GameState {
   /// 經濟倍數（協定 2.3 的 economy）：只給畫面顯示說明數字，帳一律由伺服器算。舊的伺服器沒有，是 null。
   final Economy? economy;
 
+  /// 綁定、解除以後換掉 [accountLinks]（協定 5.2、5.4 的回應只有 account），其他照舊，等下一次 state 校正。
+  GameState withAccountLinks(List<AccountLink> links) => GameState(
+    serverTime: serverTime,
+    realTime: realTime,
+    timeScale: timeScale,
+    coins: coins,
+    level: level,
+    cows: cows,
+    bucket: bucket,
+    warehouse: warehouse,
+    pen: pen,
+    upgrades: upgrades,
+    codex: codex,
+    playerId: playerId,
+    ranchName: ranchName,
+    levelProgress: levelProgress,
+    shopGrades: shopGrades,
+    fields: fields,
+    rice: rice,
+    stud: stud,
+    accountLinks: links,
+    maintenance: maintenance,
+    economy: economy,
+  );
+
   double? gradePrice(String grade) {
     for (final g in shopGrades) {
       if (g.grade == grade) return g.price;
@@ -676,7 +728,7 @@ class GameState {
       fields: _l(j['fields']).map((e) => FieldInfo.fromJson(_m(e))).toList(),
       rice: RiceInfo.fromJson(_m(j['rice'])),
       stud: StudInfo.fromJson(_m(j['stud'])),
-      accountLinks: _l(account['links']).map((e) => AccountLink.fromJson(_m(e))).toList(),
+      accountLinks: AccountLink.listFrom(account),
       maintenance: Maintenance.fromJson(j['maintenance']),
       economy: Economy.fromJson(j['economy']),
     );

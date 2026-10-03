@@ -1,14 +1,19 @@
+import '../auth/sign_in.dart';
 import 'models.dart';
 
 /// 伺服器回的錯誤：`{"error": {"code": "...", "message": "...", "detail": {...}}}`（協定 1.4）。
 ///
 /// 畫面依 [code] 顯示字串表的文案（Strings.errorText），**不顯示** [message]（只供除錯）。
 class ApiException implements Exception {
-  const ApiException(this.status, this.code, this.message, [this.detail = const {}]);
+  const ApiException(this.status, this.code, this.message, [this.detail = const {}, this.token]);
   final int status;
   final String code;
   final String message;
   final Map<String, dynamic> detail;
+
+  /// 送出這個請求時用的 token（[HttpGameApi] 填；不知道是 null）。換回別的牧場以後，舊牧場還在路上的請求
+  /// 回 401 不算這支手機的 token 失效（GameModel._handleApiError）。
+  final String? token;
 
   /// token 失效：unauthorized（S15-03）或 signed_in_elsewhere（S14-05）。帳號綁定、找回的錯誤都不用 401。
   bool get unauthorized => status == 401;
@@ -87,6 +92,26 @@ abstract class GameApi {
   Future<StudLog> studLog();
 
   // ---- 帳號（協定第 5 節） ----
+  /// 拿 nonce（協定 5.1；不用 token）：每次叫出 Apple／Google 的登入畫面前拿一個，只能用一次。
+  Future<String> accountNonce();
+
+  /// 綁定 Apple／Google 帳號（協定 5.2）：成功回綁定的帳號（`account.links`）。
+  /// 帳號已經綁了別的牧場回 409 `account_in_use`（detail 是 [LinkConflict]）；憑證不對回 `sign_in_failed`。
+  Future<List<AccountLink>> linkAccount({
+    required SignInProvider provider,
+    required String idToken,
+    required String nonce,
+    String? authorizationCode,
+    required String requestId,
+  });
+
+  /// 解除綁定（協定 5.4）：回剩下的綁定。
+  Future<List<AccountLink>> unlinkAccount(SignInProvider provider, {required String requestId});
+
+  /// 換回那個牧場（協定 5.3）：伺服器刪掉這支手機現在的牧場、發那個牧場的新 token。[ticket] 只能用一次，
+  /// 沒收到回應時用同一個 [ticket]、[requestId] 原封不動重送，10 分鐘內拿到第一次的回應。
+  Future<Session> switchAccount({required String ticket, required String requestId});
+
   /// 刪除牧場（協定 5.6）。[requestId] 由呼叫的人給：沒收到回應、玩家再按一次時用同一個，
   /// 第一次其實刪掉了的話，伺服器 10 分鐘內回第一次的回應（`deleted: true`），不是 401。
   Future<void> deleteRanch({required String requestId});

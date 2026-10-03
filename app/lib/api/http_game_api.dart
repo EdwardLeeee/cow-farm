@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 
+import '../auth/sign_in.dart';
 import 'game_api.dart';
 import 'models.dart';
 
@@ -54,6 +55,7 @@ class HttpGameApi implements GameApi {
     for (var attempt = 0; attempt < maxAttempts; attempt++) {
       if (attempt > 0) await _sleep(Duration(milliseconds: 300 * (1 << (attempt - 1))));
       http.Response res;
+      final sentToken = token; // doRequest 這時候才讀 _headers
       try {
         res = await doRequest().timeout(timeout);
       } on http.ClientException catch (e) {
@@ -68,7 +70,7 @@ class HttpGameApi implements GameApi {
         lastError = 'HTTP ${res.statusCode}';
         continue;
       }
-      return _decode(res);
+      return _decode(res, sentToken);
     }
     throw NetworkException(lastError ?? 'unknown');
   }
@@ -83,7 +85,7 @@ class HttpGameApi implements GameApi {
     }
   }
 
-  Map<String, dynamic> _decode(http.Response res) {
+  Map<String, dynamic> _decode(http.Response res, String? sentToken) {
     Object? body;
     try {
       body = res.body.isEmpty ? const <String, dynamic>{} : jsonDecode(utf8.decode(res.bodyBytes));
@@ -97,6 +99,7 @@ class HttpGameApi implements GameApi {
         '${err['code'] ?? 'http_${res.statusCode}'}',
         '${err['message'] ?? 'HTTP ${res.statusCode}'}',
         err['detail'] is Map ? (err['detail'] as Map).cast<String, dynamic>() : const {},
+        sentToken,
       );
     }
     if (body is Map) return body.cast<String, dynamic>();
@@ -209,6 +212,36 @@ class HttpGameApi implements GameApi {
 
   @override
   Future<StudLog> studLog() async => StudLog.fromJson(await _get('/v1/stud/log'));
+
+  @override
+  Future<String> accountNonce() async => '${(await _post('/v1/account/nonce', const {}))['nonce'] ?? ''}';
+
+  @override
+  Future<List<AccountLink>> linkAccount({
+    required SignInProvider provider,
+    required String idToken,
+    required String nonce,
+    String? authorizationCode,
+    required String requestId,
+  }) async {
+    final body = {
+      'provider': provider.wire,
+      'id_token': idToken,
+      'nonce': nonce,
+      'authorization_code': ?authorizationCode,
+    };
+    return AccountLink.listFrom((await _mutate('/v1/account/link', body, requestId: requestId))['account']);
+  }
+
+  @override
+  Future<List<AccountLink>> unlinkAccount(SignInProvider provider, {required String requestId}) async =>
+      AccountLink.listFrom(
+        (await _mutate('/v1/account/unlink', {'provider': provider.wire}, requestId: requestId))['account'],
+      );
+
+  @override
+  Future<Session> switchAccount({required String ticket, required String requestId}) async =>
+      Session.fromJson(await _mutate('/v1/account/switch', {'switch_ticket': ticket}, requestId: requestId));
 
   @override
   Future<void> deleteRanch({required String requestId}) =>

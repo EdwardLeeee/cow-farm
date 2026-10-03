@@ -2,6 +2,7 @@
 // 假資料照設計稿 design/m2/src/js/fixtures.js：10 頭牛（2 頭去田裡）、奶桶 36.4／42、倉庫、收購價、第一則新聞。
 import 'package:cowfarm/api/breeds.dart';
 import 'package:cowfarm/api/models.dart';
+import 'package:cowfarm/auth/sign_in.dart';
 import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
 import 'package:cowfarm/state/settings.dart';
@@ -192,19 +193,21 @@ Map<String, dynamic> ranchMarket({
   };
 }
 
-/// 載好設計稿牧場的模型（連線中、時鐘固定）。
+/// 載好設計稿牧場的模型（連線中、時鐘固定）。[signIn] 給了就是設好 Apple／Google 登入的建置（[signInPlatform]）。
 Future<GameModel> ranchModel({
   Map<String, dynamic>? state,
   Map<String, dynamic>? market,
   FakeGameApi? api,
   bool connected = true,
+  SignInService? signIn,
+  SignInPlatform signInPlatform = SignInPlatform.iphone,
 }) async {
   final a = api ?? FakeGameApi(state: state ?? ranchState(), market: market ?? ranchMarket());
   if (api != null) {
     a.stateJson = state ?? a.stateJson;
     a.marketJson = market ?? a.marketJson;
   }
-  final (m, _, _) = await loadedModel(api: a, connected: connected);
+  final (m, _, _) = await loadedModel(api: a, connected: connected, signIn: signIn, signInPlatform: signInPlatform);
   return m;
 }
 

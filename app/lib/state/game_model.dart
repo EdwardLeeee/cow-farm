@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import '../api/game_api.dart';
 import '../api/models.dart';
 import '../api/push.dart';
+import '../auth/sign_in.dart';
 import '../storage/token_store.dart';
 import '../ui/ranch/herd.dart';
 
@@ -71,8 +72,33 @@ class ReconnectedNotice extends GameNotice {
 /// 底部分頁。配種裡有「自己配種／借種」，紀錄裡有「圖鑑／排行榜」。
 enum AppTab { ranch, market, fields, breed, shop, records }
 
-/// 設定（S13）裡的哪一頁：設定主頁、語言（S13-17）、刪除牧場（S13-03）。
-enum SettingsView { home, language, delete }
+/// 設定（S13）裡的哪一頁：設定主頁、語言（S13-17）、備份牧場（S13-02）、刪除牧場（S13-03）。
+enum SettingsView { home, language, backup, delete }
+
+/// 按登入按鈕綁定帳號（S13-02）的結果：畫面照這個跳提示或對話框（S13-12、S13-08）。
+enum BindStatus {
+  /// 綁好了（「備份好了！已綁定 {name} 帳號」）。
+  bound,
+
+  /// 玩家關掉登入畫面（「已取消登入」）。
+  cancelled,
+
+  /// 登入畫面那邊失敗，或伺服器說憑證不對（sign_in_failed）：「登入失敗，請再試一次」。
+  failed,
+
+  /// 帳號已經綁了別的牧場（S13-08）：[BindOutcome.conflict] 是那個牧場。
+  conflict,
+
+  /// 連不上、其他錯誤：[BindOutcome.error] 照一般的錯誤提示。
+  error,
+}
+
+class BindOutcome {
+  const BindOutcome(this.status, {this.conflict, this.error});
+  final BindStatus status;
+  final LinkConflict? conflict;
+  final ActionError? error;
+}
 
 /// 整個 app 的狀態（ChangeNotifier）。
 ///
@@ -89,6 +115,8 @@ class GameModel extends ChangeNotifier {
     this.uiTick = const Duration(milliseconds: 250),
     this.maintenanceCheckEvery = const Duration(seconds: 30),
     this.longOfflineAfter = const Duration(seconds: 60),
+    this.signInPlatform = SignInPlatform.none,
+    this.signIn,
   }) : _now = now ?? monotonicClock() {
     push.connected.addListener(_onConnectedChanged);
     _pushSub = push.messages.listen(_onPush);
@@ -109,6 +137,16 @@ class GameModel extends ChangeNotifier {
 
   /// 斷線多久算「斷線很久」（S15-04；協定第 7 節：60 秒）。
   final Duration longOfflineAfter;
+
+  /// 這個建置能不能用 Apple／Google 登入、是哪種手機（main.dart 用 config.dart 的 resolveSignInPlatform；
+  /// 網頁版、沒設 client ID 是 none）。none 的時候畫面上沒有任何登入的入口（ceo 2026-10-03）。
+  final SignInPlatform signInPlatform;
+
+  /// 叫出 Apple／Google 的登入畫面。[signInPlatform] 是 none 時是 null。
+  final SignInService? signIn;
+
+  /// 畫面要不要放登入的入口（「備份牧場」、齒輪小點、找回我的牧場）。
+  bool get canSignIn => signInPlatform.enabled && signIn != null;
 
   StreamSubscription<PushMessage>? _pushSub;
   final _notices = StreamController<GameNotice>.broadcast();
@@ -135,6 +173,9 @@ class GameModel extends ChangeNotifier {
 
   /// 牧場剛刪除（S13-04「牧場已經刪除了」）。按「開新牧場」呼叫 [startNewRanch]，才進 S02 取名。
   bool ranchDeleted = false;
+
+  /// 登入畫面關掉以後、等伺服器回覆綁定（S13-15「綁定中…」）。登入畫面開著的時候不算。
+  bool binding = false;
 
   /// token 失效的原因：unauthorized（S15-03）或 signed_in_elsewhere（S14-05）。null 代表正常。
   /// 不會自動開新牧場（M1 會默默換成新牧場，scope.md 第 10 節第 9 項）。
@@ -380,22 +421,171 @@ class GameModel extends ChangeNotifier {
   Future<void> _forgetRanch() async {
     api.token = null;
     push.close();
+    _clearRanchView();
+    market = null;
+    ranchName = '';
+    needsRanch = true;
+    await tokens.delete(TokenStore.tokenKey);
+    await tokens.delete(TokenStore.ranchKey);
+  }
+
+  /// 換了牧場（刪除、換回）：舊牧場的資料和開著的頁面都清掉，回到牧場分頁。牛的編號每個牧場都從 1 開始，
+  /// 選好的公牛母牛、剛生的小牛、場景的位置都不能留給新牧場。
+  void _clearRanchView() {
     state = null;
     // 舊牧場還沒按「好」的升級慶祝（S11-01）不能留到新牧場
     levelUp = null;
-    market = null;
-    ranchName = '';
     authLost = null;
     welcomePending = false;
-    needsRanch = true;
+    binding = false;
     tab = AppTab.ranch;
     settingsView = null;
     detailCowKey = null;
     penListOpen = false;
     warehouseOpen = false;
     studLogOpen = false;
-    await tokens.delete(TokenStore.tokenKey);
-    await tokens.delete(TokenStore.ranchKey);
+    breedSireKey = null;
+    breedDamKey = null;
+    lastCalfKey = null;
+    herdLayout.clear();
+    _offlineSince = null;
+    _onlineBefore = false;
+    _dropped = false;
+  }
+
+  // ---------------------------------------------------------------------------
+  // 備份牧場：綁定 Apple／Google 帳號（S13-02 等；協定 5.0–5.4）
+  // ---------------------------------------------------------------------------
+  /// 綁定的帳號（協定 2.3 account.links）；空的代表還沒備份。
+  List<AccountLink> get accountLinks => state?.accountLinks ?? const [];
+
+  /// 按登入按鈕（S13-02）：拿 nonce → 叫出 Apple／Google 的登入畫面 → 把憑證送給伺服器綁定。
+  /// 每次都重新拿 nonce（只能用一次，不論成功失敗）；request_id 每次也是新的：同一個帳號再綁一次伺服器回 200。
+  Future<BindOutcome> bindAccount(SignInProvider provider) async {
+    final service = signIn;
+    if (service == null || !canSignIn || busy) return const BindOutcome(BindStatus.error, error: OfflineActionError());
+    busy = true;
+    _notify();
+    try {
+      final nonce = await api.accountNonce();
+      final result = await service.signIn(provider, nonce: nonce);
+      switch (result) {
+        case SignInCancelled():
+          return const BindOutcome(BindStatus.cancelled);
+        case SignInFailed():
+          return const BindOutcome(BindStatus.failed);
+        case SignInCredential(:final idToken, :final authorizationCode):
+          binding = true;
+          _notify();
+          final token = api.token;
+          final links = await api.linkAccount(
+            provider: provider,
+            idToken: idToken,
+            nonce: nonce,
+            authorizationCode: authorizationCode,
+            requestId: const Uuid().v4(),
+          );
+          if (api.token != token) return const BindOutcome(BindStatus.error, error: OfflineActionError());
+          _setLinks(links);
+          return const BindOutcome(BindStatus.bound);
+      }
+    } on ApiException catch (e) {
+      if (e.code == 'account_in_use') {
+        final conflict = LinkConflict.fromDetail(e.detail);
+        if (conflict != null) return BindOutcome(BindStatus.conflict, conflict: conflict);
+      }
+      if (e.code == 'sign_in_failed') return const BindOutcome(BindStatus.failed);
+      _handleApiError(e);
+      return BindOutcome(BindStatus.error, error: ApiActionError(e));
+    } on NetworkException {
+      return const BindOutcome(BindStatus.error, error: NetworkActionError());
+    } finally {
+      busy = false;
+      binding = false;
+      _notify();
+    }
+  }
+
+  /// 解除綁定（S13-13 按「解除」；協定 5.4）。伺服器說本來就沒綁（not_linked，例如在別的手機解除了）也算解除了。
+  Future<ActionResult<void>> unlinkAccount(SignInProvider provider) async {
+    if (busy) return const ActionResult.fail(OfflineActionError());
+    busy = true;
+    _notify();
+    try {
+      final links = await api.unlinkAccount(provider, requestId: const Uuid().v4());
+      _setLinks(links);
+      return const ActionResult.ok(null);
+    } on ApiException catch (e) {
+      if (e.code == 'not_linked') {
+        _setLinks([
+          for (final l in accountLinks)
+            if (l.provider != provider.wire) l,
+        ]);
+        return const ActionResult.ok(null);
+      }
+      _handleApiError(e);
+      return ActionResult.fail(ApiActionError(e));
+    } on NetworkException {
+      return const ActionResult.fail(NetworkActionError());
+    } finally {
+      busy = false;
+      _notify();
+    }
+  }
+
+  void _setLinks(List<AccountLink> links) {
+    final st = state;
+    if (st != null) state = st.withAccountLinks(links);
+  }
+
+  /// 換回那個牧場（S13-09 按「換回，並刪除現在的牧場」；協定 5.3）。伺服器在同一個動作裡刪掉這支手機現在的
+  /// 牧場、發那個牧場的新 token。ticket 只能用一次：沒收到回應時再按，用同一個 ticket 和 request_id 原封不動重送，
+  /// 伺服器 10 分鐘內回第一次的回應（裡面有新的 token）；換了 ticket（重新綁定）才用新的 request_id。
+  Future<ActionResult<void>> switchRanch(LinkConflict conflict) async {
+    if (busy) return const ActionResult.fail(OfflineActionError());
+    busy = true;
+    _notify();
+    final pending = _switchRequest;
+    final requestId = pending != null && pending.ticket == conflict.ticket ? pending.id : const Uuid().v4();
+    _switchRequest = (ticket: conflict.ticket, id: requestId);
+    try {
+      final session = await api.switchAccount(ticket: conflict.ticket, requestId: requestId);
+      _switchRequest = null;
+      await _adoptRanch(session);
+      return const ActionResult.ok(null);
+    } on ApiException catch (e) {
+      // ticket 過期、用過了：重送也不會成功，下次重新綁定拿新的
+      _switchRequest = null;
+      _handleApiError(e);
+      return ActionResult.fail(ApiActionError(e));
+    } on NetworkException {
+      return const ActionResult.fail(NetworkActionError());
+    } finally {
+      busy = false;
+      _notify();
+    }
+  }
+
+  ({String ticket, String id})? _switchRequest;
+
+  /// 換成伺服器給的另一個牧場（換回；之後找回也走這裡）：先換掉記憶體裡的 token，舊牧場還在路上的回應
+  /// （state、401）就會丟掉；清掉舊牧場的畫面，存新 token，用回應裡的 state，重新連推播、抓行情。
+  Future<void> _adoptRanch(Session session) async {
+    api.token = session.token;
+    push.close();
+    _clearRanchView();
+    ranchName = session.ranchName;
+    needsRanch = false;
+    ranchDeleted = false;
+    await tokens.write(TokenStore.tokenKey, session.token);
+    await tokens.write(TokenStore.ranchKey, session.ranchName);
+    if (api.token != session.token) return; // 這段時間又換了牧場
+    _httpOk = true;
+    final first = session.state;
+    if (first != null) _setState(first);
+    push.connect(session.token);
+    if (state == null) await refreshState();
+    unawaited(refreshMarket());
   }
 
   Future<void> _loadState() async {
@@ -476,8 +666,8 @@ class GameModel extends ChangeNotifier {
   /// 處理了回 true；其他錯誤由呼叫的地方決定（操作的錯誤畫面用錯誤碼查文案）。
   bool _handleApiError(ApiException e) {
     if (e.unauthorized) {
-      // 已經沒有 token（牧場剛刪除）：是舊牧場還在路上的請求，不算失效
-      if (api.token != null) authLost = e.code;
+      // 已經沒有 token（牧場剛刪除）、或已經換成別的牧場的 token（換回）：是舊牧場還在路上的請求，不算失效
+      if (api.token != null && (e.token == null || e.token == api.token)) authLost = e.code;
       return true;
     }
     if (e.maintenance) {

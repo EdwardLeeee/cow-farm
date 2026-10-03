@@ -1,10 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- 連線遊戲：正式版也需要網路權限（debug／profile 的 manifest 另外有同一行）。 -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- 登入 token 不跟著備份、換機搬到別的手機（研究筆記 docs/research/2026-10-app-sign-in.md 1.4）：
+         flutter_secure_storage 的加密金鑰留在原本的手機，搬過去的 token 解不開；換手機要用 Apple／Google 帳號找回牧場。
+         allowBackup 關掉雲端備份；Android 12 起換機轉移另外看 data_extraction_rules。沒有實機驗過（M4）。 -->
     <application
         android:label="牛市牧場"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules">
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -8,12 +8,16 @@ import 'press.dart';
 
 /// .page-head：返回、標題和小字、右邊一顆按鈕。英文、泰文放不下時標題可以換兩行（screens.css 第 1 條）。
 class PageHead extends StatelessWidget {
-  const PageHead({super.key, required this.title, this.sub, this.onBack, this.action});
+  const PageHead({super.key, required this.title, this.sub, this.onBack, this.action, this.actionFixed = false});
 
   final String title;
   final String? sub;
   final VoidCallback? onBack;
   final Widget? action;
+
+  /// [action] 照自己的寬度、不縮（flex: none），標題讓位：「連線中…」膠囊（S13-20 的 .hud-offline.in-head）。
+  /// 沒有的話右邊是按鈕，最多佔一半、字換行。
+  final bool actionFixed;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(builder: (context, c) => _row(context, c.maxWidth));
@@ -44,10 +48,13 @@ class PageHead extends StatelessWidget {
       // 英文、泰文太寬時按鈕最多佔一半、字換行，標題才不會被擠到從字的中間斷（screens.css 第 1 條）
       if (action != null) ...[
         const SizedBox(width: 8),
-        ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: width / 2),
-          child: action!,
-        ),
+        if (actionFixed)
+          action!
+        else
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: width / 2),
+            child: action!,
+          ),
       ],
     ],
   );

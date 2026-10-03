@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../../l10n/format.dart';
 import '../../l10n/l10n.dart';
 import '../../state/game_model.dart';
+import '../../state/settings.dart';
 import '../../theme/tokens.dart';
 import '../../util/ranch_name.dart';
 import '../level/level_up.dart';
@@ -64,6 +65,7 @@ class AppFrame extends StatelessWidget {
     this.body = const [],
     this.underlays = const [],
     this.overlays = const [],
+    this.offlinePill = true,
   });
 
   /// 選中的分頁；null 是沒有分頁列的頁面。
@@ -75,6 +77,9 @@ class AppFrame extends StatelessWidget {
   final List<Widget> body;
   final List<Widget> underlays;
   final List<Widget> overlays;
+
+  /// 斷線時在頂列下面畫「連線中…」（S15-01）。沒有頂列、有頁面標題的頁面自己放在標題那一列（S13-20），這裡不畫。
+  final bool offlinePill;
 
   @override
   Widget build(BuildContext context) {
@@ -99,7 +104,7 @@ class AppFrame extends StatelessWidget {
           ...body,
           if (hud) Positioned(left: 12, right: 12, top: safe.top + 6, height: FrameSizes.hud, child: const Hud()),
           if (tab != null) Positioned(left: 0, right: 0, bottom: 0, child: AppTabBar(active: tab!)),
-          if (offline)
+          if (offline && offlinePill)
             Positioned(
               left: 0,
               right: 0,
@@ -135,17 +140,24 @@ class HudData {
 /// 頂列（G-02）：頭像、牧場名、等級和經驗條、金幣、設定。
 /// 窄手機（寬度 < 390、< 340）照 kit.css 的兩段 @media 縮小；牧場名顯示寬度超過 12 時字縮小，再放不下用「…」截短（D23）。
 class Hud extends StatelessWidget {
-  const Hud({super.key, this.data, this.gearDot = false});
+  const Hud({super.key, this.data, this.gearDot});
 
   /// 沒給就讀 GameModel。
   final HudData? data;
 
-  /// 齒輪上的小點（G-10：還沒備份牧場、也還沒打開過「備份牧場」頁）。「備份牧場」頁（S13）做好之前一律不顯示。
-  final bool gearDot;
+  /// 齒輪上的小點（G-10：還沒備份牧場、也還沒打開過「備份牧場」頁）。null 就照 [showBackupDot] 算。
+  final bool? gearDot;
+
+  /// G-10：能登入的建置（GameModel.canSignIn）、牧場還沒綁任何帳號、這支手機還沒打開過「備份牧場」頁。
+  static bool showBackupDot(GameModel m, SettingsController settings) =>
+      m.canSignIn && m.state != null && m.accountLinks.isEmpty && !settings.backupSeen;
 
   @override
   Widget build(BuildContext context) {
     final d = data ?? HudData.of(context.watch<GameModel>());
+    final gearDot =
+        this.gearDot ??
+        (data == null && showBackupDot(context.watch<GameModel>(), context.watch<SettingsController>()));
     final s = Strings.of(context);
     final w = MediaQuery.sizeOf(context).width;
     final narrow = w < 390, tiny = w < 340;

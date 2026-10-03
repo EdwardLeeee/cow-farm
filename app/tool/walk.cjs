@@ -34,6 +34,9 @@ const issues = [];
 const steps = [];
 const note = (s) => { const l = `[${sec()}] ${s}`; log.push(l); console.log(l); };
 const issue = (s) => { issues.push(s); note(`ISSUE: ${s}`); };
+/// 連到伺服器以外的網站（host → 次數）。網頁試玩版沒有 Apple／Google 登入，不能去連它們的登入網址（ceo 2026-10-03）。
+const external = new Map();
+const signInHosts = ['accounts.google.com', 'appleid.apple.com', 'appleid.cdn-apple.com'];
 const writeLog = () => fs.writeFileSync(
   `${shots}/${prefix}walk.log`,
   `${log.join('\n')}\n\nSTEPS:\n${steps.join('\n')}\n\nISSUES:\n${issues.join('\n') || '(none)'}\n`,
@@ -48,6 +51,12 @@ const writeLog = () => fs.writeFileSync(
     p.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') log.push(`[${sec()}] console.${m.type()}: ${m.text().slice(0, 300)}`); });
     p.on('pageerror', (e) => issue(`pageerror: ${e.message}`));
     p.on('response', (r) => { if (r.url().includes('/v1/') && r.status() >= 400) note(`HTTP ${r.status()} ${r.request().method()} ${new URL(r.url()).pathname}`); });
+    p.on('request', (r) => {
+      const host = new URL(r.url()).hostname;
+      if (!host || host === new URL(url).hostname) return;
+      external.set(host, (external.get(host) || 0) + 1);
+      if (signInHosts.includes(host)) issue(`網頁版連了登入網址：${r.url().slice(0, 120)}`);
+    });
     p.on('websocket', (ws) => { note('ws open'); ws.on('close', () => note('ws close')); });
     return p;
   };
@@ -483,9 +492,15 @@ const writeLog = () => fs.writeFileSync(
   const setText = await fullText();
   await shot('s13-settings');
   const meLine = (setText.match(/#\d{4,}・Lv \d+/) || [''])[0];
-  // 「備份牧場」「隱私權政策」先不顯示（ceo 2026-10-03）
+  // 網頁試玩版沒有 Apple／Google 登入：沒有「備份牧場」，也沒有齒輪小點；「隱私權政策」網址 M5 才有（ceo 2026-10-03）
   const hidden = !setText.includes('備份牧場') && !setText.includes('隱私權政策');
-  step('設定主頁（S13-01）', meLine !== '' && hidden, `${meLine}；${hidden ? '沒有備份牧場、隱私權政策兩列' : '(還看得到備份牧場或隱私權政策)'}`);
+  const signInCalls = [...external.keys()].filter((h) => signInHosts.includes(h));
+  step(
+    '設定主頁（S13-01）',
+    meLine !== '' && hidden && signInCalls.length === 0,
+    `${meLine}；${hidden ? '沒有備份牧場、隱私權政策兩列' : '(還看得到備份牧場或隱私權政策)'}；`
+      + `${signInCalls.length ? `連了 ${signInCalls.join('、')}` : '沒有連 Apple／Google 的登入網址'}`,
+  );
 
   await tap(button(/^語言/).first());
   await wait(1200);
@@ -610,6 +625,7 @@ const writeLog = () => fs.writeFileSync(
   }
   step('自己配種（S08）：機率、配種、新小牛、已配種', bred !== '' && odds !== '', bred);
 
+  note(`伺服器以外的網站：${[...external].map(([h, n]) => `${h} ×${n}`).join('、') || '(沒有)'}`);
   writeLog();
   await browser.close();
   console.log(`done, steps ok=${steps.filter((s) => s.startsWith('過')).length}/${steps.length}, issues=${issues.length}`);

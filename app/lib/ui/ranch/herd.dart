@@ -90,5 +90,8 @@ class HerdLayout {
     ];
   }
 
+  /// 換了牧場（刪除、換回）：新牧場的牛照編號重新排。
+  void clear() => _slotOf.clear();
+
   static int _compareId(Object a, Object b) => a is int && b is int ? a.compareTo(b) : '$a'.compareTo('$b');
 }

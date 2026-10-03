@@ -5,6 +5,7 @@ import 'package:cowfarm/api/game_api.dart';
 import 'package:cowfarm/api/models.dart';
 import 'package:cowfarm/api/push.dart';
 import 'package:cowfarm/app.dart';
+import 'package:cowfarm/auth/sign_in.dart';
 import 'package:cowfarm/state/game_model.dart';
 import 'package:cowfarm/state/settings.dart';
 import 'package:cowfarm/storage/token_store.dart';
@@ -552,6 +553,152 @@ class FakeGameApi implements GameApi {
     await deleteGate?.future;
     if (deleteError != null) throw deleteError!;
   }
+
+  // ---- 備份牧場（協定 5.1–5.4） ----
+  int _nonceCount = 0;
+
+  /// 每次拿到的 nonce（nonce-1、nonce-2…，測試看每次登入有沒有換新的）。
+  final nonces = <String>[];
+  Exception? nonceError;
+
+  /// 綁定時伺服器回的錯誤（account_in_use、sign_in_failed、連不上）；null 就成功。
+  Exception? linkError;
+  final linkRequests =
+      <({SignInProvider provider, String idToken, String nonce, String? authorizationCode, String requestId})>[];
+
+  /// 設了就讓綁定等到 complete 才回（測試「綁定中…」）。
+  Completer<void>? linkGate;
+
+  Exception? unlinkError;
+  final unlinkRequests = <({SignInProvider provider, String requestId})>[];
+
+  /// 換回時伺服器回的錯誤；null 就成功。
+  Exception? switchError;
+  final switchRequests = <({String ticket, String requestId})>[];
+  Completer<void>? switchGate;
+
+  /// 換回成功時回的牧場（預設是 [switchedState]：晨光河畔牧場 #1234，Lv 7）。
+  Map<String, dynamic> switchedStateJson = switchedState();
+
+  List<Map<String, dynamic>> get _linkJson => [
+    for (final l in (stateJson['account'] as Map?)?['links'] as List? ?? const []) (l as Map).cast<String, dynamic>(),
+  ];
+
+  List<AccountLink> _setLinkJson(List<Map<String, dynamic>> links) {
+    stateJson = {
+      ...stateJson,
+      'account': {'links': links},
+    };
+    return AccountLink.listFrom(stateJson['account']);
+  }
+
+  @override
+  Future<String> accountNonce() async {
+    calls.add('nonce');
+    if (nonceError != null) throw nonceError!;
+    final n = 'nonce-${++_nonceCount}';
+    nonces.add(n);
+    return n;
+  }
+
+  @override
+  Future<List<AccountLink>> linkAccount({
+    required SignInProvider provider,
+    required String idToken,
+    required String nonce,
+    String? authorizationCode,
+    required String requestId,
+  }) async {
+    calls.add('link:${provider.wire}');
+    linkRequests.add((
+      provider: provider,
+      idToken: idToken,
+      nonce: nonce,
+      authorizationCode: authorizationCode,
+      requestId: requestId,
+    ));
+    await linkGate?.future;
+    if (linkError != null) throw linkError!;
+    return _setLinkJson([
+      for (final l in _linkJson)
+        if (l['provider'] != provider.wire) l,
+      {'provider': provider.wire, 'linked_at_real': t0},
+    ]);
+  }
+
+  @override
+  Future<List<AccountLink>> unlinkAccount(SignInProvider provider, {required String requestId}) async {
+    calls.add('unlink:${provider.wire}');
+    unlinkRequests.add((provider: provider, requestId: requestId));
+    if (unlinkError != null) throw unlinkError!;
+    return _setLinkJson([
+      for (final l in _linkJson)
+        if (l['provider'] != provider.wire) l,
+    ]);
+  }
+
+  @override
+  Future<Session> switchAccount({required String ticket, required String requestId}) async {
+    calls.add('switch');
+    switchRequests.add((ticket: ticket, requestId: requestId));
+    await switchGate?.future;
+    if (switchError != null) throw switchError!;
+    stateJson = switchedStateJson;
+    return Session(
+      token: 'tok-switched',
+      playerId: 1234,
+      ranchName: '晨光河畔牧場',
+      created: false,
+      state: GameState.fromJson(switchedStateJson),
+    );
+  }
+}
+
+/// 換回的那個牧場（設計稿 S13-08、S13-09 的「晨光河畔牧場 #1234」，Lv 7，綁了 Apple）。
+Map<String, dynamic> switchedState() => {
+  ...sampleStateJson(),
+  'player_id': 1234,
+  'ranch_name': '晨光河畔牧場',
+  'level': 7,
+  'coins': 98760.0,
+  'account': {
+    'links': [
+      {'provider': 'apple', 'linked_at_real': t0},
+    ],
+  },
+};
+
+/// 帳號已經綁了別的牧場（協定 5.2 的 409 account_in_use）：那個牧場是晨光河畔牧場 #1234，預設 Lv 7。
+ApiException accountInUse({String provider = 'apple', String ticket = 'ticket-1', int level = 7}) =>
+    ApiException(409, 'account_in_use', '這個帳號已經綁了別的牧場', {
+      'provider': provider,
+      'ranch': {'player_id': 1234, 'name': '晨光河畔牧場', 'name_words': null, 'is_bot': false, 'level': level},
+      'switch_ticket': ticket,
+      'ticket_expires_at_real': t0 + 600,
+    });
+
+/// 假的 Apple／Google 登入：測試決定結果（拿到憑證、取消、失敗），記下每次的 nonce。只在測試裡，app 沒有假的登入。
+class FakeSignIn implements SignInService {
+  FakeSignIn({this.result});
+
+  /// null：照 provider 給一個憑證（Apple 多一個 authorization code）。
+  SignInResult? result;
+
+  /// 設了就讓登入畫面等到 complete 才關（測試「登入畫面開著時不算綁定中」）。
+  Completer<void>? gate;
+  final calls = <({SignInProvider provider, String nonce})>[];
+
+  @override
+  Future<SignInResult> signIn(SignInProvider provider, {required String nonce}) async {
+    calls.add((provider: provider, nonce: nonce));
+    await gate?.future;
+    return result ??
+        SignInCredential(
+          idToken: 'id-${provider.wire}-$nonce',
+          nonce: nonce,
+          authorizationCode: provider == SignInProvider.apple ? 'code-$nonce' : null,
+        );
+  }
 }
 
 /// 假推播：測試直接控制連線狀態與訊息。
@@ -595,11 +742,15 @@ class FakeClock {
 
 /// 建好模型並載入假資料（不開計時器）。
 /// [uiTick]：畫面多久重畫一次（倒數、奶桶）；預設 null 不重畫，測試要自己觸發。
+/// [signIn]：給了就是能登入的建置（[signInPlatform] 預設 iPhone）。
 Future<(GameModel, FakeGameApi, FakePush)> loadedModel({
   FakeGameApi? api,
   bool connected = true,
   FakeClock? clock,
   Duration? uiTick,
+  SignInService? signIn,
+  SignInPlatform signInPlatform = SignInPlatform.iphone,
+  TokenStore? tokens,
 }) async {
   final a = api ?? FakeGameApi();
   final p = FakePush(connected: connected);
@@ -607,9 +758,11 @@ Future<(GameModel, FakeGameApi, FakePush)> loadedModel({
   final m = GameModel(
     api: a,
     push: p,
-    tokens: MemoryTokenStore({TokenStore.tokenKey: 'tok'}),
+    tokens: tokens ?? MemoryTokenStore({TokenStore.tokenKey: 'tok'}),
     now: c.call,
     uiTick: uiTick,
+    signInPlatform: signIn == null ? SignInPlatform.none : signInPlatform,
+    signIn: signIn,
   );
   await m.refreshState(); // token 還沒設時不會動作
   a.token = 'tok';
