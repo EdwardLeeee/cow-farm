@@ -980,6 +980,8 @@
 .av-cell.tapped { background: #FFF1DF; box-shadow: 0 0 0 3px #E8964A inset; }
 .av-lock { position: absolute; right: 0; bottom: 0; width: 20px; height: 20px; border-radius: 10px; background: #FFFFFF; border: 2px solid var(--disabled-line); display: grid; place-items: center; line-height: 0; }
 .av-count { display: flex; align-items: center; gap: 4px; margin-top: 10px; }
+.av-sub { margin: 10px 2px 0; font-size: 13px; font-weight: 900; line-height: 18px; color: var(--ink-2); }
+.av-grid.other { margin-top: 4px; }
 .av-sheet .btn-row { margin-top: 12px; }
 /* 320 寬：一排 6 個時一格不到 44，改 5 個；面板會比畫面高，所以拿掉上面那一列預覽（選中的格子本來就有綠框和勾） */
 @media (max-width: 339px) { .av-grid { grid-template-columns: repeat(5, 1fr); } .av-preview { display: none; } }
