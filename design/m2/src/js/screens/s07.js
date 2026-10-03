@@ -17,7 +17,7 @@ const income = (g, sick = false) => Math.round(cow.kg * PRICE * GM[g] * (sick ? 
 
 // sick：病牛出貨（v0.3 第 5 節）：牛肉只剩一成，每一級的收入、期望收入都乘一成；名字旁邊「生病了」、下面橘字說先治療再出貨能賣多少
 function confirmBody({ loading = false, blocker = '', failed = false, sick = false } = {}) {
-  const head = `<div class="ship-head">${cowSVG({ breed: 'holstein', sick }, { w: 76, h: 76, pad: 3 })}<div><b class="ship-name">${cowName('holstein', 3)}</b>${sick ? `<div class="chips" style="margin:2px 0">${sickBadge()}</div>` : ''}<div class="hint">${t('s07.kgBeef', { kg: cow.kg })}<br>${t('s07.beefPrice', { price: PRICE })}</div></div></div>`;
+  const head = `<div class="ship-head${sick ? ' sick' : ''}">${cowSVG({ breed: 'holstein', sick }, { w: 76, h: 76, pad: 3 })}<div><b class="ship-name">${cowName('holstein', 3)}</b>${sick ? sickBadge() : ''}<div class="hint">${t('s07.kgBeef', { kg: cow.kg })}<br>${t('s07.beefPrice', { price: PRICE })}</div></div></div>`;
   if (loading) return `${head}<div class="loading-row" style="padding:26px 0 18px"><span class="spinner"></span><span>${t('loadingPreview')}</span></div>`;
   if (failed) return `${head}<div class="empty" style="padding:14px 0 4px">${icon('err', 30)}<div class="t2">${t('s07.probFailed')}</div>${btn(t('retry'), { small: true, ic: 'refresh' })}</div>`;
   const rows = ['A', 'B', 'C'].map((g) => `<div class="grade-row"><b class="gchip" style="background:${GRADE_BG[g]}">${g}</b><span class="g-name">${t('g.grade', { g })}</span><span class="num g-p">${pct(cow.probs[g])}</span><span class="g-v">${t('s07.income', { v: `<b class="num">${fmt(income(g, sick))}</b>` })}</span></div>`).join('');

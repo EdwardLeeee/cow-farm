@@ -1030,3 +1030,9 @@
 .finger { position: absolute; z-index: 40; line-height: 0; pointer-events: none; }
 .swipe-trail { position: absolute; inset: 0; z-index: 39; pointer-events: none; }
 .sick-v { color: #C2541B; } /* 病牛的「產奶：停止」 */
+/* 病牛的名片（S03-29）：多兩行說明、按鈕是「治療（5,000 幣）」，名片寬一點，說明可以換行 */
+.cow-pop.sick { width: 236px; }
+.cow-pop .meta.wrap { white-space: normal; }
+/* 病牛出貨（S07-06）：「生病了」像標籤一樣貼在牛那一格的右上角（不多佔一行，矮手機才放得下） */
+.ship-head.sick { position: relative; }
+.ship-head.sick .badge.sick { position: absolute; right: 8px; top: -12px; }

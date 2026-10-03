@@ -152,7 +152,7 @@
  "s07.income": "Earn ~{v} coins",
  "expectedValue": "Expected: ~{v} coins",
  "s07.note": "The grade is random when you ship. Beef goes straight to storage, and you decide if and when to sell it.",
- "s07.sickNote": "Sick: beef is worth only 10%. Treat first and it could sell for about {v} coins.",
+ "s07.sickNote": "Sick: beef is worth only 10%. Treat first to sell for ~{v} coins.",
  "shipConfirmTitle": "Ship this cow?",
  "cancel": "Cancel",
  "s07.confirm": "Ship",
