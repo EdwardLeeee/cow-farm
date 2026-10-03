@@ -56,6 +56,10 @@ TUNABLES = (
     "STUD_RELIST_H",
     "PANIC_SHIP_AGE_H",
     "SHOP_CHOICE_SCALE",
+    "HELPER_MIN_COWS",
+    "HELPER_AHEAD_D",
+    "LAZY_CLEAN_H",
+    "CURE_PROD_H",
 )
 
 
@@ -114,7 +118,7 @@ def test_price_band(players):
 @pytest.mark.parametrize("players", [10, 100])
 def test_strategy_income(players):
     per = [H.strategy_weeks(run("base", players, s)) for s in SEEDS[players]]
-    keys = MB.PLAYER_STRATEGIES
+    keys = MB.CARE_STRATEGIES  # v0.3：懶得照顧（Z）是用來量懲罰的，不算在差距裡
     worst = 0.0
     for wk in range(4):
         means = {k: statistics.fmean(p[k]["weeks"][wk] for p in per) for k in keys}
@@ -313,7 +317,7 @@ def test_numbers_match_research_note():
     per = [H.strategy_weeks(w) for w in worlds]
     total = {
         k: sum(statistics.fmean(p[k]["weeks"][i] for p in per) for i in range(len(per[0][k]["weeks"])))
-        for k in MB.PLAYER_STRATEGIES
+        for k in MB.CARE_STRATEGIES
     }
     assert total == pytest.approx(g["b_strategies"]["10"]["total"], rel=1e-12)
 

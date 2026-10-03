@@ -118,6 +118,10 @@ AMOUNT_KINDS = (
     "field",
     "stud_in",
     "stud_out",
+    "feed_buy",
+    "cure",
+    "helper",
+    "floor",
 )
 QTY_KINDS = (
     "milk",
@@ -135,6 +139,14 @@ QTY_KINDS = (
     "shop_A",
     "shop_B",
     "shop_C",
+    "feed_buy",
+    "feed",
+    "clean",
+    "sick",
+    "cure",
+    "bonus_kg",
+    "hybrid",
+    "rare_grown",
 )
 REVENUE_KINDS = ("milk", "beef", "rice", "stud_in")  # 週收入 = 賣出收入 + 借種收入
 
@@ -424,7 +436,7 @@ def stud_stats(w: ServiceWorld) -> dict:
 
 def goal_b(w: ServiceWorld) -> dict:
     st = strategy_weeks(w)
-    keys = B.PLAYER_STRATEGIES
+    keys = B.CARE_STRATEGIES  # 懶得照顧（Z）不算在差距裡
     weeks = []
     for i in range(len(st[keys[0]]["weeks"])):  # 策略代號是 D、B、F…（以前的 S1 早就沒了）
         vals = {k: st[k]["weeks"][i] for k in keys}

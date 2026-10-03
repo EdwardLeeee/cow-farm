@@ -152,7 +152,7 @@ def test_session_and_state_fields(h):
     assert st["rice"] == {"in_fields": 0.0, "stock": 0.0, "per_hour": 0.0}
     assert set(st["stud"]) == {"listings", "income"} and st["stud"]["listings"] == []  # D26：不再選價位
     assert st["economy"] == {  # S05、S09 的倍數：直接讀 params，app 不寫死
-        "tier_mult": list(FP.tier_mult),
+        "tier_mult": list(FP.tier_mult[:4]),
         "beef_grade_mult": dict(zip("ABC", FP.beef_grade_mult)),
         "ox_rice_per_h": FP.rice_per_h[1],
         "dairy_milk_per_h": FP.milk_per_h[0],

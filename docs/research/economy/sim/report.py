@@ -1,4 +1,4 @@
-"""讀 out/runs/ 的結果，算出 v0.2 各目標的實際數字，寫 out/goals.json 並印出摘要。
+"""讀 out/runs/ 的結果，算出 v0.2 各目標（v0.3 加照顧，goal_care）的實際數字，寫 out/goals.json 並印出摘要。
 
     cd docs/research/economy && python3 -m sim.report
 
@@ -143,6 +143,59 @@ def goal_b() -> dict:
             "pass_farm_vs_dairy": 0.93 <= tot["F"] / tot["D"] <= 1.07,
             "pass_milk_share": 0.25 <= share["milk"] <= 0.40,
         }
+    return out
+
+
+# ---------------------------------------------------------------------------
+# v0.3 照顧（docs/design/v0.3-care.md 第 9 節）
+# ---------------------------------------------------------------------------
+CARE_ALL = STRATS + ("Z",)
+
+
+def goal_care() -> dict:
+    """各人數、各玩法（含 Z 懶得照顧）：病牛的時間比例、飼料回報（豆粕看 B）、懶得照顧少賺多少、
+    小幫手＋地板＋治療佔收入、稀有小牛變雜種的比例。各 seed 加總再算比例。"""
+    out = {}
+    for n in S.POP_SEEDS:
+        runs = [d for d in base_runs(n) if "care" in d]
+        if not runs:
+            continue
+        row = {}
+        for k in CARE_ALL:
+            cs = [d["care"][k] for d in runs if k in d["care"]]
+            if not cs:
+                continue
+
+            def tot(key):
+                return sum(c[key] * c["n"] for c in cs)
+
+            rev, feed, rare = tot("revenue"), tot("feed_spend"), tot("rare_grown")
+            row[k] = {
+                "revenue_mean": rev / sum(c["n"] for c in cs),
+                "sick_share": statistics.fmean(c["sick_share"] for c in cs),
+                "feed_roi": tot("bonus_value") / feed if feed else None,
+                "feed_share": feed / rev if rev else None,
+                "care_spend_share": (tot("helper_spend") + tot("floor_spend") + tot("cure_spend")) / rev if rev else None,
+                "helper_share": tot("helper_spend") / rev if rev else None,
+                "sick_per_player": tot("sick") / sum(c["n"] for c in cs),
+                "cures_per_player": tot("cures") / sum(c["n"] for c in cs),
+                "hybrid_share": tot("hybrid") / rare if rare else None,
+            }
+        care = [row[k] for k in STRATS if k in row]
+        lazy = row.get("Z")
+        row["summary"] = {
+            "sick_share_max": max(r["sick_share"] for r in care),
+            "lazy_over_D": lazy["revenue_mean"] / row["D"]["revenue_mean"] if lazy and "D" in row else None,
+            "lazy_over_care_mean": lazy["revenue_mean"] / statistics.fmean(r["revenue_mean"] for r in care) if lazy else None,
+            "care_spend_share_range": [min(r["care_spend_share"] for r in care), max(r["care_spend_share"] for r in care)],
+            "soymeal_roi_B": row["B"]["feed_roi"] if "B" in row else None,
+        }
+        sm = row["summary"]
+        sm["pass_sick"] = sm["sick_share_max"] < 0.02
+        sm["pass_lazy"] = sm["lazy_over_D"] is not None and 0.6 <= sm["lazy_over_D"] <= 0.8
+        sm["pass_soymeal_roi"] = sm["soymeal_roi_B"] is not None and 1.5 <= sm["soymeal_roi_B"] <= 2.5
+        sm["pass_spend_share"] = 0.05 <= sm["care_spend_share_range"][0] and sm["care_spend_share_range"][1] <= 0.15
+        out[str(n)] = row
     return out
 
 
@@ -415,7 +468,7 @@ def walls() -> dict:
 
 def main() -> None:
     goals = {
-        "engine_version": "0.2.0",
+        "engine_version": "0.3.0",
         "params_fingerprint": DEFAULT.fingerprint(),
         "a_price": goal_a(),
         "b_strategies": goal_b(),
@@ -424,6 +477,7 @@ def main() -> None:
         "new_b_stud": goal_stud(),
         "new_c_shop": goal_shop(),
         "beef_grades": beef_grades(),
+        "care": goal_care(),
         "panic_after_event": panic_scenario(),
         "low_online_day": low_scenario(),
         "tick_60_vs_300": tick_compare(),
@@ -460,6 +514,14 @@ def main() -> None:
         print("新增 c 商店：" + "  ".join(f"{g} 價 {sh['grades'][g]['price']:.0f} 淨賺 {sh['surplus'][g]:.0f} 每元 {sh['value_per_coin'][g]:.1f}" for g in ("A", "B", "C")) + f"  淨賺 max/min {sh['surplus_max_over_min']:.3f} pass={sh.get('pass')}")
     for n, p in sh["pops"].items():
         print(f"  {n:>6} 人 份額: " + " ".join(f"{g} {p['shares'][g]:.0%}" for g in ("A", "B", "C")))
+    print("v0.3 照顧：病牛時間（照顧好的最高）、懶得照顧÷乳牛派、小幫手＋地板＋治療佔收入、豆粕回報（B）")
+    for n, row in goals["care"].items():
+        sm = row["summary"]
+        print(
+            f"  {n:>6} 人: 病牛 {sm['sick_share_max']:.2%}  懶得照顧÷乳牛 {sm['lazy_over_D']:.2f}  "
+            f"花費 {sm['care_spend_share_range'][0]:.1%}–{sm['care_spend_share_range'][1]:.1%}  豆粕回報 {sm['soymeal_roi_B']:.2f}  "
+            + " ".join(f"{k}:回報{row[k]['feed_roi'] or 0:.2f}/雜種{row[k]['hybrid_share'] or 0:.0%}" for k in CARE_ALL if k in row)
+        )
     print("出貨評級：" + "  ".join(f"{n} 人 " + "/".join(f"{v:.0%}" for v in r.values()) for n, r in goals["beef_grades"].items()))
     for n, row in goals["panic_after_event"].items():
         print(f"  恐慌賣 {n} 人: " + "  ".join(f"{cid} 多跌 {row[cid].get('max_drop_direct', 0):.2%} 回復九成 {row[cid].get('recover_90pct_h')}" for cid in CIDS))

@@ -1,4 +1,4 @@
-"""模擬世界（v0.2）：時間軸、玩家上線、三個市場的 tick、借種市場、紀錄與統計。
+"""模擬世界（v0.2；v0.3 加照顧的統計）：時間軸、玩家上線、三個市場的 tick、借種市場、紀錄與統計。
 
 用法（程式內）：summary = World(scenario, seed).run()
 scenario 是純資料 dict（見 scenarios.py），M1 伺服器測試可以直接沿用。
@@ -26,11 +26,14 @@ START_EPOCH = 1791129600.0  # 2026-10-05（週一）00:00 台灣時間
 BOT_TUNABLES = {k: getattr(B, k) for k in (
     "BUCKET_TARGET_H", "DAIRY_SHIP_FRAC", "RARE_KEEP_FRAC", "PEAK_H", "BULL_WAIT_MAX_H", "HOLD_THR", "HOLD_FRESH_SELL",
     "HOLD_WH_TARGET_H", "HOLD_MIN_COWS", "STUD_RELIST_H", "PANIC_SHIP_AGE_H", "TRACK_PLAYERS", "SHOP_CHOICE_SCALE",
+    "HELPER_MIN_COWS", "HELPER_AHEAD_D", "LAZY_CLEAN_H", "CURE_PROD_H",
 )}
 
-AMOUNT_KINDS = ("milk", "beef", "rice", "calf", "breed", "expand", "bucket", "warehouse", "fresh", "field", "stud_in", "stud_out")
+AMOUNT_KINDS = ("milk", "beef", "rice", "calf", "breed", "expand", "bucket", "warehouse", "fresh", "field", "stud_in", "stud_out",
+                "feed_buy", "cure", "helper", "floor")
 QTY_KINDS = ("milk", "beef", "rice", "collect", "spoiled", "harvest", "breed", "stud_in", "stud_out",
-             "grade_A", "grade_B", "grade_C", "shop_A", "shop_B", "shop_C")
+             "grade_A", "grade_B", "grade_C", "shop_A", "shop_B", "shop_C",
+             "feed_buy", "feed", "clean", "sick", "cure", "bonus_kg", "hybrid", "rare_grown")
 REVENUE_KINDS = ("milk", "beef", "rice", "stud_in")  # 週收入 = 賣出收入 + 借種收入
 
 
@@ -177,6 +180,7 @@ class World:
         b = B.Bot(pid, strategy, self.params, join, rng_a, sched, Ledger(self.t0, self.n_days), self.n_days)
         if pid < B.TRACK_PLAYERS:
             b.farm.track = {}
+        b.farm.stats = {}
         self.bots.append(b)
         for k in range(int(TUTORIAL_S // MINUTE)):
             self.schedule(join + k * MINUTE, pid, "tutorial", 0.0)
@@ -298,6 +302,7 @@ class World:
         out["value"] = value_summary(self)
         out["beef_grades"] = {g: sum(b.ledger.qty_days("grade_" + g, 0, self.n_days) for b in ob) for g in ("A", "B", "C")}
         out["fields"] = {s: statistics.fmean([len(b.farm.fields) for b in ob if b.strategy == s] or [0]) for s in B.PLAYER_STRATEGIES}
+        out["care"] = care_summary(self)
         if self.whale is not None:
             out["whale"] = whale_summary(self)
         return out
@@ -326,6 +331,48 @@ def stud_summary(w: World) -> dict:
         "all_player_stud_income": all_in,
         "max_trade_price": max((x[1] for x in log), default=0.0),
     }
+
+
+def care_summary(w: World) -> dict:
+    """v0.3 照顧，各玩法每位玩家平均（整段模擬）：病牛的時間佔牛的時間、飼料花費和多賣的錢（回報倍數）、
+    小幫手／地板／治療的花費和佔收入、生病和治療的次數、稀有小牛長大時變雜種的比例。
+
+    飼料多賣的錢 = 出貨時體重裡的飼料加成（公斤 × 評級 × 稀有度倍率）× 整段的牛肉平均價（不含滑價，估計）。"""
+    end = w.t0 + w.n_days * DAY
+    avg_beef = statistics.fmean(w.rec["beef"])
+    out = {}
+    for s in B.PLAYER_STRATEGIES:
+        bs = [b for b in w.bots if b.strategy == s]
+        if not bs:
+            continue
+        cow_s = sick_s = 0.0
+        for b in bs:
+            c_s, s_s = b.farm.care_stats(end)
+            cow_s += c_s
+            sick_s += s_s
+        n = len(bs)
+
+        def spend(k):
+            return -sum(b.ledger.amount_days(k, 0, w.n_days) for b in bs) / n
+
+        def qty(k):
+            return sum(b.ledger.qty_days(k, 0, w.n_days) for b in bs) / n
+
+        rev = sum(b.ledger.revenue_days(0, w.n_days) for b in bs) / n
+        feed = spend("feed_buy")
+        bonus_value = qty("bonus_kg") * avg_beef
+        care = spend("helper") + spend("floor") + spend("cure")
+        out[s] = {
+            "n": n, "revenue": rev, "sick_share": sick_s / cow_s if cow_s else 0.0,
+            "feed_spend": feed, "feed_units": qty("feed_buy"), "bonus_value": bonus_value,
+            "feed_roi": bonus_value / feed if feed else None,
+            "helper_spend": spend("helper"), "floor_spend": spend("floor"), "cure_spend": spend("cure"),
+            "care_spend_share": care / rev if rev else None,
+            "sick": qty("sick"), "cures": qty("cure"), "cleaned": qty("clean"),
+            "hybrid": qty("hybrid"), "rare_grown": qty("rare_grown"),
+            "hybrid_share": qty("hybrid") / qty("rare_grown") if qty("rare_grown") else None,
+        }
+    return out
 
 
 def shop_summary(w: World) -> dict:

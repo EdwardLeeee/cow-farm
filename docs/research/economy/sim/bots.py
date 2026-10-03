@@ -7,10 +7,15 @@
 - C 配種收集派：看重稀有度（商店挑高等級、借稀有公牛），稀有母牛多留一陣子。
 - T 抓時機派：牛奶、稻米、牛肉都先存著，價格 ≥ 24 小時均價（或快變差）才賣。
 - L 出借公牛派：自己的公牛都上架借種（價位看稀有度，一天沒人借就降一檔），自己的母牛向別人借種。
+- Z 懶得照顧（v0.3）：照 D 經營，但每天只清一次大便、不雇小幫手、不餵飼料（量照顧的懲罰有多大）。
 - W 大戶：壓力測試。囤貨前照 D 經營；囤貨時換成大牧場，囤 48 小時後一次倒出／分批／一直囤。
 
-每次上線的順序：賣（或存）→ 出貨已配過種的到期牛 → 配種（自己的公牛優先，沒有就借種）→ 出貨其餘到期牛
-→ 耕牛下田 → （L）上架公牛 → 花錢：商店補空格、奶桶、田地（F）／倉庫冷藏（T）、擴建牛舍。
+v0.3 照顧（除了 Z，每種玩法都會）：每次上線先清大便、處理病牛（值得就治療，不值得就出貨）；牛群到 HELPER_MIN_COWS 頭
+就一直雇著打掃小幫手（預付到 HELPER_AHEAD_D 天後）；照自己的玩法餵飼料（PROFILES 的 feed：B 豆粕、D 牧草、其他玉米），
+稀有小牛先吃指定的飼料，還沒吃齊就 45 分鐘後回來再餵（care_return）；B、F 買得起就換更快的地板（PROFILES 的 floor）。
+
+每次上線的順序：清大便、病牛 → 賣（或存）→ 出貨已配過種的到期牛 → 配種（自己的公牛優先，沒有就借種）→ 出貨其餘到期牛
+→ 耕牛下田 → （L）上架公牛 → 花錢：小幫手、商店補空格、奶桶、田地（F）／倉庫冷藏（T）、地板、擴建牛舍 → 餵飼料。
 教學（每人第一次上線的 30 分鐘）：每分鐘賣奶、第 15 分鐘擴建、小公牛長大就配種、配完派去田裡。
 """
 
@@ -21,14 +26,16 @@ import random
 from typing import Dict, List, Optional, Tuple
 
 from cowecon.farm import (
-    BEEF, DAIRY, OX, Cow, Farm, beef_storage_factor, cow_milk_rate, freshness, is_milker, milk_frac, rice_factor,
-    shop_grade_distribution,
+    BEEF, DAIRY, OX, Cow, Farm, beef_storage_factor, beef_value_at_base, cow_milk_rate, cow_rice_rate, freshness,
+    is_milker, milk_frac, required_feeds, rice_factor, shop_grade_distribution,
 )
-from cowecon.params import HOUR, MINUTE, EconomyParams
+from cowecon.params import DAY, HOUR, MINUTE, EconomyParams
 
-STRATEGIES = ("D", "B", "F", "C", "T", "L", "W")
-STRATEGY_NAMES = {"D": "乳牛派", "B": "肉牛派", "F": "耕田派", "C": "配種收集派", "T": "抓時機派", "L": "出借公牛派", "W": "大戶"}
-PLAYER_STRATEGIES = ("D", "B", "F", "C", "T", "L")
+STRATEGIES = ("D", "B", "F", "C", "T", "L", "Z", "W")
+STRATEGY_NAMES = {"D": "乳牛派", "B": "肉牛派", "F": "耕田派", "C": "配種收集派", "T": "抓時機派", "L": "出借公牛派",
+                  "Z": "懶得照顧", "W": "大戶"}
+CARE_STRATEGIES = ("D", "B", "F", "C", "T", "L")  # 照顧好的六種玩法（週收入差距的目標只看這六種）
+PLAYER_STRATEGIES = CARE_STRATEGIES + ("Z",)
 
 BUCKET_TARGET_H = 6.0  # 奶桶至少放得下幾小時產量
 DAIRY_SHIP_FRAC = 0.8  # 產奶（耕田）掉到八成以下就出貨
@@ -42,6 +49,10 @@ HOLD_MIN_COWS = 12  # T：牛群少於這個數量時照 D 經營
 STUD_RELIST_H = 24.0  # L：上架多久沒人借就降一檔
 PANIC_SHIP_AGE_H = 48.0
 TRACK_PLAYERS = 500  # 只追蹤前幾位玩家每頭牛的產出（量商店等級的實際價值；省記憶體）
+HELPER_MIN_COWS = 3  # 牛群到幾頭就雇打掃小幫手
+HELPER_AHEAD_D = 2.0  # 小幫手預付到幾天後（不到就再加一天）
+LAZY_CLEAN_H = 24.0  # Z：隔多久才清一次大便
+CURE_PROD_H = 24.0  # 估治療值不值得：治好後多算幾小時的產量
 
 # 中性估值：一頭牛一生（照模擬的平均市價）實際賺多少幣，依（用途、公母）× 稀有度 0–3。
 # 來源：v0.2 模擬實測（1,000 人 28 天、seed 1，追蹤前 500 位玩家每頭牛的牛奶、稻米、出貨收入；
@@ -56,21 +67,33 @@ VALUE_TABLE: Dict[Tuple[int, bool], Tuple[float, float, float, float]] = {
 }
 SHOP_CHOICE_SCALE = 1000.0  # 挑商店等級的個人差異（隨機效用的尺度，幣）
 
+# v0.3：care = 照顧（full 照顧好、lazy 懶得照顧）；feed = 平常餵哪種飼料（None 不餵）；floor = 想換的地板（0 = 泥土地不換）
+GRASS, HAY, OAT, ALFALFA, CORN, SOY = range(6)
 PROFILES: Dict[str, dict] = {
-    "D": {"pref": (1.25, 1.0, 1.0), "rarity": 0.0, "milker": "decline", "fields": False, "hold": False, "lend": False},
-    "B": {"pref": (1.0, 1.0, 1.25), "rarity": 0.0, "milker": "peak", "fields": False, "hold": False, "lend": False},
-    "F": {"pref": (1.0, 1.25, 1.0), "rarity": 0.0, "milker": "decline", "fields": True, "hold": False, "lend": False},
-    "C": {"pref": (1.0, 1.0, 1.0), "rarity": 0.6, "milker": "decline", "fields": False, "hold": False, "lend": False},
-    "T": {"pref": (1.25, 1.0, 1.0), "rarity": 0.0, "milker": "decline", "fields": False, "hold": True, "lend": False},
-    "L": {"pref": (1.0, 1.0, 1.0), "rarity": 0.2, "milker": "decline", "fields": False, "hold": False, "lend": True},
-    "W": {"pref": (1.25, 1.0, 1.0), "rarity": 0.0, "milker": "decline", "fields": False, "hold": False, "lend": False},
+    "D": {"pref": (1.25, 1.0, 1.0), "rarity": 0.0, "milker": "decline", "fields": False, "hold": False, "lend": False,
+          "care": "full", "feed": GRASS, "floor": 0},
+    "B": {"pref": (1.0, 1.0, 1.25), "rarity": 0.0, "milker": "peak", "fields": False, "hold": False, "lend": False,
+          "care": "full", "feed": SOY, "floor": 2},
+    "F": {"pref": (1.0, 1.25, 1.0), "rarity": 0.0, "milker": "decline", "fields": True, "hold": False, "lend": False,
+          "care": "full", "feed": CORN, "floor": 1},
+    "C": {"pref": (1.0, 1.0, 1.0), "rarity": 0.6, "milker": "decline", "fields": False, "hold": False, "lend": False,
+          "care": "full", "feed": CORN, "floor": 0},
+    "T": {"pref": (1.25, 1.0, 1.0), "rarity": 0.0, "milker": "decline", "fields": False, "hold": True, "lend": False,
+          "care": "full", "feed": CORN, "floor": 0},
+    "L": {"pref": (1.0, 1.0, 1.0), "rarity": 0.2, "milker": "decline", "fields": False, "hold": False, "lend": True,
+          "care": "full", "feed": CORN, "floor": 0},
+    "Z": {"pref": (1.25, 1.0, 1.0), "rarity": 0.0, "milker": "decline", "fields": False, "hold": False, "lend": False,
+          "care": "lazy", "feed": None, "floor": 0},
+    "W": {"pref": (1.25, 1.0, 1.0), "rarity": 0.0, "milker": "decline", "fields": False, "hold": False, "lend": False,
+          "care": "full", "feed": None, "floor": 0},
 }
 
 
 class Bot:
     __slots__ = (
         "pid", "strategy", "prof", "farm", "rng", "sched", "ledger", "joined_at", "tut_end", "taste",
-        "first_sale", "first_expand", "first_breed", "returns", "whale", "worth", "grade_value",
+        "first_sale", "first_expand", "first_breed", "returns", "whale", "worth", "grade_value", "last_clean",
+        "care_return_at",
     )
 
     def __init__(self, pid: int, strategy: str, params: EconomyParams, joined_at: float, rng: random.Random, sched, ledger, n_days: int):
@@ -81,7 +104,7 @@ class Bot:
         self.sched = sched
         self.joined_at = joined_at
         self.tut_end = joined_at + 30 * MINUTE
-        self.farm = Farm(params, joined_at, rng)
+        self.farm = Farm(params, joined_at, rng, care=True)
         self.ledger = ledger
         self.farm.log = ledger
         self.taste = rng.uniform(0.0, 0.3)  # 每位玩家對稀有的偏好不同（挑商店等級用）
@@ -92,6 +115,8 @@ class Bot:
         self.whale: Optional[dict] = None
         self.worth = [0.0] * n_days
         self.grade_value = grade_values(params, self.prof, self.taste)
+        self.last_clean = joined_at  # Z：上次清大便的時間
+        self.care_return_at = 0.0  # 已經排好回來餵小牛的時間
 
 
 # 由 world 設定
@@ -256,7 +281,7 @@ def breeding_pass(b: Bot, now: float) -> None:
         if own is None or b.strategy == "C":
             reserve = 0.0
             for t in range(3):
-                for tier in range(4):
+                for tier in range(len(fp.tier_mult)):  # 價值等級 0–3 和雜種（借種費便宜，基因照舊）
                     lst = sm.cheapest(t, tier, now, exclude_owner=b.pid)
                     if lst is None or sm.price(lst, now) > f.coins - reserve:
                         continue
@@ -373,11 +398,125 @@ def hold_return(b: Bot, world, now: float) -> None:
 
 
 # ---------------------------------------------------------------------------
+# 照顧（v0.3）
+# ---------------------------------------------------------------------------
+def cure_value(f: Farm, c: Cow, now: float) -> float:
+    """治好這頭病牛多值多少（粗估，基本價）：出貨價值多回來的九成 + CURE_PROD_H 小時的產量。
+    小牛、還沒長到最壯的牛用長到最壯時的體重算。"""
+    fp = f.fp
+    p = f.p
+    if c.is_adult(now) and c.adult_age_h(now) >= fp.peak_age_h[c.ctype]:
+        v = beef_value_at_base(fp, c, now, p.beef.base_price)
+    else:
+        kg = fp.peak_weight_kg[c.ctype] * (fp.bull_weight_mult if c.bull else 1.0) + c.bonus
+        v = kg * fp.tier_mult[c.vt] * p.beef.base_price
+    v *= 1.0 - p.care.sick_beef_mult
+    t = max(now, c.adult_at)
+    v += CURE_PROD_H * (cow_milk_rate(fp, c, t) * fp.tier_mult[c.vt] * p.milk.base_price
+                        + cow_rice_rate(fp, c, t) * p.rice.base_price)
+    return v
+
+
+def care_start(b: Bot, now: float) -> None:
+    """上線先清大便（Z 每天一次），再處理病牛：值得就治療，不值得（或治不起）就出貨，小牛先放著。"""
+    f = b.farm
+    if b.prof["care"] == "full":
+        f.clean(now)
+    elif now - b.last_clean >= LAZY_CLEAN_H * HOUR:
+        f.clean(now)
+        b.last_clean = now
+    else:
+        f.advance(now)
+    sick = [c for c in f.cows if c.sick_since is not None]
+    if not sick:
+        return
+    sm = _W["stud"]
+    cure_price = f.p.care.cure_price
+    ship = []
+    for c in sick:
+        if c.listed is not None:
+            sm.unlist(c.listed, f)
+        if c.field >= 0:
+            f.recall(c, now)
+        if f.coins >= cure_price and cure_value(f, c, now) >= cure_price:
+            f.cure(c, now, b.rng)
+        elif c.is_adult(now):
+            ship.append(c)
+    if ship:
+        ship_list(b, ship, now)
+
+
+def hire_helper(b: Bot, now: float) -> None:
+    """牛群到 HELPER_MIN_COWS 頭就一直雇著（預付到 HELPER_AHEAD_D 天後）；留一頭 C 級小牛的錢。"""
+    f = b.farm
+    if b.prof["care"] != "full" or len(f.cows) < HELPER_MIN_COWS:
+        return
+    cp = f.p.care
+    reserve = f.fp.shop_grade_price[-1]
+    while f.helper_until < now + HELPER_AHEAD_D * DAY and f.coins >= cp.helper_price_per_day + reserve:
+        if not f.hire_helper(1, now):
+            break
+
+
+def change_floor(b: Bot, now: float) -> None:
+    """B、F：買得起（留兩頭 C 級小牛的錢）就換想要的地板。"""
+    f = b.farm
+    i = b.prof["floor"]
+    if not i or f.floor == i:
+        return
+    if not (f.floors >> i) & 1:
+        if f.coins < f.p.care.floor_price[i] + 2 * f.fp.shop_grade_price[-1] or not f.buy_floor(i, now):
+            return
+    f.use_floor(i, now)
+    _W["stud"].follow_owner(b.pid, f)
+
+
+def feed_pass(b: Bot, now: float) -> None:
+    """照顧好的玩家：稀有小牛先吃還沒吃過的指定飼料，其他能吃的牛照自己的玩法餵（PROFILES 的 feed）。
+    先算好每種要幾份、一次買齊（倉庫有的先用），再一頭一頭餵。小牛還有指定的飼料沒吃齊、45 分鐘後還是小牛，
+    就排一次回來餵（care_return）。"""
+    f = b.farm
+    if b.prof["care"] != "full":
+        return
+    cp = f.p.care
+    plan = []
+    again = False
+    for c in f.cows:
+        k = b.prof["feed"]
+        if not c.is_adult(now):
+            missing = [x for x in required_feeds(cp, c.g) if not (c.fed >> x) & 1]
+            if missing:
+                k = missing[0]
+                if len(missing) > 1 or f.feed_block(c, k, now) == "full":
+                    again = again or now + cp.calf_feed_cooldown_s < c.adult_at
+        if k is not None and f.feed_block(c, k, now) in (None, "no_feed"):
+            plan.append((c, k))
+    need = [0] * len(cp.feed_kg)
+    for _c, k in plan:
+        need[k] += 1
+    for k, n in enumerate(need):
+        if n > f.feeds[k]:
+            f.buy_feed(k, min(n - f.feeds[k], cp.feed_cap - f.feeds[k]), now)
+    for c, k in plan:
+        f.feed(c, k, now)
+    if again and b.care_return_at <= now:
+        b.care_return_at = now + cp.calf_feed_cooldown_s
+        _W["world"].schedule(b.care_return_at, b.pid, "care_return", 2 * MINUTE)
+
+
+def care_return(b: Bot, world, now: float) -> None:
+    """回來餵稀有小牛（只餵）。"""
+    feed_pass(b, now)
+
+
+# ---------------------------------------------------------------------------
 # 一次上線
 # ---------------------------------------------------------------------------
 def manage(b: Bot, world, now: float) -> None:
     f = b.farm
     prof = b.prof
+    # 0. 清大便、病牛
+    care_start(b, now)
     # 1. 賣（或存）
     if prof["hold"] and len(f.cows) >= HOLD_MIN_COWS:
         hold_sell(b, now)
@@ -401,6 +540,7 @@ def manage(b: Bot, world, now: float) -> None:
     if prof["lend"]:
         lending(b, now)
     # 6. 花錢
+    hire_helper(b, now)
     fill_slots(b, now)
     maintain_bucket(f, now)
     if prof["fields"]:
@@ -422,7 +562,10 @@ def manage(b: Bot, world, now: float) -> None:
         while f.wh_capacity() < HOLD_WH_TARGET_H * rate:
             if not f.upgrade_wh(now):
                 break
+    change_floor(b, now)
     expand_and_fill(b, now)
+    # 7. 餵飼料
+    feed_pass(b, now)
 
 
 def tutorial_step(b: Bot, world, now: float) -> None:
@@ -558,6 +701,7 @@ def panic_sell(b: Bot, world, now: float) -> None:
 
 
 EXTRA_FUNCS = {
+    "care_return": care_return,
     "hold_return": hold_return,
     "whale_dump": whale_dump,
     "whale_batch": whale_batch,

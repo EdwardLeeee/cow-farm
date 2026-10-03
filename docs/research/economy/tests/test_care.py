@@ -427,6 +427,17 @@ class TestFloor(unittest.TestCase):
         self.assertEqual((lst.speed, lst.adult_at), (1.5, bull.adult_at))
 
 
+class TestMilkLots(unittest.TestCase):
+    def test_tiny_bucket_remainders_stay_in_the_bucket(self):
+        """零頭不變成一批（照數量賣和照批賣才會拿到同樣的批次）：留在奶桶，攢夠了下次一起收。"""
+        f = farm(care=False)
+        f.advance(T0)
+        f.bucket = [5.0, 1e-13, 0.0, 0.0, 2e-4]
+        self.assertEqual(f.collect(T0), 5.0)
+        self.assertEqual([(l.tier, l.qty) for l in f.lots], [(0, 5.0)])
+        self.assertEqual(f.bucket[1:], [1e-13, 0.0, 0.0, 2e-4])
+
+
 class TestCareSave(unittest.TestCase):
     def test_round_trip_and_continue(self):
         rng = random.Random(3)

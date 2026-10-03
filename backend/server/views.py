@@ -100,7 +100,7 @@ def cow_view(game: Game, p: Player, c: Cow, now: float) -> dict:
         "grade_probs": grade_dict(beef_grade_probs(fp, c, now)) if adult else None,
         "origin": c.origin or None,
         # D26：成年、沒配過種的公牛現在的借種費（上架前就先算好給 S04-04）；其他牛 null
-        "stud_fee": stud_fee_view(fp, c.tier, *stud_fee(fp, c.ctype, c.tier, c.adult_at, now, c.speed))
+        "stud_fee": stud_fee_view(fp, c.vt, *stud_fee(fp, c.ctype, c.vt, c.adult_at, now, c.speed, c.bonus))
         if c.bull and adult and not c.bred
         else None,
     }
@@ -113,7 +113,7 @@ def bucket_view(p: Player, now: float) -> dict:
     boost_until = f.created_at + ob.newbie_boost_s
     return {
         "qty": r6(sum(by_tier)),
-        "by_tier": [r6(x) for x in by_tier],
+        "by_tier": [r6(x) for x in by_tier[:4]],  # 一般～傳說；雜種牛的奶（引擎的第 5 格）在 C1 另外給，qty 是總數
         "capacity": r2(f.bucket_capacity()),
         "per_hour": r6(f.milk_rate(now)),  # 已含新手期加倍
         "boost": {"mult": ob.newbie_boost_mult, "until": boost_until} if now < boost_until else None,
@@ -387,7 +387,8 @@ def achievements_view(game: Game, p: Player, now: float) -> List[dict]:
 def economy_view(fp) -> dict:
     """S05「優良牛奶 ×1.3」、S09 品種卡用的倍數（協定 2.3 節）：直接讀 params，app 不寫死經濟參數。"""
     return {
-        "tier_mult": list(fp.tier_mult),  # 一般、優良、稀有、傳說：牛奶、牛肉的賣價倍率，也是耕牛的稻米產量倍率
+        # 一般、優良、稀有、傳說：牛奶、牛肉的賣價倍率，也是耕牛的稻米產量倍率（引擎的第 5 格是雜種牛，C1 另外給）
+        "tier_mult": list(fp.tier_mult[:4]),
         "beef_grade_mult": dict(zip(GRADE_NAMES, fp.beef_grade_mult)),
         "ox_rice_per_h": fp.rice_per_h[OX],  # 壯年耕牛每遊戲小時的稻米公斤數（× tier_mult × 年齡曲線）
         "dairy_milk_per_h": fp.milk_per_h[DAIRY],  # 壯年母乳牛每遊戲小時產奶瓶數（× 年齡曲線；稀有度不影響產量）

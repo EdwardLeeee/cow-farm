@@ -132,6 +132,7 @@ def tier_distribution(sire: int, dam: int) -> List[float]:
     return probs
 
 
+MIN_LOT = 1e-3  # 倉庫裡一批牛奶最少幾瓶（Farm.collect）
 HYBRID = 4  # 價值等級：雜種牛（tier_mult、stud_fee_per_kg 的第 5 格；v0.3）
 
 
@@ -954,6 +955,10 @@ class Farm:
             if not c.grown and c.adult_at <= now:
                 c.grown = True
                 c.vt = self._reveal_vt(c)
+                if c.tier >= 2:
+                    self._record(c.adult_at, "rare_grown", 0.0, 1.0)
+                    if c.vt == HYBRID:
+                        self._record(c.adult_at, "hybrid", 0.0, 1.0)
 
     # ---- 大便與生病（v0.3 第 5 節）----
     def _arm(self, c: Cow, rng: random.Random) -> None:
@@ -1229,13 +1234,18 @@ class Farm:
         if take <= 0:
             return 0.0
         scale = take / total
+        took = 0.0
         for i in range(len(self.bucket)):
             q = self.bucket[i] * scale
-            if q > 0:
+            # 零頭（例如浮點數算出來的 1e-13 瓶、剛生病那一刻的產量）留在奶桶，攢夠了下次一起收。倉庫裡每一批都夠大，
+            # 照數量賣（伺服器，_fifo_take 的容差）和照批賣（研究模擬的 sell_lots）才會拿到同樣的批次。
+            if q >= MIN_LOT:
                 self.lots.append(Lot(i, q, now))
                 self.bucket[i] -= q
-        self._record(now, "collect", 0.0, take)
-        return take
+                took += q
+        if took:
+            self._record(now, "collect", 0.0, took)
+        return took
 
     def drop_spoiled(self, now: float) -> float:
         lost = 0.0
