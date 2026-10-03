@@ -884,7 +884,22 @@ class GameModel extends ChangeNotifier {
   Future<ShopInfo?> shopInfo() => _read(api.shop);
   Future<StudMarket?> studMarket() => _read(api.stud);
   Future<StudLog?> studLog() => _read(api.studLog);
-  Future<BreedPreview?> studPreview(StudListing listing, Cow dam) => _read(() => api.studPreview(listing.id, dam.id));
+
+  /// 借種前看可能結果（協定 4.3）。那一筆已經被借走或下架時伺服器回 404 listing_not_found：[gone] 是 true，
+  /// 畫面跳 S18-10「這頭公牛已經被借走或下架了」，不當成一般的載入失敗（一般的失敗 3 秒後自動再試）。
+  Future<({BreedPreview? preview, bool gone})> studPreview(StudListing listing, Cow dam) async {
+    var gone = false;
+    final p = await _read<BreedPreview?>(() async {
+      try {
+        return await api.studPreview(listing.id, dam.id);
+      } on ApiException catch (e) {
+        if (e.code != 'listing_not_found') rethrow;
+        gone = true;
+        return null;
+      }
+    });
+    return (preview: p, gone: gone);
+  }
 
   /// 田裡現在大概有多少稻米（顯示用推算，長滿就停）。
   double fieldRiceNow(FieldInfo f) {

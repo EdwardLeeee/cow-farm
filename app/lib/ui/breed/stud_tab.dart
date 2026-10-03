@@ -108,6 +108,19 @@ class _StudTabState extends State<StudTab> {
     builder: builder,
   );
 
+  /// 預覽回 404：那一筆已經被借走或下架（例：看了列表、過一段時間才選）。跳 S18-10（同一筆只跳一次），
+  /// 不再每 3 秒重試；按「重新整理市場」取消選擇、重抓市場。
+  void _previewGone() {
+    final key = _fetch.key;
+    if (!mounted || _goneShown == key) return;
+    _goneShown = key;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _fetch.stopRetry();
+      _gone();
+    });
+  }
+
   /// S18-10：這頭公牛剛被別人借走、或主人下架了。按「重新整理市場」重抓、取消選擇。
   Future<void> _gone() async {
     final s = Strings.of(context, listen: false);
@@ -240,12 +253,11 @@ class _StudTabState extends State<StudTab> {
     final listing = done?.listing ?? others.where((l) => l.key == _listingKey).firstOrNull;
     var dam = (done?.dam ?? _damKey) == null ? null : st.cowById(done?.dam ?? _damKey!);
     if (done == null && dam != null && !dam.canBreedAt(now)) dam = null;
-    _fetch.ensure(
-      m,
-      listing == null || dam == null ? null : '${listing.key}|${dam.key}',
-      () => m.studPreview(listing!, dam!),
-      hold: done != null,
-    );
+    _fetch.ensure(m, listing == null || dam == null ? null : '${listing.key}|${dam.key}', () async {
+      final r = await m.studPreview(listing!, dam!);
+      if (r.gone) _previewGone();
+      return r.preview;
+    }, hold: done != null);
     final preview = done?.preview ?? _fetch.value;
     final outcome = _fetch.state(m, picked: listing != null && dam != null, shown: preview);
     // 借種費：預覽的是這一刻的價格（公牛長大會漲），還沒有預覽就看市場列表的

@@ -249,6 +249,9 @@ class StudApi extends FakeGameApi {
   bool previewPending = false;
   List<Map<String, dynamic>> blockers = [];
 
+  /// 預覽回的錯誤（例：404 listing_not_found，那一筆已經不在了）；null 就照常回機率。
+  ApiException? previewError;
+
   /// 借種的錯誤（status、code、detail）。
   ApiException? borrowError;
   Map<String, dynamic>? after;
@@ -269,6 +272,7 @@ class StudApi extends FakeGameApi {
   Future<BreedPreview> studPreview(Object listingId, Object dam) async {
     calls.add('stud-preview:$listingId:$dam');
     if (previewPending) return Completer<BreedPreview>().future;
+    if (previewError case final e?) throw e;
     final price = studListings.firstWhere((l) => '${l['id']}' == '$listingId')['fee']['price'] as int;
     return BreedPreview.fromJson(designStudPreviewJson(price: price, blockers: blockers));
   }
