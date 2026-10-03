@@ -1,6 +1,6 @@
 // S04 牛的詳細資料
-import { frame, btn, badge, tierChip, useChip, sexText, icon, fmt, cowSVG, sheet, toast, empty, calfLook, BREEDS } from '../kit.js';
-import { COWS, cowById, pct, studFee, STUD_RATE, BEST_BULL_KG, MIX_COW } from '../fixtures.js';
+import { frame, btn, badge, tierChip, useChip, sexText, icon, fmt, cowSVG, sheet, toast, empty, dialog, calfLook, sickBadge, BREEDS } from '../kit.js';
+import { COWS, cowById, pct, studFee, STUD_RATE, BEST_BULL_KG, MIX_COW, TREAT_PRICE, SICK_BEEF, sickOf, RANCH } from '../fixtures.js';
 import { tierOf, MIX_MULT } from '../../cow/breeds.js';
 import { t, dur, cowName, calfName, tierName, feedList } from '../i18n.js';
 
@@ -21,13 +21,14 @@ export function detailPage(ctx, c, o = {}) {
   if (c.field != null) chips.push(badge('working', t('badgeWorking')));
   if (c.listed) chips.push(badge('listed', t('badgeListed')));
   if (c.bred) chips.push(badge('bred', t('badgeBred')));
+  if (c.sick) chips.push(sickBadge());
   const cells = [];
   cells.push([t('s04.age'), dur(c.age_)]);
   if (c.age === 'calf') cells.push([t('s04.growIn'), dur(c.grow_)]);
-  else if (b.use === 'dairy' && c.sex === 'cow') cells.push([t('g.milk'), `${c.milk} <small>${t('g.perHourMilk')}</small>`]);
+  else if (b.use === 'dairy' && c.sex === 'cow') cells.push([t('g.milk'), c.sick ? `<span class="sick-v">${t('s04.sickMilk')}</span>` : `${c.milk} <small>${t('g.perHourMilk')}</small>`]);
   else if (b.use === 'draft') cells.push([t('g.plow'), `${c.rice} <small>${t('g.perHourRice')}</small>`]);
   else cells.push([t('probType'), b.use === 'beef' ? t('s04.useBeef') : t('s04.useBreed')]);
-  if (c.age !== 'calf') { cells.push([t('s04.weight'), `${fmt(c.kg)} <small>${t('g.kg')}</small>`]); cells.push([t('s04.value'), `${t('s04.about', { v: fmt(c.value) })} <small>${t('g.coin')}</small>`]); }
+  if (c.age !== 'calf') { cells.push([t('s04.weight'), `${fmt(c.kg)} <small>${t('g.kg')}</small>`]); cells.push([t('s04.value'), `${t('s04.about', { v: fmt(c.sick ? Math.round(c.value * SICK_BEEF) : c.value) })} <small>${t('g.coin')}</small>`]); }
   const origin = c.origin === 'start' ? t('s04.originStart') : 'ABC'.includes(c.origin || '-') ? t('s04.originShop', { g: c.origin }) : c.origin === 'breed' ? t('s04.originBreed') : c.origin === 'stud' ? t('s04.originStud') : '';
   const probs = c.age !== 'calf' && c.probs ? `<article class="card">
       <div class="card-head"><span class="card-title">${t('shipGradeTitle')}</span><span class="card-sub">${t('s04.gradeHint')}</span></div>
@@ -41,7 +42,7 @@ export function detailPage(ctx, c, o = {}) {
     ${probs}
   </div>`;
   const rows = (o.buttons.match(/class="btn-row"/g) || []).length + (o.buttons.includes('block') ? 1 : 0) + (o.buttons.includes('<p') ? 1 : 0);
-  return frame(ctx.dev, { tab: 'ranch', content, contentCls: `has-actions rows-${Math.max(1, rows)}`, body: `<div class="detail-actions rows-${Math.max(1, rows)}">${o.buttons}</div>`, overlays: o.overlays || '', offline: o.offline });
+  return frame(ctx.dev, { tab: 'ranch', content, contentCls: `has-actions rows-${Math.max(1, rows)}`, body: `<div class="detail-actions rows-${Math.max(1, rows)}">${o.buttons}</div>`, overlays: o.overlays || '', offline: o.offline, hud: o.hud || {} });
 }
 
 const S = [];
@@ -110,5 +111,26 @@ full('S04-16', '公耕牛：上架中', (ctx) => detailPage(ctx, { ...idleOx, li
 // 雜種牛（v0.3 第 1.1 節；使用者 2026-10-03 選第 13 輪 03-A）：名字「雜種牛 #20」、「雜種」標籤、不放稀有度；
 // 圖下面寫小時候沒吃到哪幾種、倍數 ×0.6。配種、出貨跟一般牛一樣（公的也能上架借種、耕牛也能下田）
 full('S04-17', '雜種牛：小時候沒吃到指定的飼料', (ctx) => detailPage(ctx, MIX_COW, { buttons: `<div class="btn-row">${breedBtn(false)}${shipBtn(false)}</div>` }));
+
+// ---------- 病牛（v0.3 第 5 節；第 13 輪 04-A） ----------
+// 名字下面「生病了」標籤；產奶寫「停止」、出貨估值只剩一成；第一排一整排「治療（5,000 幣）」，配種停用、出貨照樣可以
+const SICK3 = sickOf(cowById(3));
+const PRICE = () => fmt(TREAT_PRICE);
+const treatBtn = (dis) => btn(t('treat', { price: PRICE() }), { kind: 'primary', ic: 'coin', block: true, disabled: dis });
+const sickBtns = (dis = false, extra = '') => `${treatBtn(dis)}${extra}<div class="btn-row" style="margin-top:12px">${breedBtn(true)}${shipBtn(false)}</div>`;
+full('S04-18', '病牛：治療、配種停用、出貨估值只剩一成', (ctx) => detailPage(ctx, SICK3, { note: t('s04.sickNote'), buttons: sickBtns() }));
+full('S04-19', '病牛：治療確認', (ctx) => detailPage(ctx, SICK3, {
+  note: t('s04.sickNote'), buttons: sickBtns(),
+  overlays: dialog({ title: t('s04.treatTitle', { cow: cowName('holstein', 3) }), body: `<p style="text-align:center">${t('s04.treatBody', { price: PRICE() })}</p>`, buttons: `${btn(t('cancel'))}${btn(t('treat', { price: PRICE() }), { kind: 'primary', ic: 'coin' })}` }),
+}));
+const SHORT = 3750;
+part('S04-20', '病牛：金幣不夠，治療停用', '.detail-actions', (ctx) => detailPage(ctx, SICK3, {
+  note: t('s04.sickNote'), hud: { coins: SHORT },
+  buttons: sickBtns(true, `<p class="warn-text" style="margin-top:8px;text-align:center">${t('notEnoughCoins', { n: fmt(TREAT_PRICE - SHORT) })}</p>`),
+}));
+part('S04-21', '治療好了', '.toast', (ctx) => detailPage(ctx, cowById(3), {
+  hud: { coins: RANCH.coins - TREAT_PRICE }, buttons: `<div class="btn-row">${breedBtn(false)}${shipBtn(false)}</div>`,
+  overlays: toast('ok', t('s04.treated', { cow: cowName('holstein', 3) })),
+}));
 
 export default { id: 'S04', name: '牛的詳細資料', states: S };

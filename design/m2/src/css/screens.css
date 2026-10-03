@@ -1010,3 +1010,23 @@
 .draw-odds { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 8px; }
 .draw-odds .do-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 8px; }
 .draw-odds .do-cell { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; }
+
+/* ================= v0.3 第 5 節：大便、病牛（第 13 輪 04-A） ================= */
+/* 右上角的大便數：有大便才出現（沒有大便時不畫，牧場頁跟原本一樣）；髒到會生病時變紅，加「會生病」 */
+.dirty { position: absolute; right: 12px; top: calc(var(--safe-top) + var(--hud-h) + 62px); z-index: 15; display: inline-flex; align-items: center; gap: 4px; height: 36px; padding: 0 10px 0 6px; background: #FFFFFF; border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 3px 0 var(--ink); font-size: 14px; font-weight: 900; white-space: nowrap; line-height: 0; }
+.dirty > span { line-height: 20px; }
+.dirty .num { font-size: 16px; }
+.dirty.bad { background: #FFE1DC; }
+.dirty-warn { display: inline-flex; align-items: center; gap: 2px; margin-left: 2px; font-size: 12px; color: #C2412F; }
+/* 寬度小於 390：「會生病」的字拿掉，只留警告圖示（放不下牛欄膠囊旁邊） */
+@media (max-width: 389px) { .dirty-warn .dw-t { display: none; } }
+/* 清大便的動畫（A-14、A-15）：清掉的地方冒小星星、點一下的波紋、手指、劃過去的軌跡 */
+.poof { position: absolute; z-index: 38; width: 0; height: 0; pointer-events: none; }
+.poof i { position: absolute; line-height: 0; }
+.poof i:nth-child(1) { left: -8px; top: -20px; }
+.poof i:nth-child(2) { left: 6px; top: -10px; }
+.poof i:nth-child(3) { left: -16px; top: -6px; }
+.ripple { position: absolute; z-index: 39; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; border: 3px solid #FFFFFF; box-shadow: 0 0 0 2px rgba(75, 51, 38, 0.35); pointer-events: none; }
+.finger { position: absolute; z-index: 40; line-height: 0; pointer-events: none; }
+.swipe-trail { position: absolute; inset: 0; z-index: 39; pointer-events: none; }
+.sick-v { color: #C2541B; } /* 病牛的「產奶：停止」 */

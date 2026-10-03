@@ -1,6 +1,6 @@
 // S07 出貨確認（出貨動畫見 A-03）與 S20 出貨評級結果（揭曉動畫見 A-10）
-import { frame, btn, icon, fmt, cowSVG, dialog } from '../kit.js';
-import { cowById, pct } from '../fixtures.js';
+import { frame, btn, icon, fmt, cowSVG, dialog, sickBadge } from '../kit.js';
+import { cowById, pct, sickOf, SICK_BEEF } from '../fixtures.js';
 import { detailPage, GRADE_BG } from './s04.js';
 import { t, cowName } from '../i18n.js';
 // 評級的字（s20.gradeFormat）：{grade} 前後的字用小字，字母用大字。繁中「A 級」，英文、泰文「Grade A」「เกรด A」（ceo 2026-10-02）
@@ -13,19 +13,22 @@ const cow = cowById(3);
 const baseBtns = () => `<div class="btn-row"><button class="btn pink"><span>${t('pickForBreed')}</span></button><button class="btn danger"><span>${t('ship')}</span></button></div>`;
 const PRICE = 11.2; // 牛肉市價（幣／公斤）
 const GM = { A: 1.25, B: 1.0, C: 0.75 };
-const income = (g) => Math.round(cow.kg * PRICE * GM[g]);
+const income = (g, sick = false) => Math.round(cow.kg * PRICE * GM[g] * (sick ? SICK_BEEF : 1));
 
-function confirmBody({ loading = false, blocker = '', failed = false } = {}) {
-  const head = `<div class="ship-head">${cowSVG({ breed: 'holstein' }, { w: 76, h: 76, pad: 3 })}<div><b class="ship-name">${cowName('holstein', 3)}</b><div class="hint">${t('s07.kgBeef', { kg: cow.kg })}<br>${t('s07.beefPrice', { price: PRICE })}</div></div></div>`;
+// sick：病牛出貨（v0.3 第 5 節）：牛肉只剩一成，每一級的收入、期望收入都乘一成；名字旁邊「生病了」、下面橘字說先治療再出貨能賣多少
+function confirmBody({ loading = false, blocker = '', failed = false, sick = false } = {}) {
+  const head = `<div class="ship-head">${cowSVG({ breed: 'holstein', sick }, { w: 76, h: 76, pad: 3 })}<div><b class="ship-name">${cowName('holstein', 3)}</b>${sick ? `<div class="chips" style="margin:2px 0">${sickBadge()}</div>` : ''}<div class="hint">${t('s07.kgBeef', { kg: cow.kg })}<br>${t('s07.beefPrice', { price: PRICE })}</div></div></div>`;
   if (loading) return `${head}<div class="loading-row" style="padding:26px 0 18px"><span class="spinner"></span><span>${t('loadingPreview')}</span></div>`;
   if (failed) return `${head}<div class="empty" style="padding:14px 0 4px">${icon('err', 30)}<div class="t2">${t('s07.probFailed')}</div>${btn(t('retry'), { small: true, ic: 'refresh' })}</div>`;
-  const rows = ['A', 'B', 'C'].map((g) => `<div class="grade-row"><b class="gchip" style="background:${GRADE_BG[g]}">${g}</b><span class="g-name">${t('g.grade', { g })}</span><span class="num g-p">${pct(cow.probs[g])}</span><span class="g-v">${t('s07.income', { v: `<b class="num">${fmt(income(g))}</b>` })}</span></div>`).join('');
+  const rows = ['A', 'B', 'C'].map((g) => `<div class="grade-row"><b class="gchip" style="background:${GRADE_BG[g]}">${g}</b><span class="g-name">${t('g.grade', { g })}</span><span class="num g-p">${pct(cow.probs[g])}</span><span class="g-v">${t('s07.income', { v: `<b class="num">${fmt(income(g, sick))}</b>` })}</span></div>`).join('');
+  const note = sick ? `<p class="warn-text note-line" style="margin-top:10px">${icon('warn', 18)}<span>${t('s07.sickNote', { v: fmt(cow.value) })}</span></p>`
+    : blocker ? `<p class="warn-text note-line" style="margin-top:10px">${icon('warn', 18)}<span>${blocker}</span></p>` : `<p class="hint" style="margin-top:8px">${t('s07.note')}</p>`;
   return `${head}
     <div class="grade-rows">${rows}</div>
-    <div class="ev-line">${t('expectedValue', { v: `<b class="num">${fmt(cow.value)}</b>` })}</div>
-    ${blocker ? `<p class="warn-text note-line" style="margin-top:10px">${icon('warn', 18)}<span>${blocker}</span></p>` : `<p class="hint" style="margin-top:8px">${t('s07.note')}</p>`}`;
+    <div class="ev-line">${t('expectedValue', { v: `<b class="num">${fmt(sick ? Math.round(cow.value * SICK_BEEF) : cow.value)}</b>` })}</div>
+    ${note}`;
 }
-const dlg = (ctx, body, { okDisabled = false, offline = false } = {}) => detailPage(ctx, cow, {
+const dlg = (ctx, body, { okDisabled = false, offline = false, sick = false } = {}) => detailPage(ctx, sick ? sickOf(cow) : cow, {
   buttons: baseBtns(), offline,
   overlays: dialog({ title: t('shipConfirmTitle'), body, buttons: `${btn(t('cancel'))}${btn(t('s07.confirm'), { kind: 'danger', disabled: okDisabled })}` }),
 });
@@ -38,6 +41,7 @@ full7('S07-02', '確認：各等級機率與收入', (ctx) => dlg(ctx, confirmBo
 full7('S07-03', '伺服器說現在不能出貨', (ctx) => dlg(ctx, confirmBody({ blocker: t('s07.blockWorking') }), { okDisabled: true }));
 part7('S07-04', '評級機率載入失敗', '.dialog', (ctx) => dlg(ctx, confirmBody({ failed: true }), { okDisabled: true }));
 part7('S07-05', '斷線：「確定出貨」停用', '.dialog', (ctx) => dlg(ctx, confirmBody(), { okDisabled: true, offline: true }));
+part7('S07-06', '病牛出貨：牛肉只剩一成', '.dialog', (ctx) => dlg(ctx, confirmBody({ sick: true }), { sick: true }));
 
 // ---------- S20 評級結果 ----------
 const TIPS = { A: 's20.tipA', B: 's20.tipB', C: 's20.tipC' };
