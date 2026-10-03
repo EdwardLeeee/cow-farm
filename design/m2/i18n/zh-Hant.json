@@ -201,6 +201,7 @@
  "s19.penFull": "牛舍滿了（{used} / {slots} 格），先擴建或出貨",
  "drawnTitle": "{g} 級抽到了！",
  "s19.drawnDraft": "長大還要 {time}。長大後可以派去田裡種稻。",
+ "s19.drawnOdds": "長大可能是：",
  "upPen": "擴建牛舍",
  "effectPen": "{a} → {b} 格",
  "s10.penTimes": "擴建過 {n} 次",

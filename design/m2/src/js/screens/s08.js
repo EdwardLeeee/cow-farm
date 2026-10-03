@@ -1,6 +1,6 @@
 // S08 配種（自己的公牛 × 自己的母牛）與 S18 借種市場。每頭牛一輩子只能配種一次（公母都一樣，借出去也算）。
 import { frame, btn, seg, badge, tierChip, useChip, icon, fmt, cowSVG, toast, dialog, calfLook, BREEDS } from '../kit.js';
-import { COWS, cowById, STUD, STUD_INCOME, STUD_LOG, FOUND, RANCH, studFee, LONG_NAMES } from '../fixtures.js';
+import { COWS, cowById, STUD, STUD_INCOME, STUD_LOG, FOUND, RANCH, studFee, LONG_NAMES, CALF_GROW_H } from '../fixtures.js';
 import { tierOf } from '../../cow/breeds.js';
 import { CALF_LOOK } from '../../cow/calf.js';
 import { t, tb, dur, dateText, cowName, calfName, breedName, sexName, LANG } from '../i18n.js';
@@ -29,9 +29,7 @@ const BULLS = () => [[cowById(14), ''], [cowById(5), 'listed'], [cowById(8), 'br
 const DAMS = () => [[cowById(3), ''], [cowById(7), ''], [cowById(12), ''], [cowById(11), ''], [cowById(9), 'working'], [cowById(15), 'calf']];
 
 // fee：卡片右上角整句費用（自己配種是 breedFree；借種是 s18.feeLine）；none：還沒選好時的提示
-// 小牛長大要幾小時：v0.3 所有小牛一樣（ceo 2026-10-03 定；數字等模擬，約 2–4 小時，設計稿的例子用 3 小時；開局送的小牛照舊很快長大）。
-// 以前照稀有度 1／2／4／8 小時，會讓玩家從倒數猜出稀有度
-export const CALF_GROW_H = 3;
+// 小牛長大要幾小時：v0.3 所有小牛一樣（fixtures.js 的 CALF_GROW_H）
 const growRange = () => t('hours', { h: CALF_GROW_H });
 export function outcomeCard(st, { rows = OUTCOME, fee = t('breedFree'), title = t('s08.outcomeTitle'), feeLine = true, none = t('pickBoth') } = {}) {
   let body;

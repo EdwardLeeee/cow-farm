@@ -201,6 +201,7 @@
  "s19.penFull": "Barn full ({used} / {slots}). Expand it or ship a cow first.",
  "drawnTitle": "Grade {g} draw!",
  "s19.drawnDraft": "Grows up in {time}. Once grown, send it to the fields to grow rice.",
+ "s19.drawnOdds": "Could grow into:",
  "upPen": "Expand barn",
  "effectPen": "{a} → {b} slots",
  "s10.penTimes": "Expanded ×{n}",

@@ -356,13 +356,14 @@ const A08 = {
 // ---------- A-09 商店抽牛開獎 ----------
 const A09 = {
   id: 'A-09', name: '商店抽牛開獎（揭曉）', dur: 1.5, where: 'S19 商店抽牛',
-  keys: [[0, '按下「A 級」：出現金色禮盒'], [0.3, '禮盒搖晃、發光'], [0.55, '蓋子彈開，光線放射'], [0.85, '小牛從盒子裡升起（剪影 → 彩色）'], [1.15, '跳出名字與稀有度'], [1.5, '接著顯示抽到的結果（S19-05）']],
+  // v0.3（ceo 2026-10-03 定）：抽到的也是小牛、長大才揭曉品種（A-13）：只看得出用途和公母
+  keys: [[0, '按下「A 級」：出現金色禮盒'], [0.3, '禮盒搖晃、發光'], [0.55, '蓋子彈開，光線放射'], [0.85, '小牛從盒子裡升起（剪影 → 彩色；照用途的一般品種畫）'], [1.15, '跳出名字（小耕牛 #17）、用途和公母'], [1.5, '接著顯示抽到的結果（S19-05）']],
   reduced: '不播動畫：直接顯示抽到的結果（S19-05）。',
   base: (ctx) => revealLayer(ctx, frame(ctx.dev, { tab: 'shop', content: '<div></div>' }), `
     <div class="rays"></div>
-    <div class="gbox"><div class="gb-calf sil">${cowSVG({ breed: 'highland', age: 'calf', seed: 97 }, { w: 150, h: 130, sil: 'dark' })}</div><div class="gb-calf col">${cowSVG({ breed: 'highland', age: 'calf', seed: 97 }, { w: 150, h: 130 })}</div>
+    <div class="gbox"><div class="gb-calf sil">${cowSVG({ breed: 'yellow', sex: 'cow', age: 'calf', seed: 97 }, { w: 150, h: 130, sil: 'dark' })}</div><div class="gb-calf col">${cowSVG({ breed: 'yellow', sex: 'cow', age: 'calf', seed: 97 }, { w: 150, h: 130 })}</div>
       <div class="gb-body"><span class="gb-grade">A</span></div><div class="gb-lid"></div></div>
-    <div class="reveal-name"><b>${cowName('highland', 17)}</b><div class="chips">${tierChip(1)}${badge('calf', T('stageCalf'))}</div></div>${skipHint(true)}`),
+    <div class="reveal-name"><b>${calfName('draft', 17)}</b><div class="chips">${useChip('draft')}<span class="use">${sexName('cow')}</span>${badge('calf', T('stageCalf'))}</div></div>${skipHint(true)}`),
   frame(root, t) {
     const box = root.querySelector('.gbox'), lid = root.querySelector('.gb-lid'), rays = root.querySelector('.rays');
     const shake = t < 0.5 ? Math.sin(t * 46) * 8 * seg(t, 0.05, 0.3) : 0;
