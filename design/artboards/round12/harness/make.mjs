@@ -1,6 +1,7 @@
-// 第 12 輪草稿：出說明圖。原始截圖（DPR 2）放 raw/（不進 git），再用 harness/compose.py 轉成 256 色、存到這個資料夾。
+// 第 12 輪草稿：出說明圖。原始截圖放 raw/（不進 git），再用 harness/compose.py 存到這個資料夾（全彩）。
+// 單張 DPR 2；總覽 R12-99、狀態表 R12-03（8 支手機一張）用 DPR 1.5（ceo 2026-10-03：控制 repo 大小）。
 // 用法（在 design/artboards/round12 底下跑；用 design/m2 的 Playwright 和靜態伺服器）：
-//   node harness/make.mjs          全部（總覽 R12-99 用 DPR 1.5）
+//   node harness/make.mjs          全部
 //   node harness/make.mjs R12-05   只出 id 開頭是 R12-05 的
 // 照記憶體規則：free -m 可用少於 1000 MB 就先等，用 systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 包起來。
 import { chromium } from '../../../m2/node_modules/playwright/index.mjs';
@@ -37,7 +38,7 @@ try {
   const boards = (await l.page.evaluate(() => window.__boards)).filter((b) => b.id.startsWith(only));
   await l.ctx.close();
   for (const b of boards) {
-    const o = await open(`b=${b.id}&w=${b.w}`, b.id === 'R12-99' ? 1.5 : 2);
+    const o = await open(`b=${b.id}&w=${b.w}`, b.id === 'R12-99' || b.id.startsWith('R12-03') ? 1.5 : 2);
     const { file, size, over } = await o.page.evaluate(() => {
       // 量測：手機裡一行放不下、被切掉的字（white-space: nowrap 又超出自己的框）
       const over = [];

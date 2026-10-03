@@ -44,7 +44,7 @@
 | 路徑 | 內容 |
 |---|---|
 | `src/r12.html`、`src/r12.css`、`src/r12.js` | 草稿頁：`r12.html?b=R12-01-A&w=390` 畫一張說明圖；`?list=1` 列出全部。用 `design/m2` 的元件、樣式、字串表和假資料 |
-| `harness/make.mjs` | 出圖：原始截圖放 `raw/`（不進 git），單張 DPR 2、總覽 DPR 1.5；手機裡一行放不下的字會列出來 |
+| `harness/make.mjs` | 出圖：原始截圖放 `raw/`（不進 git），單張 DPR 2；總覽、R12-03 兩張狀態表 DPR 1.5（ceo 2026-10-03）；手機裡一行放不下的字會列出來 |
 | `harness/compose.py` | `raw/` → 這個資料夾（全彩 PNG；這一輪有深色底和漸層，轉 256 色會讓小圖示變色，所以不轉） |
 
 ```bash
