@@ -199,6 +199,7 @@ class Cow:
         "field",
         "listed",
         "origin",
+        "speed",
     )
 
     def __init__(
@@ -210,6 +211,7 @@ class Cow:
         fp: FarmParams,
         adult_at: Optional[float] = None,
         origin: str = "",
+        speed: float = 1.0,
     ):
         self.cid = cid
         self.g = g
@@ -217,7 +219,11 @@ class Cow:
         self.born_at = born_at
         self.tier = tier_of(g)
         self.ctype = cow_type(g)
-        self.adult_at = adult_at if adult_at is not None else born_at + fp.tier_growth_h[self.tier] * HOUR
+        # 年紀走多快（v0.3 的地板：×0.75／1.25／1.5；1.0 = 泥土地）。所有年齡曲線（長大、最壯、產奶耕田的全速期、變老、
+        # 肉質）都用「年紀小時」= 現實的遊戲小時 × speed。speed 不存在牛身上的存檔，由牧場（Farm.speed）設。
+        # adult_at、born_at 是照現在的速度推算的時間；換速度時 Farm.set_speed 重新推算，年紀不會跳。
+        self.speed = speed
+        self.adult_at = adult_at if adult_at is not None else born_at + fp.tier_growth_h[self.tier] * HOUR / speed
         self.ready_at = self.adult_at  # v0.1 的配種冷卻；v0.2 沒有冷卻，固定 = 成年時間（相容保留）
         self.bred = False
         self.field = -1
@@ -228,7 +234,8 @@ class Cow:
         return now >= self.adult_at
 
     def adult_age_h(self, now: float) -> float:
-        return (now - self.adult_at) / HOUR
+        """成年後的年紀小時（現實的遊戲小時 × speed）。"""
+        return (now - self.adult_at) / HOUR * self.speed
 
     def is_busy(self) -> bool:
         """在田裡或上架借種中：不能出貨、配種。"""
@@ -305,9 +312,11 @@ def cow_milk_between(fp: FarmParams, cow: Cow, t0: float, t1: float) -> float:
     """t0 到 t1 之間產了幾瓶。"""
     if not is_milker(cow) or t1 <= cow.adult_at or t1 <= t0:
         return 0.0
-    a0 = max(0.0, (t0 - cow.adult_at) / HOUR)
-    a1 = (t1 - cow.adult_at) / HOUR
-    return fp.milk_per_h[cow.ctype] * (_milk_frac_cum(fp, a1) - _milk_frac_cum(fp, a0))
+    # 年紀小時積分 ÷ speed：每個現實小時的產量照年紀曲線，年紀走得快只是全速期比較短（t0–t1 之間速度不變，Farm 保證）
+    s = cow.speed
+    a0 = max(0.0, (t0 - cow.adult_at) / HOUR * s)
+    a1 = (t1 - cow.adult_at) / HOUR * s
+    return fp.milk_per_h[cow.ctype] * (_milk_frac_cum(fp, a1) - _milk_frac_cum(fp, a0)) / s
 
 
 # ---- 耕田 ----
@@ -321,9 +330,10 @@ def cow_rice_rate(fp: FarmParams, cow: Cow, now: float) -> float:
 def cow_rice_between(fp: FarmParams, cow: Cow, t0: float, t1: float) -> float:
     if fp.rice_per_h[cow.ctype] <= 0 or t1 <= cow.adult_at or t1 <= t0:
         return 0.0
-    a0 = max(0.0, (t0 - cow.adult_at) / HOUR)
-    a1 = (t1 - cow.adult_at) / HOUR
-    return fp.rice_per_h[cow.ctype] * fp.tier_mult[cow.tier] * (_milk_frac_cum(fp, a1) - _milk_frac_cum(fp, a0))
+    s = cow.speed  # 同 cow_milk_between
+    a0 = max(0.0, (t0 - cow.adult_at) / HOUR * s)
+    a1 = (t1 - cow.adult_at) / HOUR * s
+    return fp.rice_per_h[cow.ctype] * fp.tier_mult[cow.tier] * (_milk_frac_cum(fp, a1) - _milk_frac_cum(fp, a0)) / s
 
 
 def field_cap_for(fp: FarmParams, cow: Cow) -> float:
@@ -607,6 +617,7 @@ class Farm:
         "fields",
         "rice_lots",
         "track",
+        "speed",
     )
 
     def __init__(self, params: EconomyParams, now: float, rng: random.Random):
@@ -631,6 +642,7 @@ class Farm:
         self.n_sales = 0  # 賣過幾次（牛奶、牛肉、稻米）；教學與任務用
         self.log: Optional[list] = None  # 模擬時設成 list 就會記錄每筆收支
         self.track: Optional[dict] = None  # 模擬時設成 dict 就會記錄每頭牛的產出（不存檔）
+        self.speed = 1.0  # 牛的年紀走多快（v0.3 的地板設；1.0 = 泥土地）。全部的牛一起，換的時候用 set_speed
 
         cow = Cow(
             self._new_id(),
@@ -716,6 +728,20 @@ class Farm:
                 self.bucket = self.bucket_preview(now)
             self.bucket_t = now
         self._advance_fields(now)
+
+    def set_speed(self, speed: float, now: float) -> None:
+        """換年紀速度（v0.3 換地板）：先結算到 now（之前那段照舊的速度），再把每頭牛的 adult_at、born_at 照新的速度
+        重新推算，年紀小時在 now 連續、之後照新的速度走。上架借種的公牛要另外叫 StudMarket.follow_owner。"""
+        if speed == self.speed:
+            return
+        self.advance(now)
+        r = self.speed / speed
+        for c in self.cows:
+            c.adult_at = now + (c.adult_at - now) * r
+            c.ready_at = c.adult_at
+            c.born_at = now + (c.born_at - now) * r
+            c.speed = speed
+        self.speed = speed
 
     def bucket_preview(self, now: float) -> List[float]:
         """到 now 為止奶桶裡各稀有度的牛奶（瓶），不改狀態。advance() 用同一個算法。"""
@@ -1069,7 +1095,7 @@ class Farm:
         self.advance(now)
         self.coins -= price
         g, bull = shop_draw(fp, gi, rng)
-        cow = Cow(self._new_id(), g, bull, now, fp, origin=fp.shop_grade_names[gi])
+        cow = Cow(self._new_id(), g, bull, now, fp, origin=fp.shop_grade_names[gi], speed=self.speed)
         self.cows.append(cow)
         self._record(now, "calf", -price)
         self._record(now, "shop_" + fp.shop_grade_names[gi], 0.0, 1.0)
@@ -1082,7 +1108,9 @@ class Farm:
             return None
         self.advance(now)
         self.coins -= price
-        cow = Cow(self._new_id(), shop_genotype(self.fp, type_idx, rng), bull, now, self.fp, origin="legacy")
+        cow = Cow(
+            self._new_id(), shop_genotype(self.fp, type_idx, rng), bull, now, self.fp, origin="legacy", speed=self.speed
+        )
         self.cows.append(cow)
         self._record(now, "calf", -price)
         return cow
@@ -1116,7 +1144,7 @@ class Farm:
 
     def _make_calf(self, sire_g: int, dam: Cow, now: float, rng: random.Random, origin: str) -> Cow:
         g = breed_genotype(sire_g, dam.g, rng)
-        calf = Cow(self._new_id(), g, rng.random() < 0.5, now, self.fp, origin=origin)
+        calf = Cow(self._new_id(), g, rng.random() < 0.5, now, self.fp, origin=origin, speed=self.speed)
         self.cows.append(calf)
         return calf
 
@@ -1228,6 +1256,7 @@ class Farm:
             "next_cid": self._next_cid,
             "first_breed_used": self.first_breed_used,
             "n_sales": self.n_sales,
+            **({"speed": self.speed} if self.speed != 1.0 else {}),  # 年紀速度；1.0 不寫，存檔跟以前一樣
         }
 
     @classmethod
@@ -1260,6 +1289,9 @@ class Farm:
         f._next_cid = d["next_cid"]
         f.first_breed_used = d["first_breed_used"]
         f.n_sales = d["n_sales"]
+        f.speed = d.get("speed", 1.0)
+        for c in f.cows:  # 牛的存檔不存速度，跟牧場一樣
+            c.speed = f.speed
         f.log = None
         f.track = None
         return f
@@ -1268,15 +1300,17 @@ class Farm:
 # ---------------------------------------------------------------------------
 # 借種市場（全服共用；第一個跨玩家的狀態）
 # ---------------------------------------------------------------------------
-def stud_fee(fp: FarmParams, ctype: int, tier: int, adult_at: Optional[float], now: float) -> Tuple[float, float, bool]:
+def stud_fee(
+    fp: FarmParams, ctype: int, tier: int, adult_at: Optional[float], now: float, speed: float = 1.0
+) -> Tuple[float, float, bool]:
     """借種費（D26）：公牛現在的體重 × 每公斤價格（依稀有度），四捨五入到 stud_fee_round 幣。
 
     體重跟 beef_weight 同一個算法（公牛，成年後 peak_age_h 小時長到最佳體重，之後不變）。
-    adult_at = None 是公營種牛站（沒有真的牛）：用那種用途公牛的最佳體重。
+    adult_at = None 是公營種牛站（沒有真的牛）：用那種用途公牛的最佳體重。speed：主人牧場的年紀速度（Cow.speed）。
     回傳 (借種費, 體重公斤, 是否已經長到最壯)。
     """
     w0, w1, pa = fp.adult_weight_kg[ctype], fp.peak_weight_kg[ctype], fp.peak_age_h[ctype]
-    frac = 1.0 if adult_at is None else min(max(now - adult_at, 0.0) / HOUR / pa, 1.0)
+    frac = 1.0 if adult_at is None else min(max(now - adult_at, 0.0) / HOUR * speed / pa, 1.0)
     kg = (w0 + (w1 - w0) * frac) * fp.bull_weight_mult
     step = fp.stud_fee_round
     return math.floor(kg * fp.stud_fee_per_kg[tier] / step + 0.5) * step, kg, frac >= 1.0
@@ -1287,9 +1321,11 @@ class StudListing:
     g、ctype、tier 是上架當下公牛的基因（畫面顯示與配種機率用）；adult_at 是公牛長大的時間，借種費依「現在」的體重算
     （StudMarket.fee）。公營種牛站沒有真的牛，adult_at = None（用最佳體重算）。"""
 
-    __slots__ = ("lid", "owner", "cow_id", "g", "ctype", "tier", "adult_at", "listed_at")
+    __slots__ = ("lid", "owner", "cow_id", "g", "ctype", "tier", "adult_at", "listed_at", "speed")
 
-    def __init__(self, lid: int, owner, cow_id: int, g: int, adult_at: Optional[float], listed_at: float):
+    def __init__(
+        self, lid: int, owner, cow_id: int, g: int, adult_at: Optional[float], listed_at: float, speed: float = 1.0
+    ):
         self.lid = lid
         self.owner = owner
         self.cow_id = cow_id
@@ -1298,6 +1334,7 @@ class StudListing:
         self.tier = tier_of(g)
         self.adult_at = adult_at
         self.listed_at = listed_at
+        self.speed = speed  # 主人牧場的年紀速度；主人換速度時 StudMarket.follow_owner 跟著改
 
     def to_dict(self) -> dict:
         return {
@@ -1307,11 +1344,12 @@ class StudListing:
             "g": self.g,
             "adult_at": self.adult_at,
             "listed_at": self.listed_at,
+            **({"speed": self.speed} if self.speed != 1.0 else {}),
         }
 
     @classmethod
     def from_dict(cls, d: dict) -> "StudListing":
-        return cls(d["id"], d["owner"], d["cow_id"], d["g"], d["adult_at"], d["listed_at"])
+        return cls(d["id"], d["owner"], d["cow_id"], d["g"], d["adult_at"], d["listed_at"], d.get("speed", 1.0))
 
 
 class StudMarket:
@@ -1346,7 +1384,7 @@ class StudMarket:
 
     def fee(self, lst: StudListing, now: float) -> Tuple[float, float, bool]:
         """這一刻的借種費：(價格, 公牛體重, 是否已經長到最壯)。"""
-        return stud_fee(self.p.farm, lst.ctype, lst.tier, lst.adult_at, now)
+        return stud_fee(self.p.farm, lst.ctype, lst.tier, lst.adult_at, now, lst.speed)
 
     def price(self, lst: StudListing, now: float) -> float:
         return self.fee(lst, now)[0]
@@ -1370,7 +1408,7 @@ class StudMarket:
     def list_bull(self, farm: Farm, owner, cow: Cow, now: float) -> Optional[StudListing]:
         if owner is None or not self.can_list(farm, cow, now):
             return None
-        lst = StudListing(self._next_id, owner, cow.cid, cow.g, cow.adult_at, now)
+        lst = StudListing(self._next_id, owner, cow.cid, cow.g, cow.adult_at, now, cow.speed)
         self._next_id += 1
         self._add(lst)
         cow.listed = lst.lid
@@ -1389,6 +1427,13 @@ class StudMarket:
 
     def owner_listings(self, owner) -> List[StudListing]:
         return [l for l in self.listings.values() if l.owner == owner]
+
+    def follow_owner(self, owner, farm: "Farm") -> None:
+        """主人換了年紀速度（Farm.set_speed）之後：上架的公牛照新的長大時間和速度算借種費。"""
+        for lst in self.owner_listings(owner):
+            c = farm.cow_by_id(lst.cow_id)
+            if c is not None:
+                lst.adult_at, lst.speed = c.adult_at, c.speed
 
     # ---- 借種 ----
     def can_borrow(

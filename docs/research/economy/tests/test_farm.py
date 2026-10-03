@@ -12,6 +12,8 @@ from cowecon import DEFAULT, HOUR, MINUTE, Exchange  # noqa: E402
 from cowecon.farm import (  # noqa: E402
     Cow,
     Farm,
+    StudMarket,
+    cow_milk_rate,
     beef_quality,
     beef_weight,
     breed_genotype,
@@ -110,6 +112,69 @@ class TestBeef(unittest.TestCase):
             w = FP.adult_weight_kg[t] * (FP.bull_weight_mult if bull else 1.0)
             v += p * w * DEFAULT.beef.base_price * DEFAULT.beef.soft_hi * best * FP.tier_mult[bin(mask).count("1")]
         self.assertLess(v, FP.shop_grade_price[FP.shop_grade_names.index("C")])
+
+
+class TestAgeSpeed(unittest.TestCase):
+    """年紀速度（v0.3 地板的基礎；A0 先做重構，速度 1 的數字逐位不變）：Farm.set_speed 換速度時年紀連續，
+    之後照新速度走；每個現實小時的產量照年紀曲線（全速期變短或變長）。"""
+
+    def setUp(self):
+        self.t = T0 + 10 * HOUR
+        self.f = Farm(DEFAULT, T0, random.Random(3))
+        self.dairy = Cow(50, make_genotype(0, [(0, 0)] * 3), False, T0, FP, adult_at=self.t - 10 * HOUR)
+        self.calf = Cow(51, make_genotype(2, [(0, 0)] * 3), True, self.t, FP)  # 剛出生
+        self.f.cows += [self.dairy, self.calf]
+        self.f.slots = 10
+
+    def test_speed_one_is_bit_identical(self):
+        """速度 1：所有算式乘除 1.0，結果跟以前一模一樣（研究模擬的逐數字比對也靠這個）。"""
+        c = Cow(1, make_genotype(0, [(0, 0)] * 3), False, T0, FP)
+        self.assertEqual(c.adult_at, T0 + FP.tier_growth_h[0] * HOUR)
+        t = c.adult_at + 7.3 * HOUR
+        self.assertEqual(c.adult_age_h(t), (t - c.adult_at) / HOUR)
+        self.assertNotIn("speed", self.f.to_dict())  # 速度 1 不寫進存檔，存檔跟以前一樣
+
+    def test_switch_keeps_age_continuous(self):
+        f, t = self.f, self.t
+        age0, left0 = self.dairy.adult_age_h(t), self.calf.adult_at - t
+        f.set_speed(1.5, t)
+        self.assertAlmostEqual(self.dairy.adult_age_h(t), age0)
+        self.assertAlmostEqual(self.calf.adult_at - t, left0 / 1.5)  # 小牛快 1.5 倍長大
+        t2 = t + 4 * HOUR
+        self.assertAlmostEqual(self.dairy.adult_age_h(t2), age0 + 4 * 1.5)
+        f.set_speed(0.75, t2)
+        t3 = t2 + 2 * HOUR
+        self.assertAlmostEqual(self.dairy.adult_age_h(t3), age0 + 4 * 1.5 + 2 * 0.75)
+        back = Farm.from_dict(DEFAULT, f.to_dict())  # 存檔：牧場的速度，牛跟著
+        self.assertEqual(back.speed, 0.75)
+        self.assertTrue(all(c.speed == 0.75 for c in back.cows))
+        self.assertAlmostEqual(back.cow_by_id(50).adult_age_h(t3), self.dairy.adult_age_h(t3))
+
+    def test_production_follows_age_curve(self):
+        """每個現實小時的產量照年紀曲線：區間產量 = 每小時產量的積分（速度 1.5 也成立）；
+        壯年的每小時產量不變，只是壯年期變短。"""
+        f, t, c = self.f, self.t, self.dairy
+        rate_prime = cow_milk_rate(FP, c, t)
+        f.set_speed(1.5, t)
+        self.assertAlmostEqual(cow_milk_rate(FP, c, t), rate_prime)
+        t1 = t + 120 * HOUR
+        n = 12000
+        num = sum(cow_milk_rate(FP, c, t + (i + 0.5) * (t1 - t) / n) for i in range(n)) * (t1 - t) / n / HOUR
+        self.assertAlmostEqual(cow_milk_between(FP, c, t, t1), num, delta=num * 1e-4)
+        prime_left = FP.milk_prime_h - c.adult_age_h(t)  # 年紀小時
+        self.assertAlmostEqual(cow_milk_rate(FP, c, t + prime_left / 1.5 * HOUR - 60), rate_prime)
+
+    def test_stud_listing_follows_owner(self):
+        """上架的公牛：主人換速度以後，借種費照新的長大時間和速度算（跟出貨體重同一個算法）。"""
+        sm = StudMarket(DEFAULT)
+        bull = Cow(60, make_genotype(2, [(0, 0)] * 3), True, T0, FP, adult_at=self.t)
+        self.f.cows.append(bull)
+        lst = sm.list_bull(self.f, "owner", bull, self.t + 10 * HOUR)
+        self.f.set_speed(1.5, self.t + 20 * HOUR)
+        sm.follow_owner("owner", self.f)
+        t = self.t + 30 * HOUR
+        self.assertAlmostEqual(sm.fee(lst, t)[1], beef_weight(FP, bull, t))
+        self.assertAlmostEqual(bull.adult_age_h(t), 20 + 10 * 1.5)
 
 
 class TestBreeding(unittest.TestCase):
