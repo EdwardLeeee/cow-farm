@@ -208,4 +208,55 @@ void main() {
       expect(find.byKey(const Key('recover')), findsOneWidget);
     });
   });
+
+  group('S14-05、S15-03 的「找回我的牧場」', () {
+    setUpAll(loadAppAssets);
+
+    testWidgets('S14-05：找回我的牧場 → S14-02；返回鈕、返回鍵回到 S14-05；找回成功 → S14-04 → 進牧場', (tester) async {
+      Screen.w430.apply(tester);
+      final (m, api) = await showLost(tester, AppLang.zhHant);
+      api.switchedStateJson = recoveredState();
+      expect(find.byKey(const Key('elsewhere')), findsOneWidget);
+      expect(find.text(_zh.s14ElsewhereLead(name: '晨光河畔牧場')), findsOneWidget);
+      await _tap(tester, 'lost-recover');
+      expect(find.byKey(const Key('recover')), findsOneWidget);
+      await _tap(tester, 'btn-back');
+      expect(find.byKey(const Key('elsewhere')), findsOneWidget);
+      await _tap(tester, 'lost-recover');
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+      expect(find.byKey(const Key('elsewhere')), findsOneWidget);
+      expect(m.recoverOpen, isFalse);
+      await _tap(tester, 'lost-recover');
+      await _tap(tester, 'sso-google');
+      expect(find.byKey(const Key('welcome-back')), findsOneWidget);
+      expect(m.authLost, isNull);
+      await _tap(tester, 'enter-recovered');
+      expect(find.byKey(const Key('gear')), findsOneWidget, reason: '進到牧場');
+    });
+
+    testWidgets('S15-03 帳號失效：一樣可以找回', (tester) async {
+      Screen.w430.apply(tester);
+      final (_, api) = await showLost(tester, AppLang.zhHant, code: 'unauthorized');
+      api.switchedStateJson = recoveredState();
+      expect(find.byKey(const Key('auth-lost')), findsOneWidget);
+      await _tap(tester, 'lost-recover');
+      await _tap(tester, 'sso-apple');
+      expect(find.byKey(const Key('welcome-back')), findsOneWidget);
+    });
+
+    testWidgets('沒設登入的建置（網頁試玩版）：S14-05、S15-03 都只有「開新牧場」；開新牧場 → S02 取名', (tester) async {
+      Screen.w430.apply(tester);
+      await showLost(tester, AppLang.zhHant, code: 'unauthorized', withSignIn: false);
+      expect(find.byKey(const Key('auth-lost')), findsOneWidget);
+      expect(find.byKey(const Key('lost-recover')), findsNothing);
+      final (m, _) = await showLost(tester, AppLang.zhHant, withSignIn: false);
+      expect(find.byKey(const Key('elsewhere')), findsOneWidget);
+      expect(find.byKey(const Key('lost-recover')), findsNothing);
+      await _tap(tester, 'start-over');
+      await tester.pump();
+      expect(m.authLost, isNull);
+      expect(find.byKey(const Key('ranch-name')), findsOneWidget, reason: '直接取名，不經過 S14-01');
+    });
+  });
 }

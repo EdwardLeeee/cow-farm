@@ -4,6 +4,7 @@
 import 'dart:async';
 
 import 'package:cowfarm/api/breeds.dart';
+import 'package:cowfarm/api/models.dart';
 import 'package:cowfarm/api/game_api.dart';
 import 'package:cowfarm/auth/sign_in.dart';
 import 'package:cowfarm/l10n/l10n.dart';
@@ -40,6 +41,26 @@ Map<String, dynamic> recoveredState() => {
     for (final b in kCodexOrder.take(10)) {'breed': b, 'found_at': t0},
   ],
 };
+
+/// 玩到一半這支手機的登入失效了（設好登入的建置，設計稿的牧場「晨光河畔牧場 #1234」）：
+/// [code] 是 signed_in_elsewhere（S14-05：牧場在另一支手機找回了）或 unauthorized（S15-03）。
+Future<(GameModel, FakeGameApi)> showLost(
+  WidgetTester tester,
+  AppLang lang, {
+  String code = 'signed_in_elsewhere',
+  SignInService? signIn,
+  bool withSignIn = true,
+}) async {
+  final (m, api, push) = await loadedModel(
+    api: FakeGameApi(state: {...ranchState(), 'player_id': 1234}, market: ranchMarket()),
+    signIn: withSignIn ? (signIn ?? FakeSignIn()) : null,
+  );
+  await pumpAppIn(tester, m, lang, prefs: swipeHintSeen);
+  push.emit(PushAuthFailed('tok', code));
+  await tester.pump(Duration.zero);
+  await settleImages(tester);
+  return (m, api);
+}
 
 /// S14-01 → 按「找回我的牧場」→ S14-02。
 Future<GameModel> showRecover(
@@ -181,6 +202,18 @@ final s14Cases = [
     crop: find.byKey(const Key('sheet')),
     check: (tester) {
       expect(find.byType(ToastPill), findsNWidgets(2));
+    },
+  ),
+  PageCase(
+    'S14-05',
+    '舊手機：牧場已經在另一支手機登入',
+    (tester, lang) async => showLost(tester, lang),
+    check: (tester) {
+      expect(find.byKey(const Key('elsewhere')), findsOneWidget);
+      expect(find.text(_zh.s14ElsewhereTitle), findsOneWidget);
+      expect(find.text(_zh.s14ElsewhereLead(name: '晨光河畔牧場')), findsOneWidget);
+      expect(find.byKey(const Key('lost-recover')), findsOneWidget);
+      expect(find.byKey(const Key('start-over')), findsOneWidget);
     },
   ),
 ];

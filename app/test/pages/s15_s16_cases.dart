@@ -12,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../fakes.dart';
 import 'page_case.dart';
 import 's03_cases.dart';
+import 's14_cases.dart';
 
 final _zh = Strings.forLang(AppLang.zhHant);
 
@@ -81,19 +82,13 @@ final s15s16Cases = [
   PageCase(
     'S15-03',
     '帳號失效',
-    (tester, lang) async {
-      final (m, _, push) = await loadedModel(
-        api: FakeGameApi(state: ranchState(), market: ranchMarket()),
-      );
-      await pumpAppIn(tester, m, lang, prefs: swipeHintSeen);
-      push.emit(const PushAuthFailed('tok'));
-      await tester.pump(Duration.zero);
-      await settleImages(tester);
-    },
+    // 設計稿畫的是設好登入的 iPhone：「找回我的牧場」「開新牧場」兩顆（沒設登入的建置只有「開新牧場」，在 recover_test）
+    (tester, lang) async => showLost(tester, lang, code: 'unauthorized'),
     check: (tester) {
       expect(find.byKey(const Key('auth-lost')), findsOneWidget);
       expect(find.text(_zh.s15InvalidTitle), findsOneWidget);
       expect(find.text(_zh.s15InvalidBody), findsOneWidget);
+      expect(find.byKey(const Key('lost-recover')), findsOneWidget);
       expect(find.byKey(const Key('start-over')), findsOneWidget);
     },
   ),

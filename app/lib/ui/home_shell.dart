@@ -18,6 +18,7 @@ import '../state/game_model.dart';
 import 'widgets/action_button.dart';
 import 'settings/settings_page.dart';
 import 'shop/shop_page.dart';
+import 'start/recover_pages.dart';
 import 'start/splash.dart';
 import 'start/start_flow.dart';
 import 'status/connection.dart';
@@ -86,11 +87,14 @@ class _HomeShellState extends State<HomeShell> {
         late: m.maintenanceLate,
         onReload: m.checkMaintenance,
       );
-    } else if (m.authLost == 'unauthorized') {
-      // 帳號失效（S15-03）：整頁
-      page = const AuthLostPage();
-    } else if (m.state == null || m.authLost != null) {
-      // 載入中、牧場在別的手機登入（S14-05，原型文字，S14 再照設計稿做）：整頁，沒有頂列和分頁列
+    } else if (m.authLost != null && m.recoverOpen) {
+      // S15-03、S14-05 按「找回我的牧場」：S14-02 找回頁（返回回到原本那一頁）
+      page = const RecoverPage();
+    } else if (m.authLost case final code?) {
+      // 牧場在另一支手機登入（S14-05）、帳號失效（S15-03）：整頁，沒有頂列和分頁列
+      page = code == 'signed_in_elsewhere' ? const ElsewherePage() : const AuthLostPage();
+    } else if (m.state == null) {
+      // 載入中：整頁，沒有頂列和分頁列
       page = AppFrame(hud: false, content: _content(m));
     } else if (m.settingsView != null) {
       // 設定（S13）：頂列的齒輪打開，整頁，沒有頂列和分頁列；關掉回到原本那一頁
@@ -194,26 +198,13 @@ class _Loading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final m = context.watch<GameModel>();
     final s = Strings.of(context);
-    // M1 的原型畫面：只用文字。正式的 S15-03、S14-05 照設計稿做（S01、S02 已經是正式畫面，在 start/）。
-    final (String text, Widget? action) = switch (m) {
-      GameModel(authLost: 'signed_in_elsewhere') => (
-        s.s14ElsewhereTitle,
-        OutlinedButton(onPressed: m.startOver, child: Text(s.s14NewRanch)),
-      ),
-      GameModel(authLost: final String _) => (
-        s.s15InvalidTitle,
-        OutlinedButton(onPressed: m.startOver, child: Text(s.s14NewRanch)),
-      ),
-      _ => (s.loadingFarm, null),
-    };
+    // M1 的原型畫面：只用文字（S15-03、S14-05 在 status/connection.dart，正式畫面）。
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(text, textAlign: TextAlign.center),
-          if (action != null) ...[const SizedBox(height: 12), action],
+          Text(s.loadingFarm, textAlign: TextAlign.center),
           const SizedBox(height: 24),
           Text(S.prototypeNote, style: Theme.of(context).textTheme.bodySmall),
         ],
