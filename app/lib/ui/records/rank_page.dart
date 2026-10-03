@@ -1,7 +1,10 @@
 // S12 排行榜（設計稿 s09.js 的 rankPage；screens.css 的 .rank-*、.medal、.my-rank）：紀錄分頁「排行榜」那一側。
 // 上面兩排分段鈕（圖鑑／排行榜；總資產／圖鑑／本週收入）、一行說明、前 50 名的卡（前三名是獎牌，自己那一列淡黃底加
 // 「我」，電腦牧場前面加「電腦」，圖鑑榜發現 24 種的分數前面加綠色「完成」），下面固定一條「我的名次」。
-// 下拉可以重新整理。載入中（S12-05）、載入失敗加重試（S12-06）在卡片裡，「我的名次」那一條這時寫「—」。
+// 下拉可以重新整理（G-09：最上面多一行「轉圈＋重新整理中…」）。載入中（S12-05）、載入失敗加重試（S12-06）在卡片裡，
+// 「我的名次」那一條這時寫「—」。
+// 窄手機（#126 的 fitRankRows、fitMyRank）：列裡的名字被截到露出不到 4 個字寬時，「完成」只留打勾；「我的名次」那一條放不下時
+// 「完成」只留打勾，還放不下就整條等比例縮小。繁中 430、390 不會變。
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -17,6 +20,7 @@ import '../kit/app_icon.dart';
 import '../kit/cow_bits.dart';
 import '../kit/frame.dart';
 import '../kit/kit.dart';
+import '../kit/pull_refresh.dart';
 import '../kit/seg.dart';
 
 /// 圖鑑榜發現這麼多種就加「完成」（企劃書 4.6；D31）。
@@ -76,13 +80,15 @@ class _RankPageState extends State<RankPage> {
       tab: AppTab.records,
       // .content.has-myrank：內容的下緣停在「我的名次」那一條上面（分頁列上方 58）
       contentPadding: const EdgeInsets.only(bottom: 58),
-      content: RefreshIndicator(
+      content: PullRefresh(
         onRefresh: () => _load(kind),
-        child: ListView(
+        builder: (context, refreshing) => ListView(
           key: const Key('rank'),
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
           children: [
+            // G-09：下拉重新整理時，最上面多一行「轉圈＋重新整理中…」
+            if (refreshing) ...[const PullIndicator(), const SizedBox(height: 10)],
             widget.seg,
             const SizedBox(height: 12),
             SegControl(
@@ -190,7 +196,8 @@ class RankRow extends StatelessWidget {
     final s = Strings.of(context);
     final e = entry, ranch = e.ranch, me = e.isMe;
     final tag = Strings.ranchTag(ranch);
-    final row = Container(
+    final complete = done && e.score >= kCodexComplete;
+    Widget line({bool tight = false}) => Container(
       key: Key('rank-row-${e.rank}'),
       constraints: const BoxConstraints(minHeight: 56),
       child: Row(
@@ -218,11 +225,28 @@ class RankRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          if (done && e.score >= kCodexComplete) ...[const DoneBadge(), const SizedBox(width: 10)],
+          if (complete) ...[DoneBadge(tight: tight), const SizedBox(width: 10)],
           _Score(score: e.score, unit: unit),
         ],
       ),
     );
+    // 名字被截短、露出來不到 4 個字寬（字級 15 的 4 倍）時，「完成」只留打勾（設計稿的 fitRankRows：英文、泰文 320 的圖鑑榜）。
+    // 露出多寬：整列 − 名次 30 − 間距 10 × 3 − 完成 − 分數 −（電腦）−（#編號）
+    final row = !complete
+        ? line()
+        : LayoutBuilder(
+            builder: (context, c) {
+              final room =
+                  c.maxWidth -
+                  30 -
+                  30 -
+                  DoneBadge.width(s) -
+                  _Score.width(e.score, unit, s.lang) -
+                  _NameLine.fixedWidth(s, ranch, tag);
+              final cut = _textWidth(s.ranchName(ranch), _NameLine.nameStyle) > room + 0.5;
+              return line(tight: cut && room < 15 * 4);
+            },
+          );
     // .rank-row.me：淡黃底、圓角 12，撐滿卡片寬（虛線是透明的）
     if (me) {
       return DecoratedBox(
@@ -248,6 +272,12 @@ class _NameLine extends StatelessWidget {
   final String? tag;
 
   static final _tagStyle = AppText.style(12, weight: FontWeight.w700, color: AppColors.ink2, lineHeight: 20);
+  static final nameStyle = AppText.style(15, weight: FontWeight.w900, lineHeight: 20);
+
+  /// 名字以外的寬度：「電腦」（左右各 4 的內距、後面 4）、#編號（前面 4）。
+  static double fixedWidth(Strings s, RanchRef? ranch, String? tag) =>
+      ((ranch?.isBot ?? false) ? _textWidth(s.botPrefix, _BotTag.style) + 8 + 4 : 0.0) +
+      (tag != null ? 4 + _textWidth(tag, _tagStyle) : 0.0);
 
   @override
   Widget build(BuildContext context) {
@@ -266,7 +296,7 @@ class _NameLine extends StatelessWidget {
             maxLines: 1,
             softWrap: false,
             overflow: TextOverflow.ellipsis,
-            style: AppText.style(15, weight: FontWeight.w900, lineHeight: 20),
+            style: nameStyle,
           ),
         ),
         if (tag != null) ...[const SizedBox(width: 4), Text(tag, softWrap: false, style: _tagStyle)],
@@ -274,9 +304,7 @@ class _NameLine extends StatelessWidget {
     );
     return LayoutBuilder(
       builder: (context, c) {
-        final fixed =
-            (bot ? _textWidth(s.botPrefix, _BotTag.style) + 8 + 4 : 0.0) +
-            (tag != null ? 4 + _textWidth(tag, _tagStyle) : 0.0);
+        final fixed = fixedWidth(s, ranch, tag);
         if (fixed <= c.maxWidth) return row;
         return ClipRect(
           child: OverflowBox(
@@ -365,18 +393,22 @@ class _Score extends StatelessWidget {
   final double score;
   final String unit;
 
+  static final _numStyle = AppText.number(16);
+  static final _unitStyle = AppText.style(12, weight: FontWeight.w700, color: AppColors.ink2);
+
+  /// 分數、2、單位的寬度。
+  static double width(double score, String unit, AppLang lang) =>
+      _textWidth(compactBig(score, lang), _numStyle) + 2 + _textWidth(unit, _unitStyle);
+
   @override
   Widget build(BuildContext context) {
     final lang = Strings.of(context).lang;
     return Text.rich(
       TextSpan(
         children: [
-          TextSpan(text: compactBig(score, lang), style: AppText.number(16)),
+          TextSpan(text: compactBig(score, lang), style: _numStyle),
           const WidgetSpan(child: SizedBox(width: 2)),
-          TextSpan(
-            text: unit,
-            style: AppText.style(12, weight: FontWeight.w700, color: AppColors.ink2),
-          ),
+          TextSpan(text: unit, style: _unitStyle),
         ],
       ),
       softWrap: false,
@@ -402,11 +434,17 @@ class LvChip extends StatelessWidget {
   );
 }
 
-/// .badge.done：綠底、打勾、「完成」（D31）。[tight] 時只留打勾（「我的名次」那一條放不下時，設計稿的 fitMyRank）。
+/// .badge.done：綠底、打勾、「完成」（D31）。[tight] 時只留打勾（窄手機放不下時，設計稿的 fitRankRows、fitMyRank）。
 class DoneBadge extends StatelessWidget {
   const DoneBadge({super.key, this.tight = false});
 
   final bool tight;
+
+  static final _style = AppText.style(12, weight: FontWeight.w900, lineHeight: 18);
+
+  /// 寬度：框 2 + 左 5 + 打勾 12 + 2 + 字 + 右 7 + 框 2；只留打勾時是框 2 + 4 + 打勾 12 + 4 + 框 2。
+  static double width(Strings s, {bool tight = false}) =>
+      tight ? 2 + 4 + 12 + 4 + 2 : 2 + 5 + 12 + 2 + _textWidth(s.s12Complete, _style) + 7 + 2;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -424,11 +462,7 @@ class DoneBadge extends StatelessWidget {
         const AppIcon('ok', size: 12),
         if (!tight) ...[
           const SizedBox(width: 2),
-          Text(
-            Strings.of(context).s12Complete,
-            softWrap: false,
-            style: AppText.style(12, weight: FontWeight.w900, lineHeight: 18),
-          ),
+          Text(Strings.of(context).s12Complete, softWrap: false, style: _style),
         ],
       ],
     ),
@@ -538,12 +572,9 @@ class _MyRank extends StatelessWidget {
           // 要多寬：我的名次、名次、（撐開的空白兩邊各 8）、完成、分數、單位，中間都隔 8
           var need = _textWidth(s.s12MyRank, label) + 8 + _textWidth(rankText, big) + 16;
           if (showScore) need += _textWidth(score, big) + 8 + _textWidth(unit, small);
-          // 完成：框 2 + 左 5 + 打勾 12 + 2 + 字 + 右 7 + 框 2；只留打勾時是框 2 + 4 + 打勾 12 + 4 + 框 2
-          final full = 2 + 5 + 12 + 2 + _textWidth(s.s12Complete, AppText.style(12, weight: FontWeight.w900)) + 7 + 2;
-          const tightBadge = 2 + 4 + 12 + 4 + 2;
           // 放不下時「完成」只留打勾（設計稿的 fitMyRank）
-          final tight = complete && need + full + 8 > c.maxWidth + 0.5;
-          if (complete) need += (tight ? tightBadge : full) + 8;
+          final tight = complete && need + DoneBadge.width(s) + 8 > c.maxWidth + 0.5;
+          if (complete) need += DoneBadge.width(s, tight: tight) + 8;
           if (need <= c.maxWidth + 0.5) return bar(tight);
           // 還是放不下（泰文的窄手機：app 內建的 Noto Sans Thai 可變字型畫得出 900 的粗字，比設計稿的 Chrome 用的 Bold 寬）：
           // 整條等比例縮小一點，間距照設計稿，不擠在一起也不超出去
