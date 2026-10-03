@@ -17,6 +17,7 @@ const pendingPageIds = {
   'G-06',
   'G-08',
   'G-09',
+  'G-14',
   'S09-01',
   'S09-02',
   'S09-03',
@@ -53,6 +54,7 @@ const pendingPageIds = {
   'S13-17',
   'S13-18',
   'S13-19',
+  'S13-20',
   'S14-01',
   'S14-02',
   'S14-03',
@@ -95,7 +97,7 @@ void main() {
   group('頁面 ID（design/m2/scope.md）', () {
     test('每個頁面 ID 不是有畫面狀態，就是在待做清單；做好的要從清單拿掉', () {
       final scope = scopePageIds();
-      expect(scope, hasLength(193), reason: 'scope.md 改了頁面 ID：待做清單和 pageCases 要跟著改');
+      expect(scope, hasLength(195), reason: 'scope.md 改了頁面 ID：待做清單和 pageCases 要跟著改');
       final done = {for (final c in pageCases) c.id};
       expect(pageCases, hasLength(done.length), reason: '同一個頁面 ID 只能有一個狀態');
       expect(done.intersection(pendingPageIds), isEmpty, reason: '做好的頁面 ID 要從待做清單拿掉');
