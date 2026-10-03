@@ -650,22 +650,22 @@ v2 拿掉的：`type_name`、`tier_name`、`ready_at`、`breed_ready`（看 `can
 - v2 拿掉 `unit`（單位的字在字串表）和 `history`（D24 沒有走勢圖）。
 - `tick_t` 是最近一次市場更新的時間，`next_tick_at` 是下一次（每遊戲分鐘一次）。
 
-`news[]`：最近的新聞，新的在前，最多 20 則（已公告的、進行中的、24 遊戲小時內結束的）。PR 3：
+`news[]`：最近的新聞，新的在前，最多 20 則（進行中的、24 遊戲小時內結束的）。PR 3：
 
 | 欄位 | 說明 |
 |---|---|
 | `id` | int |
-| `code` | 新聞代碼，app 查字串表 `news.<code>`。格式 `<商品>_<漲跌>.<序號>`：商品是 `milk`、`beef`、`rice`、`all`（三種一起），漲跌是 `up`、`down`，序號從 1 開始（跟 `backend/cowecon/params.py` 的 `HEADLINES` 一樣，i18ncheck 會檢查） |
+| `code` | 新聞代碼，app 查字串表 `news.<code>`。格式 `<商品>_<種類>.<序號>`：商品是 `milk`、`beef`、`rice`、`all`（三種一起），種類是 `up` 利多、`down` 利空、`super` 超級大事件、`swan` 超級黑天鵝（D33 的專屬標題，各 3 則），序號從 1 開始（跟 `backend/cowecon/params.py` 的 `HEADLINES` 一樣，i18ncheck 會檢查） |
 | `params` | 標題的佔位符參數；目前的標題都沒有佔位符，一律 `{}` |
 | `pct` | 這則新聞的幅度：全幅時讓價格變多少（+0.18 = 漲 18%，−0.12 = 跌 12%）。開始後 15 遊戲分鐘漲（跌）到全幅，之後慢慢消退。超級大事件是 +1.0（變兩倍）、黑天鵝是 −0.9（剩一成）。`|pct|` ≥ 0.20 時 app 在牧場頁提示一次（S03-15）：一般新聞最多 0.15、大事件最少 0.25，所以就是 `big` 為 true 的新聞 |
 | `commodity` | 受影響的商品；**不只一種時是 `null`**（`targets` 列出全部） |
 | `targets` | 受影響的商品清單 |
 | `direction` | `up` 利多／`down` 利空 |
-| `tier` | 級別（D33）：`normal` 一般（±5–15%）、`big` 大事件（±25–40%）、`super` 超級大事件（+100%，收購價變兩倍，只往上）、`crash` 超級黑天鵝（−90%，剩一成，只往下）。機率約 71%／15%／7%／7%：每天約 4 則，超級大事件、黑天鵝各約 3–4 個遊戲天一次。提前公告、漲到全幅、消退的方式四級都一樣。標題先沿用利多、利空的（`super` 用 `<商品>_up`、`crash` 用 `<商品>_down` 的代碼）；專屬標題和顯示方式等 cow-ui 出稿、使用者核准後再加 |
+| `tier` | 級別（D33）：`normal` 一般（±5–15%）、`big` 大事件（±25–40%）、`super` 超級大事件（+100%，收購價變兩倍，只往上）、`crash` 超級黑天鵝（−90%，剩一成，只往下）。機率約 71%／15%／7%／7%：每天約 4 則，超級大事件、黑天鵝各約 3–4 個遊戲天一次。漲到全幅、消退的方式四級都一樣，全部不預告（直接發生）。`super` 的代碼是 `<商品>_super.N`、`crash` 是 `<商品>_swan.N`（專屬標題） |
 | `big` | 大事件以上（`tier` 不是 `normal`）。D33 以前是「罕見的大新聞（±30–40%）」 |
-| `time` | 新聞出現的時間（= `announce_at`） |
-| `announce_at`／`start_at`／`end_at` | 公告、開始影響價格、影響結束。約 4 成新聞提前 30 遊戲分鐘公告（`state: "upcoming"`），其餘公告即開始 |
-| `state` | `upcoming` 即將發生、`active` 進行中、`ended` 已結束 |
+| `time` | 新聞出現的時間（= `announce_at` = `start_at`） |
+| `announce_at`／`start_at`／`end_at` | 公告、開始影響價格、影響結束。D33 起**全部新聞都不預告**（使用者 2026-10-03「沒有預告，就是直接發生這樣才刺激」）：`announce_at` 一定等於 `start_at`。欄位留著（只加不改）。D33 以前約 4 成新聞提前 30 遊戲分鐘公告 |
+| `state` | `active` 進行中、`ended` 已結束。`upcoming`（即將發生）D33 起不會再出現；值的清單不變，app 收到也照舊處理 |
 
 v2 拿掉 `title`。
 
@@ -1005,7 +1005,7 @@ app 啟動時先打這個（還沒有 token 也能打），再決定要不要顯
 |---|---|---|
 | `hello` | 連上時一次 | 時間欄位、`player_id`、`protocol`（**2**） |
 | `market` | 連上時一次，之後**每現實 1 秒** | 時間欄位、`tick_t`，以及 `milk`、`beef`、`rice` 各 `{price, change_24h, change_24h_pct, ma24}` |
-| `news` | 新聞第一次出現（公告或直接開始）時 | 跟 `news[]` 單筆同形狀，平鋪在訊息裡（`id`、`code`、`params`、`pct`、`commodity`、`targets`、`direction`、`tier`、`big`、`time`、`announce_at`、`start_at`、`end_at`、`state`） |
+| `news` | 新聞開始時（D33 起不預告，所以就是第一次出現時） | 跟 `news[]` 單筆同形狀，平鋪在訊息裡（`id`、`code`、`params`、`pct`、`commodity`、`targets`、`direction`、`tier`、`big`、`time`、`announce_at`、`start_at`、`end_at`、`state`） |
 | `stud` | 有人借了你上架的公牛（你在線時） | `event: "borrowed"`、`listing_id`、`cow`（你的公牛 `{"id", "breed"}`）、`price`（收到的錢）、`borrower`（1.6 節的牧場物件）、時間欄位。G-05「{cow} 借給 {ranch}，收到 {price} 幣」。app 收到後重抓 `GET /v1/state`（PR 3） |
 | `maintenance` | 安排、改變、取消維護時，和開始維護的那一刻（PR 8） | `maintenance`（6.1 節的物件，取消時是 null） |
 | `error` | 關閉前 | 見上表 |
@@ -1066,3 +1066,4 @@ app 啟動時先打這個（還沒有 token 也能打），再決定要不要顯
 - 2026-10-02：1.6、第 4 節寫清楚公營種牛站：每種用途至少一頭（#89 起伺服器照這樣補）；基因照商店 C 級的機率抽，大多是一般公牛（約 3% 是優良以上）。欄位不變。
 - 2026-10-03：2.3 節 `economy` 加 `field_cap_h`（S17「最多存 8 小時的量」，直接讀 params）；寫清楚 `rice.per_hour`（所有有牛的田加起來，長滿的也算）、`fields[].per_hour`（長滿了也不是 0；有沒有長滿看 `rice ≥ capacity`）和 `fields[].capacity` 的算法（壯年產量，不乘年齡曲線）。伺服器的行為不變。
 - 2026-10-03：3.11 節和 WebSocket 的 `news` 加 `tier`（D33 新聞分四級：normal、big、super、crash）；`big` 改成「大事件以上」（tier 不是 normal）；`pct` 寫明超級大事件 +1.0、黑天鵝 −0.9；`ratio` 寫明新聞可以帶到 0.05–2.2。只加不改。
+- 2026-10-03：D33 全部新聞都不預告（`announce_at` = `start_at`，`state` 不會再是 `upcoming`，WebSocket 的 `news` 在開始時送）；`code` 加 `<商品>_super.N`、`<商品>_swan.N`（超級大事件、黑天鵝的專屬標題）。欄位都留著，只加不改。

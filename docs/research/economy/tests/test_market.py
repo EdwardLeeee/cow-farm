@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import sim  # noqa: E402,F401  （把 backend/ 加進 sys.path；cowecon 在 backend/cowecon/）
 
 from cowecon import DEFAULT, HOUR, MINUTE, Exchange, ImpactState, with_overrides  # noqa: E402
+from cowecon.params import HEADLINES  # noqa: E402
 from cowecon.market import EventGenerator, Market, _ramp_integral  # noqa: E402
 
 T0 = 1791129600.0  # 2026-10-05 00:00 台灣時間
@@ -335,6 +336,53 @@ class TestNewsTiers(unittest.TestCase):
             seqs.append([(e.start_at, e.targets, e.announce_at, e.half_life_s) for e in ex.event_log_history])
         self.assertGreater(len(seqs[0]), 20)
         self.assertEqual(seqs[0], seqs[1])
+
+    def test_no_announcements_and_special_headlines(self):
+        """D33：全部新聞都不預告（公告 = 開始）；超級大事件、黑天鵝用專屬標題（++、--）。
+        挑專屬標題不另外抽亂數：拿掉專屬標題池再跑一次，新聞的時間、對象、幅度、級別、半衰期都一樣，只有標題不同。"""
+        import cowecon.market as M
+
+        def run(headlines):
+            saved = M.HEADLINES
+            M.HEADLINES = headlines
+            try:
+                ex = Exchange(DEFAULT, 9, T0)
+                t, ups = T0, 0
+                for _ in range(20 * 24 * 4):
+                    t += 15 * MINUTE
+                    ex.step(t, 1.0)
+                    ups += len(ex.upcoming(t))
+                return ex.event_log_history, ups
+            finally:
+                M.HEADLINES = saved
+
+        evs, ups = run(M.HEADLINES)
+        plain, _ = run({k: v for k, v in M.HEADLINES.items() if not k.endswith(("++", "--"))})
+        self.assertEqual(ups, 0)
+        self.assertTrue(all(e.announce_at == e.start_at for e in evs))
+        key = lambda e: (e.start_at, e.targets, e.factor, e.tier, e.half_life_s)  # noqa: E731
+        self.assertEqual([key(e) for e in evs], [key(e) for e in plain])
+        special = [(e, p) for e, p in zip(evs, plain) if e.tier in ("super", "crash")]
+        self.assertGreater(len(special), 5)
+        for e, p in zip(evs, plain):
+            c = e.targets[0] if len(e.targets) == 1 else "all"
+            if e.tier in ("super", "crash"):
+                self.assertIn(e.headline, M.HEADLINES[c + ("++" if e.tier == "super" else "--")])
+            else:
+                self.assertEqual(e.headline, p.headline)
+
+    def test_special_headlines_spread(self):
+        """專屬標題三則都會出現、大約一樣多（用一般標題抽到的號碼加事件編號挑，沒有另外抽亂數）。"""
+        gen = EventGenerator(DEFAULT.events, random.Random(8), T0)
+        counts = {}
+        for i in range(30000):
+            ev = gen._draw(T0 + i)
+            if ev.tier == "super" and ev.targets == ("milk",):
+                counts[ev.headline] = counts.get(ev.headline, 0) + 1
+        self.assertEqual(set(counts), set(HEADLINES["milk++"]))
+        n = sum(counts.values())
+        for c in counts.values():
+            self.assertLess(abs(c - n / 3), 4.5 * (n * (1 / 3) * (2 / 3)) ** 0.5 + 1, counts)
 
     def test_injected_events_get_tiers(self):
         ex = Exchange(DEFAULT, 1, T0, events_enabled=False)

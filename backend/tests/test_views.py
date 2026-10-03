@@ -55,8 +55,17 @@ def test_breed_of_genes_uses_expressed_traits():
     assert breed_of_genes(make_genotype(2, [(1, 1), (1, 1), (1, 1)])) == "starry"  # 肉牛 A＋B＋C
 
 
-def _event(targets, factor, headline):
-    return MarketEvent(1, targets, factor, 0.0, 0.0, 900.0, 7200.0, 6.0, headline)
+def _event(targets, factor, headline, tier=None):
+    return MarketEvent(1, targets, factor, 0.0, 0.0, 900.0, 7200.0, 6.0, headline, tier=tier)
+
+
+# HEADLINES 的 key 結尾 → (事件的倍數, 級別, 代碼的種類)；D33 起 ++ 超級大事件、-- 超級黑天鵝有專屬標題
+_KINDS = (
+    ("++", 2.0, "super", "super"),
+    ("--", 0.1, "crash", "swan"),
+    ("+", 1.2, "normal", "up"),
+    ("-", 0.8, "normal", "down"),
+)
 
 
 def test_news_codes_match_string_table():
@@ -66,14 +75,18 @@ def test_news_codes_match_string_table():
     zh = json.loads(ZH.read_text(encoding="utf-8"))
     codes = set()
     for key, titles in HEADLINES.items():
-        commodity, up = key[:-1], key[-1] == "+"
+        suffix, factor, tier, kind = next(k for k in _KINDS if key.endswith(k[0]))
+        commodity = key[: -len(suffix)]
         targets = ("milk", "beef", "rice") if commodity == "all" else (commodity,)
         for title in titles:
-            code = news_code(_event(targets, 1.2 if up else 0.8, title))
+            code = news_code(_event(targets, factor, title, tier))
             assert code is not None and code not in codes, (key, title)
+            assert code.startswith(f"{commodity}_{kind}."), (key, code)
             codes.add(code)
             assert zh[f"news.{code}"] == title
     assert len(codes) == sum(len(t) for t in HEADLINES.values())
+    # 字串表裡的新聞標題全部都有對到（D33 的 _super、_swan 各 3 則 × 4 種商品也在）
+    assert {k for k in zh if k.startswith("news.")} == {f"news.{c}" for c in codes}
     assert news_code(_event(("milk",), 1.2, "（測試事件）")) is None  # 不在 HEADLINES 的標題沒有代碼
 
 

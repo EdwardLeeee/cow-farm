@@ -251,8 +251,8 @@ class ServiceWorld:
         self.wall: dict = {}
 
     # ---- 給 bot 用的 ctx ----
-    def upcoming(self, now: float):
-        return self.ex.upcoming(now)
+    def started_news(self, now: float):
+        return self.ex.started(now)
 
     def schedule(self, t: float, pid: int, kind: str, dur: float) -> None:
         self._seq += 1

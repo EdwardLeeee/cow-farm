@@ -1075,9 +1075,14 @@ def test_news_pushed_over_websocket(h):
         # 代碼對回引擎挑的標題；幅度 = factor − 1，正負跟利多利空一致
         ev = h.server.news_log[n["id"]]
         key, idx = n["code"].split(".")
-        commodity, direction = key.rsplit("_", 1)
+        commodity, kind = key.rsplit("_", 1)
+        # D33：超級大事件、黑天鵝用專屬標題（代碼 _super、_swan；HEADLINES 的 ++、--）
+        suffix, direction = {"up": ("+", "up"), "down": ("-", "down"), "super": ("++", "up"), "swan": ("--", "down")}[
+            kind
+        ]
         assert direction == n["direction"] and n["params"] == {}
-        assert HEADLINES[commodity + ("+" if direction == "up" else "-")][int(idx) - 1] == ev.headline
+        assert (kind in ("super", "swan")) == (n["tier"] in ("super", "crash"))
+        assert HEADLINES[commodity + suffix][int(idx) - 1] == ev.headline
         assert commodity == (n["commodity"] or "all")
         assert n["pct"] == pytest.approx(ev.factor - 1.0, abs=1e-4) and (n["pct"] > 0) == (direction == "up")
         # D33：級別和幅度對得上；big = 大事件以上
@@ -1088,6 +1093,7 @@ def test_news_pushed_over_websocket(h):
     assert n["id"] in ids
     for x in h.get("/v1/market", tok).json()["news"]:
         assert x["tier"] in TIER_NAMES and x["big"] == (x["tier"] != "normal")
+        assert x["announce_at"] == x["start_at"] == x["time"] and x["state"] != "upcoming"  # D33：全部不預告
 
 
 def test_news_tier_saved_and_old_rows_without_tier(db_dsn):

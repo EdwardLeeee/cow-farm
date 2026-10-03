@@ -588,10 +588,16 @@ class EventGenerator:
                 break
         mag = r.uniform(lo, hi)
         up = r.random() < up_p  # 超級大事件 up_p = 1（只往上）、黑天鵝 0（只往下）
-        announced = r.random() < ep.announce_prob
+        announced = r.random() < ep.announce_prob  # D33 起 announce_prob 是 0；照樣抽，之後的亂數才跟以前一樣
         hl = r.uniform(ep.half_life_lo_s, ep.half_life_hi_s)
         pool = HEADLINES[key + ("+" if up else "-")]
-        headline = pool[r.randrange(len(pool))]
+        i = r.randrange(len(pool))
+        headline = pool[i]
+        special = HEADLINES.get(key + ("++" if tier == "super" else "--")) if tier in ("super", "crash") else None
+        if special:
+            # 超級大事件、黑天鵝用專屬標題。不另外抽亂數（抽法跟以前一樣，模擬的數字才不受標題影響）：
+            # 用上面抽到的 i 加事件編號挑，三則大約一樣常出現
+            headline = special[(i + self._n) % len(special)]
         self._n += 1
         return MarketEvent(
             eid=self._n,
@@ -718,6 +724,10 @@ class Exchange:
     def upcoming(self, now: float) -> List[MarketEvent]:
         """已公告、還沒開始的事件（畫面上的「即將發生」）。沒到公告時間的不給看。"""
         return [ev for ev in self.events if ev.announce_at <= now < ev.start_at]
+
+    def started(self, now: float) -> List[MarketEvent]:
+        """已經開始、還沒結束的事件。D33 起新聞不預告（announce_prob 0）：電腦玩家在新聞開始後才知道。"""
+        return [ev for ev in self.events if ev.start_at <= now < ev.end_at]
 
     def visible(self, now: float) -> List[MarketEvent]:
         """畫面上看得到的事件（已公告或已開始、還沒結束）。"""

@@ -85,7 +85,7 @@ def token_hash(token: str) -> bytes:
 
 
 class ServerBots:
-    """伺服器裡的假玩家排程。策略函式（server.bots）拿它當 ctx：upcoming()、schedule()。
+    """伺服器裡的假玩家排程。策略函式（server.bots）拿它當 ctx：started_news()、schedule()。
 
     排程可以在重啟後重建：每位假玩家每天的上線時間用 (種子, 玩家, 第幾天) 導出的亂數抽，
     S4 安排的回訪存在牧場狀態的 bot 欄位，已經做過的動作用 last_t 跳過。
@@ -105,8 +105,8 @@ class ServerBots:
         self.day0 = 0.0
 
     # ---- ctx ----
-    def upcoming(self, now: float):
-        return self.game.ex.upcoming(now)
+    def started_news(self, now: float):
+        return self.game.ex.started(now)
 
     def schedule(self, t: float, pid: int, kind: str, dur: float, persist: bool = True) -> None:
         self._seq += 1
