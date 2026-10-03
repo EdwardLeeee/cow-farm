@@ -11,6 +11,9 @@
 
 v0.2（2026-09-30，企劃書 4.0／決定 D17）：乳牛／耕牛／肉牛、只有成年母乳牛產奶、耕牛耕田產稻米
 （第三種行情商品）、商店只挑 A／B／C 等級、出貨評 A／B／C 級、每頭牛一輩子配一次、借種市場。
+
+v0.3（2026-10-03，docs/design/v0.3-care.md／決定 D35）：照顧（CareParams）：小牛長大才揭曉、飼料與雜種牛、地板、
+大便與生病、治療、打掃小幫手。
 """
 
 from __future__ import annotations
@@ -296,8 +299,13 @@ class FarmParams:
 
     # 稀有度：隱性稀有基因 A/B/C 有幾個是純合
     tier_names: Tuple[str, str, str, str] = ("一般", "優良", "稀有", "傳說")
-    tier_growth_h: Tuple[float, float, float, float] = (1.0, 2.0, 4.0, 8.0)  # 小牛長大要幾小時
-    tier_mult: Tuple[float, float, float, float] = (1.0, 1.3, 1.7, 2.5)  # 牛奶、牛肉賣價倍率；耕田產量倍率
+    # 小牛長大要幾小時（依基因的稀有度）。v0.3（規格第 1 節，ceo 2026-10-03）每頭一樣 3 小時：照稀有度長的話，
+    # 看倒數就猜得到稀有度，長大揭曉就沒有驚喜。3 小時是讓最快的地板（×1.5，2 小時）也來得及吃 2 種指定飼料
+    # （小牛冷卻 45 分鐘，CareParams）。
+    tier_growth_h: Tuple[float, float, float, float] = (3.0, 3.0, 3.0, 3.0)
+    # 價值等級的倍數：牛奶、牛肉賣價、耕田產量。索引 0–3 是一般、優良、稀有、傳說；索引 4 是雜種牛（v0.3，HYBRID：
+    # 稀有以上的小牛沒吃到指定的飼料，長大變雜種，比一般還低）。基因和原本的稀有度照舊保留，配種用得到。
+    tier_mult: Tuple[float, float, float, float, float] = (1.0, 1.3, 1.7, 2.5, 0.6)
 
     # 耕田：成年耕牛（公母都可以）派去田裡，稻米持續長在田裡，最多存 field_cap_h 小時的量，收成時進倉庫
     rice_per_h: Tuple[float, float, float] = (0.0, 11.0, 0.0)  # 壯年耕牛每小時產稻米（公斤），× 稀有度倍率 × 年齡曲線
@@ -323,7 +331,7 @@ class FarmParams:
     # 借種費（D26，2026-10-01 取代 300／800／2,000／5,000 四檔）：公牛現在的體重（公斤）× 每公斤價格（依稀有度），
     # 四捨五入到 stud_fee_round 幣，跟著公牛長大自動漲；主人只決定要不要上架。數字 2026-10-02 重跑經濟模擬後定案
     # （docs/research/2026-09-economy.md 第 10 節）。
-    stud_fee_per_kg: Tuple[float, float, float, float] = (1.1, 2.75, 6.6, 16.5)
+    stud_fee_per_kg: Tuple[float, float, float, float, float] = (1.1, 2.75, 6.6, 16.5, 0.6)  # 索引 4 = 雜種牛（v0.3）
     stud_fee_round: float = 10.0
     npc_stud_listings: int = 3  # 公營種牛站最少維持幾筆上架（每種用途一頭，借種費用那種用途公牛的最佳體重算）
 
@@ -357,6 +365,64 @@ class FarmParams:
 
 
 # ---------------------------------------------------------------------------
+# 照顧（v0.3，docs/design/v0.3-care.md 第 1、2、4、5 節，D35）
+# ---------------------------------------------------------------------------
+FEED_IDS: Tuple[str, ...] = ("grass", "hay", "oat", "alfalfa", "corn", "soymeal")  # 飼料索引 0–5
+
+
+@dataclass(frozen=True)
+class CareParams:
+    # --- 飼料（第 2 節；ceo 2026-10-03：每次長固定公斤數，不用百分比）---
+    feed_names: Tuple[str, ...] = ("牧草", "乾草", "燕麥", "苜蓿", "玉米", "豆粕")
+    feed_kg: Tuple[float, ...] = (1.0, 1.5, 2.0, 3.0, 5.0, 8.0)  # 吃一份長幾公斤（越貴長越多）
+    feed_price: Tuple[float, ...] = (5.0, 10.0, 15.0, 20.0, 30.0, 45.0)  # 幣／份。PR A 用這個固定價買；飼料市場在 PR B
+    bonus_max_kg: float = 60.0  # 每頭牛的飼料加成最多幾公斤，不會減少
+    # 加成跟著年紀長出來：體重 = 照年紀的體重 + 加成 ×（成年後的年紀 ÷ 長到最壯的時間，最多 1）。剛成年時加成還沒長出來，
+    # 「買 C 級小牛、灌飼料、一長大就出貨」才不會變成套利（固定公斤的話市價 1.36 倍就回本）。
+    feed_cooldown_s: float = 4 * HOUR  # 成牛吃飽冷卻（現實的遊戲時間，不受地板影響）
+    calf_feed_cooldown_s: float = 45 * MINUTE  # 小牛吃飽冷卻：3 小時內吃得到 2 種指定飼料（最快的地板 2 小時也來得及）
+    feed_cap: int = 200  # 每種飼料倉庫最多幾份（D35 補充 4）
+    # 稀有、傳說的品種小牛時期要吃到的飼料（規格 2.1 節的表；同一種用途兩個品種共用一組，看飼料猜不到是哪一個）：
+    # (用途, 稀有特徵位元, 飼料索引)。一般、優良的品種沒有指定，不會變雜種。
+    required_feeds: Tuple[Tuple[int, int, Tuple[int, ...]], ...] = (
+        (0, 3, (3,)),  # 奶油棉花牛：苜蓿
+        (0, 5, (2, 5)),  # 黑絨乳牛：燕麥、豆粕
+        (0, 6, (3,)),  # 巧克力牛：苜蓿
+        (0, 7, (2, 5)),  # 草莓牛（傳說）：燕麥、豆粕
+        (1, 3, (1, 4)),  # 棉花糖高地牛：乾草、玉米
+        (1, 5, (2,)),  # 長毛水牛：燕麥
+        (1, 6, (2,)),  # 蜂蜜牛：燕麥
+        (1, 7, (1, 4)),  # 金穗牛（傳說）：乾草、玉米
+        (2, 3, (3, 1)),  # 白絨牛：苜蓿、乾草
+        (2, 5, (3, 1)),  # 絨毛和牛：苜蓿、乾草
+        (2, 6, (4, 5)),  # 白和牛：玉米、豆粕
+        (2, 7, (4, 5)),  # 星空牛（傳說）：玉米、豆粕
+    )
+
+    # --- 地板（第 4 節）：牛的年紀走多快（Farm.set_speed），全部的牛一起。泥土地開局就有 ---
+    floor_ids: Tuple[str, ...] = ("dirt", "hay_bed", "meadow", "cushion")
+    floor_names: Tuple[str, ...] = ("泥土地", "乾草床", "青草地", "軟墊地")
+    floor_speed: Tuple[float, ...] = (1.0, 1.25, 1.5, 0.75)
+    floor_price: Tuple[float, ...] = (0.0, 3000.0, 12000.0, 6000.0)
+
+    # --- 大便與生病（第 5 節）：沒上線也照樣累積；時間都是現實的遊戲時間，不受地板影響 ---
+    poop_every_s: float = 3 * HOUR  # 每頭牛（小牛也算）每 3 小時一坨
+    poop_max_per_cow: int = 4  # 每頭牛最多累積幾坨，之後不再增加
+    # 每頭牛每小時生病的機率 = sick_rate_per_h ×（髒的程度 − sick_dirt_free），髒的程度 = 還沒清的大便 ÷ 牛的數量。
+    # 數字等使用者決定（ceo 2026-10-03 在問），先用規格的起點。
+    sick_rate_per_h: float = 0.015
+    sick_dirt_free: float = 0.5
+    newbie_safe_s: float = 24 * HOUR  # 開牧場後多久不會生病（ceo 2026-10-03：蓋過第一個晚上）
+    cure_price: float = 5000.0  # 治療一頭，馬上好（使用者選「固定很貴」）
+    sick_beef_mult: float = 0.1  # 病牛出貨，牛肉價值只剩一成
+
+    # --- 打掃小幫手（5.1 節）---
+    helper_price_per_day: float = 800.0
+    helper_max_days: int = 7  # 最多一次預付幾天（遊戲時間）
+    helper_clean_s: float = 30 * MINUTE  # 雇用期間每 30 分鐘清掉全部大便（雇用那一刻也清一次）
+
+
+# ---------------------------------------------------------------------------
 # 新手開局
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
@@ -382,6 +448,7 @@ class EconomyParams:
     events: EventParams = field(default_factory=EventParams)
     farm: FarmParams = field(default_factory=FarmParams)
     onboarding: OnboardingParams = field(default_factory=OnboardingParams)
+    care: CareParams = field(default_factory=CareParams)
 
     def commodity(self, cid: str) -> CommodityParams:
         if cid not in self.commodity_ids:

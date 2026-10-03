@@ -19,17 +19,30 @@ M1 伺服器加的部分：出貨兩步（ship_to_storage → sell_beef）、sel
 - 第 0 座「用途」：0 = 乳用 M、1 = 肉用 F。MM 乳牛、MF 耕牛、FF 肉牛。
 - 第 1–3 座「稀有」A/B/C：1 = 隱性稀有。某座兩個都是 1（純合）就顯現該特徵；
   顯現幾個 = 稀有度（0 一般、1 優良、2 稀有、3 傳說）。
+
+v0.3 照顧（docs/design/v0.3-care.md、決定 D35；參數在 CareParams）
+- 小牛長大（adult_at）那一刻揭曉品種：稀有以上的品種要在小牛時期吃過指定的飼料（required_feeds），少一種就變雜種牛
+  （價值等級 HYBRID = 4，倍數 0.6；基因照舊，配種用得到）。Farm.advance 一定先揭曉，所以成年後吃的不算小牛時期。
+- 飼料：一份長固定公斤數（feed_kg），加成最多 bonus_max_kg，跟著年紀長出來（beef_weight）。吃飽冷卻、過了最壯不能餵。
+- 地板：Farm.use_floor → set_speed（A0 的年紀速度）。
+- 大便與生病：每頭牛照自己的時鐘（poop_at）每 poop_every_s 拉一坨，最多 poop_max_per_cow 坨。髒的程度 = 大便 ÷ 牛數，
+  每頭牛的風險率 = sick_rate_per_h ×（髒 − sick_dirt_free）。牧場記一條累積風險（hazard），每頭牛出生（或治好）時抽一個
+  Exp(1) 門檻，累積風險多出門檻就生病；事件之間風險率是常數，生病的時間精確反推。所以跟上線幾次、tick 多大都無關。
+  病牛不產奶、不耕田、不能配種上架借種，出貨牛肉只剩一成；治療 cure_price。打掃小幫手每 helper_clean_s 清全部。
+- 照顧規則開關（Farm.care）：大便、生病、變雜種只在開著時發生。舊存檔讀進來是關的。研究模擬和伺服器的電腦玩家開，
+  真人的牧場到 v0.3 C1（協定和按鈕都好了）才開。餵食、地板、小幫手不受開關影響。
 """
 
 from __future__ import annotations
 
+import heapq
 import math
 import random
 from itertools import product
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
 from .market import ImpactState, Market, SaleResult
-from .params import HOUR, EconomyParams, FarmParams
+from .params import DAY, HOUR, CareParams, EconomyParams, FarmParams
 
 N_LOCI = 4
 RARE_LOCI = (1, 2, 3)
@@ -119,6 +132,18 @@ def tier_distribution(sire: int, dam: int) -> List[float]:
     return probs
 
 
+HYBRID = 4  # 價值等級：雜種牛（tier_mult、stud_fee_per_kg 的第 5 格；v0.3）
+
+
+def required_feeds(cp: CareParams, g: int) -> Tuple[int, ...]:
+    """這個基因長大會是的品種，小牛時期要吃到哪幾種飼料（飼料索引）。一般、優良的品種沒有指定，回傳 ()。"""
+    t, m = cow_type(g), rare_mask(g)
+    for rt, rm, feeds in cp.required_feeds:
+        if rt == t and rm == m:
+            return feeds
+    return ()
+
+
 # ---------------------------------------------------------------------------
 # 商店等級（A／B／C）
 # ---------------------------------------------------------------------------
@@ -184,7 +209,12 @@ def shop_grade_tier_probs(fp: FarmParams, grade: Union[str, int]) -> List[float]
 # ---------------------------------------------------------------------------
 class Cow:
     """bred：這輩子配過種了沒（公母一樣，借出去也算）。field：在第幾塊田工作（−1 = 沒有）。
-    listed：上架借種的編號（None = 沒有）。origin：來源（start、A/B/C 商店等級、breed、stud），分析用。"""
+    listed：上架借種的編號（None = 沒有）。origin：來源（start、A/B/C 商店等級、breed、stud），分析用。
+
+    v0.3 照顧：tier 是基因的稀有度（0–3，配種、畫面用）；vt 是價值等級（倍數用），長大揭曉（grown）時決定，
+    雜種牛是 HYBRID。fed：小牛時期吃過的飼料（位元）；bonus：飼料加成（公斤）；fed_until：吃飽冷卻到什麼時候。
+    poop：還沒清的大便；poop_at：拉大便的時鐘起點（現實時間，地板不會動它）。h0、thr：生病的起點和門檻（thr = None
+    不會生病）；sick_since：從什麼時候生病（None = 健康）。"""
 
     __slots__ = (
         "cid",
@@ -200,6 +230,16 @@ class Cow:
         "listed",
         "origin",
         "speed",
+        "vt",
+        "grown",
+        "fed",
+        "bonus",
+        "fed_until",
+        "poop",
+        "poop_at",
+        "h0",
+        "thr",
+        "sick_since",
     )
 
     def __init__(
@@ -229,6 +269,20 @@ class Cow:
         self.field = -1
         self.listed: Optional[int] = None
         self.origin = origin
+        self.vt = self.tier
+        self.grown = False
+        self.fed = 0
+        self.bonus = 0.0
+        self.fed_until = 0.0
+        self.poop = 0
+        self.poop_at = born_at
+        self.h0 = 0.0
+        self.thr: Optional[float] = None
+        self.sick_since: Optional[float] = None
+
+    @property
+    def hybrid(self) -> bool:
+        return self.vt == HYBRID
 
     def is_adult(self, now: float) -> bool:
         return now >= self.adult_at
@@ -242,7 +296,8 @@ class Cow:
         return self.field >= 0 or self.listed is not None
 
     def can_breed_now(self, now: float) -> bool:
-        return self.is_adult(now) and not self.bred and not self.is_busy()
+        """病牛不能配種（只看已經結算的；還沒結算的生病用 Farm.is_sick）。"""
+        return self.is_adult(now) and not self.bred and not self.is_busy() and self.sick_since is None
 
     def to_dict(self) -> dict:
         return {
@@ -256,15 +311,36 @@ class Cow:
             "field": self.field,
             "listed": self.listed,
             "origin": self.origin,
+            "vt": self.vt,
+            "grown": self.grown,
+            "fed": self.fed,
+            "bonus": self.bonus,
+            "fed_until": self.fed_until,
+            "poop": self.poop,
+            "poop_at": self.poop_at,
+            "h0": self.h0,
+            "thr": self.thr,
+            "sick_since": self.sick_since,
         }
 
     @classmethod
     def from_dict(cls, fp: FarmParams, d: dict) -> "Cow":
+        """v0.3 的欄位缺的時候（舊存檔）給預設值：還沒揭曉、沒吃過、沒有大便、不會生病。"""
         c = cls(d["id"], d["g"], d["bull"], d["born_at"], fp, adult_at=d["adult_at"], origin=d.get("origin", ""))
         c.ready_at = d.get("ready_at", c.adult_at)
         c.bred = d.get("bred", False)
         c.field = d.get("field", -1)
         c.listed = d.get("listed")
+        c.vt = d.get("vt", c.tier)
+        c.grown = d.get("grown", False)
+        c.fed = d.get("fed", 0)
+        c.bonus = d.get("bonus", 0.0)
+        c.fed_until = d.get("fed_until", 0.0)
+        c.poop = d.get("poop", 0)
+        c.poop_at = d.get("poop_at", c.born_at)
+        c.h0 = d.get("h0", 0.0)
+        c.thr = d.get("thr")
+        c.sick_since = d.get("sick_since")
         return c
 
 
@@ -324,7 +400,7 @@ def cow_rice_rate(fp: FarmParams, cow: Cow, now: float) -> float:
     """這頭牛在田裡時每小時產多少稻米（公斤）：耕牛才有，× 稀有度倍率 × 年齡曲線。"""
     if now < cow.adult_at:
         return 0.0
-    return fp.rice_per_h[cow.ctype] * fp.tier_mult[cow.tier] * work_frac(fp, cow.adult_age_h(now))
+    return fp.rice_per_h[cow.ctype] * fp.tier_mult[cow.vt] * work_frac(fp, cow.adult_age_h(now))
 
 
 def cow_rice_between(fp: FarmParams, cow: Cow, t0: float, t1: float) -> float:
@@ -333,12 +409,12 @@ def cow_rice_between(fp: FarmParams, cow: Cow, t0: float, t1: float) -> float:
     s = cow.speed  # 同 cow_milk_between
     a0 = max(0.0, (t0 - cow.adult_at) / HOUR * s)
     a1 = (t1 - cow.adult_at) / HOUR * s
-    return fp.rice_per_h[cow.ctype] * fp.tier_mult[cow.tier] * (_milk_frac_cum(fp, a1) - _milk_frac_cum(fp, a0)) / s
+    return fp.rice_per_h[cow.ctype] * fp.tier_mult[cow.vt] * (_milk_frac_cum(fp, a1) - _milk_frac_cum(fp, a0)) / s
 
 
 def field_cap_for(fp: FarmParams, cow: Cow) -> float:
     """這頭耕牛下田時，一塊田最多累積多少稻米（公斤）= 壯年產量 × field_cap_h。"""
-    return fp.rice_per_h[cow.ctype] * fp.tier_mult[cow.tier] * fp.field_cap_h
+    return fp.rice_per_h[cow.ctype] * fp.tier_mult[cow.vt] * fp.field_cap_h
 
 
 def rice_factor(fp: FarmParams, age_h: float) -> float:
@@ -352,14 +428,24 @@ def rice_factor(fp: FarmParams, age_h: float) -> float:
 
 # ---- 牛肉 ----
 def beef_weight(fp: FarmParams, cow: Cow, now: float) -> float:
-    """出貨可得的牛肉（公斤）。小牛不能出貨，回傳 0。"""
+    """出貨可得的牛肉（公斤）。小牛不能出貨，回傳 0。
+
+    v0.3 飼料加成跟著年紀長出來：照年紀的體重 + 加成 ×（成年後的年紀 ÷ 長到最壯的時間，最多 1）。"""
     if now < cow.adult_at:
         return 0.0
     a = cow.adult_age_h(now)
     t = cow.ctype
     w0, w1, pa = fp.adult_weight_kg[t], fp.peak_weight_kg[t], fp.peak_age_h[t]
-    w = w0 + (w1 - w0) * min(a / pa, 1.0)
-    return w * (fp.bull_weight_mult if cow.bull else 1.0)
+    f = min(a / pa, 1.0)
+    w = w0 + (w1 - w0) * f
+    return w * (fp.bull_weight_mult if cow.bull else 1.0) + cow.bonus * f
+
+
+def bonus_weight(fp: FarmParams, cow: Cow, now: float) -> float:
+    """體重裡已經長出來的飼料加成（公斤）。"""
+    if now < cow.adult_at or not cow.bonus:
+        return 0.0
+    return cow.bonus * min(cow.adult_age_h(now) / fp.peak_age_h[cow.ctype], 1.0)
 
 
 def beef_quality(fp: FarmParams, cow: Cow, now: float) -> float:
@@ -389,7 +475,8 @@ def beef_condition(fp: FarmParams, cow: Cow, now: float) -> float:
 def beef_grade_probs(fp: FarmParams, cow: Cow, now: float) -> Tuple[float, float, float]:
     """出貨評到 A／B／C 的精確機率（給出貨確認畫面公開）。"""
     w = fp.beef_grade_tier_weight
-    s = (1.0 - w) * beef_condition(fp, cow, now) + w * cow.tier / 3.0
+    tier = 0 if cow.vt == HYBRID else cow.vt  # 雜種牛的稀有度分數算一般
+    s = (1.0 - w) * beef_condition(fp, cow, now) + w * tier / 3.0
     pa = min(1.0, max(0.0, fp.beef_grade_a0 + fp.beef_grade_a1 * s))
     pc = min(1.0 - pa, max(0.0, fp.beef_grade_c0 * (1.0 - s)))
     return pa, 1.0 - pa - pc, pc
@@ -398,7 +485,7 @@ def beef_grade_probs(fp: FarmParams, cow: Cow, now: float) -> Tuple[float, float
 def beef_expected_mult(fp: FarmParams, cow: Cow, now: float) -> float:
     """評級倍率的期望值 × 稀有度倍率（估值、預覽用）。"""
     probs = beef_grade_probs(fp, cow, now)
-    return sum(p * m for p, m in zip(probs, fp.beef_grade_mult)) * fp.tier_mult[cow.tier]
+    return sum(p * m for p, m in zip(probs, fp.beef_grade_mult)) * fp.tier_mult[cow.vt]
 
 
 def draw_beef_grade(fp: FarmParams, cow: Cow, now: float, rng: random.Random) -> int:
@@ -474,7 +561,7 @@ def breed_fee(fp: FarmParams, sire: Cow, dam: Cow) -> float:
 # 倉庫裡的批次
 # ---------------------------------------------------------------------------
 class Lot:
-    """一批牛奶。"""
+    """一批牛奶。tier = 價值等級（0–3；雜種牛的奶是 HYBRID）。"""
 
     __slots__ = ("tier", "qty", "t")
 
@@ -492,7 +579,8 @@ class Lot:
 
 
 class BeefLot:
-    """倉庫裡的一批牛肉（出貨一頭牛 = 一批）。mult = 評級倍率 × 稀有度倍率（v0.1 是肉質 × 稀有度）；
+    """倉庫裡的一批牛肉（出貨一頭牛 = 一批）。tier = 價值等級（雜種牛是 HYBRID）。mult = 評級倍率 × 稀有度倍率
+    （病牛再 × sick_beef_mult；v0.1 是肉質 × 稀有度）；
     grade：0 A、1 B、2 C（−1 = 舊存檔沒有評級）；qty 單位是公斤。
     genes：出貨那頭牛的基因（伺服器拿來顯示品種；None = 2026-10-02 之前出貨的，存檔裡沒有）。"""
 
@@ -618,9 +706,18 @@ class Farm:
         "rice_lots",
         "track",
         "speed",
+        "care",
+        "care_t",
+        "hazard",
+        "feeds",
+        "floor",
+        "floors",
+        "helper_from",
+        "helper_until",
+        "stats",
     )
 
-    def __init__(self, params: EconomyParams, now: float, rng: random.Random):
+    def __init__(self, params: EconomyParams, now: float, rng: random.Random, care: bool = False):
         self.p = params
         fp = self.fp = params.farm
         ob = params.onboarding
@@ -642,6 +739,7 @@ class Farm:
         self.n_sales = 0  # 賣過幾次（牛奶、牛肉、稻米）；教學與任務用
         self.log: Optional[list] = None  # 模擬時設成 list 就會記錄每筆收支
         self.track: Optional[dict] = None  # 模擬時設成 dict 就會記錄每頭牛的產出（不存檔）
+        self.stats: Optional[dict] = None  # 模擬時設成 dict 就會累計牛的時間、生病的時間（秒；不存檔）
         self.speed = 1.0  # 牛的年紀走多快（v0.3 的地板設；1.0 = 泥土地）。全部的牛一起，換的時候用 set_speed
 
         cow = Cow(
@@ -662,10 +760,23 @@ class Farm:
             adult_at=now + ob.starter_calf_remaining_s,
             origin="start",
         )
+        cow.poop_at = now  # 大便的時鐘從開牧場算
         self.cows = [cow, calf]
-        self.bucket = [0.0, 0.0, 0.0, 0.0]
+        self.bucket = [0.0] * len(fp.tier_mult)  # 價值等級 0–3 和雜種牛（HYBRID）
         self.bucket[cow.tier] = float(ob.start_bucket)
         self.bucket_t = now
+        # v0.3 照顧
+        self.care = care  # 照顧規則開關：大便、生病、變雜種（說明見檔頭）
+        self.care_t = now  # 大便、生病結算到什麼時候
+        self.hazard = 0.0  # 牧場的累積風險（每頭牛一樣）
+        self.feeds = [0] * len(params.care.feed_kg)  # 倉庫裡每種飼料幾份
+        self.floor = 0  # 正在用的地板（CareParams.floor_ids 的索引）
+        self.floors = 1  # 擁有的地板（位元）；泥土地開局就有
+        self.helper_from = 0.0  # 這次雇用小幫手從什麼時候開始（每 helper_clean_s 清一次的起點）
+        self.helper_until = 0.0
+        if care:
+            for c in self.cows:  # 亂數用在開局兩頭牛的基因之後
+                self._arm(c, rng)
 
     def _new_id(self) -> int:
         i = self._next_cid
@@ -682,7 +793,7 @@ class Farm:
             return
         r = self.track.get(cow.cid)
         if r is None:
-            r = self.track[cow.cid] = [0.0, 0.0, 0.0, cow.origin, cow.ctype, cow.bull, cow.tier, cow.born_at]
+            r = self.track[cow.cid] = [0.0, 0.0, 0.0, cow.origin, cow.ctype, cow.bull, cow.vt, cow.born_at]
         r[key] += v
 
     # ---- 查詢 ----
@@ -719,19 +830,23 @@ class Farm:
                 return c
         return None
 
-    # ---- 結算：奶桶與田地（離線也會累積，滿了就停） ----
+    # ---- 結算：長大揭曉、大便與生病、奶桶與田地（離線也會累積，滿了就停） ----
     def advance(self, now: float) -> None:
+        self._reveal(now)
+        if now > self.care_t:
+            self._care_advance(now)
         if now > self.bucket_t:
             if self.track is not None:
                 self._advance_bucket_tracked(now)
             else:
-                self.bucket = self.bucket_preview(now)
+                self.bucket, _ = self._bucket_calc(now, per_cow=False)
             self.bucket_t = now
         self._advance_fields(now)
 
     def set_speed(self, speed: float, now: float) -> None:
-        """換年紀速度（v0.3 換地板）：先結算到 now（之前那段照舊的速度），再把每頭牛的 adult_at、born_at 照新的速度
-        重新推算，年紀小時在 now 連續、之後照新的速度走。上架借種的公牛要另外叫 StudMarket.follow_owner。"""
+        """換年紀速度（v0.3 換地板，use_floor）：先結算到 now（之前那段照舊的速度），再把每頭牛的 adult_at、born_at 照新的速度
+        重新推算，年紀小時在 now 連續、之後照新的速度走。上架借種的公牛要另外叫 StudMarket.follow_owner。
+        大便的時鐘（poop_at）、吃飽冷卻是現實時間，不動。"""
         if speed == self.speed:
             return
         self.advance(now)
@@ -744,17 +859,19 @@ class Farm:
         self.speed = speed
 
     def bucket_preview(self, now: float) -> List[float]:
-        """到 now 為止奶桶裡各稀有度的牛奶（瓶），不改狀態。advance() 用同一個算法。"""
-        out, _ = self._bucket_calc(now, per_cow=False)
+        """到 now 為止奶桶裡各價值等級的牛奶（瓶），不改狀態。advance() 用同一個算法。"""
+        out, _ = self._bucket_calc(now, per_cow=False, pending=True)
         return out
 
-    def _bucket_calc(self, now: float, per_cow: bool):
+    def _bucket_calc(self, now: float, per_cow: bool, pending: bool = False):
+        """pending：還沒結算的揭曉和生病也算進去（預覽用；advance 已經先結算了，不用）。"""
         t0 = self.bucket_t
         if now <= t0:
             return list(self.bucket), []
         fp = self.fp
         ob = self.p.onboarding
-        produced = [0.0, 0.0, 0.0, 0.0]
+        sick = self._pending_sick(now) if pending else None
+        produced = [0.0] * len(self.bucket)
         cow_q = []
         boost_end = self.created_at + ob.newbie_boost_s
         bt0, bt1 = max(t0, self.created_at), min(now, boost_end)
@@ -762,10 +879,12 @@ class Farm:
         for c in self.cows:
             if not is_milker(c) or now <= c.adult_at:
                 continue
-            q = cow_milk_between(fp, c, t0, now)
-            if bt1 > bt0 and extra > 0:
-                q += extra * cow_milk_between(fp, c, bt0, bt1)
-            produced[c.tier] += q
+            t1 = self._healthy_until(c, now, sick)  # 生病就不產奶
+            q = cow_milk_between(fp, c, t0, t1)
+            b1 = min(bt1, t1)
+            if b1 > bt0 and extra > 0:
+                q += extra * cow_milk_between(fp, c, bt0, b1)
+            produced[c.vt if c.grown else self._reveal_vt(c)] += q
             if per_cow:
                 cow_q.append((c, q))
         total = sum(produced)
@@ -774,7 +893,7 @@ class Farm:
         scale = 0.0
         if total > 0 and room > 0:
             scale = min(1.0, room / total)
-            for i in range(4):
+            for i in range(len(out)):
                 out[i] += produced[i] * scale
         return out, [(c, q * scale) for c, q in cow_q]
 
@@ -799,7 +918,7 @@ class Farm:
                 if ox is not None:
                     cap = field_cap_for(fp, ox)
                     if f.rice < cap:
-                        q = min(cap - f.rice, cow_rice_between(fp, ox, f.t, now))
+                        q = min(cap - f.rice, cow_rice_between(fp, ox, f.t, self._healthy_until(ox, now)))
                         if q > 0:
                             f.rice += q
                             self._track(ox, 1, q)
@@ -808,6 +927,7 @@ class Farm:
     def field_preview(self, now: float) -> List[float]:
         """到 now 為止每塊田長好的稻米（公斤），不改狀態。"""
         by_id = {c.cid: c for c in self.cows}
+        sick = self._pending_sick(now)
         out = []
         for f in self.fields:
             r = f.rice
@@ -815,9 +935,287 @@ class Farm:
                 ox = by_id[f.ox]
                 cap = field_cap_for(self.fp, ox)
                 if r < cap:
-                    r += min(cap - r, cow_rice_between(self.fp, ox, f.t, now))
+                    r += min(cap - r, cow_rice_between(self.fp, ox, f.t, self._healthy_until(ox, now, sick)))
             out.append(r)
         return out
+
+    # ---- 長大揭曉（v0.3 第 1 節）----
+    def _reveal_vt(self, c: Cow) -> int:
+        """長大那一刻的價值等級（不改狀態）：照顧規則開著、稀有以上、小牛時期沒吃齊指定的飼料 → 雜種牛。
+        開局送的牛不會變雜種。"""
+        if self.care and c.origin != "start":
+            need = required_feeds(self.p.care, c.g)
+            if any(not (c.fed >> k) & 1 for k in need):
+                return HYBRID
+        return c.tier
+
+    def _reveal(self, now: float) -> None:
+        for c in self.cows:
+            if not c.grown and c.adult_at <= now:
+                c.grown = True
+                c.vt = self._reveal_vt(c)
+
+    # ---- 大便與生病（v0.3 第 5 節）----
+    def _arm(self, c: Cow, rng: random.Random) -> None:
+        """出生（或治好）時抽生病的門檻：累積風險再多 Exp(1) 就生病。"""
+        c.h0 = self.hazard
+        c.thr = -math.log(1.0 - rng.random())
+
+    def _care_sim(self, now: float) -> Tuple[List[int], float, Dict[int, float]]:
+        """從 care_t 到 now 的大便與生病，不改狀態：回傳 (每頭牛的大便, 牧場的累積風險, {牛的編號: 生病的時間})。
+
+        髒的程度只在事件時改變：某頭牛拉大便（poop_at + k × poop_every_s）、小幫手清（helper_from + k × helper_clean_s）、
+        新手保護結束。事件之間每頭牛的風險率是常數，累積風險是分段的直線，生病的時間在那一段裡精確反推。
+        剛好在 now 的事件算進這次（下次從 now 之後的事件開始）。"""
+        cows = self.cows
+        poop = [c.poop for c in cows]
+        n = len(cows)
+        H = self.hazard
+        sick: Dict[int, float] = {}
+        t = self.care_t
+        if not self.care or n == 0 or now <= t:
+            return poop, H, sick
+        cp = self.p.care
+        P = cp.poop_every_s
+        cap = cp.poop_max_per_cow
+        heap = []  # (下一坨的時間, 第幾頭, 第幾坨)：還沒到上限的牛
+        for i, c in enumerate(cows):
+            if poop[i] < cap:
+                k = max(1, math.floor((t - c.poop_at) / P) + 1)
+                heap.append((c.poop_at + k * P, i, k))
+        heapq.heapify(heap)
+        total = sum(poop)
+        hs = cp.helper_clean_s
+        hk = max(1, math.floor((t - self.helper_from) / hs) + 1) if self.helper_until > t else 0
+        safe_end = self.created_at + cp.newbie_safe_s
+        rate_s = cp.sick_rate_per_h / HOUR
+        # 還沒生病、會生病的牛，照「累積風險到多少會生病」排好
+        pend = sorted((c.h0 + c.thr, i) for i, c in enumerate(cows) if c.thr is not None and c.sick_since is None)
+        pi = 0
+        while t < now:
+            t1 = now
+            if heap and heap[0][0] < t1:
+                t1 = heap[0][0]
+            if hk:
+                tm = self.helper_from + hk * hs
+                if tm > self.helper_until:
+                    hk = 0
+                elif tm < t1:
+                    t1 = tm
+            if t < safe_end < t1:
+                t1 = safe_end
+            t1 = max(t1, t)
+            # [t, t1) 這一段的風險
+            if t >= safe_end:
+                r = rate_s * (total / n - cp.sick_dirt_free)
+                if r > 0.0:
+                    H1 = H + r * (t1 - t)
+                    while pi < len(pend) and pend[pi][0] <= H1:
+                        lim, i = pend[pi]
+                        sick[cows[i].cid] = t + max(0.0, lim - H) / r
+                        pi += 1
+                    H = H1
+            t = t1
+            # t 這一刻的事件：先拉大便，再讓小幫手清
+            while heap and heap[0][0] <= t:
+                _, i, k = heapq.heappop(heap)
+                poop[i] += 1
+                total += 1
+                if poop[i] < cap:
+                    heapq.heappush(heap, (cows[i].poop_at + (k + 1) * P, i, k + 1))
+            if hk and self.helper_from + hk * hs <= t:
+                hk += 1
+                if total:
+                    in_heap = {i for _, i, _ in heap}
+                    for i, c in enumerate(cows):
+                        if poop[i] >= cap and i not in in_heap:
+                            k = max(1, math.floor((t - c.poop_at) / P) + 1)
+                            heapq.heappush(heap, (c.poop_at + k * P, i, k))
+                        poop[i] = 0
+                    total = 0
+        return poop, H, sick
+
+    def _care_advance(self, now: float) -> None:
+        if self.care:
+            poop, self.hazard, sick = self._care_sim(now)
+            for c, q in zip(self.cows, poop):
+                c.poop = q
+                s = sick.get(c.cid)
+                if s is not None:
+                    c.sick_since = s
+                    self._record(s, "sick", 0.0, 1.0)
+        if self.stats is not None:
+            self.stats["cow_s"] = self.stats.get("cow_s", 0.0) + len(self.cows) * (now - self.care_t)
+            self.stats["sick_s"] = self.stats.get("sick_s", 0.0) + self._sick_seconds(self.care_t, now)
+        self.care_t = now
+
+    def _sick_seconds(self, t0: float, t1: float, sick: Optional[Dict[int, float]] = None) -> float:
+        """t0 到 t1 之間全部的牛病著的時間加起來（秒）。"""
+        tot = 0.0
+        for c in self.cows:
+            s = c.sick_since
+            if s is None and sick:
+                s = sick.get(c.cid)
+            if s is not None and s < t1:
+                tot += t1 - max(t0, s)
+        return tot
+
+    def care_stats(self, now: float) -> Tuple[float, float]:
+        """模擬用：(牛的時間, 病牛的時間)，秒，算到 now（不改狀態）。要先設 stats = {}。"""
+        st = self.stats or {}
+        cow_s, sick_s = st.get("cow_s", 0.0), st.get("sick_s", 0.0)
+        if now > self.care_t:
+            cow_s += len(self.cows) * (now - self.care_t)
+            sick_s += self._sick_seconds(self.care_t, now, self._pending_sick(now))
+        return cow_s, sick_s
+
+    def _pending_sick(self, now: float) -> Optional[Dict[int, float]]:
+        """care_t 到 now 之間會生病的牛（不改狀態；預覽用）。"""
+        if not self.care or now <= self.care_t:
+            return None
+        return self._care_sim(now)[2]
+
+    def _healthy_until(self, c: Cow, now: float, sick: Optional[Dict[int, float]] = None) -> float:
+        """這頭牛在 now 之前健康到什麼時候（產奶、耕田的積分算到這裡）。"""
+        s = c.sick_since
+        if s is None and sick:
+            s = sick.get(c.cid)
+        return now if s is None else min(now, s)
+
+    def is_sick(self, c: Cow, now: float) -> bool:
+        """這頭牛在 now 是不是病著（含還沒結算的）。"""
+        if c.sick_since is not None:
+            return True
+        sick = self._pending_sick(now)
+        return bool(sick) and c.cid in sick
+
+    def poop_total(self, now: float) -> int:
+        """到 now 為止還沒清的大便（坨），不改狀態。"""
+        return sum(self._care_sim(now)[0])
+
+    def clean(self, now: float, piles: Optional[Dict[int, int]] = None) -> int:
+        """清大便：piles = {牛的編號: 清幾坨}；None = 全部清掉。回傳清了幾坨。"""
+        self.advance(now)
+        n = 0
+        for c in self.cows:
+            k = c.poop if piles is None else min(c.poop, max(0, int(piles.get(c.cid, 0))))
+            c.poop -= k
+            n += k
+        if n:
+            self._record(now, "clean", 0.0, n)
+        return n
+
+    def cure(self, cow: Cow, now: float, rng: random.Random) -> bool:
+        """治療一頭病牛（cure_price），馬上好；重新抽生病的門檻。"""
+        cp = self.p.care
+        if cow not in self.cows or self.coins < cp.cure_price:
+            return False
+        self.advance(now)
+        if cow.sick_since is None:
+            return False
+        self.coins -= cp.cure_price
+        cow.sick_since = None
+        self._arm(cow, rng)
+        self._record(now, "cure", -cp.cure_price, 1.0)
+        return True
+
+    def hire_helper(self, days: int, now: float) -> bool:
+        """雇打掃小幫手 days 天（接在還沒到期的後面），預付最多 helper_max_days 天。雇用那一刻先清一次。"""
+        cp = self.p.care
+        if days < 1:
+            return False
+        until = max(now, self.helper_until) + days * DAY
+        cost = cp.helper_price_per_day * days
+        if until - now > cp.helper_max_days * DAY + 1e-6 or self.coins < cost:
+            return False
+        self.advance(now)
+        if self.helper_until <= now:
+            self.helper_from = now
+            for c in self.cows:
+                c.poop = 0
+        self.coins -= cost
+        self.helper_until = until
+        self._record(now, "helper", -cost, float(days))
+        return True
+
+    def set_care(self, on: bool, now: float, rng: random.Random) -> None:
+        """打開（或關掉）照顧規則。打開時還沒有門檻的牛照現在的累積風險抽門檻。"""
+        if on == self.care:
+            return
+        self.advance(now)
+        self.care = on
+        if on:
+            for c in self.cows:
+                if c.thr is None and c.sick_since is None:
+                    self._arm(c, rng)
+
+    # ---- 飼料（v0.3 第 2 節）----
+    def buy_feed(self, k: int, n: int, now: float, price: Optional[float] = None) -> bool:
+        """買 n 份第 k 種飼料（price = 每份的價格；None = 參數的固定價。飼料市場在 PR B）。每種最多 feed_cap 份。"""
+        cp = self.p.care
+        if not (0 <= k < len(cp.feed_kg)) or n < 1 or self.feeds[k] + n > cp.feed_cap:
+            return False
+        cost = (cp.feed_price[k] if price is None else price) * n
+        if self.coins < cost:
+            return False
+        self.coins -= cost
+        self.feeds[k] += n
+        self._record(now, "feed_buy", -cost, float(n))
+        return True
+
+    def feed_block(self, cow: Cow, k: int, now: float) -> Optional[str]:
+        """不能餵的原因（None = 可以）：no_feed 倉庫沒有、full 吃飽冷卻中、listed 上架借種中（借種費的加成停在上架那一刻）、
+        past_peak 過了最壯（加成只算長到最壯之前）、bonus_max 加成滿了。小牛時期吃的算指定飼料，也算加成。"""
+        cp = self.p.care
+        if cow not in self.cows or not (0 <= k < len(cp.feed_kg)):
+            return "bad"
+        if self.feeds[k] <= 0:
+            return "no_feed"
+        if now < cow.fed_until:
+            return "full"
+        if cow.listed is not None:
+            return "listed"
+        if cow.is_adult(now):
+            if cow.adult_age_h(now) >= self.fp.peak_age_h[cow.ctype]:
+                return "past_peak"
+            if cow.bonus >= cp.bonus_max_kg:
+                return "bonus_max"
+        return None
+
+    def feed(self, cow: Cow, k: int, now: float) -> bool:
+        if self.feed_block(cow, k, now) is not None:
+            return False
+        self.advance(now)  # 先揭曉：成年那一刻（含）之後吃的不算小牛時期
+        cp = self.p.care
+        self.feeds[k] -= 1
+        if cow.is_adult(now):
+            cooldown = cp.feed_cooldown_s
+        else:
+            cow.fed |= 1 << k
+            cooldown = cp.calf_feed_cooldown_s
+        cow.bonus = min(cp.bonus_max_kg, cow.bonus + cp.feed_kg[k])
+        cow.fed_until = now + cooldown
+        self._record(now, "feed", 0.0, cp.feed_kg[k])
+        return True
+
+    # ---- 地板（v0.3 第 4 節）----
+    def buy_floor(self, i: int, now: float) -> bool:
+        cp = self.p.care
+        if not (0 <= i < len(cp.floor_speed)) or (self.floors >> i) & 1 or self.coins < cp.floor_price[i]:
+            return False
+        self.coins -= cp.floor_price[i]
+        self.floors |= 1 << i
+        self._record(now, "floor", -cp.floor_price[i])
+        return True
+
+    def use_floor(self, i: int, now: float) -> bool:
+        """換成買過的地板（免費）。上架借種的公牛：呼叫端要再叫 StudMarket.follow_owner。"""
+        cp = self.p.care
+        if not (0 <= i < len(cp.floor_speed)) or not (self.floors >> i) & 1:
+            return False
+        self.set_speed(cp.floor_speed[i], now)
+        self.floor = i
+        return True
 
     # ---- 牛奶 ----
     def collect(self, now: float) -> float:
@@ -831,7 +1229,7 @@ class Farm:
         if take <= 0:
             return 0.0
         scale = take / total
-        for i in range(4):
+        for i in range(len(self.bucket)):
             q = self.bucket[i] * scale
             if q > 0:
                 self.lots.append(Lot(i, q, now))
@@ -922,7 +1320,13 @@ class Farm:
         return True
 
     def can_work(self, cow: Cow, now: float) -> bool:
-        return cow in self.cows and cow.ctype == OX and cow.is_adult(now) and not cow.is_busy()
+        return (
+            cow in self.cows
+            and cow.ctype == OX
+            and cow.is_adult(now)
+            and not cow.is_busy()
+            and not self.is_sick(cow, now)
+        )
 
     def assign_field(self, cow: Cow, idx: int, now: float) -> bool:
         """把成年耕牛派到第 idx 塊田（田要是空的）。"""
@@ -1006,13 +1410,15 @@ class Farm:
         return cow in self.cows and cow.is_adult(now) and not cow.is_busy()
 
     def _grade_mult(self, cow: Cow, now: float, rng: Optional[random.Random]) -> Tuple[int, float]:
-        """(評級, 賣價倍率 = 評級倍率 × 稀有度倍率)。rng=None 時用期望值（評級記為 −1），伺服器一定要傳 rng。"""
+        """(評級, 賣價倍率 = 評級倍率 × 價值等級倍率 × 病牛倍率)。rng=None 時用期望值（評級記為 −1），伺服器一定要傳 rng。
+        呼叫前要先 advance(now)（揭曉、生病都結算好）。"""
         fp = self.fp
+        sick = self.p.care.sick_beef_mult if cow.sick_since is not None else 1.0
         if rng is None:
-            return -1, beef_expected_mult(fp, cow, now)
+            return -1, beef_expected_mult(fp, cow, now) * sick
         g = draw_beef_grade(fp, cow, now, rng)
         self._record(now, "grade_" + fp.beef_grade_names[g], 0.0, 1.0)
-        return g, fp.beef_grade_mult[g] * fp.tier_mult[cow.tier]
+        return g, fp.beef_grade_mult[g] * fp.tier_mult[cow.vt] * sick
 
     def ship(self, cow: Cow, market: Market, now: float, rng: Optional[random.Random] = None) -> Optional[SaleResult]:
         """出貨一頭成年牛，當場評級並賣掉。"""
@@ -1030,6 +1436,8 @@ class Farm:
         for c in cows:
             _g, mult = self._grade_mult(c, now, rng)
             parts.append((beef_weight(self.fp, c, now), mult))
+            if c.bonus:
+                self._record(now, "bonus_kg", 0.0, bonus_weight(self.fp, c, now) * mult)
         res = market.execute_sale(self.impact["beef"], parts, now)
         for c in cows:
             self.cows.remove(c)
@@ -1049,7 +1457,9 @@ class Farm:
         self.advance(now)
         w = beef_weight(self.fp, cow, now)
         g, mult = self._grade_mult(cow, now, rng)
-        lot = BeefLot(cow.tier, w, mult, now, cow.cid, g, cow.g)
+        if cow.bonus:
+            self._record(now, "bonus_kg", 0.0, bonus_weight(self.fp, cow, now) * mult)
+        lot = BeefLot(cow.vt, w, mult, now, cow.cid, g, cow.g)
         self.cows.remove(cow)
         self.beef_lots.append(lot)
         self._record(now, "ship", 0.0, w)
@@ -1096,6 +1506,8 @@ class Farm:
         self.coins -= price
         g, bull = shop_draw(fp, gi, rng)
         cow = Cow(self._new_id(), g, bull, now, fp, origin=fp.shop_grade_names[gi], speed=self.speed)
+        if self.care:
+            self._arm(cow, rng)
         self.cows.append(cow)
         self._record(now, "calf", -price)
         self._record(now, "shop_" + fp.shop_grade_names[gi], 0.0, 1.0)
@@ -1111,6 +1523,8 @@ class Farm:
         cow = Cow(
             self._new_id(), shop_genotype(self.fp, type_idx, rng), bull, now, self.fp, origin="legacy", speed=self.speed
         )
+        if self.care:
+            self._arm(cow, rng)
         self.cows.append(cow)
         self._record(now, "calf", -price)
         return cow
@@ -1125,6 +1539,8 @@ class Farm:
             and sire.can_breed_now(now)
             and dam.can_breed_now(now)
             and self.free_slots() > 0
+            and not self.is_sick(sire, now)
+            and not self.is_sick(dam, now)
         )
 
     def breed_cost(self, sire: Cow, dam: Cow) -> float:
@@ -1145,6 +1561,8 @@ class Farm:
     def _make_calf(self, sire_g: int, dam: Cow, now: float, rng: random.Random, origin: str) -> Cow:
         g = breed_genotype(sire_g, dam.g, rng)
         calf = Cow(self._new_id(), g, rng.random() < 0.5, now, self.fp, origin=origin, speed=self.speed)
+        if self.care:
+            self._arm(calf, rng)
         self.cows.append(calf)
         return calf
 
@@ -1213,8 +1631,8 @@ class Farm:
 
     # ---- 估值 ----
     def net_worth(self, now: float, milk_price: float, beef_price: float, rice_price: Optional[float] = None) -> float:
-        """現金 + 倉庫（牛奶、牛肉、稻米）+ 奶桶 + 田裡的稻米 + 成年牛出貨價值（評級期望值）+ 小牛（C 級價）。
-        估值，不含滑價。rice_price 沒給就用稻米基本價。"""
+        """現金 + 倉庫（牛奶、牛肉、稻米、飼料）+ 奶桶 + 田裡的稻米 + 成年牛出貨價值（評級期望值，病牛一成）
+        + 小牛（C 級價）。估值，不含滑價。rice_price 沒給就用稻米基本價。"""
         if rice_price is None:
             rice_price = self.p.rice.base_price
         fp = self.fp
@@ -1227,11 +1645,14 @@ class Farm:
         for rl in self.rice_lots:
             v += rl.qty * rice_price * self.rice_lot_mult(rl, now)
         v += sum(f.rice for f in self.fields) * rice_price
+        cp = self.p.care
         for c in self.cows:
             if c.is_adult(now):
-                v += beef_weight(fp, c, now) * beef_expected_mult(fp, c, now) * beef_price
+                sick = cp.sick_beef_mult if c.sick_since is not None else 1.0
+                v += beef_weight(fp, c, now) * beef_expected_mult(fp, c, now) * beef_price * sick
             else:
                 v += fp.shop_grade_price[-1]
+        v += sum(q * p for q, p in zip(self.feeds, cp.feed_price))
         return v
 
     # ---- 存檔與回復 ----
@@ -1257,6 +1678,14 @@ class Farm:
             "first_breed_used": self.first_breed_used,
             "n_sales": self.n_sales,
             **({"speed": self.speed} if self.speed != 1.0 else {}),  # 年紀速度；1.0 不寫，存檔跟以前一樣
+            "care": self.care,
+            "care_t": self.care_t,
+            "hazard": self.hazard,
+            "feeds": list(self.feeds),
+            "floor": self.floor,
+            "floors": self.floors,
+            "helper_from": self.helper_from,
+            "helper_until": self.helper_until,
         }
 
     @classmethod
@@ -1272,7 +1701,7 @@ class Farm:
         f.bucket_level = d["bucket_level"]
         f.wh_level = d["wh_level"]
         f.fresh_level = d["fresh_level"]
-        f.bucket = list(d["bucket"])
+        f.bucket = list(d["bucket"]) + [0.0] * (len(fp.tier_mult) - len(d["bucket"]))  # v0.2 的奶桶只有 4 格
         f.bucket_t = d["bucket_t"]
         f.lots = [Lot.from_dict(x) for x in d["lots"]]
         f.beef_lots = [BeefLot.from_dict(x) for x in d.get("beef_lots", [])]
@@ -1292,8 +1721,19 @@ class Farm:
         f.speed = d.get("speed", 1.0)
         for c in f.cows:  # 牛的存檔不存速度，跟牧場一樣
             c.speed = f.speed
+        # v0.3 照顧：舊存檔是關的
+        f.care = d.get("care", False)
+        f.care_t = d.get("care_t", d["bucket_t"])
+        f.hazard = d.get("hazard", 0.0)
+        nf = len(params.care.feed_kg)
+        f.feeds = (list(d.get("feeds", [])) + [0] * nf)[:nf]
+        f.floor = d.get("floor", 0)
+        f.floors = d.get("floors", 1)
+        f.helper_from = d.get("helper_from", 0.0)
+        f.helper_until = d.get("helper_until", 0.0)
         f.log = None
         f.track = None
+        f.stats = None
         return f
 
 
@@ -1301,17 +1741,23 @@ class Farm:
 # 借種市場（全服共用；第一個跨玩家的狀態）
 # ---------------------------------------------------------------------------
 def stud_fee(
-    fp: FarmParams, ctype: int, tier: int, adult_at: Optional[float], now: float, speed: float = 1.0
+    fp: FarmParams,
+    ctype: int,
+    tier: int,
+    adult_at: Optional[float],
+    now: float,
+    speed: float = 1.0,
+    bonus: float = 0.0,
 ) -> Tuple[float, float, bool]:
-    """借種費（D26）：公牛現在的體重 × 每公斤價格（依稀有度），四捨五入到 stud_fee_round 幣。
+    """借種費（D26）：公牛現在的體重 × 每公斤價格（依價值等級；雜種牛是 HYBRID），四捨五入到 stud_fee_round 幣。
 
-    體重跟 beef_weight 同一個算法（公牛，成年後 peak_age_h 小時長到最佳體重，之後不變）。
+    體重跟 beef_weight 同一個算法（公牛，成年後 peak_age_h 小時長到最佳體重，之後不變；飼料加成 bonus 跟著年紀長出來）。
     adult_at = None 是公營種牛站（沒有真的牛）：用那種用途公牛的最佳體重。speed：主人牧場的年紀速度（Cow.speed）。
     回傳 (借種費, 體重公斤, 是否已經長到最壯)。
     """
     w0, w1, pa = fp.adult_weight_kg[ctype], fp.peak_weight_kg[ctype], fp.peak_age_h[ctype]
     frac = 1.0 if adult_at is None else min(max(now - adult_at, 0.0) / HOUR * speed / pa, 1.0)
-    kg = (w0 + (w1 - w0) * frac) * fp.bull_weight_mult
+    kg = (w0 + (w1 - w0) * frac) * fp.bull_weight_mult + bonus * frac
     step = fp.stud_fee_round
     return math.floor(kg * fp.stud_fee_per_kg[tier] / step + 0.5) * step, kg, frac >= 1.0
 
@@ -1319,12 +1765,22 @@ def stud_fee(
 class StudListing:
     """一筆上架：owner = 主人的識別碼（None = 公營種牛站）；cow_id = 主人牧場裡那頭公牛；
     g、ctype、tier 是上架當下公牛的基因（畫面顯示與配種機率用）；adult_at 是公牛長大的時間，借種費依「現在」的體重算
-    （StudMarket.fee）。公營種牛站沒有真的牛，adult_at = None（用最佳體重算）。"""
+    （StudMarket.fee）。公營種牛站沒有真的牛，adult_at = None（用最佳體重算）。
+    vt：價值等級（雜種公牛是 HYBRID，借種費每公斤 0.6）；bonus：公牛的飼料加成（上架期間不能餵，所以固定）。"""
 
-    __slots__ = ("lid", "owner", "cow_id", "g", "ctype", "tier", "adult_at", "listed_at", "speed")
+    __slots__ = ("lid", "owner", "cow_id", "g", "ctype", "tier", "vt", "bonus", "adult_at", "listed_at", "speed")
 
     def __init__(
-        self, lid: int, owner, cow_id: int, g: int, adult_at: Optional[float], listed_at: float, speed: float = 1.0
+        self,
+        lid: int,
+        owner,
+        cow_id: int,
+        g: int,
+        adult_at: Optional[float],
+        listed_at: float,
+        speed: float = 1.0,
+        hybrid: bool = False,
+        bonus: float = 0.0,
     ):
         self.lid = lid
         self.owner = owner
@@ -1332,6 +1788,8 @@ class StudListing:
         self.g = g
         self.ctype = cow_type(g)
         self.tier = tier_of(g)
+        self.vt = HYBRID if hybrid else self.tier
+        self.bonus = bonus
         self.adult_at = adult_at
         self.listed_at = listed_at
         self.speed = speed  # 主人牧場的年紀速度；主人換速度時 StudMarket.follow_owner 跟著改
@@ -1345,11 +1803,23 @@ class StudListing:
             "adult_at": self.adult_at,
             "listed_at": self.listed_at,
             **({"speed": self.speed} if self.speed != 1.0 else {}),
+            **({"hybrid": True} if self.vt == HYBRID else {}),
+            **({"bonus": self.bonus} if self.bonus else {}),
         }
 
     @classmethod
     def from_dict(cls, d: dict) -> "StudListing":
-        return cls(d["id"], d["owner"], d["cow_id"], d["g"], d["adult_at"], d["listed_at"], d.get("speed", 1.0))
+        return cls(
+            d["id"],
+            d["owner"],
+            d["cow_id"],
+            d["g"],
+            d["adult_at"],
+            d["listed_at"],
+            d.get("speed", 1.0),
+            d.get("hybrid", False),
+            d.get("bonus", 0.0),
+        )
 
 
 class StudMarket:
@@ -1365,11 +1835,11 @@ class StudMarket:
         self.listings: Dict[int, StudListing] = {}
         self._next_id = 1
         self._npc_count = 0
-        self._index: Dict[Tuple[int, int], List[int]] = {}  # (用途, 稀有度) → 上架編號（價格會變，用的時候現算）
+        self._index: Dict[Tuple[int, int], List[int]] = {}  # (用途, 價值等級) → 上架編號（價格會變，用的時候現算）
 
     def _add(self, lst: StudListing) -> None:
         self.listings[lst.lid] = lst
-        self._index.setdefault((lst.ctype, lst.tier), []).append(lst.lid)
+        self._index.setdefault((lst.ctype, lst.vt), []).append(lst.lid)
         if lst.owner is None:
             self._npc_count += 1
 
@@ -1377,20 +1847,20 @@ class StudMarket:
         lst = self.listings.pop(lid, None)
         if lst is None:
             return None
-        self._index[(lst.ctype, lst.tier)].remove(lid)
+        self._index[(lst.ctype, lst.vt)].remove(lid)
         if lst.owner is None:
             self._npc_count -= 1
         return lst
 
     def fee(self, lst: StudListing, now: float) -> Tuple[float, float, bool]:
         """這一刻的借種費：(價格, 公牛體重, 是否已經長到最壯)。"""
-        return stud_fee(self.p.farm, lst.ctype, lst.tier, lst.adult_at, now, lst.speed)
+        return stud_fee(self.p.farm, lst.ctype, lst.vt, lst.adult_at, now, lst.speed, lst.bonus)
 
     def price(self, lst: StudListing, now: float) -> float:
         return self.fee(lst, now)[0]
 
     def cheapest(self, ctype: int, tier: int, now: float, exclude_owner=None) -> Optional[StudListing]:
-        """某用途、某稀有度這一刻最便宜的上架（同價先上架的在前；跳過 exclude_owner 自己的）。"""
+        """某用途、某價值等級（雜種是 HYBRID）這一刻最便宜的上架（同價先上架的在前；跳過 exclude_owner 自己的）。"""
         best, best_key = None, None
         for lid in self._index.get((ctype, tier), []):
             lst = self.listings[lid]
@@ -1403,12 +1873,20 @@ class StudMarket:
 
     # ---- 上架 ----
     def can_list(self, farm: Farm, cow: Cow, now: float) -> bool:
-        return cow in farm.cows and cow.bull and cow.is_adult(now) and not cow.bred and not cow.is_busy()
+        return (
+            cow in farm.cows
+            and cow.bull
+            and cow.is_adult(now)
+            and not cow.bred
+            and not cow.is_busy()
+            and not farm.is_sick(cow, now)
+        )
 
     def list_bull(self, farm: Farm, owner, cow: Cow, now: float) -> Optional[StudListing]:
         if owner is None or not self.can_list(farm, cow, now):
             return None
-        lst = StudListing(self._next_id, owner, cow.cid, cow.g, cow.adult_at, now, cow.speed)
+        farm.advance(now)  # 揭曉（雜種公牛的借種費不一樣）
+        lst = StudListing(self._next_id, owner, cow.cid, cow.g, cow.adult_at, now, cow.speed, cow.hybrid, cow.bonus)
         self._next_id += 1
         self._add(lst)
         cow.listed = lst.lid
@@ -1448,13 +1926,14 @@ class StudMarket:
             and dam.can_breed_now(now)
             and borrower.free_slots() > 0
             and borrower.coins >= self.price(lst, now)
+            and not borrower.is_sick(dam, now)
         ):
             return False
         if lst.owner is not None:
             if owner_farm is None:
                 return False
             bull = owner_farm.cow_by_id(lst.cow_id)
-            if bull is None or bull.bred or bull.listed != lid:
+            if bull is None or bull.bred or bull.listed != lid or owner_farm.is_sick(bull, now):
                 return False
         return True
 
