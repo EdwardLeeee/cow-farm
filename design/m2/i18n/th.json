@@ -47,6 +47,7 @@
  "s01.failAuto": "ระบบจะลองใหม่ให้เองทุก {n} วินาที",
  "retry": "ลองใหม่",
  "s05.milkName": "นม{tier}",
+ "s05.mixMilk": "นมวัวพันธุ์ผสม",
  "s05.spoiling": "ใกล้เสีย",
  "s05.fresh": "ความ⁠สด",
  "s05.collectedAgo": "เก็บ {ago}",

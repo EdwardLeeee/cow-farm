@@ -47,6 +47,7 @@
  "s01.failAuto": "We'll also retry automatically every {n}s.",
  "retry": "Retry",
  "s05.milkName": "{tier} milk",
+ "s05.mixMilk": "Crossbreed milk",
  "s05.spoiling": "Spoiling soon",
  "s05.fresh": "Freshness",
  "s05.collectedAgo": "Collected {ago}",

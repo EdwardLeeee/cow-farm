@@ -47,6 +47,7 @@
  "s01.failAuto": "每 {n} 秒也會自動再試一次。",
  "retry": "重試",
  "s05.milkName": "{tier}牛奶",
+ "s05.mixMilk": "雜種牛奶",
  "s05.spoiling": "快壞了",
  "s05.fresh": "新鮮度",
  "s05.collectedAgo": "{ago}收",
