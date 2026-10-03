@@ -4,6 +4,7 @@ import { ranchScene, HERD, WIDE } from '../scene.js';
 import { RANCH, COWS, PEN, BUCKET, WAREHOUSE, MARKET, NEWS, sum, cowName, compact, vsBase, newsTag, newsText } from '../fixtures.js';
 import { t, tb, dur, useName, sexName, tierName } from '../i18n.js';
 import { tierOf } from '../../cow/breeds.js';
+import { TIER_CLS, tierTag, pctText, newsIcons } from './s06.js';
 
 const L = '#4B3326';
 // R1-A 的奶桶圖示（水位跟著百分比）
@@ -219,6 +220,19 @@ const bigNewsAll = (ctx, up) => ranchPage(ctx, {
     ${btn(t('s03.bigNewsGo'), { kind: 'primary', block: true, ic: 'coin' })}</div>`,
 });
 const draft = (id, name, crop, render) => part(id, name, crop, render, { board: '新文案-狀態表' });
+// ---------- D33 超級大事件、超級黑天鵝的提示（使用者 2026-10-03 選第 12 輪 05-A；另外出一張「超級事件-狀態表」） ----------
+// 位置、大小、只跳一次、按鈕都跟大新聞提示（S03-15～17）一樣；換成金色（超級大事件）、深色（超級黑天鵝），標籤換掉，幅度的字放大。
+// 標題用專屬標題（news.<商品>_super／_swan）
+const superNews = (ctx, n, mk = MARKET) => ranchPage(ctx, {
+  dock: { market: mk },
+  overlays: `<div class="big-news card ${TIER_CLS[n.tier]}">${n.tier === 'super' ? `<span class="bn-spark" style="left:146px;top:8px">${icon('sparkle', 16)}</span><span class="bn-spark" style="left:168px;top:22px">${icon('sparkle', 10)}</span>` : ''}<button class="bn-close" aria-label="${t('g.close')}">${icon('close', 18)}</button><span class="bn-tag">${tierTag(n)}</span>
+    <div class="bn-main">${newsIcons(n, 'bn-ic', 34, 22)}<div class="grow"><b>${t(n.tk)}</b><p>${n.c === 'all' ? t('s03.bigNewsAll', { chg: `<b class="${n.dir}-text">${pctText(n)}</b>` }) : t('s03.bigNewsBody', { name: t(n.c), chg: `<b class="${n.dir}-text">${pctText(n)}</b>`, price: n.price, unit: t(n.c === 'milk' ? 'unitMilk' : n.c === 'beef' ? 'unitBeef' : 'unitRice') })}</p></div></div>
+    ${btn(t('s03.bigNewsGo'), { kind: 'primary', block: true, ic: 'coin' })}</div>`,
+});
+const superPart = (id, name, render) => part(id, name, '.big-news', render, { board: '超級事件-狀態表' });
+superPart('S03-22', '超級大事件提示：牛肉收購價 +100%', (ctx) => superNews(ctx, { c: 'beef', tier: 'super', dir: 'up', pct: 1, price: 24, tk: 'news.beef_super.1' }, { ...MARKET, beef: { ...MARKET.beef, price: 24 } }));
+superPart('S03-23', '超級黑天鵝提示：牛奶收購價 −90%', (ctx) => superNews(ctx, { c: 'milk', tier: 'crash', dir: 'down', pct: -0.9, price: 1.2, tk: 'news.milk_swan.1' }, { ...MARKET, milk: { ...MARKET.milk, price: 1.2 } }));
+superPart('S03-24', '超級大事件提示：全部商品一起 +100%', (ctx) => superNews(ctx, { c: 'all', tier: 'super', dir: 'up', pct: 1, tk: 'news.all_super.1' }, { milk: { ...MARKET.milk, price: 24 }, beef: { ...MARKET.beef, price: 24 }, rice: { ...MARKET.rice, price: 10 } }));
 draft('S03-16', '大新聞提示：全部商品一起大漲（新文案）', '.big-news', (ctx) => bigNewsAll(ctx, true));
 draft('S03-17', '大新聞提示：全部商品一起大跌（新文案）', '.big-news', (ctx) => bigNewsAll(ctx, false));
 // 收奶時順便丟掉倉庫裡壞掉的牛奶（協定收奶回應的 spoiled 大於 0）

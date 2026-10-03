@@ -1,5 +1,5 @@
 // 路由：?id=S03-02&w=390 畫一個狀態；?list=1 列出全部狀態給出圖腳本；?lang=en｜th 換語言（預設繁中）。
-import { applyDevice, fitTitles, fitOriginTags, placeVersion, fitSwipeHint, fitMiniLines, placeCowPop, fitGrade, fitActions, fitRankRows, fitMyRank } from './kit.js';
+import { applyDevice, fitTitles, fitOriginTags, placeVersion, fitSwipeHint, fitMiniLines, placeCowPop, fitGrade, fitActions, fitRankRows, fitMyRank, fitPickNames } from './kit.js';
 import { loadLang } from './i18n.js';
 
 const q = new URLSearchParams(location.search);
@@ -47,6 +47,7 @@ if (q.has('anim')) {
   if (fitSwipeHint(app) + fitMiniLines(app)) await settle(); // 牧場的滑動提示放不下就換行；小卡一行放不下就把左邊縮小（繁中不會變）
   if (placeCowPop(app)) await settle(); // 點後排的牛：名片上面放不下就放到牛的下面（前排的牛不變）
   if (fitGrade(app)) await settle(); // 出貨評級的大框：字放不下就整組縮小（英文；繁中、泰文不會變）
+  if (fitPickNames(app)) await settle(); // 選牛卡：#編號要換到第三行時自己一行、字小一點（泰文長牛名；繁中、英文不會變）
   if (fitActions(app) + fitRankRows(app) + fitMyRank(app)) await settle(); // 牛的詳細：動作區比預留的高時，內容區讓出位置；排行榜的列、下面那一條放不下時「完成」只留打勾，那一條還放不下就整條縮小（繁中 430、390 不會變）
   if (st.type === 'sheet') {
     document.body.style.background = '#FFF9EF';

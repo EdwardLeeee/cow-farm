@@ -94,10 +94,12 @@ export const MARKET = {
 };
 // 比平常高或低幾 %（D24：平常＝基本價；四捨五入到整數）
 export const vsBase = (m) => Math.round((m.price / m.base - 1) * 100);
-// 新聞：c 是商品（milk、beef、rice、all），tk 是標題的 key（backend/cowecon/params.py 的 HEADLINES）；when 是多久以前（ago.*）
+// 新聞：c 是商品（milk、beef、rice、all），tk 是標題的 key（backend/cowecon/params.py 的 HEADLINES）；when 是多久以前（ago.*）。
+// 全部新聞都不預告，一出現就開始影響價格（使用者 2026-10-03：「我們沒有預告，就是直接發生這樣才刺激」）。
+// tier：協定 news[].tier（D33）：normal、big（大新聞）、super（超級大事件 +100%）、crash（超級黑天鵝 −90%）；pct 是幅度
 export const NEWS = [
   { c: 'milk', dir: 'up', tk: 'news.milk_up.1', when: { min: 12 } },
-  { c: 'beef', upcoming: true, dir: 'up', tk: 'news.beef_up.3', when: { h: 1 } },
+  { c: 'beef', dir: 'up', tk: 'news.beef_up.3', when: { h: 1 } },
   { c: 'all', dir: 'down', tk: 'news.all_down.2', when: { h: 3 } },
   { c: 'rice', dir: 'up', tk: 'news.rice_up.1', when: { h: 5 } },
 ];

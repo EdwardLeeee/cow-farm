@@ -3,7 +3,7 @@
 // 三種商品排成一張卡，一眼看到「現在的收購價」和「比平常高或低幾 %」（平常＝基本價），點一列就切到那種商品的賣出面板。
 import { frame, btn, icon, fmt, toast } from '../kit.js';
 import { MARKET, NEWS, RANCH, vsBase, newsTag, newsText } from '../fixtures.js';
-import { t, ago } from '../i18n.js';
+import { t, tb, ago } from '../i18n.js';
 
 const IC = { milk: 'milk', beef: 'beef', rice: 'rice' };
 const KEYS = ['milk', 'beef', 'rice'];
@@ -59,11 +59,38 @@ export function sellCard(m, st = 'ok', { qty, avg, total, lots } = {}) {
   </article>`;
 }
 
+// ---------- D33 超級大事件（tier super，+100%）、超級黑天鵝（tier crash，−90%）：使用者 2026-10-03 選第 12 輪的 04-B ----------
+// 進行中（state active）的變成大卡，釘在新聞卡最上面；結束以後回到下面的清單，照時間排（標籤留著）。
+export const TIER_CLS = { super: 'sup', crash: 'swan' };
+export const tierTag = (n) => (n.tier === 'super' ? `${icon('sparkle', 13)}${t('s06.superTag')}` : `${icon('swan', 15)}${t('s06.swanTag')}`);
+const tierBadge = (n) => `<span class="badge ${TIER_CLS[n.tier]}">${tierTag(n)}</span>`;
+export const pctText = (n) => `${n.pct > 0 ? '+' : '−'}${Math.round(Math.abs(n.pct) * 100)}%`;
+export const newsIcons = (n, cls, one, three) => (n.c === 'all' ? `<span class="${cls} all">${icon('milk', three)}${icon('beef', three)}${icon('rice', three)}</span>` : `<span class="${cls}">${icon(n.c, one)}</span>`);
+const UNIT = { milk: 'unitMilk', beef: 'unitBeef', rice: 'unitRice' };
+// 超級大事件的大卡右上角的光（放射狀的白色三角形）
+const RAYS = `<svg class="np-rays" viewBox="-50 -50 100 100" aria-hidden="true">${Array.from({ length: 16 }, (_, i) => {
+  const a = i * 22.5, p = (x) => `${(60 * Math.cos((x * Math.PI) / 180)).toFixed(1)} ${(60 * Math.sin((x * Math.PI) / 180)).toFixed(1)}`;
+  return `<path d="M0 0L${p(a - 5.6)}L${p(a + 5.6)}z" fill="#FFFFFF"/>`;
+}).join('')}</svg>`;
+function newsPin(n) {
+  const up = n.dir === 'up';
+  const sub = n.c === 'all' ? tb(up ? 's06.pinUpAll' : 's06.pinDownAll')
+    : `${t(up ? 's06.pinUp' : 's06.pinDown', { name: t(n.c) })}<br>${t('s06.pinNow', { price: n.price, unit: t(UNIT[n.c]) })}`;
+  return `<div class="news-pin ${TIER_CLS[n.tier]}">${n.tier === 'super' ? RAYS : ''}
+    <div class="np-top">${tierBadge(n)}<span class="n-tag">${newsTag(n)}</span><span class="n-when">${ago(n.when)}</span></div>
+    <div class="np-main">${newsIcons(n, 'np-ic', 34, 22)}<div class="grow"><b class="np-t">${newsText(n)}</b><div class="np-fx"><b class="np-big num">${pctText(n)}</b><p class="np-sub">${sub}</p></div></div></div>
+  </div>`;
+}
+function newsItem(n) {
+  return `<div class="news-item">
+      <div class="n-tags"><span class="n-tag">${newsTag(n)}</span>${TIER_CLS[n.tier] ? tierBadge(n) : ''}${n.big ? `<span class="badge full">${t('s06.bigNews')}</span>` : ''}<span class="n-dir ${n.dir}">${icon(n.dir === 'up' ? 'up' : 'down', 11)}${t(n.dir === 'up' ? 's06.up' : 's06.down')}</span><span class="n-when">${ago(n.when)}</span></div>
+      <p class="n-text">${newsText(n)}</p></div>`;
+}
 export function newsCard(items = NEWS) {
+  const pins = items.filter((n) => TIER_CLS[n.tier] && n.state !== 'ended'), rest = items.filter((n) => !pins.includes(n));
   return `<article class="card news-card"><div class="card-head"><span class="card-title coral">${icon('news', 18)}${t('newsTitle')}</span></div>
-    ${items.length ? `<div class="news-list">${items.map((n) => `<div class="news-item">
-      <div class="n-tags"><span class="n-tag">${newsTag(n)}</span>${n.big ? `<span class="badge full">${t('s06.bigNews')}</span>` : ''}${n.upcoming ? `<span class="badge new">${t('s06.upcoming')}</span>` : ''}<span class="n-dir ${n.dir}">${icon(n.dir === 'up' ? 'up' : 'down', 11)}${t(n.dir === 'up' ? 's06.up' : 's06.down')}</span><span class="n-when">${ago(n.when)}</span></div>
-      <p class="n-text">${newsText(n)}</p></div>`).join('')}</div>` : `<p class="hint" style="padding:10px 2px 2px">${t('noNews')}</p>`}
+    ${pins.length ? `<div class="news-pins">${pins.map(newsPin).join('')}</div>` : ''}
+    ${rest.length ? `<div class="news-list">${rest.map(newsItem).join('')}</div>` : pins.length ? '' : `<p class="hint" style="padding:10px 2px 2px">${t('noNews')}</p>`}
   </article>`;
 }
 
@@ -97,11 +124,20 @@ full('S06-10', '賣出：試算完成（往下捲到賣出）', (ctx) => marketP
 full('S06-11', '賣出：一次賣太多', (ctx) => marketPage(ctx, { key: 'beef', sell: 'big', sellData: { qty: 934, avg: 10.4, total: 9714, lots: 2 }, scrollTo: '.sell-card' }));
 part('S06-12', '賣出：試算失敗', '.sell-card', (ctx) => marketPage(ctx, { sell: 'failed', scrollTo: '.sell-card' }));
 full('S06-13', '賣出成功', (ctx) => marketPage(ctx, { hud: { coins: RANCH.coins + 1924 }, m: { stock: 16 }, sellData: { qty: 16, avg: 11.8, total: 189, lots: 1 }, scrollTo: '.sell-card', overlays: toast('ok', t('sold', { qty: 130, unit: t('unitMilk'), avg: 14.8, total: fmt(1924) })) }));
-part('S06-14', '新聞：沒有、漲、跌、預告、大新聞、全部商品', '#crop', (ctx) => frame(ctx.dev, { tab: 'market', content: `<div id="crop" class="stack">${newsCard([])}${newsCard([{ c: 'beef', big: true, dir: 'up', tk: 'news.beef_up.1', when: {} }, ...NEWS])}</div>` }));
+part('S06-14', '新聞：沒有、利多、利空、大新聞、全部商品', '#crop', (ctx) => frame(ctx.dev, { tab: 'market', content: `<div id="crop" class="stack">${newsCard([])}${newsCard([{ c: 'beef', big: true, dir: 'up', tk: 'news.beef_up.1', when: {} }, ...NEWS])}</div>` }));
 part('S06-15', '斷線：滑桿與按鈕停用', '.sell-card', (ctx) => marketPage(ctx, { sell: 'offline', offline: true, scrollTo: '.sell-card' }));
 full('S06-16', '數字最長（量測用）', (ctx) => marketPage(ctx, {
   key: 'beef', hud: { coins: 987654 }, m: { price: 20.4, stock: 12480 },
   sellData: { qty: 12480, avg: 18.35, total: 229008, lots: 14 }, scrollTo: '.sell-card',
 }));
+// D33（使用者 2026-10-03 選第 12 輪 04-B）：超級大事件、超級黑天鵝進行中時變成大卡，釘在新聞卡最上面；結束的回到清單（照時間排，標籤留著）。
+// 假資料：牛肉 +100%（8 分鐘前）、三種一起 −90%（40 分鐘前）進行中；稻米 +100%（9 小時前）已經結束
+const SUPER_NEWS = [
+  { c: 'beef', tier: 'super', dir: 'up', pct: 1, price: 24, tk: 'news.beef_super.1', when: { min: 8 } },
+  { c: 'all', tier: 'crash', dir: 'down', pct: -0.9, tk: 'news.all_swan.1', when: { min: 40 } },
+];
+const ENDED_SUPER = { c: 'rice', tier: 'super', state: 'ended', dir: 'up', pct: 1, tk: 'news.rice_super.1', when: { h: 9 } };
+// 卡片比較高，不畫分頁列（跟共用元件的局部狀態表一樣），一般新聞只放兩則
+part('S06-17', '新聞：超級大事件、超級黑天鵝（進行中）釘在最上面，結束的回到清單', '#crop', (ctx) => frame(ctx.dev, { tab: null, hud: false, bg: '#FFF3DC', content: `<div id="crop" class="g-sheet">${newsCard([...SUPER_NEWS, NEWS[0], NEWS[2], ENDED_SUPER])}</div>` }), { board: '超級事件-狀態表' });
 
 export default { id: 'S06', name: '市場', states: S };

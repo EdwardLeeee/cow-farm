@@ -165,6 +165,20 @@ export function fitMyRank(root) {
   g.style.zoom = String(Math.floor((avail / g.getBoundingClientRect().width) * 1000) / 1000);
   return n + 1;
 }
+// 選牛卡（S08、S18）的名字：品種名最多兩行（外來字不從中間斷）；#編號放不下、要換到第三行時，自己一行、字小一點（12）、次要字色
+// （ceo 2026-10-03：泰文「วัวสตรอว์เบอร์รี #12」換三行）。卡片內寬 86，「สตรอว์เบอร์รี」一行就滿了，編號縮小也跟不上。繁中、英文不會發生
+export function fitPickNames(root) {
+  let n = 0;
+  root.querySelectorAll('.pick-name').forEach((el) => {
+    const id = el.querySelector('.pid');
+    const rs = id ? id.getClientRects() : [];
+    if (!rs.length) return;
+    if (rs[rs.length - 1].top - el.getBoundingClientRect().top < parseFloat(getComputedStyle(el).lineHeight) * 2 - 1) return;
+    id.classList.add('own');
+    n++;
+  });
+  return n;
+}
 // 排行榜的列（S12）：名字被截短、露出來不到 4 個中文字寬（字級的 4 倍）時，「完成」只留打勾（cow-app #120：英文 320 圖鑑榜前兩名的名字只剩 1 個字；
 // 泰文 320 只剩 2 個字）。繁中 430、390 的名字至少露出 90 px，不會變
 export function fitRankRows(root) {

@@ -20,7 +20,7 @@ function pickCard(c, { on = false, reason = '' } = {}) {
   return `<button class="pick${on ? ' on' : ''}${reason ? ' off' : ''}"${reason ? ' disabled' : ''}>
     ${on ? `<span class="pick-check">${icon('ok', 22)}</span>` : ''}
     <span class="pick-pic">${cowSVG({ breed: c.breed, sex: c.sex, age: c.age === 'calf' ? 'calf' : 'adult', seed: c.seed }, { w: 84, h: 76, pad: 3 })}</span>
-    <span class="pick-name">${cowName(c.breed, c.id)}</span>
+    <span class="pick-name">${breedName(c.breed)}<span class="pid"> #${c.id}</span></span>
     <span class="pick-meta">${reason ? badge(reason, t(REASON[reason])) : tierChip(tierOf(b))}</span>
   </button>`;
 }
