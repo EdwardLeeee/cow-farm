@@ -1,5 +1,6 @@
 // 整合走查（headless Chromium，正式畫面 + 還沒換掉的 M1 分頁），每步截圖：
-//   開新牧場（S02 取名、歡迎）→ 收奶 → 賣奶（S06）→ 擴建牛舍、加大奶桶（S10）→ 抽 C 級（S19）→
+//   開新牧場（S02 取名、歡迎）→ 收奶 → 賣奶（S06）→ 新手引導卡（S11-03）「牛舍可以擴建了」→ 去擴建 →
+//   擴建牛舍、加大奶桶（S10）→ 新手引導卡「小公牛長大了」→ × → 抽 C 級（S19）→
 //   等小牛長大 → 出貨（S04 → S07 → A-03 卡車 → S20）→ 田地（S17）：派耕牛、收成 → 賣稻米 → 叫回耕牛 →
 //   借種（S18）：上架、借別人的公牛、借種紀錄 → 圖鑑（S09）：點一格看品種詳細 → 排行榜（M1）→
 //   設定（S13）：語言、漲跌顏色、音效，最後刪除牧場（S13-04 → 開新牧場 → S02）→
@@ -256,6 +257,32 @@ const writeLog = () => fs.writeFileSync(
   await shot('sold-milk');
   step('賣奶（S06）', (await coins()) > c3, `金幣 ${c3} → ${await coins()}`);
 
+  // ---- 3b. 新手引導卡（S11-03）：第一次擴建開放（教學第 15 分鐘）以後，牧場頁跑馬燈下面出「牛舍可以擴建了！」；
+  //          按「去擴建」到商店的設施（有「擴建牛舍」那一列）。卡片出不出現看伺服器真的 state（假資料驗不到）----
+  const coachShown = async (title) => (await labels()).some((x) => x.includes(title));
+  // 大新聞（S03-15）開著時引導卡先不出：看到就按掉（走查其他步驟不管大新聞）
+  const waitCoach = async (title, sec) => {
+    for (let i = 0; i < sec; i++) {
+      if (await coachShown(title)) return true;
+      if (await button('去市場看看').count()) {
+        note('先關掉大新聞');
+        await tap(button('關閉').first());
+      }
+      await wait(1000);
+    }
+    return coachShown(title);
+  };
+  await tab('牧場');
+  const penCoach = await waitCoach('牛舍可以擴建了', 20);
+  await shot('coach-pen');
+  if (penCoach) {
+    await tap(button('去擴建'));
+    await wait(1200);
+    step('新手引導卡（S11-03）：牛舍可以擴建了 → 去擴建到商店的設施', !!(await rowButton('擴建牛舍')));
+  } else {
+    step('新手引導卡（S11-03）：牛舍可以擴建了', false, '20 秒內沒出現');
+  }
+
   // ---- 4. 設施（S10）：擴建牛舍（開局牛舍是滿的）、加大奶桶 ----
   const penOk = await upgrade('擴建牛舍');
   await shot('pen-expanded');
@@ -263,6 +290,19 @@ const writeLog = () => fs.writeFileSync(
   const bucketOk = await upgrade('加大奶桶');
   await shot('bucket-upgraded');
   step('加大奶桶（S10）', bucketOk, (await labels()).find((x) => x.includes('升級完成')) || '');
+
+  // ---- 4b. 新手引導卡：開局的小公牛長大了（教學第 20 分鐘；擴建那張看過才輪到）→ 按 × 收起來。
+  //          要在田地那步之前（耕牛下田以後就不出）----
+  await tab('牧場');
+  const bullCoach = await waitCoach('小公牛長大了', 20);
+  await shot('coach-bull');
+  if (bullCoach) {
+    await tap(button('關閉').last());
+    await wait(1200);
+    step('新手引導卡（S11-03）：小公牛長大了 → 按 × 收起來', !(await coachShown('小公牛長大了')));
+  } else {
+    step('新手引導卡（S11-03）：小公牛長大了', false, '20 秒內沒出現');
+  }
 
   // ---- 5. 抽 C 級（S19）----
   let drawn = '';

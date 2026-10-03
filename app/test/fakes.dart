@@ -799,15 +799,23 @@ Future<(GameModel, FakeGameApi, FakePush)> loadedModel({
   return (m, a, p);
 }
 
+/// 新手引導卡（S11-03）都看過了：測試的牧場（#31、#1234、#5678）大多是玩了一陣子的牧場，開局的小公牛早就長大。
+/// 要測引導卡的測試自己給空的偏好。
+const coachSeenPrefs = {
+  SettingsController.coachSeenKey: 'pen@31,bull@31,pen@1234,bull@1234,pen@5678,bull@5678,pen@0,bull@0',
+};
+
 /// 繁中的設定。測試環境的手機語言是英文，M1 的畫面測試比對繁中的字，所以固定用繁中。
 SettingsController zhSettings() =>
-    SettingsController(MemoryPrefsStore(), deviceLocales: () => const [Locale('zh', 'TW')]);
+    SettingsController(MemoryPrefsStore({...coachSeenPrefs}), deviceLocales: () => const [Locale('zh', 'TW')]);
 
 /// 把 app 放進 430×932（iPhone 14 Pro Max 的邏輯尺寸）。
 Future<void> pumpApp(WidgetTester tester, GameModel m) async {
   tester.view.physicalSize = const Size(430 * 3, 932 * 3);
   tester.view.devicePixelRatio = 3;
   addTearDown(tester.view.reset);
-  await tester.pumpWidget(CowFarmApp(model: m, settings: zhSettings()));
+  final settings = zhSettings();
+  await settings.load(); // 讀進先存好的偏好（新手引導卡看過了）
+  await tester.pumpWidget(CowFarmApp(model: m, settings: settings));
   await tester.pump();
 }

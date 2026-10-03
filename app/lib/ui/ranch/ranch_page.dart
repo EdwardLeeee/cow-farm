@@ -22,6 +22,7 @@ import '../kit/kit.dart';
 import '../kit/press.dart';
 import '../widgets/action_button.dart';
 import '../widgets/ticker_builder.dart';
+import 'coach_card.dart';
 import 'dock.dart';
 import 'pen_list.dart';
 import 'ranch_game.dart';
@@ -146,6 +147,8 @@ class _RanchPageState extends State<RanchPage> {
     final shortScreen = mq.size.height < 700;
     final collapsed = settings.dockCollapsed || (empty && shortScreen);
     final bigNews = _bigNews(m, settings);
+    // 新手引導卡（S11-03）：大新聞、空牧場的卡片開著時先不出（一次一張）
+    final coach = bigNews == null && st.cows.isNotEmpty ? coachToShow(m, settings) : null;
     final collectButton = AppButton(
       s.collect,
       key: const Key('collect'),
@@ -224,6 +227,39 @@ class _RanchPageState extends State<RanchPage> {
         ),
       ],
       overlays: [
+        // S11-03：跑馬燈下面 12、左右各 12，× 疊在卡片的右上角。跟大新聞一樣在最上層：蓋在場景、「我的牛」上，
+        // 很矮的手機（320 × 568 英文、泰文）卡片比較高，會暫時蓋到面板的上緣（按卡上的按鈕或 × 就收起來）
+        if (coach != null) ...[
+          Positioned(
+            left: 12,
+            right: 12,
+            top: top + 58,
+            child: CoachCard(
+              kind: coach,
+              penPrice: st.upgrades[UpgradeKind.pen]?.cost ?? st.pen.nextCost,
+              onGo: () {
+                settings.markCoachSeen(coach.id, st.playerId);
+                if (coach == CoachKind.pen) {
+                  // 去擴建：商店的設施（S10）
+                  m.selectShop(facility: true);
+                  m.selectTab(AppTab.shop);
+                } else {
+                  // 去配種：自己配種（S08）
+                  m.selectBreed(stud: false);
+                  m.selectTab(AppTab.breed);
+                }
+              },
+            ),
+          ),
+          Positioned(
+            right: 12 - CoachClose.outRight,
+            top: top + 58 - CoachClose.outTop,
+            child: CoachClose(
+              key: Key('coach-close-${coach.id}'),
+              onTap: () => settings.markCoachSeen(coach.id, st.playerId),
+            ),
+          ),
+        ],
         if (popCow != null) _CowPopAnchor(cows: cows, cow: popCow, pan: _pan, game: _game),
         if (bigNews != null)
           Positioned(
