@@ -353,7 +353,7 @@
 .dex-cell { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 2px 6px; background: #FFFFFF; border: 2.5px solid var(--ink); border-radius: 14px; box-shadow: 0 3px 0 var(--ink); }
 .dex-cell.unknown { background: #F1EBE3; border-color: #B8A89A; box-shadow: 0 3px 0 #B8A89A; }
 .dex-pic { line-height: 0; }
-.dex-name { font-size: 12px; font-weight: 900; line-height: 16px; white-space: nowrap; }
+.dex-name { font-size: 12px; font-weight: 900; line-height: 16px; white-space: nowrap; } /* 英文、泰文放不下時換兩行：見下面「英文、泰文」那段的第 3 條（cow-app #116） */
 .dex-cell.unknown .dex-name { color: var(--ink-2); }
 .dex-cell .tier { height: 20px; font-size: 12px; line-height: 16px; padding: 0 5px; border-width: 1.5px; }
 .dex-no { font-size: 14px; font-weight: 900; color: var(--ink-2); }
@@ -558,7 +558,7 @@
 .sso-group { display: flex; flex-direction: column; gap: 12px; }
 .sso { width: 100%; min-height: 48px; border-radius: 16px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 17px; font-weight: 700; line-height: 22px; white-space: nowrap; }
 .sso.apple { background: #000000; color: #FFFFFF; }
-.sso.google { background: #FFFFFF; color: #1F1F1F; border: 1px solid #747775; }
+.sso.google { background: #FFFFFF; color: #1F1F1F; border: 1px solid #747775; font-weight: 500; } /* Google 規範：40 高、Google Sans Medium 14／20；這裡 48 高，等比例放大成 17、字重 Medium（ceo 2026-10-03） */
 .sso-mark { flex: none; width: 20px; height: 20px; border-radius: 4px; border: 1.5px dashed currentColor; opacity: 0.75; }
 .sso-privacy { text-align: center; }
 .sso-busy { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 108px; font-size: 16px; font-weight: 900; }
@@ -754,7 +754,10 @@
 @media (max-width: 339px) {
   /* 320 寬的機率卡：間距縮小；還是放不下時，稀有度、標籤、機率換到第二行，名字整個留在第一行（泰文外來字牛名不會被硬拆） */
   .oc-row { gap: 4px; padding-right: 8px; flex-wrap: wrap; }
-  /* 320 寬的圖鑑排 3 欄：4 欄時一格只剩 59 px，長的牛名（例 สตรอว์เบอร์รี）整個詞放不下 */
+}
+@media (max-width: 389px) {
+  /* 畫面寬度小於 390（360、320）的圖鑑排 3 欄：4 欄時 360 寬一格只剩約 69 px，英文的「Black Velvet Dairy」「Cotton Candy Highland」
+     要換三行（cow-app #116、ceo 2026-10-03）。排 3 欄以後三種語言的牛名都不超過兩行；430、390 照舊 4 欄 */
   .dex-grid { grid-template-columns: repeat(3, 1fr); }
 }
 
@@ -837,6 +840,20 @@
 .badge.done { flex: none; gap: 2px; padding: 0 7px 0 5px; background: var(--green); }
 .my-rank.tight .badge.done { padding: 0 4px; }
 .my-rank.tight .badge.done .bt { display: none; }
+/* 排行榜的列：名字被截短、露出來不到 4 個中文字寬（字級的 4 倍）時，「完成」也只留打勾（kit.js 的 fitRankRows；cow-app #120 英文、泰文 320 圖鑑榜）。
+   繁中 430、390 的名字至少露出 90 px，不會變 */
+.rank-row.tight .badge.done { padding: 0 4px; }
+.rank-row.tight .badge.done .bt { display: none; }
+/* 「我的名次」那一條：「完成」只留打勾以後還是放不下（泰文窄手機，字是 app 的可變字型），整條的內容等比例縮小到放得下，
+   框和間距不變（跟 app 的 FittedBox 一樣，cow-app #120） */
+.my-rank .mr-fit { display: flex; align-items: center; gap: 8px; flex: none; width: max-content; }
+
+/* 沒有頂列的頁面（設定、備份牧場、刪除牧場、找回牧場…）斷線時：「連線中…」放在頁面標題那一列的右邊（cow-app #122，ceo 2026-10-03）。
+   有頂列的頁面照舊放頂列下面 12。標題太長時標題換行（第 1 條），膠囊不縮 */
+.page-head .hud-offline.in-head { position: static; transform: none; flex: none; margin-left: auto; }
+
+/* 伺服器通知（G-05，例：有人借了你的公牛）的位置：頂列下面 12，蓋在畫面上（G-14；cow-app #123，ceo 2026-10-03） */
+.notice.float { position: absolute; left: 12px; right: 12px; top: calc(var(--safe-top) + var(--hud-h) + 12px); z-index: 62; }
 
 /* 選耕牛的面板（S17-03）：耕牛多時清單可以捲，面板最高到畫面的六成（cow-app #108，ceo 2026-10-03）。
    清單留一點內距，選中那張的綠框和卡片的下陰影捲動時才不會被切掉 */

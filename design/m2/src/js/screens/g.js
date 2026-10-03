@@ -3,9 +3,11 @@ import { frame, hud, tabbar, TABS, btn, badge, tierChip, useChip, toast, icon, c
 import { RANCH, LONG_NAMES, MARKET } from '../fixtures.js';
 import { t, dur, cowName, breedName, sexName, tierName, useName } from '../i18n.js';
 import { vsText } from './s06.js';
+import { ranchPage } from './s03.js';
 
 const S = [];
 const part = (id, name, crop, render, x = {}) => S.push({ id, name, type: 'part', crop, render, ...x });
+const full = (id, name, render, x = {}) => S.push({ id, name, type: 'full', render, ...x });
 const sheet = (ctx, inner) => frame(ctx.dev, { tab: null, hud: false, content: `<div id="crop" class="g-sheet">${inner}</div>`, bg: '#FFF3DC' });
 
 part('G-01', '底部分頁列：6 個分頁各自選中', '#crop', (ctx) => sheet(ctx, TABS.map((t) => `<div class="g-tab-wrap">${tabbar(t.key)}</div>`).join('')));
@@ -20,7 +22,8 @@ part('G-04', '操作結果：成功、伺服器拒絕、網路不穩', '#crop', 
   <div class="g-toast">${toast('err', t('notEnoughCoins', { n: fmt(1210) }))}</div>
   <div class="g-toast">${toast('warn', t('networkError'))}</div>`));
 
-part('G-05', '伺服器通知：有人借了你的公牛', '#crop', (ctx) => sheet(ctx, `<div class="g-notice"><div class="notice">${icon('coin', 30)}<div class="grow"><b>${t('g.studNoticeTitle')}</b><span>${t('g.studNoticeBody', { cow: cowName('angus', 5), ranch: '星河松林牧舍 #3310', price: '<b class="num">870</b>' })}</span></div></div></div>`));
+const studNotice = (cls = '') => `<div class="notice${cls ? ` ${cls}` : ''}">${icon('coin', 30)}<div class="grow"><b>${t('g.studNoticeTitle')}</b><span>${t('g.studNoticeBody', { cow: cowName('angus', 5), ranch: '星河松林牧舍 #3310', price: '<b class="num">870</b>' })}</span></div></div>`;
+part('G-05', '伺服器通知：有人借了你的公牛', '#crop', (ctx) => sheet(ctx, `<div class="g-notice">${studNotice()}</div>`));
 
 part('G-06', '處理中：按下的按鈕轉圈，其他按鈕停用', '#crop', (ctx) => sheet(ctx, `<div class="card g-busy">
   <div class="card-head" style="margin-bottom:10px"><span class="card-title">${t('upgradesTitle')}</span><span class="card-sub">${t('g.busySub')}</span></div>
@@ -87,5 +90,9 @@ pstate('G-13', '按下：清單列、可點的卡片、關閉鈕', (ctx) => pres
   pkind('選牛的小卡、圖鑑格子', '圖鑑格子不會停用', four((c) => `<div class="press-stack row">${pick(c)}${dex(c)}</div>`, pick('', true))),
   pkind('大新聞的關閉鈕', '不會停用', four((c) => `<div class="press-bn"><button class="bn-close ${c}">${icon('close', 18)}</button></div>`)),
 ].join('')));
+
+// 伺服器通知（G-05）放在哪裡（cow-app #123，ceo 2026-10-03）：在哪一頁就在哪一頁跳，頂列下面 12，蓋在畫面上；4 秒後自己收起來。
+// 規則（排隊、斷線、沒有頂列的頁面）寫在 scope.md 的 G 那一節
+full('G-14', '伺服器通知的位置：頂列下面（例：在牧場）', (ctx) => ranchPage(ctx, { overlays: studNotice('float') }));
 
 export default { id: 'G', name: '共用元件', states: S };

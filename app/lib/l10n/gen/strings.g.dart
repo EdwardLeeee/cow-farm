@@ -146,7 +146,6 @@ const Map<String, List<String>> kPlaceholders = {
   's12.weeklyHint': ['time', 'w'],
   's12.collectionHint': ['n'],
   's12.rankN': ['n'],
-  's13.ssoSignIn': ['name'],
   's13.footer': ['game'],
   's13.backup.account': ['name'],
   's13.backup.boundOn': ['date'],
@@ -643,8 +642,9 @@ const Map<String, String> _zhHant = {
   's12.rankN': '第 {n} 名',
   'notRanked': '未上榜',
   's13.web': '網頁',
-  's13.ssoSignIn': '使用 {name} 登入',
-  's13.privacy': '只用來找回牧場，不會拿你的 email 和姓名。',
+  's13.ssoApple': '使用 Apple 登入',
+  's13.ssoGoogle': '使用 Google 登入',
+  's13.privacy': '只用來找回牧場，不會留下你的 email 和姓名。',
   's13.notBacked': '還沒備份',
   's13.backed': '已備份',
   's13.title': '設定',
@@ -1310,8 +1310,9 @@ const Map<String, String> _en = {
   's12.rankN': '#{n}',
   'notRanked': 'Unranked',
   's13.web': 'Web',
-  's13.ssoSignIn': 'Sign in with {name}',
-  's13.privacy': 'Only used to recover your ranch. We don\'t get your email or name.',
+  's13.ssoApple': 'Sign in with Apple',
+  's13.ssoGoogle': 'Sign in with Google',
+  's13.privacy': 'Only used to recover your ranch. We don\'t keep your email or name.',
   's13.notBacked': 'Not backed up',
   's13.backed': 'Backed up',
   's13.title': 'Settings',
@@ -1976,7 +1977,8 @@ const Map<String, String> _th = {
   's12.rankN': 'อันดับที่ {n}',
   'notRanked': 'ไม่ติดอันดับ',
   's13.web': 'เว็บ',
-  's13.ssoSignIn': 'ลงชื่อเข้าใช้ด้วย {name}',
+  's13.ssoApple': 'ลงชื่อเข้าด้วย Apple',
+  's13.ssoGoogle': 'ลงชื่อเข้าใช้ด้วย Google',
   's13.privacy': 'ใช้เพื่อกู้คืนฟาร์มเท่านั้น ไม่เก็บอีเมลและชื่อของคุณ',
   's13.notBacked': 'ยังไม่ได้สำรอง',
   's13.backed': 'สำรองแล้ว',
@@ -3601,10 +3603,13 @@ abstract class GeneratedStrings {
   /// `s13.web`：網頁
   String get s13Web => table['s13.web']!;
 
-  /// `s13.ssoSignIn`：使用 {name} 登入
-  String s13SsoSignIn({required Object name}) => fill('s13.ssoSignIn', {'name': name});
+  /// `s13.ssoApple`：使用 Apple 登入
+  String get s13SsoApple => table['s13.ssoApple']!;
 
-  /// `s13.privacy`：只用來找回牧場，不會拿你的 email 和姓名。
+  /// `s13.ssoGoogle`：使用 Google 登入
+  String get s13SsoGoogle => table['s13.ssoGoogle']!;
+
+  /// `s13.privacy`：只用來找回牧場，不會留下你的 email 和姓名。
   String get s13Privacy => table['s13.privacy']!;
 
   /// `s13.notBacked`：還沒備份

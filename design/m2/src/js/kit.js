@@ -146,12 +146,37 @@ export function fitActions(root) {
   return 1;
 }
 
-// 排行榜下面「我的名次」那一條放不下時（泰文窄手機加了「完成」以後），「完成」只留打勾（缺口清單 2-6；繁中、英文不會變）
+// 排行榜下面「我的名次」那一條放不下時（泰文窄手機加了「完成」以後），「完成」只留打勾（缺口清單 2-6；繁中、英文不會變）。
+// 還是放不下（泰文窄手機，字是 app 的可變字型），整條的內容等比例縮小到放得下，框和間距不變（跟 app 的 FittedBox 一樣，cow-app #120）
 export function fitMyRank(root) {
   const b = root.querySelector('.my-rank');
-  if (!b || !b.querySelector('.badge.done') || b.scrollWidth <= b.clientWidth + 0.5) return 0;
-  b.classList.add('tight');
-  return 1;
+  if (!b || b.scrollWidth <= b.clientWidth + 0.5) return 0;
+  let n = 0;
+  if (b.querySelector('.badge.done')) {
+    b.classList.add('tight');
+    n++;
+    if (b.scrollWidth <= b.clientWidth + 0.5) return n;
+  }
+  const g = document.createElement('span');
+  g.className = 'mr-fit';
+  [...b.childNodes].forEach((c) => g.appendChild(c));
+  b.appendChild(g);
+  const cs = getComputedStyle(b), avail = b.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  g.style.zoom = String(Math.floor((avail / g.getBoundingClientRect().width) * 1000) / 1000);
+  return n + 1;
+}
+// 排行榜的列（S12）：名字被截短、露出來不到 4 個中文字寬（字級的 4 倍）時，「完成」只留打勾（cow-app #120：英文 320 圖鑑榜前兩名的名字只剩 1 個字；
+// 泰文 320 只剩 2 個字）。繁中 430、390 的名字至少露出 90 px，不會變
+export function fitRankRows(root) {
+  let n = 0;
+  root.querySelectorAll('.rank-row').forEach((row) => {
+    const name = row.querySelector('.rn-name');
+    if (!name || !row.querySelector('.badge.done') || name.scrollWidth <= name.clientWidth + 0.5) return;
+    if (name.clientWidth >= parseFloat(getComputedStyle(name).fontSize) * 4) return;
+    row.classList.add('tight');
+    n++;
+  });
+  return n;
 }
 
 // 開場（S01）的版本號一律在框的下面（ceo 2026-10-02，跟 app #61 一樣）：平常在最下面（安全區上面 12 px）；
