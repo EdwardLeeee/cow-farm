@@ -43,9 +43,12 @@ class WalkPlan {
 
 /// app 用的走法：設計稿的 [t] = 0 時，各頭牛已經走到各自節奏的一半。app 一打開大家都在原位（跟靜態的牧場畫面
 /// 一樣），每頭牛等自己的節奏輪到（u = 0）才起步；起步以後跟 [designWalkPose] 完全一樣。
+/// 距離 0 的位置（前面沒有空間）原地一搖一搖：只彈、搖，不轉身。
 WalkPose walkPose(double t, WalkPlan plan, {bool calf = false}) {
   final wait = (kWalkCycle - plan.phase % kWalkCycle) % kWalkCycle;
-  return t < wait ? WalkPose.rest : designWalkPose(t, plan, calf: calf);
+  if (t < wait) return WalkPose.rest;
+  final p = designWalkPose(t, plan, calf: calf);
+  return plan.dist == 0 ? WalkPose(0, bob: p.bob, tilt: p.tilt) : p;
 }
 
 /// anims.js 的 walkPose(t, dist, phase, T, calf) 原樣。
@@ -116,5 +119,52 @@ const kDesignWalk = <WalkPlan>[
   WalkPlan(26, 0.0), // #15（小牛）
 ];
 
-/// 位置 [slot] 的走法；設計稿沒畫到的位置（第 9 個以後）先不走（等 ceo 決定，2026-10-03）。
-WalkPlan? walkPlanFor(int slot) => slot < kDesignWalk.length ? kDesignWalk[slot] : null;
+/// 40 個位置的走法（tool/herd_walk.py 算的，改了 herd.dart 的位置或規則就重跑、貼回來）。前 8 個照 [kDesignWalk]；
+/// 其他 32 個設計稿沒畫到，照 ceo 2026-10-03 同意的規則：往面向的方向走、最多 18；跟同一排（上下差 40 以內）前面最近的
+/// 位置至少隔 12（對面朝這邊走的話兩頭一起算）；腳底不進池塘、水槽、乾草捆；空間不到 8 就原地一搖一搖（距離 0）；
+/// 節奏是位置編號 × 0.618 × 4 秒（黃金比例），相鄰的牛不會同時動。
+const kHerdWalk = <WalkPlan>[
+  WalkPlan(18, 0.9), // 0：(70, 420) 右，設計稿 WALK
+  WalkPlan(12, 1.1), // 1：(410, 334) 右，設計稿 WALK
+  WalkPlan(16, 2.6), // 2：(310, 422) 左，設計稿 WALK
+  WalkPlan(12, 1.6), // 3：(318, 338) 左，設計稿 WALK
+  WalkPlan(18, 2), // 4：(724, 552) 左，設計稿 WALK
+  WalkPlan(16, 3.3), // 5：(122, 522) 右，設計稿 WALK
+  WalkPlan(16, 0.2), // 6：(104, 344) 右，設計稿 WALK
+  WalkPlan(26, 0), // 7：(186, 424) 右，設計稿 WALK
+  WalkPlan(18, 3.78), // 8：(730, 336) 左
+  WalkPlan(18, 2.25), // 9：(431, 550) 右
+  WalkPlan(9, 0.72), // 10：(569, 380) 右
+  WalkPlan(18, 3.19), // 11：(730, 424) 左
+  WalkPlan(18, 1.67), // 12：(270, 512) 左
+  WalkPlan(0, 0.14), // 13：(454, 424) 右，原地一搖一搖
+  WalkPlan(18, 2.61), // 14：(569, 550) 右
+  WalkPlan(18, 1.08), // 15：(385, 468) 左
+  WalkPlan(18, 3.55), // 16：(247, 380) 左
+  WalkPlan(18, 2.03), // 17：(109, 468) 右
+  WalkPlan(0, 0.5), // 18：(201, 550) 左，原地一搖一搖
+  WalkPlan(0, 2.97), // 19：(661, 380) 左，原地一搖一搖
+  WalkPlan(18, 1.44), // 20：(500, 336) 右
+  WalkPlan(18, 3.91), // 21：(385, 380) 左
+  WalkPlan(11, 2.39), // 22：(40, 512) 右
+  WalkPlan(17, 0.86), // 23：(224, 336) 左
+  WalkPlan(18, 3.33), // 24：(477, 380) 右
+  WalkPlan(18, 1.8), // 25：(247, 468) 左
+  WalkPlan(18, 0.28), // 26：(155, 380) 右
+  WalkPlan(0, 2.75), // 27：(684, 512) 左，原地一搖一搖
+  WalkPlan(0, 1.22), // 28：(63, 380) 右，原地一搖一搖
+  WalkPlan(0, 3.69), // 29：(408, 512) 右，原地一搖一搖
+  WalkPlan(18, 2.16), // 30：(63, 550) 右
+  WalkPlan(11, 0.64), // 31：(293, 550) 左
+  WalkPlan(18, 3.11), // 32：(40, 336) 右
+  WalkPlan(18, 1.58), // 33：(661, 550) 左
+  WalkPlan(0, 0.05), // 34：(178, 512) 右，原地一搖一搖
+  WalkPlan(18, 2.52), // 35：(132, 424) 右
+  WalkPlan(18, 1), // 36：(362, 424) 左
+  WalkPlan(17, 3.47), // 37：(178, 336) 右
+  WalkPlan(18, 1.94), // 38：(270, 336) 左
+  WalkPlan(18, 0.41), // 39：(546, 336) 右
+];
+
+/// 位置 [slot] 的走法；超出 40 個（不會發生：牛舍最多 40 頭）就不走。
+WalkPlan? walkPlanFor(int slot) => slot < kHerdWalk.length ? kHerdWalk[slot] : null;

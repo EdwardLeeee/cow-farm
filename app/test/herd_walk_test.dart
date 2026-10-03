@@ -2,10 +2,13 @@
 // walkPose、A07.frame 原始函式算出來的（設計稿的 seg、inOut、outBack）。
 // 牧場開著 AppMotion（main.dart）時牛會走；點一頭牛轉正面停下來，小名片對準停下的地方；再點一次轉回側面，從停下的
 // 地方接著走。手機設定「減少動態」時牛站在原位，點到直接換成正面。
+import 'dart:math' as math;
+
 import 'package:cowfarm/app.dart';
 import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
 import 'package:cowfarm/ui/kit/motion.dart';
+import 'package:cowfarm/ui/ranch/herd.dart';
 import 'package:cowfarm/ui/ranch/scene.dart';
 import 'package:cowfarm/ui/ranch/walk.dart';
 import 'package:flutter/material.dart';
@@ -93,7 +96,7 @@ void main() {
     }
   });
 
-  test('前 8 個位置照設計稿的 WALK（依設計稿牛的編號）；其他位置先不走', () {
+  test('前 8 個位置照設計稿的 WALK（依設計稿牛的編號）', () {
     expect(
       [for (final w in kDesignWalk) (w.dist, w.phase)],
       [
@@ -107,7 +110,51 @@ void main() {
         (26.0, 0.0), // #15（小牛）
       ],
     );
-    expect(walkPlanFor(8), isNull);
+    expect(kHerdWalk.take(8).map((w) => (w.dist, w.phase)), kDesignWalk.map((w) => (w.dist, w.phase)));
+  });
+
+  test('其他 32 個位置照規則（ceo 2026-10-03）：最多 18、不到 8 就原地；不進障礙物；同一排前面留 12；節奏用黃金比例錯開', () {
+    expect(kHerdWalk, hasLength(kHerdSlots.length));
+    // 障礙物外面再留 12（跟 tool/herd_walk.py 一樣）
+    bool blocked(double x, double y) =>
+        math.pow((x - 560) / 162, 2) + math.pow((y - 474) / 74, 2) < 1 ||
+        ((x - 640).abs() < 62 && y < 382) ||
+        ((x - 366).abs() < 52 && y > 478) ||
+        x < 20 ||
+        x > 760;
+    for (var i = 0; i < kHerdWalk.length; i++) {
+      final w = kHerdWalk[i], slot = kHerdSlots[i], dir = slot.right ? 1 : -1;
+      if (i >= 8) {
+        expect(w.dist == 0 || (w.dist >= 8 && w.dist <= 18), isTrue, reason: '位置 $i 走 ${w.dist}');
+        expect(w.phase, closeTo((i * 0.618034 * 4) % 4, 0.006), reason: '位置 $i 的節奏');
+        // 原本站的地方可能就在障礙物外圍 12 裡（排位置時的位置），只看走出去的每一步
+        for (var d = 1.0; d <= w.dist; d++) {
+          expect(blocked(slot.x + dir * d, slot.y), isFalse, reason: '位置 $i 走到 $d 碰到障礙物');
+        }
+      }
+      // 不管節奏怎麼錯開都不會撞：設計稿的 8 頭往前走也不會走到新位置的牛前面 12 以內
+      if (w.dist == 0) continue;
+      for (var j = 0; j < kHerdSlots.length; j++) {
+        final other = kHerdSlots[j], ahead = (other.x - slot.x) * dir;
+        if (j == i || (other.y - slot.y).abs() > 40 || ahead <= 0) continue;
+        final toward = other.right != slot.right;
+        expect(
+          w.dist + (toward ? kHerdWalk[j].dist : 0),
+          lessThanOrEqualTo(ahead - 12),
+          reason: '位置 $i 跟前面的位置 $j 留不到 12',
+        );
+      }
+    }
+  });
+
+  test('原地一搖一搖（距離 0）：只彈、搖，不轉身', () {
+    const plan = WalkPlan(0, 0);
+    for (var t = 0.0; t < 8; t += 0.05) {
+      final p = walkPose(t, plan);
+      expect(p.x, 0);
+      expect(p.back, isFalse, reason: '第 $t 秒');
+    }
+    expect(walkPose(0.5, plan).bob, greaterThan(0), reason: '會一搖一搖');
   });
 
   testWidgets('牛會走；點到轉正面、停在走到的地方，名片對準它；再點一次轉回側面，從停下的地方接著走', (tester) async {
