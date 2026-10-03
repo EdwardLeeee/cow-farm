@@ -3,6 +3,7 @@
 //   擴建牛舍、加大奶桶（S10）→ 新手引導卡「小公牛長大了」→ × → 抽 C 級（S19）→
 //   等小牛長大 → 出貨（S04 → S07 → A-03 卡車 → S20）→ 田地（S17）：派耕牛、收成 → 賣稻米 → 叫回耕牛 →
 //   借種（S18）：上架、借別人的公牛、借種紀錄 → 圖鑑（S09）：點一格看品種詳細 → 排行榜（S12）：總資產、圖鑑、本週收入 →
+//   牧場資料（S21）：點頂列的頭像打開、返回 →
 //   設定（S13）：語言、漲跌顏色、音效，最後刪除牧場（S13-04 → 開新牧場 → S02）→
 //   另開一個新牧場（新的瀏覽器設定檔）：收奶賣奶、擴建牛舍 → 自己配種（S08）：開局的公母配、機率、新小牛、已配種
 //
@@ -559,6 +560,23 @@ const writeLog = () => fs.writeFileSync(
   }
 
   step('升級慶祝（S11-01）', levelUps.length > 0, levelUps.join('、'));
+
+  // ---- 10b. 牧場資料（S21）：點頂列的頭像 → 牧場資料（名字、#編號・Lv；伺服器還沒送 achievements 時沒有徽章卡）→ 返回 ----
+  await tab('牧場');
+  await tap(button(/^牧場資料/).first());
+  await wait(1200);
+  const profText = await fullText();
+  await shot('s21-profile');
+  const profMeta = (profText.match(/#\d{4,}・Lv \d+/) || [''])[0];
+  const profBadges = profText.includes('成就徽章');
+  await tap(button('返回').first());
+  await wait(1000);
+  const profBack = (await button(/^牧場資料/).count()) > 0 && (await button(/^設定/).count()) > 0;
+  step(
+    '牧場資料（S21-01）：點頂列的頭像打開、返回',
+    profMeta !== '' && profBack,
+    `${profMeta}；${profBadges ? '有徽章卡' : '沒有徽章卡（伺服器還沒送 achievements）'}；${profBack ? '回到牧場' : '(沒回到牧場)'}`,
+  );
 
   // ---- 11. 設定（S13）：頂列的齒輪 → 設定主頁 → 語言、漲跌顏色換過再換回來 → 音效關掉再打開 →
   //          刪除牧場（這個牧場的最後一步）：打「刪除」→ S13-04「牧場已經刪除了」→「開新牧場」到 S02 取名 ----

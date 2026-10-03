@@ -11,6 +11,7 @@ import 'fields/fields_page.dart';
 import 'kit/frame.dart';
 import 'kit/kit.dart';
 import 'market/market_page.dart';
+import 'profile/profile_page.dart';
 import 'ranch/pen_list.dart';
 import 'ranch/ranch_page.dart';
 import 'records/records_page.dart';
@@ -99,6 +100,9 @@ class _HomeShellState extends State<HomeShell> {
     } else if (m.settingsView != null) {
       // 設定（S13）：頂列的齒輪打開，整頁，沒有頂列和分頁列；關掉回到原本那一頁
       page = const SettingsPage();
+    } else if (m.profileOpen) {
+      // 牧場資料（S21）：點頂列的頭像打開，整頁，沒有頂列和分頁列；返回回到原本那一頁
+      page = const ProfilePage();
     } else if (m.detailCowKey case final key?) {
       // 牛的詳細（S04）：自己的外框，下面固定的按鈕區；上架面板、出貨確認疊在上面
       page = CowDetailPage(key: ValueKey('cow-$key'), cowKey: key);
@@ -126,6 +130,7 @@ class _HomeShellState extends State<HomeShell> {
     return PopScope(
       canPop:
           m.settingsView == null &&
+          !m.profileOpen &&
           m.detailCowKey == null &&
           !m.penListOpen &&
           !m.warehouseOpen &&
@@ -135,6 +140,8 @@ class _HomeShellState extends State<HomeShell> {
         if (didPop) return;
         if (m.settingsView != null) {
           m.settingsBack();
+        } else if (m.profileOpen) {
+          m.closeProfile();
         } else if (m.detailCowKey != null) {
           m.closeCow();
         } else if (m.tab == AppTab.breed && m.studLogOpen) {

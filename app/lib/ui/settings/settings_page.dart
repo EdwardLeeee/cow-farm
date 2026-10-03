@@ -130,7 +130,7 @@ class _SettingsHomeState extends State<SettingsHome> {
       scrollKey: const Key('settings'),
       overlays: [if (_upDown) UpDownSheet(onClose: () => setState(() => _upDown = false))],
       children: [
-        MeCard(name: m.ranchName, meta: ranchMeta(s, m)),
+        MeCard(name: m.ranchName, meta: ranchMeta(s, m), avatar: m.state?.profile.avatarBreed ?? 'holstein'),
         SetGroup(
           rows: [
             SetRow(

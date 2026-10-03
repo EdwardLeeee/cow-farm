@@ -14,8 +14,6 @@ import 'page_case.dart';
 const pendingPageIds = {
   'G-05',
   'G-14',
-  'S13-21',
-  'S21-01',
   'S21-02',
   'S21-03',
   'S21-04',
@@ -25,9 +23,6 @@ const pendingPageIds = {
   'S21-08',
   'S21-09',
   'S21-10',
-  'S21-11',
-  'S21-12',
-  'S21-13',
   'A-01',
   'A-02',
   'A-03',

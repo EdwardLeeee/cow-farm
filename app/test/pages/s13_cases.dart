@@ -382,6 +382,24 @@ final s13Cases = [
     },
   ),
   PageCase(
+    'S13-21',
+    '備份牧場斷線：登入鈕變淡、不能按',
+    (tester, lang) async {
+      final m = await showBackup(tester, lang);
+      (m.push as FakePush).isConnected = false;
+      await tester.pump();
+    },
+    crop: find.byKey(const Key('sso-area')),
+    check: (tester) {
+      for (final p in ['apple', 'google']) {
+        expect(tester.widget<SsoButton>(find.byKey(Key('sso-$p'))).onTap, isNull, reason: p);
+      }
+      expect(find.text(_zh.s13SsoOffline), findsOneWidget);
+      expect(find.text(_zh.s13Privacy), findsNothing, reason: '隱私那一句換成要連上網路');
+      expect(find.byKey(const Key('offline-pill')), findsOneWidget);
+    },
+  ),
+  PageCase(
     'S13-17',
     '語言：繁體中文、English、ไทย',
     (tester, lang) async {

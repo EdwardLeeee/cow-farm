@@ -147,19 +147,29 @@ class AppFrame extends StatelessWidget {
 
 /// 頂列要顯示的東西（伺服器的 state）。
 class HudData {
-  const HudData({required this.name, required this.level, required this.xp, required this.coins});
+  const HudData({
+    required this.name,
+    required this.level,
+    required this.xp,
+    required this.coins,
+    this.avatar = 'holstein',
+  });
 
   factory HudData.of(GameModel m) => HudData(
     name: m.ranchName,
     level: m.state?.level ?? 1,
     xp: m.state?.levelProgress.fraction ?? 0,
     coins: m.state?.coins ?? 0,
+    avatar: m.state?.profile.avatarBreed ?? 'holstein',
   );
 
   final String name;
   final int level;
   final double xp; // 這一級走了幾成（0–1）
   final num coins;
+
+  /// 頭像的品種（S21；沒選過是荷斯坦）。
+  final String avatar;
 }
 
 /// 頂列（G-02）：頭像、牧場名、等級和經驗條、金幣、設定。
@@ -193,6 +203,105 @@ class Hud extends StatelessWidget {
     final avatar = tiny ? 46.0 : (narrow ? 50.0 : 56.0);
     final face = tiny ? 42.0 : (narrow ? 46.0 : 52.0);
     final coinIcon = tiny ? 30.0 : 34.0;
+    final avatarTop = (narrow ? 46 : 48) / 2 - avatar / 2;
+    // 頭像和名牌：點了打開牧場資料（S21-01；按下時跟浮起的元件一樣往下移，陰影變薄）
+    Widget profile(double shadow) => Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // .profile-text：頭像右邊的白底名牌，左邊被頭像蓋住 18（窄手機 16）
+        Padding(
+          padding: EdgeInsets.only(left: avatar - (narrow ? 16 : 18)),
+          child: Container(
+            height: narrow ? 46 : 48,
+            padding: EdgeInsets.fromLTRB(narrow ? 20 : 24, 3, narrow ? 10 : 12, 4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: AppColors.ink, width: AppSizes.border),
+              borderRadius: const BorderRadius.horizontal(right: Radius.circular(24)),
+              boxShadow: AppShadows.solid(shadow),
+            ),
+            // 名字加等級列比名牌的內容區高 4：跟設計稿一樣上下各超出 2，不裁切（CSS 的 overflow: visible）
+            child: OverflowBox(
+              maxHeight: double.infinity,
+              fit: OverflowBoxFit.deferToChild,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    key: const Key('hud-name'),
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppText.style(
+                      long || tiny ? 13 : (narrow ? 14 : 15),
+                      weight: FontWeight.w900,
+                      lineHeight: narrow ? 18 : 19,
+                      letterSpacing: long || narrow ? 0 : 0.3,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5),
+                        decoration: BoxDecoration(
+                          color: AppColors.yellow,
+                          border: Border.all(color: AppColors.ink, width: 2),
+                          borderRadius: const BorderRadius.all(Radius.circular(8)),
+                        ),
+                        child: Text(s.level(lv: d.level), style: AppText.number(12, lineHeight: 14)),
+                      ),
+                      const SizedBox(width: 5),
+                      // 320 寬放不下時經驗條縮短（設計稿是超出名牌）
+                      Flexible(
+                        child: Semantics(
+                          label: s.hudXp(pct: (xp * 100).round()),
+                          child: _XpBar(width: tiny ? 38 : (narrow ? 44 : 58), fraction: xp),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        // .avatar：牛臉的圓頭像，疊在名牌左邊
+        Positioned(
+          left: 0,
+          top: avatarTop,
+          child: Container(
+            width: avatar,
+            height: avatar,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xFFBFE6FF),
+              border: Border.all(color: AppColors.ink, width: AppSizes.border),
+              boxShadow: AppShadows.solid(shadow),
+            ),
+            child: ClipOval(
+              child: OverflowBox(
+                maxWidth: face,
+                maxHeight: face,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: CowFace(breed: d.avatar, size: face),
+                ),
+              ),
+            ),
+          ),
+        ),
+        // 頭像右下角的小鉛筆（D34）：告訴玩家點頭像可以打開牧場資料（S21），鉛筆本身只是提示
+        Positioned(
+          left: tiny ? 29 : (narrow ? 32 : 38),
+          top: avatarTop + (tiny ? 28 : (narrow ? 31 : 38)),
+          child: HudEdit(size: narrow ? 20 : 22),
+        ),
+      ],
+    );
     // 頂列自己一個無障礙節點：裡面照名字、Lv、經驗、金幣、設定的順序讀。不然在牧場分頁會跟鋪滿整頁的場景
     // 一起照位置排，變成「設定」先讀（8790 走查看到；ceo 2026-10-02：每個分頁的頂列順序都一樣）
     return Semantics(
@@ -204,97 +313,15 @@ class Hud extends StatelessWidget {
             child: Row(
               children: [
                 Flexible(
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      // .profile-text：頭像右邊的白底名牌，左邊被頭像蓋住 18（窄手機 16）
-                      Padding(
-                        padding: EdgeInsets.only(left: avatar - (narrow ? 16 : 18)),
-                        child: Container(
-                          height: narrow ? 46 : 48,
-                          padding: EdgeInsets.fromLTRB(narrow ? 20 : 24, 3, narrow ? 10 : 12, 4),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(color: AppColors.ink, width: AppSizes.border),
-                            borderRadius: const BorderRadius.horizontal(right: Radius.circular(24)),
-                            boxShadow: AppShadows.solid(),
-                          ),
-                          // 名字加等級列比名牌的內容區高 4：跟設計稿一樣上下各超出 2，不裁切（CSS 的 overflow: visible）
-                          child: OverflowBox(
-                            maxHeight: double.infinity,
-                            fit: OverflowBoxFit.deferToChild,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  name,
-                                  key: const Key('hud-name'),
-                                  maxLines: 1,
-                                  softWrap: false,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppText.style(
-                                    long || tiny ? 13 : (narrow ? 14 : 15),
-                                    weight: FontWeight.w900,
-                                    lineHeight: narrow ? 18 : 19,
-                                    letterSpacing: long || narrow ? 0 : 0.3,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 5),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.yellow,
-                                        border: Border.all(color: AppColors.ink, width: 2),
-                                        borderRadius: const BorderRadius.all(Radius.circular(8)),
-                                      ),
-                                      child: Text(s.level(lv: d.level), style: AppText.number(12, lineHeight: 14)),
-                                    ),
-                                    const SizedBox(width: 5),
-                                    // 320 寬放不下時經驗條縮短（設計稿是超出名牌）
-                                    Flexible(
-                                      child: Semantics(
-                                        label: s.hudXp(pct: (xp * 100).round()),
-                                        child: _XpBar(width: tiny ? 38 : (narrow ? 44 : 58), fraction: xp),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
+                  child: data != null
+                      ? profile(3)
+                      : Pressable(
+                          key: const Key('hud-profile'),
+                          lift: 3,
+                          onTap: context.read<GameModel>().openProfile,
+                          builder: (context, look) =>
+                              Semantics(button: true, label: s.s21Title, child: profile(look.shadow)),
                         ),
-                      ),
-                      // .avatar：牛臉的圓頭像，疊在名牌左邊
-                      Positioned(
-                        left: 0,
-                        top: (narrow ? 46 : 48) / 2 - avatar / 2,
-                        child: Container(
-                          width: avatar,
-                          height: avatar,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: const Color(0xFFBFE6FF),
-                            border: Border.all(color: AppColors.ink, width: AppSizes.border),
-                            boxShadow: AppShadows.solid(),
-                          ),
-                          child: ClipOval(
-                            child: OverflowBox(
-                              maxWidth: face,
-                              maxHeight: face,
-                              child: Padding(
-                                padding: const EdgeInsets.only(top: 4),
-                                child: CowFace(size: face),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
               ],
             ),
@@ -549,5 +576,26 @@ class OfflinePill extends StatelessWidget {
         Text(Strings.of(context).connecting, style: AppText.style(14, weight: FontWeight.w900)),
       ],
     ),
+  );
+}
+
+/// .hud-edit：頂列頭像右下角的小鉛筆圓章（黃底、框 2、鉛筆 13）。牧場資料頁的大頭像用 28、鉛筆 15（.hud-edit.big）。
+class HudEdit extends StatelessWidget {
+  const HudEdit({super.key, this.size = 22, this.icon = 13});
+
+  final double size;
+  final double icon;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: size,
+    height: size,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: AppColors.yellow,
+      shape: BoxShape.circle,
+      border: Border.all(color: AppColors.ink, width: 2),
+    ),
+    child: AppIcon('pencil', size: icon),
   );
 }

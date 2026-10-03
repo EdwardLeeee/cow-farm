@@ -202,6 +202,11 @@ class Strings extends GeneratedStrings {
     return text == null ? '' : fillTemplate(text, {for (final e in news.params.entries) e.key: '${e.value}'});
   }
 
+  /// 成就徽章的名稱、條件（S21；字串表 `ach.<key>.name`、`ach.<key>.cond`，分階段的加 `.<第幾階>`，從 1 開始）。
+  /// 伺服器給的 key 在字串表裡沒有時回空字串（牧場資料頁只放認得的徽章，見 profile_page.dart 的 badgeLooks）。
+  String achName(String key, {int? tier}) => table[tier == null ? 'ach.$key.name' : 'ach.$key.name.$tier'] ?? '';
+  String achCond(String key, {int? tier}) => table[tier == null ? 'ach.$key.cond' : 'ach.$key.cond.$tier'] ?? '';
+
   /// 倒數的時間長度（現實時間的秒數，無條件進位）：不到 1 分鐘寫秒，不到 1 小時寫分，不到 1 天寫時分，其他寫天時。
   String countdown(double seconds) {
     final s = seconds.ceil().clamp(0, 1 << 31);

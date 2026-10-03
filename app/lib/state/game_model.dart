@@ -494,6 +494,7 @@ class GameModel extends ChangeNotifier {
     binding = false;
     tab = AppTab.ranch;
     settingsView = null;
+    profileOpen = false;
     detailCowKey = null;
     penListOpen = false;
     warehouseOpen = false;
@@ -1046,6 +1047,19 @@ class GameModel extends ChangeNotifier {
     warehouseOpen = false;
     studLogOpen = false;
     codexBreed = null;
+    _notify();
+  }
+
+  /// 牧場資料（S21-01）開著：點頂列的頭像或名牌打開，返回關掉。整頁，沒有頂列和分頁列。
+  bool profileOpen = false;
+
+  void openProfile() {
+    profileOpen = true;
+    _notify();
+  }
+
+  void closeProfile() {
+    profileOpen = false;
     _notify();
   }
 

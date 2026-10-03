@@ -112,11 +112,14 @@ class _GoogleMark extends StatelessWidget {
 /// .sso-area：登入按鈕一顆一顆往下排（間距 12），下面一行說明（間距 10）。[hint] 是按鈕和說明中間多的一句
 /// （S14-07 Android 的提醒）。[onTap] 是 null 就全部停用。
 class SsoArea extends StatelessWidget {
-  const SsoArea({super.key, required this.providers, required this.onTap, this.hint});
+  const SsoArea({super.key, required this.providers, required this.onTap, this.hint, this.offline = false});
 
   final List<SignInProvider> providers;
   final void Function(SignInProvider)? onTap;
   final String? hint;
+
+  /// 斷線（S13-21）：按鈕停用（[onTap] 給 null），最下面那行換成「連上網路以後才能登入」。
+  final bool offline;
 
   @override
   Widget build(BuildContext context) {
@@ -135,7 +138,10 @@ class SsoArea extends StatelessWidget {
           Text(h, key: const Key('sso-hint'), style: KitText.hint()),
         ],
         const SizedBox(height: 10),
-        Text(s.s13Privacy, textAlign: TextAlign.center, style: KitText.hint()),
+        if (offline)
+          Text(s.s13SsoOffline, key: const Key('sso-offline'), textAlign: TextAlign.center, style: KitText.hint())
+        else
+          Text(s.s13Privacy, textAlign: TextAlign.center, style: KitText.hint()),
       ],
     );
   }

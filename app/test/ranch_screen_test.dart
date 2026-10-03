@@ -68,8 +68,9 @@ void main() {
   });
 
   // 8790 走查看到牧場分頁讀成「設定、名字、金幣、Lv、經驗」：頂列跟鋪滿整頁的場景一起照位置排（ceo 2026-10-02：每個分頁都一樣）
+  // 頭像和名牌是同一顆按鈕（S21：點了打開牧場資料），讀成「牧場資料」加名字、Lv、經驗
   for (final tab in [AppTab.ranch, AppTab.market, AppTab.fields, AppTab.breed, AppTab.shop]) {
-    testWidgets('頂列的無障礙順序（${tab.name}）：名字、Lv、經驗、金幣、設定', (tester) async {
+    testWidgets('頂列的無障礙順序（${tab.name}）：牧場資料（名字、Lv、經驗）、金幣、設定', (tester) async {
       Screen.w430.apply(tester);
       final semantics = tester.ensureSemantics();
       final m = await ranchModel();
@@ -81,10 +82,8 @@ void main() {
         for (final n in tester.semantics.simulatedAccessibilityTraversal())
           if (n.label.isNotEmpty) n.label,
       ];
-      expect(read.take(5), [
-        d.name,
-        _zh.level(lv: d.level),
-        _zh.hudXp(pct: (d.xp * 100).round()),
+      expect(read.take(3), [
+        [_zh.s21Title, d.name, _zh.level(lv: d.level), _zh.hudXp(pct: (d.xp * 100).round())].join('\n'),
         compact(d.coins, AppLang.zhHant, from: 1000000),
         _zh.hudSettings,
       ]);

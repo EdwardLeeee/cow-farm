@@ -192,6 +192,7 @@ class _BackupPageState extends State<BackupPage> {
         MeCard(
           name: m.ranchName,
           meta: ranchMeta(s, m),
+          avatar: m.state?.profile.avatarBreed ?? 'holstein',
           trailing: BackupBadge(backed: bound.isNotEmpty),
         ),
         Column(
@@ -231,7 +232,7 @@ class _BackupPageState extends State<BackupPage> {
             if (busy)
               SsoBusyCard(s.s13Binding, key: const Key('sso-busy'))
             else if (todo.isNotEmpty)
-              SsoArea(providers: todo, onTap: canTap ? _bind : null),
+              SsoArea(providers: todo, onTap: canTap ? _bind : null, offline: !m.online),
             if (bound.isEmpty && !busy)
               NoteLine(key: const Key('backup-before'), icon: 'info', text: s.s13BackupBefore, kind: NoteKind.info),
           ]),
@@ -453,7 +454,7 @@ class _OtherRanch extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const SmallAvatar(),
+          SmallAvatar(breed: ranch.avatar ?? 'holstein'),
           const SizedBox(width: 10),
           Expanded(
             child: Column(

@@ -29,6 +29,7 @@ import 's15_s16_cases.dart';
 import 's17_cases.dart';
 import 's18_cases.dart';
 import 's19_cases.dart';
+import 's21_cases.dart';
 
 /// 手機的尺寸與安全區，跟設計稿 design/m2/src/js/kit.js 的 DEVICES 一樣（pages_test 會比對）。
 enum Screen {
@@ -96,6 +97,7 @@ final List<PageCase> pageCases = [
   ...s18Cases,
   ...s19Cases,
   ...s20Cases,
+  ...s21Cases,
   ...gCases,
 ];
 
