@@ -22,6 +22,8 @@ session 照進度分批開，名稱用 `cow-<角色>`。
 每個角色都在自己的 worktree（`~/Desktop/cow-farm-worktrees/<角色>`）開分支，開 PR 給 ceo 讀過 diff 再合併，不直接推 main。ceo 在 `~/Desktop/cow-farm` 開分支，一樣走 PR。
 
 記憶體安全：這台電腦 2026-09-30 因記憶體耗盡當機過。開 Playwright、headless Chrome、大型建置或長時間模擬之前，先看 `free -m`（available 少於 1000 MB 就等；使用者 2026-10-03：「不夠1Gb再來緊張，2gb還很多」），指令用 `systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0` 包起來，一次只跑一個。
+- 「一次只跑一個」是整台電腦、所有 session 加起來：重的工作（`flutter test`、`flutter build web`、Playwright 走查、整套重拍設計稿、長時間模擬）一律用 `scripts/heavy.sh <指令…>` 跑。它先排隊（大家共用 `~/.cache/cow-farm/heavy.lock`），輪到了再看記憶體、再用 systemd-run 限制。2026-10-03 兩個 session 同時跑重的工作，可用記憶體掉到 1 GB 以下，走查和重拍都被系統停掉。
+- 只跑一個測試檔、`flutter analyze` 也會開 Dart 編譯器（約 550 MB），一樣要排隊；不用排隊的只有 `dart format`、git、gh 這類不開編譯器或瀏覽器的指令。
 
 ## CI
 
