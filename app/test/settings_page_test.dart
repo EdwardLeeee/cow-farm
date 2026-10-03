@@ -225,14 +225,16 @@ void main() {
     expect(m.authLost, isNull);
   });
 
-  test('刪除牧場清掉還沒按「好」的升級慶祝（S11-01）：新牧場不會跳舊牧場的升級卡', () async {
+  test('刪除牧場清掉還沒按「好」的升級慶祝（S11-01）、還沒按掉的備份提醒（S11-05）：新牧場不會跳舊牧場的', () async {
     final api = FakeGameApi();
     final (m, _, _) = await loadedModel(api: api);
     api.stateJson = {...api.stateJson, 'level': (api.stateJson['level'] as int) + 1};
     await m.refreshState();
     expect(m.levelUp, isNotNull, reason: '升級了、還沒按「好」');
+    m.remindBackup();
     expect((await m.deleteRanch()).ok, isTrue);
     expect(m.levelUp, isNull);
+    expect(m.backupRemind, isFalse);
   });
 
   test('刪除時牧場已經在別的手機（signed_in_elsewhere）：顯示 S14-05，不算刪掉', () async {

@@ -53,6 +53,7 @@ class SettingsController extends ChangeNotifier {
   static const soundKey = 'cowfarm_sound';
   static const backupSeenKey = 'cowfarm_backup_seen';
   static const coachSeenKey = 'cowfarm_coach_seen';
+  static const backupRemindKey = 'cowfarm_backup_remind';
 
   AppLang? _chosenLang;
   bool? _upIsRed;
@@ -62,6 +63,7 @@ class SettingsController extends ChangeNotifier {
   bool _soundOn = true;
   bool _backupSeen = false;
   Set<String> _coachSeen = {};
+  Set<String> _backupReminded = {};
 
   /// 打開 app 時讀一次（main.dart 在 runApp 之前呼叫，第一個畫面就是對的語言）。
   Future<void> load() async {
@@ -76,6 +78,8 @@ class SettingsController extends ChangeNotifier {
     _backupSeen = await _store.getString(backupSeenKey) == '1';
     final coach = await _store.getString(coachSeenKey);
     _coachSeen = coach == null || coach.isEmpty ? {} : coach.split(',').toSet();
+    final reminded = await _store.getString(backupRemindKey);
+    _backupReminded = reminded == null || reminded.isEmpty ? {} : reminded.split(',').toSet();
     notifyListeners();
   }
 
@@ -126,6 +130,16 @@ class SettingsController extends ChangeNotifier {
     _backupSeen = true;
     notifyListeners();
     await _store.setString(backupSeenKey, '1');
+  }
+
+  /// 升到 Lv2 以後的備份提醒（S11-05）這個牧場出過了：按「之後再說」或「現在備份」都算，只出現一次。
+  /// 照牧場（編號）分開記：刪除後開的新牧場、換回的別的牧場還沒備份，會再提醒一次。
+  bool backupReminded(int? playerId) => _backupReminded.contains('${playerId ?? 0}');
+
+  Future<void> markBackupReminded(int? playerId) async {
+    if (!_backupReminded.add('${playerId ?? 0}')) return;
+    notifyListeners();
+    await _store.setString(backupRemindKey, _backupReminded.join(','));
   }
 
   /// 第一次進牧場的「左右滑動」提示看過了（S03-14，只出現一次）。
