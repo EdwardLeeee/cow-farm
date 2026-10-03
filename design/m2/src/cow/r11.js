@@ -419,12 +419,12 @@ function paintSpecial(P, g, pose, B) {
   if (g.pattern === 'cloud') {
     if (side) {
       const { cx, cy, rx, ry, D } = B;
-      cloudMark(P, cx - rx * 0.24, cy - ry * 0.2, D * 0.2, 1, col, edge);
-      cloudMark(P, cx + rx * 0.52, cy + ry * 0.3, D * 0.16, -1, col, edge);
-      cloudMark(P, cx + rx * 0.2, cy + ry * 0.55, D * 0.1, 1, col, edge);
+      cloudMark(P, cx - rx * 0.22, cy - ry * 0.18, D * 0.3, 1, col, edge);
+      cloudMark(P, cx + rx * 0.55, cy + ry * 0.28, D * 0.24, -1, col, edge);
+      cloudMark(P, cx + rx * 0.12, cy + ry * 0.62, D * 0.16, 1, col, edge);
     } else {
-      cloudMark(P, -B.rx * 0.36, B.cy + B.ry * 0.1, B.W * 0.12, 1, col, edge);
-      cloudMark(P, B.rx * 0.42, B.cy + B.ry * 0.4, B.W * 0.09, -1, col, edge);
+      cloudMark(P, -B.rx * 0.34, B.cy + B.ry * 0.08, B.W * 0.17, 1, col, edge);
+      cloudMark(P, B.rx * 0.4, B.cy + B.ry * 0.42, B.W * 0.13, -1, col, edge);
     }
   }
   if (g.pattern === 'gold') {

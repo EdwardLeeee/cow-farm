@@ -254,9 +254,9 @@ const COW12 = COWS.find((c) => c.id === 12);
 function starLegend(v) {
   return `<div class="lineup legend">
     <div class="lu-head">四種稀有度，加上雜種牛、特殊牛<small>使用者：「一般、優良、稀有、傳說可以用星星來代表」</small></div>
-    ${[0, 1, 2, 3].map((n) => `<div class="lu-cell"><span class="big">${starChip(n, v, 16)}</span><b>${tierName(n)}</b><span>${n + 1} 顆星</span></div>`).join('')}
-    <div class="lu-cell"><span class="big">${badge('mix', t('badgeMix'))}</span><b>雜種牛</b><span>不給星星，照舊寫「雜種」</span></div>
-    <div class="lu-cell"><span class="big">${spMark()}</span><b>特殊牛</b><span>寶石記號（提案），不跟星星混</span></div>
+    ${[0, 1, 2, 3].map((n) => `<div class="lu-cell"><div class="big">${starChip(n, v, 16)}</div><b>${tierName(n)}</b><span>${n + 1} 顆星</span></div>`).join('')}
+    <div class="lu-cell"><div class="big">${badge('mix', t('badgeMix'))}</div><b>雜種牛</b><span>不給星星，照舊寫「雜種」</span></div>
+    <div class="lu-cell"><div class="big">${spMark()}</div><b>特殊牛</b><span>寶石記號（提案），不跟星星混</span></div>
   </div>`;
 }
 function r1502(v) {
@@ -388,7 +388,7 @@ function spDetail(k, { found = true } = {}) {
 // 牧場裡：宙斯牛（公）在中間，點了跳出名片：稀有度的地方換成特殊牛的記號
 function spRanch() {
   const zeus = { id: 30, breed: 'zeus', sex: 'bull', age: 'adult', kg: 812 };
-  const herd = HERD.map((h) => (h.id === 7 ? { id: 30, breed: 'zeus', sex: 'bull', x: 300, y: 430, facing: 'left', depth: 1, pose: 'front' } : h));
+  const herd = HERD.map((h) => (h.id === 7 ? { id: 30, breed: 'zeus', sex: 'bull', x: 296, y: 528, facing: 'left', depth: 2, pose: 'front' } : h));
   const html = popHtml(zeus).replace(/<span class="tier tier-\d">[\s\S]*?<\/span>/, spMark(true));
   return ranchPage0(herd, { id: 30, html });
 }
@@ -469,7 +469,7 @@ function pen(x, y, w, h) {
 }
 const PEN_A = [206, 360, 160, 150];
 function gameA(step) {
-  const c1 = critter(calfE('draft', 'bull'), 112, 600, 0.95, 'right'), c2 = critter(calfE('dairy', 'cow'), 300, 700, 0.9, 'left'), c3 = critter(calfE('beef', 'cow'), 82, 450, 0.85, 'right');
+  const c1 = critter(calfE('draft', 'bull'), 112, 600, 1.2, 'right'), c2 = critter(calfE('dairy', 'cow'), 300, 700, 1.15, 'left'), c3 = critter(calfE('beef', 'cow'), 82, 450, 1.1, 'right');
   const base = pen(...PEN_A);
   const title = '趕牛進柵欄';
   if (step === 1) return gameFrame('day', base + c1.svg + c2.svg + c3.svg, gameTop(title, { left: 3 }), startCard(title, ['用手指在草地上畫一條路，把一頭小牛趕進柵欄。', '越快趕進去，表現越好。', '跑得特別快的小牛，比較可能長成稀有以上。'], `<svg viewBox="0 0 120 70" width="200" height="117">${pen(58, 18, 54, 44)}<path d="M14 58Q30 30 54 40" stroke="#FFFFFF" stroke-width="7" fill="none" stroke-linecap="round"/><path d="M14 58Q30 30 54 40" stroke="${L}" stroke-width="2" fill="none" stroke-dasharray="4 4"/></svg>`));
@@ -480,11 +480,11 @@ function gameA(step) {
       gameTop(title, { time: '0:12', meter: 60 }) + hintPill('畫一條路：小牛會沿著路跑'), finger(252, 432));
   }
   if (step === 4) {
-    const inPen = critter(calfE('draft', 'bull'), 290, 480, 0.85, 'right');
+    const inPen = critter(calfE('draft', 'bull'), 290, 480, 1.05, 'right');
     return gameFrame('day', base + inPen.svg + c2.svg + c3.svg, gameTop(title, { time: '0:09', meter: 45 }), catchCard('表現：很好（8 秒就趕進去）'));
   }
-  const sp = critter({ breed: 'zeus', sex: 'bull', age: 'calf' }, 140, 640, 1, 'right');
-  return gameFrame('day', glowDefs + base + c3.svg + glow(140 - 6, 610, 92) + speed(70, 640, -1) + sp.svg + sparkles([[96, 560, 9], [196, 576, 7], [70, 610, 6], [210, 640, 6]]) + c2.svg, gameTop(title, { time: '0:20', meter: 100 }) + spBanner('zeus'));
+  const sp = critter({ breed: 'zeus', sex: 'bull', age: 'calf' }, 140, 640, 1.3, 'right');
+  return gameFrame('day', glowDefs + base + c3.svg + glow(140 - 6, 600, 104) + speed(70, 640, -1) + sp.svg + sparkles([[96, 560, 9], [196, 576, 7], [70, 610, 6], [210, 640, 6]]) + c2.svg, gameTop(title, { time: '0:20', meter: 100 }) + spBanner('zeus'));
 }
 // B 套圈圈：夜市套圈圈的玩法。小牛站在一個個草墊上不動，從下面往後拉、放開把圈圈丟出去（不是追著跑的牛甩繩子）
 const MATS = [[86, 470, 'dairy', 'cow'], [196, 452, 'beef', 'bull'], [306, 470, 'draft', 'cow'], [140, 380, 'draft', 'bull'], [262, 376, 'dairy', 'bull']];
@@ -500,7 +500,7 @@ function matsScene(skip = -1, special = false) {
   return MATS.map(([x, y, u, sx], i) => {
     if (i === skip) return mat(x, y, i > 2 ? 0.8 : 1);
     const sp = special && i === 4;
-    const c = critter(sp ? { breed: 'azure', sex: 'cow', age: 'calf' } : calfE(u, sx), x, y, i > 2 ? 0.72 : 0.9, i % 2 ? 'left' : 'right');
+    const c = critter(sp ? { breed: 'azure', sex: 'cow', age: 'calf' } : calfE(u, sx), x, y, i > 2 ? 0.92 : 1.15, i % 2 ? 'left' : 'right');
     return (sp ? glow(x, y - 30, 70) : '') + mat(x, y, i > 2 ? 0.8 : 1, sp) + c.svg;
   }).join('');
 }
@@ -529,17 +529,17 @@ const stars = () => [[30, 60], [90, 110], [160, 50], [240, 90], [330, 60], [360,
 const beam = (x, y0, y1, w0, w1) => `<path d="M${x - w0} ${y0}L${x + w0} ${y0}L${x + w1} ${y1}L${x - w1} ${y1}Z" fill="#FFF3A6" opacity="0.55"/><ellipse cx="${x}" cy="${y1}" rx="${w1}" ry="${w1 * 0.22}" fill="#FFF3A6" opacity="0.7"/>`;
 function gameC(step) {
   const title = 'UFO 吸牛';
-  const herd = [critter(calfE('beef', 'bull'), 80, 640, 0.95, 'right'), critter(calfE('dairy', 'cow'), 300, 600, 0.9, 'left'), critter(calfE('draft', 'cow'), 220, 740, 0.95, 'left')];
+  const herd = [critter(calfE('beef', 'bull'), 80, 640, 1.2, 'right'), critter(calfE('dairy', 'cow'), 300, 600, 1.15, 'left'), critter(calfE('draft', 'cow'), 220, 740, 1.2, 'left')];
   if (step === 1) return gameFrame('night', stars() + herd.map((c) => c.svg).join('') + ufo(195, 330), gameTop(title, { left: 3 }), startCard(title, ['左右拖動小飛碟，對準一頭小牛。', '按住放出光束，把小牛吸上來；小牛會掙扎，光束要一直對準。', '掙扎得特別厲害的小牛，比較可能長成稀有以上。'], `<svg viewBox="0 0 120 80" width="200" height="133">${beam(60, 28, 72, 10, 26)}${ufo(60, 22, 0.6)}</svg>`));
   if (step === 2) return gameFrame('night', stars() + herd.map((c) => c.svg).join('') + ufo(150, 330) + `<path d="M84 400h-40M216 400h40" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/><path d="M52 388l-14 12 14 12M248 388l14 12-14 12" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`,
     gameTop(title, { time: '0:25' }) + hintPill('左右拖動小飛碟'), finger(150, 420));
   if (step === 3) {
-    const lifted = critter(calfE('dairy', 'cow'), 300, 500, 0.9, 'left');
+    const lifted = critter(calfE('dairy', 'cow'), 300, 510, 1.15, 'left');
     return gameFrame('night', stars() + herd[0].svg + herd[2].svg + beam(300, 350, 610, 30, 64) + `<path d="M246 440q-8 8 0 16M354 440q8 8 0 16M240 470q-8 8 0 16M360 470q8 8 0 16" stroke="#FFFFFF" stroke-width="3" fill="none" stroke-linecap="round"/>` + lifted.svg + ufo(300, 330),
-      gameTop(title, { time: '0:18', meter: 62 }) + hintPill('按住不放：小牛在掙扎，跟著左右移'), finger(300, 420));
+      gameTop(title, { time: '0:18', meter: 62 }) + hintPill('按住不放：小牛在掙扎，跟著左右移'), finger(300, 772));
   }
   if (step === 4) return gameFrame('night', stars() + herd[0].svg + herd[2].svg + ufo(300, 330), gameTop(title, { time: '0:15', meter: 100 }), catchCard('表現：很好（一次就吸上來）'));
-  const sp = critter({ breed: 'holyWhite', sex: 'cow', age: 'calf' }, 196, 640, 1, 'right');
+  const sp = critter({ breed: 'holyWhite', sex: 'cow', age: 'calf' }, 196, 640, 1.3, 'right');
   return gameFrame('night', glowDefs + stars() + herd[0].svg + glow(196, 610, 90) + sp.svg + sparkles([[150, 560, 8], [250, 572, 7], [130, 620, 5], [262, 620, 6]]) + herd[2].svg + ufo(196, 330), gameTop(title, { time: '0:30' }) + spBanner('holyWhite'));
 }
 const V5 = {
@@ -580,7 +580,7 @@ function r1599() {
   const legend = (v) => `<div class="ov-legend">${[0, 1, 2, 3].map((n) => `<span>${starChip(n, v, 14)}</span>`).join('')}</div>`;
   const rows = [
     ['01 小牛卡片：直接寫要吃哪幾種（選一個版面）', Object.keys(V1).map((v) => cell(`${v}　${V1[v].name}`, `<div class="ov-pair">${mini(calfPage(CALVES[15], v))}${mini(listPage(rows01(v)))}</div>`))],
-    ['02 稀有度星星（一般、優良、稀有、傳說）', Object.keys(V2).map((v) => cell(`${v}　${V2[v].name}`, `${legend(v)}${mini(swapTiers(stateHtml('S03-06'), v))}`))],
+    ['02 稀有度星星（一般、優良、稀有、傳說）', Object.keys(V2).map((v) => cell(`${v}　${V2[v].name}`, `${legend(v)}${mini(swapTiers(stateHtml('S09-02'), v))}`))],
     ['03 圖鑑的配種表', Object.keys(V3).map((v) => cell(`${v}　${V3[v].name}`, mini(codexDetail(v, { top: false }))))],
     ['04 特殊牛 3 種（不用選，看樣子）', [cell('宙斯牛、青牛、聖白牛', `<div class="ov-sp">${SP_KEYS.map((k) => `<span>${cowSVG({ breed: k }, { w: 150, h: 140 })}<b>${SPECIAL[k].name}</b></span>`).join('')}</div>`)]],
     ['05 抓牛小遊戲（選一個方向）', Object.keys(V5).map((v) => cell(`${v}　${V5[v].name}`, `<div class="ov-pair">${mini(V5[v].fn(3))}${mini(V5[v].fn(4))}</div>`))],

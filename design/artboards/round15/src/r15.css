@@ -11,6 +11,7 @@ body { background: #FFF9EF; }
 .b-cell figcaption { min-height: 68px; margin-bottom: 10px; font-size: 14px; font-weight: 700; line-height: 20px; color: #C2541B; }
 .b-cell figcaption b { display: block; font-size: 18px; font-weight: 900; line-height: 26px; color: var(--ink); }
 .b-cell .phone { outline: 2px solid #E2D4C2; }
+.b-cell .phone.tall { height: auto; min-height: 844px; } /* 長頁：整頁畫出來（跟 M2 的長頁狀態一樣） */
 .b-notes { margin: 24px 0 0; padding-left: 22px; font-size: 15px; font-weight: 700; line-height: 24px; color: var(--ink-2); }
 .skip-note { padding: 4px 12px; border: 2px dashed #C2541B; border-radius: 14px; font-size: 14px; font-weight: 900; line-height: 20px; color: #C2541B; text-align: center; background: rgba(255, 255, 255, 0.6); }
 
@@ -19,7 +20,7 @@ body { background: #FFF9EF; }
 .lu-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 6px 12px; background: rgba(255, 255, 255, 0.72); border: 2px solid #E2D4C2; border-radius: 16px; }
 .lu-cell svg { display: block; }
 .lu-cell b { font-size: 16px; font-weight: 900; line-height: 22px; }
-.lu-cell span { font-size: 13px; font-weight: 700; line-height: 18px; color: var(--ink-2); text-align: center; }
+.lu-cell > span { font-size: 13px; font-weight: 700; line-height: 18px; color: var(--ink-2); text-align: center; }
 .lu-head { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 10px; font-size: 18px; font-weight: 900; }
 .lu-head small { font-size: 14px; font-weight: 700; color: var(--ink-2); }
 .lu-pics { display: flex; align-items: flex-end; gap: 6px; line-height: 0; }
@@ -63,7 +64,7 @@ body { background: #FFF9EF; }
 .st-ring { position: relative; width: 70px; height: 70px; display: grid; place-items: center; border: 3px dashed #D9B98C; border-radius: 50%; background: #FFFFFF; line-height: 0; }
 .stamp:not(.done) .feed-ic { opacity: 0.45; }
 .stamp.done .st-ring { border: 3px solid var(--ink); background: #FFFDF6; }
-.st-ink { position: absolute; inset: 6px; display: grid; place-items: center; border: 3px solid #E0483E; border-radius: 50%; color: #E0483E; font-style: normal; font-size: 15px; font-weight: 900; line-height: 1; transform: rotate(-14deg); background: rgba(255, 255, 255, 0.35); opacity: 0.9; }
+.st-ink { position: absolute; right: -14px; bottom: -8px; width: 38px; height: 38px; display: grid; place-items: center; border: 3px solid #E0483E; border-radius: 50%; color: #E0483E; font-style: normal; font-size: 12px; font-weight: 900; line-height: 1; transform: rotate(-14deg); background: #FFF1EE; }
 /* D 放在大圖上 */
 .calf-hero.with-feeds { padding-right: 112px; }
 .hf { position: absolute; right: 10px; top: 12px; bottom: 34px; width: 98px; display: flex; flex-direction: column; justify-content: center; align-items: stretch; gap: 6px; }
@@ -114,7 +115,7 @@ body { background: #FFF9EF; }
 .pg-star { display: inline-flex; align-items: center; gap: 4px; }
 .pg-star .tier { height: 20px; }
 .legend { grid-template-columns: repeat(6, 1fr); }
-.legend .big { display: flex; align-items: center; justify-content: center; height: 44px; transform: scale(1.5); }
+.legend .big { color: var(--ink); display: flex; align-items: center; justify-content: center; height: 44px; transform: scale(1.5); }
 /* 特殊牛的記號（提案）：金色膠囊＋寶石 */
 .sp-mark { display: inline-flex; align-items: center; gap: 2px; height: 22px; padding: 0 8px 0 4px; border: 2px solid var(--ink); border-radius: 11px; background: linear-gradient(180deg, #FFE98F, #FFC13B); font-size: 12px; font-weight: 900; line-height: 18px; white-space: nowrap; color: var(--ink); }
 .sp-mark.small { height: 20px; padding: 0 6px 0 3px; font-size: 11px; }
@@ -154,7 +155,7 @@ body { background: #FFF9EF; }
 .g-title span { font-size: 12px; font-weight: 700; line-height: 16px; color: var(--ink-2); }
 .g-time { display: inline-flex; align-items: center; gap: 4px; font-size: 18px; font-weight: 900; }
 .g-meter { position: absolute; left: 24px; right: 24px; top: calc(var(--safe-top) + 74px); z-index: 30; }
-.g-hint { position: absolute; left: 50%; bottom: calc(var(--safe-bottom) + 24px); transform: translateX(-50%); z-index: 30; padding: 6px 14px; background: rgba(46, 29, 20, 0.72); border-radius: 16px; color: #FFFFFF; font-size: 14px; font-weight: 900; line-height: 20px; white-space: nowrap; }
+.g-hint { position: absolute; left: 50%; top: calc(var(--safe-top) + 128px); transform: translateX(-50%); z-index: 30; padding: 6px 14px; background: rgba(46, 29, 20, 0.72); border-radius: 16px; color: #FFFFFF; font-size: 14px; font-weight: 900; line-height: 20px; white-space: nowrap; }
 .g-rings { position: absolute; right: 14px; top: calc(var(--safe-top) + 84px); z-index: 30; display: flex; gap: 4px; padding: 4px 8px; background: rgba(255, 255, 255, 0.9); border: 2.5px solid var(--ink); border-radius: 16px; line-height: 0; }
 .g-rings svg.used { opacity: 0.25; }
 .gesture { position: absolute; z-index: 40; line-height: 0; pointer-events: none; }
@@ -169,7 +170,7 @@ body { background: #FFF9EF; }
 .cc-name { font-size: 20px; line-height: 26px; }
 .cc-perf { text-align: center; font-size: 15px; font-weight: 900; line-height: 21px; }
 .cc-perf .hint { font-weight: 700; }
-.sp-banner { position: absolute; left: 50%; top: calc(var(--safe-top) + 92px); transform: translateX(-50%); z-index: 30; display: flex; align-items: center; gap: 6px; padding: 6px 14px 6px 10px; background: linear-gradient(180deg, #FFE98F, #FFC13B); border: 3px solid var(--ink); border-radius: 20px; box-shadow: 0 3px 0 var(--ink); white-space: nowrap; }
+.sp-banner { position: absolute; left: 50%; top: calc(var(--safe-top) + 128px); transform: translateX(-50%); z-index: 30; display: flex; align-items: center; gap: 6px; padding: 6px 14px 6px 10px; background: linear-gradient(180deg, #FFE98F, #FFC13B); border: 3px solid var(--ink); border-radius: 20px; box-shadow: 0 3px 0 var(--ink); white-space: nowrap; }
 .sp-banner b { font-size: 17px; }
 .sp-banner span { font-size: 13px; font-weight: 900; color: var(--ink-2); }
 
