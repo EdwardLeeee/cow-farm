@@ -3,6 +3,7 @@
 # 用法：python3 harness/compose.py [畫面前綴，例如 S03]
 # 輸出：boards/<畫面>/M2-<頁面 ID>-<畫面名>-<狀態名>-<寬>.png、M2-<畫面>-表-…、M2-<畫面>-00-…-總覽.png；measure/summary.md
 import json, os, re, sys, glob
+import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -33,12 +34,67 @@ def rounded(img, r):
     out = Image.new('RGBA', img.size, (0, 0, 0, 0)); out.paste(img, (0, 0), mask)
     return out
 
+# 設計用的顏色：src/ 的 CSS、JS（圖示、場景、牛、卡車、色表）裡寫死的不透明顏色（#RGB、#RRGGBB、rgb()、alpha 1 的 rgba()）
+_DESIGN = None
+def design_colors():
+    global _DESIGN
+    if _DESIGN is None:
+        cols = set()
+        src = os.path.join(ROOT, 'src')
+        for f in glob.glob(os.path.join(src, '**', '*.css'), recursive=True) + glob.glob(os.path.join(src, '**', '*.js'), recursive=True):
+            s = open(f, encoding='utf-8').read()
+            for m in re.finditer(r'#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b', s):
+                h = m.group(1) if len(m.group(1)) == 6 else ''.join(c * 2 for c in m.group(1))
+                cols.add(tuple(int(h[i:i + 2], 16) for i in (0, 2, 4)))
+            for m in re.finditer(r'rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)', s):
+                if m.group(4) is None or float(m.group(4)) >= 1: cols.add(tuple(int(m.group(i)) for i in (1, 2, 3)))
+        _DESIGN = cols
+    return _DESIGN
+
+FIX_MIN, FIX_MAX = 6, 160
+def nearest(im, pal):
+    # 每個像素換成調色盤裡最近的顏色（RGB 距離）。不用 Pillow 的 quantize(palette=…)：它找顏色時精度比較低，平均會差 2
+    a = np.asarray(im).reshape(-1, 3)
+    keys = (a[:, 0].astype(np.int32) << 16) | (a[:, 1].astype(np.int32) << 8) | a[:, 2]
+    uk, inv = np.unique(keys, return_inverse=True)
+    uc = np.stack([(uk >> 16) & 255, (uk >> 8) & 255, uk & 255], axis=1).astype(np.int32)
+    P = np.array(pal, dtype=np.int32).reshape(-1, 3)
+    idx = np.empty(len(uc), dtype=np.uint8)
+    for s in range(0, len(uc), 2048):
+        d = ((uc[s:s + 2048, None, :] - P[None, :, :]) ** 2).sum(axis=2)
+        idx[s:s + 2048] = d.argmin(axis=1)
+    q = Image.fromarray(idx[inv].reshape(im.height, im.width), mode='P')
+    q.putpalette(list(pal) + list(pal[:3]) * (256 - len(pal) // 3))  # 沒用完的位置重複第一個顏色
+    return q
+
+def flat_counts(im):
+    # 每種顏色有幾個「整塊」的像素：上下左右斜角 8 個鄰居都是同一個顏色。漸層的一列、反鋸齒的邊碰巧等於某個設計顏色時不算，
+    # 不然 CSS 加了新顏色，不相干的設計稿也會因為幾個碰巧同色的像素換調色盤
+    a = np.asarray(im).astype(np.int32)
+    k = (a[:, :, 0] << 16) | (a[:, :, 1] << 8) | a[:, :, 2]
+    c = k[1:-1, 1:-1]
+    same = np.ones(c.shape, dtype=bool)
+    for dy in (-1, 0, 1):
+        for dx in (-1, 0, 1):
+            if dy or dx: same &= k[1 + dy:k.shape[0] - 1 + dy, 1 + dx:k.shape[1] - 1 + dx] == c
+    keys, n = np.unique(c[same], return_counts=True)
+    return {((int(v) >> 16) & 255, (int(v) >> 8) & 255, int(v) & 255): int(m) for v, m in zip(keys, n)}
+
 def save(im, path):
+    # 256 色的 PNG（沒有抖色），檔案小很多。調色盤分兩部分（ceo 2026-10-03 選 B）：
+    # 1. 圖上整塊用到的設計顏色（整塊的像素至少 FIX_MIN 個，最多 FIX_MAX 種，用得多的先放）原封不動放進調色盤，
+    #    小圖示、彩紙這種小面積的顏色不會被換成相近的顏色（以前 S11-01 的藍、綠彩紙會變成薄荷綠、米色）；
+    # 2. 剩下的位置照舊用 median cut 自動挑（漸層、反鋸齒的邊）。
+    # 每個像素再換成最近的顏色。跟以前（median cut 256 色）比，每張的平均誤差、差很多的像素都比較少
     os.makedirs(os.path.dirname(path), exist_ok=True)
     im = im.convert('RGB')
-    # 256 色（有抖色）檔案小很多；扁平粉彩的畫面看不出差別
-    q = im.quantize(colors=256, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.FLOYDSTEINBERG)
-    q.save(path, optimize=True)
+    count = flat_counts(im)
+    fixed = [c for n, c in sorted(((count[c], c) for c in design_colors() if count.get(c, 0) >= FIX_MIN), reverse=True)[:FIX_MAX]]
+    auto = im.quantize(colors=256 - len(fixed), method=Image.Quantize.MEDIANCUT)
+    ap = auto.getpalette()
+    used = sorted({i for _, i in auto.getcolors(256)})
+    pal = [v for c in fixed for v in c] + [v for i in used for v in ap[i * 3:i * 3 + 3]]
+    nearest(im, pal).save(path, optimize=True)
 
 def dpr2(png):
     im = Image.open(png).convert('RGB')
