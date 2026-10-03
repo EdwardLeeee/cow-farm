@@ -58,6 +58,19 @@ NAME_MESSAGES = {  # invalid_name 的 message（只供除錯；app 依 detail.re
     "emoji": "名字不能用表情符號",
     "bad_char": "名字裡有不能用的字",
 }
+
+
+def check_ranch_name(raw: str) -> str:
+    """牧場名照 D23 檢查（協定 2.2 節），回傳去掉前後空白的名字；不能用就丟 invalid_name。建立牧場和改名共用。"""
+    chk = ranchname.check(raw)
+    if chk.reason is not None:
+        detail = {"reason": chk.reason, "width": chk.width}
+        if chk.char is not None:
+            detail["char"] = chk.char
+        raise GameError("invalid_name", NAME_MESSAGES[chk.reason], 400, detail)
+    return chk.name
+
+
 # 伺服器的存檔格式（跟經濟引擎的版本分開算）。不一樣就拒絕啟動，原型階段不做搬移（ceo 2026-10-02）。
 # 2：v0.2（沒有這個欄位的舊世界）；3：協定 v2 的 24 品種圖鑑（品種代號 → 第一次發現的時間）；
 # 4：借種費依體重自動算（D26：借種上架改存公牛長大的時間，不存價位）。
@@ -305,6 +318,11 @@ class GameServer:
     def _market_snaps(self) -> Dict[str, dict]:
         return {cid: m.to_dict(include_hist=False) for cid, m in self.game.ex.markets.items()}
 
+    def _weeks_meta(self) -> dict:
+        """週冠軍（成就 weekChamp）：結算到哪一週、每一週的第 1 名。"""
+        g = self.game
+        return {"champ_week": g.champ_week, "champs": {str(w): pid for w, pid in sorted(g.week_champs.items())}}
+
     def _clock_meta(self) -> dict:
         return {"game_t": self.clock.now(), "scale": self.clock.scale, "real_t": time.time()}
 
@@ -371,6 +389,10 @@ class GameServer:
         ex = Exchange.from_dict(DEFAULT, ex_d, hist)
         stud = StudMarket.from_dict(DEFAULT, meta["stud"]) if "stud" in meta else StudMarket(DEFAULT)
         self.game = Game(DEFAULT, world["seed"], exchange=ex, stud=stud)
+        weeks = meta.get("weeks")  # S21 以前的世界沒有：從下一個 tick 那一週開始結算
+        if weeks:
+            self.game.champ_week = weeks["champ_week"]
+            self.game.week_champs = {int(w): pid for w, pid in weeks["champs"].items()}
         for r in data["players"]:
             p = Player.from_state(
                 DEFAULT,
@@ -485,12 +507,7 @@ class GameServer:
         """
         if not isinstance(ranch_name, str):
             raise GameError("bad_request", "ranch_name 要是字串", 400, {"fields": ["ranch_name"]})
-        chk = ranchname.check(ranch_name)
-        if chk.reason is not None:
-            detail = {"reason": chk.reason, "width": chk.width}
-            if chk.char is not None:
-                detail["char"] = chk.char
-            raise GameError("invalid_name", NAME_MESSAGES[chk.reason], 400, detail)
+        name = check_ranch_name(ranch_name)
         async with self.write_lock:
             game = self.game
             if request_id is not None:
@@ -510,9 +527,9 @@ class GameServer:
             token = secrets.token_urlsafe(32)
             th = token_hash(token)
             pid = game.next_pid
-            p = game.create_player(now, chk.name, is_bot=False, pid=pid, token_hash=th)
+            p = game.create_player(now, name, is_bot=False, pid=pid, token_hash=th)
             try:
-                await self.store.create_player(pid, th, chk.name, False, now, p.state_dict(), request_id=request_id)
+                await self.store.create_player(pid, th, name, False, now, p.state_dict(), request_id=request_id)
             except Exception:
                 game.players.pop(pid, None)
                 raise
@@ -820,6 +837,11 @@ class GameServer:
             except Exception:
                 self._undo(pid, backup, stud_backup, game.take_captured(), seq0)
                 raise
+            try:
+                game.observe_achievements(p, t)  # 等級、總資產的成就（S21）
+            except Exception:
+                self._undo(pid, backup, stud_backup, game.take_captured(), seq0)
+                raise
             trades = game.take_captured()
             try:
                 response = respond(result, t) if respond is not None else result
@@ -841,6 +863,7 @@ class GameServer:
                     others=others,
                     stud=game.stud.to_dict() if game.stud_dirty else None,
                     stud_log=[self._stud_log_row(ev) for ev in game.stud_events],
+                    ranch_name=p.name if p.name != backup.name else None,  # 改名（S21）：players 表跟著改
                 )
             except Exception:
                 self._undo(pid, backup, stud_backup, trades, seq0)
@@ -966,6 +989,7 @@ class GameServer:
         game = self.game
         done: List[Tuple[float, Dict[str, dict], Dict[str, float]]] = []
         new_news: List[dict] = []
+        weeks_dirty = False
         while len(done) < max_ticks:
             t_end = game.ex.t + TICK_S
             if t_end > self.clock.now():
@@ -974,6 +998,7 @@ class GameServer:
             self.stats["bot_actions"] += await self.bots.run_until(t_end)
             online = self.bots.online(t_end - TICK_S, t_end) + self._real_online()
             game.tick(t_end, online)
+            weeks_dirty = game.close_weeks(t_end) or weeks_dirty  # 週冠軍（成就 weekChamp）
             prices = {cid: m.price for cid, m in game.ex.markets.items()}
             for cid, p in prices.items():
                 h = self.history.setdefault(cid, deque())
@@ -991,7 +1016,9 @@ class GameServer:
             return []
         t_last = done[-1][0]
         done[-1] = (t_last, self._market_snaps(), done[-1][2])
-        await self.store.commit_ticks(done, self._ex_meta(), self._clock_meta(), new_news)
+        await self.store.commit_ticks(
+            done, self._ex_meta(), self._clock_meta(), new_news, weeks=self._weeks_meta() if weeks_dirty else None
+        )
         for n in new_news:
             ev = self.news_log[n["id"]]
             await self.broadcast({"type": "news", **V.news_item(ev, self.clock.now())})

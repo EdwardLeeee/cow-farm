@@ -31,6 +31,8 @@ from cowecon.farm import (
 )
 from cowecon.params import DAY, HOUR, TZ_OFFSET_S
 
+from . import achievements as A
+from .breeds import ALL as ALL_BREEDS
 from .breeds import breed_id, breed_of_genes
 
 CALF_BULL_PROB = 0.5  # 配種、借種生出公牛的機率（cowecon Farm.breed：rng.random() < 0.5，跟基因無關）
@@ -97,6 +99,12 @@ class Player:
         "rng_n",
         "stud_income",
         "name_words",
+        "avatar",
+        "renames",
+        "ach",
+        "ach_n",
+        "prev_week",
+        "prev_week_earned",
     )
 
     def __init__(
@@ -118,17 +126,58 @@ class Player:
         self.rng_n = 0  # 伺服器亂數的計數（每用一次 +1；重啟後接著數）
         self.stud_income = 0.0  # 借種收入累計（幣）
         self.name_words: Optional[List[int]] = None  # 電腦牧場名的三組詞編號（協定 1.6 節）；真人是 None
+        # S21 牧場資料（D34）
+        self.avatar: Optional[str] = None  # 頭像的品種代號；None = 沒選過（app 畫荷斯坦）
+        self.renames = 0  # 改過幾次名；0 = 下次改名免費
+        self.ach: Dict[str, float] = {}  # 成就 → 解鎖的遊戲時間（分階段的 key 是 level.1 這種，server/achievements.py）
+        self.ach_n: Dict[str, float] = {}  # 有計數的成就 → 目前的數字（gradeA、popularBull、rice）
+        # 上一週的週收入：新的一週第一次有收入時 week_earned 會歸零，週冠軍要看上一週的（runtime 的週結算）
+        self.prev_week: Optional[int] = None
+        self.prev_week_earned = 0.0
 
     def add_codex(self, cow: Cow, now: float) -> None:
         """牛一出生（或抽到、借種生下）就算發現；記第一次的時間，之後出貨也不會消失。"""
         self.codex.setdefault(breed_of_genes(cow.g), now)
+        if cow.tier == 3:
+            self.unlock("legend", now)  # 擁有一頭傳說牛
 
     def add_income(self, coins: float, now: float) -> None:
         self.earned += coins
         w = week_id(now)
         if w != self.week:
+            self.prev_week, self.prev_week_earned = self.week, self.week_earned
             self.week, self.week_earned = w, 0.0
         self.week_earned += coins
+        self.observe_level(now)
+
+    # ---- 成就（S21） ----
+    def unlock(self, key: str, now: float) -> None:
+        """記第一次解鎖的遊戲時間；已經解鎖的不變。"""
+        self.ach.setdefault(key, now)
+
+    def count(self, key: str, amount: float, now: float) -> None:
+        """有計數的成就加 amount，到目標就解鎖。"""
+        n = self.ach_n.get(key, 0.0) + amount
+        self.ach_n[key] = n
+        if n >= A.goal_of(key):
+            self.unlock(key, now)
+
+    def observe_tiers(self, key: str, value: float, now: float) -> None:
+        """分階段的成就：value 到了哪幾階就解鎖哪幾階。"""
+        for i, goal in enumerate(A.GOALS[key], start=1):
+            if value >= goal:
+                self.unlock(A.tier_key(key, i), now)
+
+    def observe_level(self, now: float) -> None:
+        self.observe_tiers("level", self.level(), now)
+
+    def week_income(self, wid: int) -> float:
+        """某一週的收入（週結算用）：這一週或上一週的才記得，更早的是 0。"""
+        if self.week == wid:
+            return self.week_earned
+        if self.prev_week == wid:
+            return self.prev_week_earned
+        return 0.0
 
     def weekly_income(self, now: float) -> float:
         return self.week_earned if self.week == week_id(now) else 0.0
@@ -148,6 +197,12 @@ class Player:
             "rng_n": self.rng_n,
             "stud_income": self.stud_income,
             "name_words": self.name_words,
+            "avatar": self.avatar,
+            "renames": self.renames,
+            "ach": dict(sorted(self.ach.items())),
+            "ach_n": dict(sorted(self.ach_n.items())),
+            "prev_week": self.prev_week,
+            "prev_week_earned": self.prev_week_earned,
         }
 
     @classmethod
@@ -174,6 +229,13 @@ class Player:
         p.rng_n = state.get("rng_n", 0)
         p.stud_income = state.get("stud_income", 0.0)
         p.name_words = state.get("name_words")
+        # S21 以前的存檔沒有這些：照預設（沒選過頭像、沒改過名、沒有成就）
+        p.avatar = state.get("avatar")
+        p.renames = state.get("renames", 0)
+        p.ach = dict(state.get("ach", {}))
+        p.ach_n = dict(state.get("ach_n", {}))
+        p.prev_week = state.get("prev_week")
+        p.prev_week_earned = state.get("prev_week_earned", 0.0)
         return p
 
     def copy(self) -> "Player":
@@ -218,6 +280,9 @@ class Game:
         self.backups: Dict[int, Player] = {}  # 改之前的樣子（存檔失敗時還原）
         self.stud_dirty = False  # 借種市場有沒有改
         self.stud_events: List[dict] = []  # 借種成交（給執行期通知主人）
+        # 週冠軍（成就 weekChamp）：週 id → 那一週收入第 1 名的玩家（沒人有收入是 None）。執行期在每個 tick 結算、存在 meta
+        self.week_champs: Dict[int, Optional[int]] = {}
+        self.champ_week: Optional[int] = None  # 已經結算到哪一週（這一週還沒結束）
 
     # ---- 共用 ----
     def player(self, pid: int) -> Player:
@@ -298,6 +363,8 @@ class Game:
         f = p.farm
         spoiled = f.drop_spoiled(now)
         took = f.collect(now)
+        if took > 0:
+            p.unlock("firstMilk", now)
         full = f.bucket_total() > 1e-9 and f.wh_used() >= f.wh_capacity() - 1e-9
         return {"collected": took, "spoiled": spoiled, "warehouse_full": full}
 
@@ -352,6 +419,9 @@ class Game:
         p.add_income(coins, now)
         out = _sale_dict(commodity, res)
         if res.units > 0:
+            p.unlock("firstSale", now)
+            if self.super_event_on(commodity, now):
+                p.unlock("tailwind", now)  # 在超級大事件期間賣出
             self.trade_seq += 1
             self.captured.append(
                 {
@@ -397,6 +467,9 @@ class Game:
         lot = p.farm.ship_to_storage(c, now, self._rng(p, rng))
         if lot is None:
             raise GameError("rejected", "現在不能出貨", 409)
+        p.unlock("firstShip", now)
+        if lot.grade == 0:
+            p.count("gradeA", 1, now)
         return {"cow_id": c.cid, "lot": lot, "grade_probs": probs}
 
     def ship_and_sell(
@@ -561,6 +634,7 @@ class Game:
         if calf is None:
             raise GameError("rejected", "現在不能配種", 409)
         p.add_codex(calf, now)
+        p.unlock("newLife", now)  # 第一次配種生出小牛
         return {"calf": calf, "sire": sire, "dam": dam}
 
     # ---- 田地 ----
@@ -604,7 +678,10 @@ class Game:
 
     def harvest(self, pid: int, now: float) -> dict:
         p = self.player(pid)
-        return {"harvested": p.farm.harvest(now)}
+        kg = p.farm.harvest(now)
+        if kg > 0:
+            p.count("rice", kg, now)
+        return {"harvested": kg}
 
     # ---- 借種市場 ----
     def _listing(self, lid) -> "object":
@@ -728,9 +805,12 @@ class Game:
             raise GameError("rejected", "現在不能借種", 409)
         self.stud_dirty = True
         p.add_codex(calf, now)
+        p.unlock("newLife", now)
+        p.unlock("borrow", now)  # 第一次借到別人的公牛（公營種牛站的也算）
         if owner is not None:
             owner.stud_income += price
             owner.add_income(price, now)
+            owner.count("popularBull", 1, now)  # 自己的公牛被借走
         else:
             self.stud.npc_refill(now, npc_rng if npc_rng is not None else self.npc_rng())
         self.stud_events.append(
@@ -782,6 +862,64 @@ class Game:
         return {"kind": kind, "cost": int(round(cost))}
 
     # ---- 排行榜用 ----
+    # ---- 牧場資料（S21，D34） ----
+    def rename(self, pid: int, name: str, now: float) -> dict:
+        """改名：第一次免費，之後每次 RENAME_PRICE 幣，次數不限；#編號不變。name 已經照 D23 檢查過（執行期）。"""
+        p = self.player(pid)
+        cost = 0 if p.renames == 0 else A.RENAME_PRICE
+        if p.farm.coins < cost:
+            raise GameError("not_enough_coins", "金幣不夠", 409, {"need": cost, "have": int(round(p.farm.coins))})
+        p.farm.coins -= cost
+        p.name = name
+        p.renames += 1
+        return {"name": name, "cost": cost}
+
+    def set_avatar(self, pid: int, breed, now: float) -> dict:
+        """換頭像：只能選圖鑑裡發現過的品種，免費。"""
+        p = self.player(pid)
+        if not isinstance(breed, str) or breed not in ALL_BREEDS:
+            raise GameError("bad_request", "breed 要是品種代號（協定 1.6 節）", 400, {"fields": ["breed"]})
+        if breed not in p.codex:
+            raise GameError("avatar_locked", "還沒在圖鑑發現這個品種", 409, {"breed": breed})
+        p.avatar = breed
+        return {"avatar": breed}
+
+    def super_event_on(self, commodity: str, now: float) -> bool:
+        """這種商品現在是不是在超級大事件裡（成就 tailwind）。D33（#115）以前的引擎沒有 tier，一律 False。"""
+        return any(
+            getattr(ev, "tier", None) == "super" and commodity in ev.targets and ev.start_at <= now < ev.end_at
+            for ev in self.ex.events
+        )
+
+    def observe_achievements(self, p: Player, now: float) -> None:
+        """看現在的狀態解鎖的成就（等級、總資產）：執行期在每個動作之後叫。
+        S21 以前就已經達標的牧場，在第一次動作時記成那個時間。"""
+        p.observe_level(now)
+        p.observe_tiers("rich", self.net_worth(p, now), now)
+
+    def close_weeks(self, now: float) -> bool:
+        """週結算（成就 weekChamp）：結束的每一週記收入第 1 名（同分照編號小的，跟排行榜一樣；電腦也算）。
+        有結算回傳 True（執行期要存 meta）。第一次叫只記「從這一週開始」，不往回算。"""
+        cur = week_id(now)
+        if self.champ_week is None:
+            self.champ_week = cur
+            return True
+        changed = False
+        while self.champ_week < cur:
+            w = self.champ_week
+            best = max(
+                ((p.week_income(w), -p.pid) for p in self.players.values() if p.week_income(w) > 0), default=None
+            )
+            self.week_champs[w] = -best[1] if best is not None else None
+            self.champ_week = w + 1
+            changed = True
+        return changed
+
+    def week_champ_at(self, pid: int) -> Optional[float]:
+        """這位玩家第一次拿週冠軍的時間（那一週結束、週一 00:00）；沒拿過是 None。"""
+        weeks = [w for w, champ in self.week_champs.items() if champ == pid]
+        return week_start(min(weeks) + 1) if weeks else None
+
     def net_worth(self, p: Player, now: float) -> float:
         m = self.ex.markets
         return p.farm.net_worth(now, m["milk"].price, m["beef"].price, m["rice"].price if "rice" in m else None)
