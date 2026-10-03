@@ -150,6 +150,24 @@ void main() {
     expect(find.text(_zh.s18GoneTitle), findsOneWidget);
   });
 
+  testWidgets('預覽回 404 listing_not_found（看了列表以後被借走、下架）：跳 S18-10，不再每 3 秒重試', (tester) async {
+    Screen.w430.apply(tester);
+    final api = StudApi()..previewError = const ApiException(404, 'listing_not_found', 'gone');
+    await showStud(tester, AppLang.zhHant, api: api, listing: '43', dam: '3');
+    await tester.pump();
+    await tester.pump();
+    expect(find.text(_zh.s18GoneTitle), findsOneWidget);
+    await tester.pump(const Duration(seconds: 10));
+    expect(api.calls.where((c) => c.startsWith('stud-preview')), hasLength(1), reason: '對話框開著時不重試');
+    expect(find.text(_zh.s18GoneTitle), findsOneWidget, reason: '只跳一次');
+    api.calls.clear();
+    await tester.tap(find.byKey(const Key('gone-reload')));
+    await tester.pump();
+    await tester.pump();
+    expect(api.calls, contains('stud'), reason: '重抓市場');
+    expect(find.byKey(const Key('stud-borrow')), findsNothing, reason: '選擇取消了');
+  });
+
   testWidgets('錢不夠（S18-08）：還沒預覽就先寫還差多少、借種鈕停用', (tester) async {
     Screen.w430.apply(tester);
     final api = StudApi(state: studState(coins: 300));

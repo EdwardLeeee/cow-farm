@@ -257,6 +257,9 @@ class PreviewFetcher {
 
   void dispose() => _retry?.cancel();
 
+  /// 不再自動重試（例：借種預覽說那一筆已經不在了，S18-10），直到換選別的。
+  void stopRetry() => _retry?.cancel();
+
   /// 下一次 [ensure] 重抓（例：配種、借種失敗後看最新的原因）。
   void invalidate() => key = null;
 
