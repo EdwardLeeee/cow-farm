@@ -86,8 +86,10 @@ function newsItem(n) {
       <div class="n-tags"><span class="n-tag">${newsTag(n)}</span>${TIER_CLS[n.tier] ? tierBadge(n) : ''}${n.big ? `<span class="badge full">${t('s06.bigNews')}</span>` : ''}<span class="n-dir ${n.dir}">${icon(n.dir === 'up' ? 'up' : 'down', 11)}${t(n.dir === 'up' ? 's06.up' : 's06.down')}</span><span class="n-when">${ago(n.when)}</span></div>
       <p class="n-text">${newsText(n)}</p></div>`;
 }
+// 清單最多放 3 則最新的（使用者 2026-10-03：「市場那邊留三個新聞就好」）；釘在最上面的超級大卡不算在 3 則裡
+const MAX_NEWS = 3;
 export function newsCard(items = NEWS) {
-  const pins = items.filter((n) => TIER_CLS[n.tier] && n.state !== 'ended'), rest = items.filter((n) => !pins.includes(n));
+  const pins = items.filter((n) => TIER_CLS[n.tier] && n.state !== 'ended'), rest = items.filter((n) => !pins.includes(n)).slice(0, MAX_NEWS);
   return `<article class="card news-card"><div class="card-head"><span class="card-title coral">${icon('news', 18)}${t('newsTitle')}</span></div>
     ${pins.length ? `<div class="news-pins">${pins.map(newsPin).join('')}</div>` : ''}
     ${rest.length ? `<div class="news-list">${rest.map(newsItem).join('')}</div>` : pins.length ? '' : `<p class="hint" style="padding:10px 2px 2px">${t('noNews')}</p>`}
@@ -124,7 +126,8 @@ full('S06-10', '賣出：試算完成（往下捲到賣出）', (ctx) => marketP
 full('S06-11', '賣出：一次賣太多', (ctx) => marketPage(ctx, { key: 'beef', sell: 'big', sellData: { qty: 934, avg: 10.4, total: 9714, lots: 2 }, scrollTo: '.sell-card' }));
 part('S06-12', '賣出：試算失敗', '.sell-card', (ctx) => marketPage(ctx, { sell: 'failed', scrollTo: '.sell-card' }));
 full('S06-13', '賣出成功', (ctx) => marketPage(ctx, { hud: { coins: RANCH.coins + 1924 }, m: { stock: 16 }, sellData: { qty: 16, avg: 11.8, total: 189, lots: 1 }, scrollTo: '.sell-card', overlays: toast('ok', t('sold', { qty: 130, unit: t('unitMilk'), avg: 14.8, total: fmt(1924) })) }));
-part('S06-14', '新聞：沒有、利多、利空、大新聞、全部商品', '#crop', (ctx) => frame(ctx.dev, { tab: 'market', content: `<div id="crop" class="stack">${newsCard([])}${newsCard([{ c: 'beef', big: true, dir: 'up', tk: 'news.beef_up.1', when: {} }, ...NEWS])}</div>` }));
+// 清單最多 3 則：剛出來的大新聞（牛肉）、利多（牛奶）、利空（全部商品）
+part('S06-14', '新聞：沒有、利多、利空、大新聞、全部商品（最多 3 則）', '#crop', (ctx) => frame(ctx.dev, { tab: 'market', content: `<div id="crop" class="stack">${newsCard([])}${newsCard([{ c: 'beef', big: true, dir: 'up', tk: 'news.beef_up.1', when: {} }, NEWS[0], NEWS[2]])}</div>` }));
 part('S06-15', '斷線：滑桿與按鈕停用', '.sell-card', (ctx) => marketPage(ctx, { sell: 'offline', offline: true, scrollTo: '.sell-card' }));
 full('S06-16', '數字最長（量測用）', (ctx) => marketPage(ctx, {
   key: 'beef', hud: { coins: 987654 }, m: { price: 20.4, stock: 12480 },
