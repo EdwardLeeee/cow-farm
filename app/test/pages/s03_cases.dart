@@ -263,6 +263,24 @@ Map<String, dynamic> _allNews(bool up) => {
   'state': 'active',
 };
 
+/// 超級大事件（[tier] super，+100%）、超級黑天鵝（crash，−90%）的新聞（D33），一分鐘前開始。[commodity] null 是三種一起。
+Map<String, dynamic> _superNews(int id, String code, String? commodity, {required String tier}) => {
+  'id': id,
+  'code': code,
+  'params': {},
+  'pct': tier == 'super' ? 1.0 : -0.9,
+  'commodity': commodity,
+  'targets': commodity == null ? ['milk', 'beef', 'rice'] : [commodity],
+  'direction': tier == 'super' ? 'up' : 'down',
+  'big': true,
+  'tier': tier,
+  'time': t0 - 60,
+  'announce_at': t0 - 60,
+  'start_at': t0 - 60,
+  'end_at': t0 + 7200,
+  'state': 'active',
+};
+
 final _zh = Strings.forLang(AppLang.zhHant);
 
 /// 狀態表（設計稿的 .g-sheet）：沒有頂列、分頁列的頁面，內容一個個排下來。
@@ -690,6 +708,52 @@ final s03Cases = <PageCase>[
       check: (tester) {
         expect(find.byKey(const Key('big-news')), findsOneWidget);
         expect(find.textContaining(_zh.s03BigNewsAll(chg: up ? '+22%' : '−21%'), findRichText: true), findsOneWidget);
+      },
+    ),
+  // D33 超級大事件、超級黑天鵝的提示（狀態表 M2-S03-超級事件-狀態表）：跟大新聞提示同一個位置、一樣大，換顏色和標籤
+  for (final (id, name, market, tier, body) in [
+    (
+      'S03-22',
+      '超級大事件提示：牛肉收購價 +100%',
+      ranchMarket(beef: 24, news: [_superNews(401, 'beef_super.1', 'beef', tier: 'super')]),
+      'super',
+      _zh.s03BigNewsBody(
+        name: _zh.commodity(Commodity.beef),
+        chg: '+100%',
+        price: '24',
+        unit: _zh.unitOf(Commodity.beef),
+      ),
+    ),
+    (
+      'S03-23',
+      '超級黑天鵝提示：牛奶收購價 −90%',
+      ranchMarket(milk: 1.2, news: [_superNews(402, 'milk_swan.1', 'milk', tier: 'crash')]),
+      'crash',
+      _zh.s03BigNewsBody(
+        name: _zh.commodity(Commodity.milk),
+        chg: '−90%',
+        price: '1.2',
+        unit: _zh.unitOf(Commodity.milk),
+      ),
+    ),
+    (
+      'S03-24',
+      '超級大事件提示：全部商品一起 +100%',
+      ranchMarket(milk: 24, beef: 24, rice: 10, news: [_superNews(403, 'all_super.1', null, tier: 'super')]),
+      'super',
+      _zh.s03BigNewsAll(chg: '+100%'),
+    ),
+  ])
+    PageCase(
+      id,
+      name,
+      (tester, lang) async => pumpAppIn(tester, await ranchModel(market: market), lang, prefs: swipeHintSeen),
+      crop: find.byKey(const Key('big-news')),
+      check: (tester) {
+        expect(find.byKey(const Key('big-news')), findsOneWidget);
+        expect(find.byKey(Key('tier-$tier')), findsOneWidget);
+        expect(find.text(_zh.s06BigNews), findsNothing);
+        expect(find.textContaining(body, findRichText: true), findsOneWidget);
       },
     ),
   PageCase(
