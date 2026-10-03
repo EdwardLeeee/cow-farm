@@ -5,8 +5,10 @@ import { ranchPage } from './s03.js';
 import { gameName } from './s01.js';
 import { t, tb, dur, LANG } from '../i18n.js';
 
+// o.offline：斷線。沒有頂列的頁面把「連線中…」放在標題那一列的右邊（有頂列的頁面放頂列下面；cow-app #122，ceo 2026-10-03）
+const offlinePill = () => `<div class="hud-offline in-head">${icon('offline', 20)}<span>${t('connecting')}</span></div>`;
 const page = (ctx, title, inner, o = {}) => frame(ctx.dev, { tab: null, hud: false, content: `<div class="stack">
-  <div class="page-head">${o.noBack ? '' : `<button class="icon-btn" aria-label="${t('back')}">${icon('back', 22)}</button>`}<div class="grow"><h1>${title}</h1></div></div>${inner}</div>`, overlays: o.overlays || '' });
+  <div class="page-head">${o.noBack ? '' : `<button class="icon-btn" aria-label="${t('back')}">${icon('back', 22)}</button>`}<div class="grow"><h1>${title}</h1></div>${o.offline ? offlinePill() : ''}</div>${inner}</div>`, overlays: o.overlays || '' });
 const row = (ic, label, right = icon('chevron', 18), cls = '') => `<button class="set-row ${cls}"><span class="set-ic">${icon(ic, 22)}</span><span class="set-label">${label}</span><span class="set-right">${right}</span></button>`;
 const ext = () => `<span class="ext">${t('s13.web')} ${icon('chevron', 16)}</span>`;
 
@@ -15,8 +17,10 @@ const ext = () => `<span class="ext">${t('s13.web')} ${icon('chevron', 16)}</spa
 // 標誌不自己畫：左邊的虛線方塊是標誌的位置；實作時用 Apple／Google 官方的登入按鈕，字和標誌以官方的為準。
 // Apple、Google 自己跳出來的登入視窗是系統畫面，不畫。
 const SSO_NOTE = '按鈕左邊的虛線方塊是標誌的位置；實作時用 Apple／Google 官方的登入按鈕。';
+// 按鈕的字照官方的叫法（ceo 2026-10-03）：Apple 泰文是「ลงชื่อเข้าด้วย Apple」（support.apple.com/th-th/102609），所以 Apple、Google 分兩個 key
 const SSO_NAME = { apple: 'Apple', google: 'Google' };
-const sso = (k) => `<button class="sso ${k}"><span class="sso-mark" aria-hidden="true"></span><span class="sso-text">${t('s13.ssoSignIn', { name: SSO_NAME[k] })}</span></button>`;
+const SSO_KEY = { apple: 's13.ssoApple', google: 's13.ssoGoogle' };
+const sso = (k) => `<button class="sso ${k}"><span class="sso-mark" aria-hidden="true"></span><span class="sso-text">${t(SSO_KEY[k])}</span></button>`;
 const ssoGroup = (kinds) => `<div class="sso-group">${kinds.map(sso).join('')}</div>`;
 const privacy = () => `<p class="hint sso-privacy">${t('s13.privacy')}</p>`;
 const busyCard = (text) => `<div class="card sso-busy"><span class="spinner"></span><span>${text}</span></div>`;
@@ -26,13 +30,13 @@ const ranchCard = (r, right = '') => `<article class="card me-card"><span class=
 // S13-08、S13-09 的情境：玩家在新手機先按了「開新牧場」（青草小丘農莊 #5678），後來才到設定登入、想換回舊牧場（晨光河畔牧場 #1234）
 const NEW_RANCH = { name: '青草小丘農莊', tag: '#5678', level: 1 };
 
-function settings(ctx, { backed = false, overlays = '' } = {}) {
+function settings(ctx, { backed = false, overlays = '', offline = false } = {}) {
   return page(ctx, t('s13.title'), `
     ${ranchCard(RANCH)}
     <article class="card set-group">${row('sound', t('s13.sound'), `<span class="toggle on"><i></i></span>`)}${row('globe', t('s13.language'), `<span class="hint" data-keep>${langName()}</span>${icon('chevron', 18)}`, 'has-status')}${row('updown', t('s13.updown'), `<span class="ud-sample"><span class="up">▲${t('s13.up')}</span><span class="down">▼${t('s13.down')}</span></span>${icon('chevron', 18)}`, 'has-status')}</article>
     <article class="card set-group acct">${row('backup', `${t('s13.backup.title')}<small>${t('s13.backup.sub')}</small>`, `${backed ? stOk() : stNo()}${icon('chevron', 18)}`, 'has-status')}${row('trash', t('s13.delete'), icon('chevron', 18), 'danger')}</article>
     <article class="card set-group">${row('shield', t('s13.privacyPolicy'), ext())}${row('info', t('s13.version'), '<span class="hint">1.0.0</span>')}</article>
-    <p class="hint" style="text-align:center">${t('s13.footer', { game: gameName() })}</p>`, { overlays });
+    <p class="hint" style="text-align:center">${t('s13.footer', { game: gameName() })}</p>`, { overlays, offline });
 }
 
 // 備份牧場。bound：已經綁定的帳號（'apple'、'google'）；android：Android 版（沒有 Apple 登入；綁過 Apple 才顯示 Apple 那一列）
@@ -110,6 +114,8 @@ p13('S13-18', '漲跌顏色：漲紅跌綠（繁中預設）或綠漲紅跌（�
   <button class="card ud-opt on"><span class="grow"><b>${t('s13.redUp')}</b><span class="hint">${t('s13.redUpHint')}</span></span><span class="ud-sample big"><span class="up">▲ ${t('s06.vsHigher', { pct: '12%' })}</span><span class="down">▼ ${t('s06.vsLower', { pct: '7%' })}</span></span><span class="pick-check static">${icon('ok', 24)}</span></button>
   <button class="card ud-opt"><span class="grow"><b>${t('s13.greenUp')}</b><span class="hint">${t('s13.greenUpHint')}</span></span><span class="ud-sample big intl"><span class="up">▲ ${t('s06.vsHigher', { pct: '12%' })}</span><span class="down">▼ ${t('s06.vsLower', { pct: '7%' })}</span></span></button></div>
   <p class="hint" style="margin-top:10px">${t('s13.udNote')}</p>` }) }));
+// 斷線時（S15-01）的設定頁：沒有頂列，「連線中…」放在標題那一列的右邊。其他沒有頂列的頁面（備份牧場、刪除牧場、S14 找回牧場…）也一樣
+f13('S13-20', '設定頁斷線：「連線中…」放在標題那一列', (ctx) => settings(ctx, { offline: true }));
 
 // ---------------- S14 找回牧場（新手機或重裝後，用綁定的帳號登入） ----------------
 function firstOpen(ctx) {

@@ -92,7 +92,7 @@
 | 找回我的牧場 | Recover my ranch | กู้คืนฟาร์มของฉัน | |
 | 備份牧場 | Back up ranch | สำรองฟาร์ม | |
 | 刪除我的牧場 | Delete my ranch | ลบฟาร์มของฉัน | |
-| 使用 Apple 登入 | Sign in with Apple | ลงชื่อเข้าใช้ด้วย Apple | 以官方按鈕實際顯示的文字為準 |
+| 使用 Apple 登入 | Sign in with Apple | ลงชื่อเข้าด้วย Apple | 以官方按鈕實際顯示的文字為準；泰文照 Apple 官方說明頁（support.apple.com/th-th/102609，ceo 2026-10-03） |
 | 使用 Google 登入 | Sign in with Google | ลงชื่อเข้าใช้ด้วย Google | 同上 |
 | 幫我想一個 | Suggest a name | สุ่มชื่อให้ | 取牧場名（D23） |
 | 連線中… | Connecting… | กำลังเชื่อมต่อ… | |

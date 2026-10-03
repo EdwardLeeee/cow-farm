@@ -1,4 +1,13 @@
 /* M2 設計稿：手機外框、安全區、示意狀態列、版面骨架。外觀照 R1-A「圓潤Q版」（第 1 輪使用者選定）。 */
+/* 泰文用 app 內建的可變字型（app/assets/fonts/NotoSansThai-VF.ttf，harness/server.mjs 的 /app-fonts/ 給檔案）：
+   這台電腦的 Noto Sans Thai 只有 Regular、Bold（2.000 版），標 900 的泰文畫成 Bold，寬度跟手機上不一樣（cow-app #120，2026-10-03）。
+   只套在泰文字（U+0E00–0E7F），繁中、英文的字不受影響。用別的伺服器開設計稿時載不到，會退回電腦的字型，量測就不準。 */
+@font-face {
+  font-family: "Noto Sans Thai";
+  src: url("/app-fonts/NotoSansThai-VF.ttf") format("truetype");
+  font-weight: 100 900;
+  unicode-range: U+0E00-0E7F;
+}
 :root {
   --ink: #4B3326;
   --ink-2: #8A6F60;          /* 次要文字 */
@@ -26,7 +35,7 @@
   --tab-h: 62px;
   --W: 390px;
   --H: 844px;
-  --font-ui: "Noto Sans CJK TC", "Noto Sans TC", sans-serif;
+  --font-ui: "Noto Sans CJK TC", "Noto Sans Thai", "Noto Sans TC", sans-serif; /* 繁中、英文畫面裡的泰文字（語言清單的「ไทย」）也用 app 的泰文字型 */
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; background: #FFFFFF; }

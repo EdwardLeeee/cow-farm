@@ -132,8 +132,8 @@ export function measure(terms = []) {
     const x = Math.min(a.vr.right, b.vr.right) - Math.max(a.vr.left, b.vr.left);
     const y = Math.min(a.vr.bottom, b.vr.bottom) - Math.max(a.vr.top, b.vr.top);
     if (x > 2 && y > 0.35 * Math.min(a.rect.height, b.rect.height)) { // 字框比行高大，上下兩行的字框本來就會碰到一點
-      const za = a.el.closest('.backdrop ~ *, .dialog, .sheet, .toast, .cow-pop, .bubble, .hud-offline, .lv-wrap, .long-off, .big-news, .swipe-hint');
-      const zb = b.el.closest('.backdrop ~ *, .dialog, .sheet, .toast, .cow-pop, .bubble, .hud-offline, .lv-wrap, .long-off, .big-news, .swipe-hint');
+      const za = a.el.closest('.backdrop ~ *, .dialog, .sheet, .toast, .cow-pop, .bubble, .hud-offline, .lv-wrap, .long-off, .big-news, .notice.float, .swipe-hint');
+      const zb = b.el.closest('.backdrop ~ *, .dialog, .sheet, .toast, .cow-pop, .bubble, .hud-offline, .lv-wrap, .long-off, .big-news, .notice.float, .swipe-hint');
       if (!!za !== !!zb) continue; // 對話框、提示蓋在頁面上是故意的
       overlaps.push([a.text, b.text]);
     }
@@ -145,7 +145,7 @@ export function measure(terms = []) {
       if (b.contains(t.el) || t.el.contains(b)) return;
       const r = visRect(b, b.getBoundingClientRect());
       const x = Math.min(t.vr.right, r.right) - Math.max(t.vr.left, r.left), y = Math.min(t.vr.bottom, r.bottom) - Math.max(t.vr.top, r.top);
-      const OV = '.dialog, .sheet, .toast, .cow-pop, .hud-offline, .bubble, .lv-wrap, .long-off, .big-news, .swipe-hint';
+      const OV = '.dialog, .sheet, .toast, .cow-pop, .hud-offline, .bubble, .lv-wrap, .long-off, .big-news, .notice.float, .swipe-hint';
       if (x > 2 && y > 2 && !!t.el.closest(OV) === !!b.closest(OV)) overlaps.push([t.text, '按鈕:' + b.textContent.trim().slice(0, 10)]);
     });
   });
@@ -155,7 +155,7 @@ export function measure(terms = []) {
   //   在字下面、不是字的上層也不是字自己帶的圖示、是一張圖（SVG 的線條／色塊、圖片），而且這張圖沒有整個包住字 →「圖」（整個包住的是底圖）
   //   不算：對話框、提示、泡泡疊在頁面上（故意的）；浮在牧場場景（.scene）上的介面；
   //   捲動區裡的字被捲動區外面的東西（分頁列、下方按鈕區）蓋住，而且還能往那邊捲（捲了就看得到，算「要捲」）
-  const OVL = '.backdrop, .backdrop ~ *, .dialog, .sheet, .toast, .cow-pop, .bubble, .hud-offline, .lv-wrap, .long-off, .big-news, .swipe-hint';
+  const OVL = '.backdrop, .backdrop ~ *, .dialog, .sheet, .toast, .cow-pop, .bubble, .hud-offline, .lv-wrap, .long-off, .big-news, .notice.float, .swipe-hint';
   const SHAPES = ['path', 'circle', 'ellipse', 'rect', 'polygon', 'polyline', 'line', 'text', 'use', 'image'];
   const picOf = (e) => (e instanceof SVGElement ? (SHAPES.includes(e.tagName.toLowerCase()) ? e.ownerSVGElement : null) : /^(IMG|CANVAS|VIDEO)$/.test(e.tagName) ? e : null);
   const memo = (f) => { const m = new Map(); return (e) => { if (!m.has(e)) m.set(e, f(e)); return m.get(e); }; };
@@ -272,7 +272,9 @@ export function measure(terms = []) {
     lang: document.documentElement.lang,
     i18nMissing: window.__i18n ? window.__i18n.missing() : [],
     thaiBreaks,
-    fonts: { tc700: document.fonts.check('700 13px "Noto Sans CJK TC"'), tc900: document.fonts.check('900 13px "Noto Sans CJK TC"') },
+    fonts: { tc700: document.fonts.check('700 13px "Noto Sans CJK TC"'), tc900: document.fonts.check('900 13px "Noto Sans CJK TC"'),
+      // 泰文的 app 字型（base.css 的 @font-face）：有泰文字的畫面要是 loaded，量到的寬度才跟手機一樣
+      thaiVf: ([...document.fonts].find((f) => f.family.replace(/"/g, '') === 'Noto Sans Thai') || {}).status || 'none' },
     fontUi: getComputedStyle(document.documentElement).getPropertyValue('--font-ui').trim(),
     viewport: { w: innerWidth, h: innerHeight, dpr: devicePixelRatio },
     horizontalScroll: document.scrollingElement.scrollWidth > innerWidth + 0.5,
