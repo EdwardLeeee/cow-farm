@@ -18,7 +18,7 @@
 → 耕牛下田 →（L）上架公牛 → 花錢：商店補空格、奶桶、田地（F）／倉庫冷藏（T）、擴建牛舍。
 教學（每人第一次上線的 30 分鐘）：每分鐘賣奶、第 15 分鐘擴建、小公牛長大就配種、配完派去田裡。
 
-ctx（呼叫端提供）要有：upcoming(now)、schedule(t, pid, kind, dur)、npc_rng（None = 服務層預設）。
+ctx（呼叫端提供）要有：started_news(now)、schedule(t, pid, kind, dur)、npc_rng（None = 服務層預設）。
 """
 
 from __future__ import annotations
@@ -444,11 +444,13 @@ def hold_sell(b: Bot, ctx, now: float) -> None:
             q = sum(l.qty for l in f.beef_lots if beef_storage_factor(fp, (now - l.t) / HOUR) < HOLD_FRESH_SELL + 0.02)
             if q > 0:
                 g.sell(b.pid, "beef", q, now)
-    # 提前公告的利多：事件開始後 20 分鐘回來賣
-    for ev in ctx.upcoming(now):
+    # 利多：D33 起新聞不預告，上線時看到已經開始的利多才知道。開始後 20 分鐘（漲到全幅之後）還沒到就排那時回來賣；
+    # 已經過了就照上面「價格夠高就賣」處理（以前看提前公告的利多，在開始前就排好）
+    for ev in ctx.started_news(now):
         if ev.factor > 1.0 and ev.eid not in b.returns:
             b.returns.add(ev.eid)
-            ctx.schedule(ev.start_at + 20 * MINUTE, b.pid, "hold_return", 5 * MINUTE)
+            if ev.start_at + 20 * MINUTE > now:
+                ctx.schedule(ev.start_at + 20 * MINUTE, b.pid, "hold_return", 5 * MINUTE)
 
 
 def hold_return(b: Bot, ctx, now: float) -> None:

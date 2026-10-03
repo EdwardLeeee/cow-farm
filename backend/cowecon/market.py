@@ -177,6 +177,12 @@ class Market:
         """實際作用在價格上的賣壓（對數）= 原始賣壓 − 長期平均。"""
         return self.y - self.y_base
 
+    @property
+    def ratio_ex_news(self) -> float:
+        """新聞以外的部分（時段 × 雜訊 × 賣壓，基本價倍數），已經過軟邊界和硬邊界；價格 = 基本價 × 這個 × 新聞倍數
+        （再夾總價格的上下限）。分析、測試用；從存檔的狀態就算得出來，不另外存。"""
+        return min(max(math.exp(self.season_log + self.x + self.pressure), self.cp.hard_lo), self.cp.hard_hi)
+
     def moving_average(self) -> float:
         return self._hist_sum / len(self._hist)
 
@@ -300,10 +306,14 @@ class Market:
         dec_x = math.exp(-LN2 * dt / cp.noise_half_life_s)
         self.x = self.x * dec_x + cp.noise_sd * math.sqrt(1.0 - dec_x * dec_x) * self.rng.gauss(0.0, 1.0)
 
-        # 目標價
+        # 目標價，D33 起分三層（CommodityParams 的邊界說明）：
+        # 1. 新聞以外的部分（時段 + 雜訊 + 賣壓）：軟邊界、硬邊界只管這部分。以前軟邊界連新聞一起算，新聞把價格推出邊界時，
+        #    雜訊 x 會被拉成很大的反向值：+100% 出不來，黑天鵝退掉以後價格反而衝到 1.2 倍。
+        # 2. 新聞倍數：Exchange.event_log_for 已經夾在 total_cap_down–total_cap_up。
+        # 3. 總價格 = 1 × 2，最後夾在 price_lo–price_hi。
         self.season_log = seasonal_log(cp, now)
         self.event_log = event_log
-        r = self.season_log + event_log + self.x + self.pressure
+        r = self.season_log + self.x + self.pressure
 
         # 軟邊界：超出的那一段加速拉回，按 x、y 各自往外推的份量分攤
         lo, hi = math.log(cp.soft_lo), math.log(cp.soft_hi)
@@ -319,13 +329,12 @@ class Market:
             else:
                 self.x -= corr * wx / (wx + wy)
                 self.y -= corr * wy / (wx + wy)
-            r = self.season_log + event_log + self.x + self.pressure
 
-        ratio = math.exp(r)
-        if ratio < cp.hard_lo:
-            ratio = cp.hard_lo
-        elif ratio > cp.hard_hi:
-            ratio = cp.hard_hi
+        ratio = self.ratio_ex_news * math.exp(event_log)
+        if ratio < cp.price_lo:
+            ratio = cp.price_lo
+        elif ratio > cp.price_hi:
+            ratio = cp.price_hi
         self.price = cp.base_price * ratio
 
         self.pending_counted = 0.0
@@ -417,12 +426,23 @@ class Market:
 # ---------------------------------------------------------------------------
 # 新聞事件
 # ---------------------------------------------------------------------------
+def tier_for_factor(ep: EventParams, factor: float) -> str:
+    """幅度和方向對到 ep.tiers 的哪一級（測試、情境注入的事件用）：從幅度下限最大的級別往下找。
+    例：1.4 → big、2.0 → super、0.1 → crash、1.1 → normal。"""
+    mag = abs(factor - 1.0)
+    up = factor > 1.0
+    for name, _p, lo, _hi, up_p in sorted(ep.tiers, key=lambda t: -t[2]):
+        if mag >= lo - 1e-9 and (up_p > 0.0 if up else up_p < 1.0):
+            return name
+    return ep.tiers[0][0]
+
+
 class MarketEvent:
     __slots__ = (
         "eid",
         "targets",
         "factor",
-        "log_mag",
+        "dev",
         "announce_at",
         "start_at",
         "ramp_s",
@@ -430,30 +450,47 @@ class MarketEvent:
         "end_at",
         "headline",
         "rare",
+        "tier",
     )
 
     def __init__(
-        self, eid, targets, factor, announce_at, start_at, ramp_s, half_life_s, lifetime_hl, headline, rare=False
+        self,
+        eid,
+        targets,
+        factor,
+        announce_at,
+        start_at,
+        ramp_s,
+        half_life_s,
+        lifetime_hl,
+        headline,
+        rare=False,
+        tier=None,
     ):
         self.eid = eid
         self.targets = tuple(targets)
         self.factor = factor
-        self.log_mag = math.log(factor)
+        self.dev = factor - 1.0  # 全幅時的偏離量（+1.0 = 變兩倍，−0.9 = 剩一成）
         self.announce_at = announce_at
         self.start_at = start_at
         self.ramp_s = ramp_s
         self.half_life_s = half_life_s
         self.end_at = start_at + ramp_s + lifetime_hl * half_life_s
         self.headline = headline
-        self.rare = rare
+        # 級別（D33）：normal、big、super、crash。rare 照舊存（舊程式讀新存檔要用）= 大事件以上（不是 normal）
+        self.tier = tier if tier is not None else ("big" if rare else "normal")
+        self.rare = self.tier != "normal"
 
     def log_effect(self, t: float) -> float:
+        """t 時這則新聞對價格的影響（對數；Exchange 把每則加起來 = 倍數相乘，再夾 total_cap）。
+        偏離量照半衰期減半：倍數 = 1 + dev × g，開始後 ramp_s 內 g 從 0 線性漲到 1，之後每個半衰期減半
+        （ceo 2026-10-03，D33）。以前是倍數本身照對數消退（factor^g）：−90% 回到平常比 +100% 慢得多，
+        兩種一樣多時平均價格偏低 2–5%；現在 +100%、−90% 的面積是 +1.44、−1.30（× 半衰期）。"""
         if t <= self.start_at or t >= self.end_at:
             return 0.0
         s = t - self.start_at
-        if s < self.ramp_s:
-            return self.log_mag * s / self.ramp_s
-        return self.log_mag * 2.0 ** (-(s - self.ramp_s) / self.half_life_s)
+        g = s / self.ramp_s if s < self.ramp_s else 2.0 ** (-(s - self.ramp_s) / self.half_life_s)
+        return math.log1p(self.dev * g)
 
     def to_dict(self) -> dict:
         """摘要（模擬報表用）。存檔回復用 to_state()。"""
@@ -466,6 +503,7 @@ class MarketEvent:
             "half_life_h": self.half_life_s / HOUR,
             "headline": self.headline,
             "rare": self.rare,
+            "tier": self.tier,
         }
 
     def to_state(self) -> dict:
@@ -480,6 +518,7 @@ class MarketEvent:
             "end_at": self.end_at,
             "headline": self.headline,
             "rare": self.rare,
+            "tier": self.tier,
         }
 
     @classmethod
@@ -488,14 +527,15 @@ class MarketEvent:
         ev.eid = d["id"]
         ev.targets = tuple(d["targets"])
         ev.factor = d["factor"]
-        ev.log_mag = math.log(ev.factor)
+        ev.dev = ev.factor - 1.0
         ev.announce_at = d["announce_at"]
         ev.start_at = d["start_at"]
         ev.ramp_s = d["ramp_s"]
         ev.half_life_s = d["half_life_s"]
         ev.end_at = d["end_at"]
         ev.headline = d["headline"]
-        ev.rare = d["rare"]
+        ev.tier = d.get("tier") or ("big" if d["rare"] else "normal")  # D33 以前的存檔沒有 tier
+        ev.rare = ev.tier != "normal"
         return ev
 
 
@@ -537,13 +577,27 @@ class EventGenerator:
                 targets = tg
                 break
         key = targets[0] if len(targets) == 1 else "all"
-        rare = r.random() < ep.rare_prob
-        mag = r.uniform(ep.rare_lo, ep.rare_hi) if rare else r.uniform(ep.mag_lo, ep.mag_hi)
-        up = r.random() < ep.up_prob
-        announced = r.random() < ep.announce_prob
+        # 級別（D33）。每則新聞用的亂數次數跟以前一樣（級別、幅度、漲跌各一次），同一個 seed 的新聞時間和作用對象不變
+        u = r.random() * sum(t[1] for t in ep.tiers)
+        tier, _p, lo, hi, up_p = ep.tiers[-1]
+        acc = 0.0
+        for row in ep.tiers:
+            acc += row[1]
+            if u < acc:
+                tier, _p, lo, hi, up_p = row
+                break
+        mag = r.uniform(lo, hi)
+        up = r.random() < up_p  # 超級大事件 up_p = 1（只往上）、黑天鵝 0（只往下）
+        announced = r.random() < ep.announce_prob  # D33 起 announce_prob 是 0；照樣抽，之後的亂數才跟以前一樣
         hl = r.uniform(ep.half_life_lo_s, ep.half_life_hi_s)
         pool = HEADLINES[key + ("+" if up else "-")]
-        headline = pool[r.randrange(len(pool))]
+        i = r.randrange(len(pool))
+        headline = pool[i]
+        special = HEADLINES.get(key + ("++" if tier == "super" else "--")) if tier in ("super", "crash") else None
+        if special:
+            # 超級大事件、黑天鵝用專屬標題。不另外抽亂數（抽法跟以前一樣，模擬的數字才不受標題影響）：
+            # 用上面抽到的 i 加事件編號挑，三則大約一樣常出現
+            headline = special[(i + self._n) % len(special)]
         self._n += 1
         return MarketEvent(
             eid=self._n,
@@ -555,7 +609,7 @@ class EventGenerator:
             half_life_s=hl,
             lifetime_hl=ep.lifetime_half_lives,
             headline=headline,
-            rare=rare,
+            tier=tier,
         )
 
     def to_dict(self) -> dict:
@@ -639,7 +693,7 @@ class Exchange:
             half_life_s=half_life_s,
             lifetime_hl=ep.lifetime_half_lives,
             headline=headline,
-            rare=abs(factor - 1.0) >= ep.rare_lo,
+            tier=tier_for_factor(ep, factor),
         )
         self.events.append(ev)
         self.event_log_history.append(ev)
@@ -670,6 +724,10 @@ class Exchange:
     def upcoming(self, now: float) -> List[MarketEvent]:
         """已公告、還沒開始的事件（畫面上的「即將發生」）。沒到公告時間的不給看。"""
         return [ev for ev in self.events if ev.announce_at <= now < ev.start_at]
+
+    def started(self, now: float) -> List[MarketEvent]:
+        """已經開始、還沒結束的事件。D33 起新聞不預告（announce_prob 0）：電腦玩家在新聞開始後才知道。"""
+        return [ev for ev in self.events if ev.start_at <= now < ev.end_at]
 
     def visible(self, now: float) -> List[MarketEvent]:
         """畫面上看得到的事件（已公告或已開始、還沒結束）。"""

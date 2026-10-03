@@ -87,17 +87,27 @@ SEEDS = {10: [1, 2, 3, 4, 5], 100: [1, 2, 3]}
 
 @pytest.mark.parametrize("players", [10, 100])
 def test_price_band(players):
-    worst = {}
+    """D33 起新聞照設計會把價格帶出 0.6–1.7 倍（超級大事件 +100%、黑天鵝 −90%）。軟邊界只管新聞以外的部分
+    （時段、雜訊、賣壓），所以 assert 這部分在 0.6–1.7 倍的時間 ≥ 95%（市場本身不亂跑）。總價格在 0.6–1.7 倍的比例
+    只印出來，新目標由 ceo 重跑完整模擬後寫進研究筆記。邊界各自夾住：新聞以外 hard_lo–hard_hi，總價格 price_lo–price_hi。"""
+    worst, worst_total = {}, {}
     for s in SEEDS[players]:
         w = run("base", players, s)
         for cid in CIDS:
-            st = H.price_stats(ratios(w, cid))
-            worst[cid] = min(worst.get(cid, 1.0), st["inside_soft_band"])
-            assert st["inside_soft_band"] >= 0.95, (players, s, cid, st)
             cp = w.params.commodity(cid)
-            assert cp.hard_lo - 1e-9 <= st["min"] and st["max"] <= cp.hard_hi + 1e-9  # 硬邊界
+            xn = list(w.rec[f"{cid}_xn"])
+            inside = sum(1 for r in xn if cp.soft_lo <= r <= cp.soft_hi) / len(xn)
+            worst[cid] = min(worst.get(cid, 1.0), inside)
+            assert inside >= 0.95, (players, s, cid, inside)
+            assert cp.hard_lo - 1e-9 <= min(xn) and max(xn) <= cp.hard_hi + 1e-9  # 新聞以外的硬邊界
+            st = H.price_stats(ratios(w, cid))
+            worst_total[cid] = min(worst_total.get(cid, 1.0), st["inside_soft_band"])
+            assert cp.price_lo - 1e-9 <= st["min"] and st["max"] <= cp.price_hi + 1e-9  # 總價格的上下限
     print(
-        f"\n{players} 人：價格在 0.6–1.7 倍的時間（各 seed 最低）" + "、".join(f"{c} {v:.2%}" for c, v in worst.items())
+        f"\n{players} 人：新聞以外的部分在 0.6–1.7 倍的時間（各 seed 最低）"
+        + "、".join(f"{c} {v:.2%}" for c, v in worst.items())
+        + "；總價格（含新聞，只印不擋）"
+        + "、".join(f"{c} {v:.2%}" for c, v in worst_total.items())
     )
 
 
@@ -275,13 +285,17 @@ def test_identical_to_research_sim(which):
 
 
 def test_numbers_match_research_note():
-    """筆記 goals.json 是用現在這份參數跑的時候，服務層的數字和它相同；參數已經改過就 skip（等經濟代理重跑）。"""
+    """筆記 goals.json 的數字和服務層重跑的相同。參數指紋不同（改了 params）也算失敗：照 backend/README.md 第 4 節三步走，
+    ceo 在同一個分支重跑完整模擬、更新 goals.json（2026-10-03 起；以前是 skip，改了參數 CI 照樣綠）。"""
     World, SB = research()
     if not GOALS.exists():
         pytest.skip("找不到 goals.json")
     g = json.loads(GOALS.read_text())
     if g.get("params_fingerprint") != H.DEFAULT.fingerprint():
-        pytest.skip(f"goals.json 是參數 {g.get('params_fingerprint')} 跑的，現在是 {H.DEFAULT.fingerprint()}")
+        pytest.fail(
+            f"goals.json 是參數 {g.get('params_fingerprint')} 跑的，現在是 {H.DEFAULT.fingerprint()}："
+            "改了 cowecon 的參數或行為，照 backend/README.md 第 4 節三步走，重跑完整模擬、更新 goals.json"
+        )
     with research_tunables(SB):
         worlds = [H.ServiceWorld(H.base(10, s), s).run() for s in SEEDS[10]]
     # 1. 價格在 0.6–1.7 倍的時間比例（各 seed 最低）

@@ -13,7 +13,7 @@ import random
 import pytest
 
 from cowecon import DEFAULT, MINUTE, BeefLot, Cow, Exchange, Farm, Field, ImpactState, Lot, RiceLot, StudMarket
-from cowecon.market import Market, rng_from_state, rng_to_state
+from cowecon.market import Market, MarketEvent, rng_from_state, rng_to_state
 
 T0 = 1791129600.0
 
@@ -60,6 +60,20 @@ def test_each_class_round_trips():
     assert Market.from_dict(DEFAULT.milk, rt(m.to_dict())).to_dict() == m.to_dict()
     assert Exchange.from_dict(DEFAULT, rt(ex.to_dict())).to_dict() == ex.to_dict()
     assert Farm.from_dict(DEFAULT, rt(farm.to_dict())).to_dict() == farm.to_dict()
+
+
+def test_market_event_tier_and_old_saves():
+    """D33：事件存 tier，也照舊存 rare（舊程式讀新存檔要用）；D33 以前的存檔沒有 tier，照 rare 當 big／normal。
+    伺服器從 news 表讀回 D33 以前的列時 tier 是 NULL，一樣照 rare。"""
+    ex = Exchange(DEFAULT, "tiers", T0, events_enabled=False)
+    d = rt(ex.inject_event(("beef",), 0.1, T0 + 3600, 4 * 3600).to_state())
+    assert d["tier"] == "crash" and d["rare"] is True
+    assert MarketEvent.from_state(d).to_state() == d
+    for rare, tier in ((True, "big"), (False, "normal")):
+        old = {k: v for k, v in d.items() if k != "tier"}
+        old["rare"] = rare
+        assert MarketEvent.from_state(old).tier == tier
+        assert MarketEvent.from_state({**old, "tier": None}).tier == tier
 
 
 def test_old_save_beef_lots_without_genes():

@@ -380,13 +380,18 @@ def quote_view(game: Game, cid: str, hist, now: float) -> dict:
     return {"price": r6(m.price), **change_24h(hist, m.price, now), "ma24": r6(m.moving_average())}
 
 
+# HEADLINES 的 key 結尾 → 代碼的種類（D33：++ 超級大事件、-- 超級黑天鵝的專屬標題）
+_NEWS_KINDS = (("++", "super"), ("--", "swan"), ("+", "up"), ("-", "down"))
+
+
 def _news_codes() -> Dict[Tuple[str, str], str]:
-    """(HEADLINES 的 key, 標題) → 新聞代碼 `<商品>_<up|down>.<序號>`（app 查字串表 news.<代碼>，序號從 1 開始）。"""
+    """(HEADLINES 的 key, 標題) → 新聞代碼 `<商品>_<up|down|super|swan>.<序號>`（app 查字串表 news.<代碼>，序號從 1 開始）。"""
     out = {}
     for key, titles in HEADLINES.items():
-        commodity, sign = key[:-1], key[-1]
+        suffix, kind = next((s, k) for s, k in _NEWS_KINDS if key.endswith(s))
+        commodity = key[: -len(suffix)]
         for i, title in enumerate(titles):
-            out[(key, title)] = f"{commodity}_{'up' if sign == '+' else 'down'}.{i + 1}"
+            out[(key, title)] = f"{commodity}_{kind}.{i + 1}"
     return out
 
 
@@ -394,10 +399,16 @@ _NEWS_CODES = _news_codes()
 
 
 def news_code(ev) -> Optional[str]:
-    """引擎挑標題的方式（cowecon.market）：單一商品用那個商品、三種一起用 all，再看利多利空。
-    用標題反查代碼，不改引擎的事件和 news 表。測試注入的事件（不在 HEADLINES）回傳 None。"""
-    key = (ev.targets[0] if len(ev.targets) == 1 else "all") + ("+" if ev.factor > 1.0 else "-")
-    return _NEWS_CODES.get((key, ev.headline))
+    """引擎挑標題的方式（cowecon.market）：單一商品用那個商品、三種一起用 all，再看利多利空；
+    超級大事件、黑天鵝用專屬標題（++、--）。用標題反查代碼，不改引擎的事件和 news 表。
+    測試注入的事件（不在 HEADLINES）回傳 None。"""
+    commodity = ev.targets[0] if len(ev.targets) == 1 else "all"
+    sign = "+" if ev.factor > 1.0 else "-"
+    for key in (commodity + sign * 2, commodity + sign) if ev.tier in ("super", "crash") else (commodity + sign,):
+        code = _NEWS_CODES.get((key, ev.headline))
+        if code is not None:
+            return code
+    return None
 
 
 def news_item(ev, now: float) -> dict:
@@ -419,7 +430,8 @@ def news_item(ev, now: float) -> dict:
         "commodity": commodity,
         "targets": list(ev.targets),
         "direction": "up" if ev.factor > 1.0 else "down",
-        "big": bool(ev.rare),
+        "tier": ev.tier,  # D33：normal、big、super、crash
+        "big": ev.tier != "normal",  # 大事件以上（D29 牧場頁的提示）
         "time": ev.announce_at,
         "announce_at": ev.announce_at,
         "start_at": ev.start_at,

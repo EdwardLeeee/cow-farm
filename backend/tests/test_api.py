@@ -38,6 +38,8 @@ from server.breeds import BREEDS, breed_id
 from server.game import TYPE_WIRE, Game, GameError, week_id, week_start
 from server.names import load_words, station_words
 
+TIER_NAMES = {t[0] for t in DEFAULT.events.tiers}  # D33：新聞的級別 normal、big、super、crash
+
 FP = DEFAULT.farm
 OB = DEFAULT.onboarding
 
@@ -1061,6 +1063,7 @@ def test_news_pushed_over_websocket(h):
             "commodity",
             "targets",
             "direction",
+            "tier",
             "big",
             "time",
             "start_at",
@@ -1072,13 +1075,54 @@ def test_news_pushed_over_websocket(h):
         # 代碼對回引擎挑的標題；幅度 = factor − 1，正負跟利多利空一致
         ev = h.server.news_log[n["id"]]
         key, idx = n["code"].split(".")
-        commodity, direction = key.rsplit("_", 1)
+        commodity, kind = key.rsplit("_", 1)
+        # D33：超級大事件、黑天鵝用專屬標題（代碼 _super、_swan；HEADLINES 的 ++、--）
+        suffix, direction = {"up": ("+", "up"), "down": ("-", "down"), "super": ("++", "up"), "swan": ("--", "down")}[
+            kind
+        ]
         assert direction == n["direction"] and n["params"] == {}
-        assert HEADLINES[commodity + ("+" if direction == "up" else "-")][int(idx) - 1] == ev.headline
+        assert (kind in ("super", "swan")) == (n["tier"] in ("super", "crash"))
+        assert HEADLINES[commodity + suffix][int(idx) - 1] == ev.headline
         assert commodity == (n["commodity"] or "all")
         assert n["pct"] == pytest.approx(ev.factor - 1.0, abs=1e-4) and (n["pct"] > 0) == (direction == "up")
+        # D33：級別和幅度對得上；big = 大事件以上
+        _name, _p, lo, hi, _up = next(t for t in DEFAULT.events.tiers if t[0] == ev.tier)
+        assert n["tier"] == ev.tier and lo - 1e-4 <= abs(n["pct"]) <= hi + 1e-4
+        assert n["big"] == (n["tier"] != "normal")
     ids = {x["id"] for x in h.get("/v1/market", tok).json()["news"]}
     assert n["id"] in ids
+    for x in h.get("/v1/market", tok).json()["news"]:
+        assert x["tier"] in TIER_NAMES and x["big"] == (x["tier"] != "normal")
+        assert x["announce_at"] == x["start_at"] == x["time"] and x["state"] != "upcoming"  # D33：全部不預告
+
+
+def test_news_tier_saved_and_old_rows_without_tier(db_dsn):
+    """D33：新聞的級別存進 news 表（rare 照舊存 = 大事件以上）。D33 以前的列 tier 是 NULL：
+    重開伺服器時，已經結束的新聞從 news 表讀回來，照 rare 當 big／normal；還在進行的照交易所存檔裡的級別。"""
+    import asyncio
+
+    import asyncpg
+
+    async def query(sql):
+        conn = await asyncpg.connect(db_dsn)
+        try:
+            return await conn.fetch(sql)
+        finally:
+            await conn.close()
+
+    with Harness(db_dsn) as h:
+        h.advance(2 * 86400)
+    rows = asyncio.run(query("SELECT id, tier, rare FROM news ORDER BY id"))
+    assert len(rows) >= 4
+    assert all(r["tier"] in TIER_NAMES and r["rare"] == (r["tier"] != "normal") for r in rows)
+    asyncio.run(query("UPDATE news SET tier = NULL"))  # 變成 D33 以前存的樣子
+    with Harness(db_dsn) as h:
+        active = {ev.eid for ev in h.server.game.ex.events}
+        ended = [r for r in rows if r["id"] not in active]
+        assert ended, "要有已經結束、從 news 表讀回來的新聞"
+        for r in rows:
+            ev = h.server.news_log[r["id"]]
+            assert ev.tier == (r["tier"] if r["id"] in active else ("big" if r["rare"] else "normal"))
 
 
 def _set_maintenance(h, value):
