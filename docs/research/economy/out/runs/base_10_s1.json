@@ -8,86 +8,86 @@
   "seed": 1
  },
  "seed": 1,
- "params_fingerprint": "94cd3c0aa10d2d81",
+ "params_fingerprint": "cec2386832bb2048",
  "tick_s": 60.0,
  "wall": {
-  "seconds": 2.5181047916412354,
-  "actions": 2090,
-  "total_seconds": 3.1955411434173584
+  "seconds": 3.6467418670654297,
+  "actions": 2093,
+  "total_seconds": 4.481470108032227
  },
  "players": 10,
  "price": {
   "milk": {
    "n": 43200,
-   "inside_soft_band": 1.0,
-   "inside_0.8_1.25": 0.945162037037037,
-   "p1": 0.7488030020499431,
-   "p5": 0.8349787993500621,
-   "p25": 0.9289569836301051,
-   "p50": 1.0068446356239975,
-   "p75": 1.1003606137294741,
-   "p95": 1.2216468498900952,
-   "p99": 1.2908696716271324,
-   "min": 0.6719271182211749,
-   "max": 1.6860394284153433,
-   "mean": 1.0162163264335469,
-   "log_sd": 0.1204699416811165,
-   "max_drawdown": 0.6014760349627775,
-   "daily_range_median": 0.4201350201989813,
-   "worst_1h_drop": 0.3400620452310895
+   "inside_soft_band": 0.9736342592592593,
+   "inside_0.8_1.25": 0.9103009259259259,
+   "p1": 0.34232732095968565,
+   "p5": 0.7460120818407351,
+   "p25": 0.9174968495412965,
+   "p50": 0.9964064050765638,
+   "p75": 1.080775742209691,
+   "p95": 1.201460384577301,
+   "p99": 1.3176954933842182,
+   "min": 0.07215753674759669,
+   "max": 1.5506190151599386,
+   "mean": 0.9873114984263004,
+   "log_sd": 0.22306607806673098,
+   "max_drawdown": 0.9468384873404698,
+   "daily_range_median": 0.39901426432268816,
+   "worst_1h_drop": 0.9039507792864234
   },
   "beef": {
    "n": 43200,
-   "inside_soft_band": 1.0,
-   "inside_0.8_1.25": 0.9474768518518518,
-   "p1": 0.7894394514900711,
-   "p5": 0.8439895806163723,
-   "p25": 0.9451921474375734,
-   "p50": 1.0110210862295097,
-   "p75": 1.095246143081996,
-   "p95": 1.2350407045940412,
-   "p99": 1.3141327183210074,
-   "min": 0.7465857765928688,
-   "max": 1.4245024593111244,
-   "mean": 1.022797632048346,
-   "log_sd": 0.11217423029773974,
-   "max_drawdown": 0.47589716555918726,
-   "daily_range_median": 0.40383173488460333,
-   "worst_1h_drop": 0.3046453349419992
+   "inside_soft_band": 0.969837962962963,
+   "inside_0.8_1.25": 0.9010416666666666,
+   "p1": 0.36380666093868314,
+   "p5": 0.807933954555508,
+   "p25": 0.9394556770324569,
+   "p50": 1.007639155989657,
+   "p75": 1.089571310873751,
+   "p95": 1.2597931234213762,
+   "p99": 1.6961773844549637,
+   "min": 0.09238966529787952,
+   "max": 2.0392137249756654,
+   "mean": 1.0180764812761547,
+   "log_sd": 0.22074134342112026,
+   "max_drawdown": 0.9546934859419985,
+   "daily_range_median": 0.3650052475666812,
+   "worst_1h_drop": 0.9025422619610162
   },
   "rice": {
    "n": 43200,
-   "inside_soft_band": 1.0,
-   "inside_0.8_1.25": 0.8924074074074074,
-   "p1": 0.7469265397420872,
-   "p5": 0.8316867859110195,
-   "p25": 0.9241009342681584,
-   "p50": 1.0179665490186132,
-   "p75": 1.0926478880364658,
-   "p95": 1.3178550014300356,
-   "p99": 1.475035510206348,
-   "min": 0.6069774193115521,
-   "max": 1.65327883099519,
-   "mean": 1.0275327894789574,
-   "log_sd": 0.13809139748127208,
-   "max_drawdown": 0.6328644582316568,
-   "daily_range_median": 0.37551188451309137,
-   "worst_1h_drop": 0.281318945692865
+   "inside_soft_band": 0.966574074074074,
+   "inside_0.8_1.25": 0.8283101851851852,
+   "p1": 0.43478651709133537,
+   "p5": 0.7854866649298872,
+   "p25": 0.9263735813056762,
+   "p50": 1.0236059163254785,
+   "p75": 1.1245658519764603,
+   "p95": 1.3997129197169587,
+   "p99": 1.842278159605031,
+   "min": 0.11281882996112644,
+   "max": 2.183824747466828,
+   "mean": 1.0445212654777822,
+   "log_sd": 0.22740992475492658,
+   "max_drawdown": 0.9454957465034882,
+   "daily_range_median": 0.40111854184985885,
+   "worst_1h_drop": 0.9009594597924867
   }
  },
  "online": {
-  "mean": 0.27561537716243606,
+  "mean": 0.2759625993846583,
   "max": 4.0
  },
  "excess_mean": {
-  "milk": -0.8716985704874861,
-  "beef": -0.9542179336701861,
-  "rice": -0.8810187459612406
+  "milk": -0.8729441765761863,
+  "beef": -0.9553891917563191,
+  "rice": -0.8790289452635625
  },
  "pressure_mean": {
-  "milk": 0.0002652661524107367,
-  "beef": 0.00028665920989632784,
-  "rice": 0.00023421665959036045
+  "milk": 0.00027360844588633767,
+  "beef": 0.0002972221463277387,
+  "rice": 0.00023118775275370794
  },
  "strategies": {
   "B": {
@@ -98,17 +98,17 @@
       0,
       7
      ],
-     "revenue_mean": 107009.5,
-     "revenue_median": 107009.5,
-     "revenue_p25": 95629.75,
-     "revenue_p75": 118389.25,
-     "milk_mean": 40939.5,
-     "beef_mean": 59654.0,
-     "rice_mean": 6416.0,
+     "revenue_mean": 107116.5,
+     "revenue_median": 107116.5,
+     "revenue_p25": 94355.25,
+     "revenue_p75": 119877.75,
+     "milk_mean": 55774.5,
+     "beef_mean": 44705.0,
+     "rice_mean": 6637.0,
      "stud_in_mean": 0.0,
-     "net_mean": 84304.5,
-     "opex_mean": 22705.0,
-     "capex_mean": 74921.5,
+     "net_mean": 84516.5,
+     "opex_mean": 22600.0,
+     "capex_mean": 69953.5,
      "spoiled_mean": 0.0
     },
     {
@@ -116,17 +116,17 @@
       7,
       14
      ],
-     "revenue_mean": 311910.5,
-     "revenue_median": 311910.5,
-     "revenue_p25": 295469.75,
-     "revenue_p75": 328351.25,
-     "milk_mean": 70517.5,
-     "beef_mean": 233851.5,
-     "rice_mean": 7541.5,
+     "revenue_mean": 318917.5,
+     "revenue_median": 318917.5,
+     "revenue_p25": 314310.75,
+     "revenue_p75": 323524.25,
+     "milk_mean": 94816.5,
+     "beef_mean": 214742.5,
+     "rice_mean": 9358.5,
      "stud_in_mean": 0.0,
-     "net_mean": 267985.5,
-     "opex_mean": 43925.0,
-     "capex_mean": 205760.5,
+     "net_mean": 276507.5,
+     "opex_mean": 42410.0,
+     "capex_mean": 215027.5,
      "spoiled_mean": 0.0
     },
     {
@@ -134,17 +134,17 @@
       14,
       21
      ],
-     "revenue_mean": 439647.0,
-     "revenue_median": 439647.0,
-     "revenue_p25": 425184.0,
-     "revenue_p75": 454110.0,
-     "milk_mean": 105789.0,
-     "beef_mean": 322495.5,
-     "rice_mean": 11362.5,
+     "revenue_mean": 436863.5,
+     "revenue_median": 436863.5,
+     "revenue_p25": 423457.75,
+     "revenue_p75": 450269.25,
+     "milk_mean": 86250.5,
+     "beef_mean": 341893.5,
+     "rice_mean": 8719.5,
      "stud_in_mean": 0.0,
-     "net_mean": 385107.0,
-     "opex_mean": 54540.0,
-     "capex_mean": 355239.5,
+     "net_mean": 384908.5,
+     "opex_mean": 51955.0,
+     "capex_mean": 353090.0,
      "spoiled_mean": 0.0
     },
     {
@@ -152,37 +152,37 @@
       21,
       28
      ],
-     "revenue_mean": 450723.5,
-     "revenue_median": 450723.5,
-     "revenue_p25": 436964.75,
-     "revenue_p75": 464482.25,
-     "milk_mean": 87227.5,
-     "beef_mean": 352137.5,
-     "rice_mean": 11358.5,
+     "revenue_mean": 454369.0,
+     "revenue_median": 454369.0,
+     "revenue_p25": 440597.5,
+     "revenue_p75": 468140.5,
+     "milk_mean": 75404.0,
+     "beef_mean": 366327.5,
+     "rice_mean": 12637.5,
      "stud_in_mean": 0.0,
-     "net_mean": 394828.5,
-     "opex_mean": 55895.0,
-     "capex_mean": 426708.5,
+     "net_mean": 395184.0,
+     "opex_mean": 59185.0,
+     "capex_mean": 254336.5,
      "spoiled_mean": 0.0
     }
    ],
-   "worth_end_mean": 272356.2617085681,
-   "worth_end_median": 272356.2617085681,
+   "worth_end_mean": 318086.6174463744,
+   "worth_end_median": 318086.6174463744,
    "herd_end_mean": 22.5,
    "slots_end_mean": 22.5,
    "fields_end_mean": 1.0,
    "tier_counts_end": [
-    24,
-    17,
-    4,
-    0
+    26,
+    11,
+    6,
+    2
    ],
    "type_counts_end": [
-    19,
-    18,
-    8
+    20,
+    12,
+    13
    ],
-   "revenue_total_mean": 1309290.5
+   "revenue_total_mean": 1317266.5
   },
   "C": {
    "n": 2,
@@ -192,17 +192,17 @@
       0,
       7
      ],
-     "revenue_mean": 113811.0,
-     "revenue_median": 113811.0,
-     "revenue_p25": 110881.5,
-     "revenue_p75": 116740.5,
-     "milk_mean": 57128.5,
-     "beef_mean": 50129.5,
-     "rice_mean": 6553.0,
+     "revenue_mean": 108520.0,
+     "revenue_median": 108520.0,
+     "revenue_p25": 107435.0,
+     "revenue_p75": 109605.0,
+     "milk_mean": 47747.0,
+     "beef_mean": 53113.5,
+     "rice_mean": 7659.5,
      "stud_in_mean": 0.0,
-     "net_mean": 84126.0,
-     "opex_mean": 29685.0,
-     "capex_mean": 65789.0,
+     "net_mean": 80635.0,
+     "opex_mean": 27885.0,
+     "capex_mean": 64402.5,
      "spoiled_mean": 0.0
     },
     {
@@ -210,17 +210,17 @@
       7,
       14
      ],
-     "revenue_mean": 386766.5,
-     "revenue_median": 386766.5,
-     "revenue_p25": 380874.25,
-     "revenue_p75": 392658.75,
-     "milk_mean": 144334.5,
-     "beef_mean": 232876.5,
-     "rice_mean": 9555.5,
+     "revenue_mean": 353324.5,
+     "revenue_median": 353324.5,
+     "revenue_p25": 350059.75,
+     "revenue_p75": 356589.25,
+     "milk_mean": 106228.0,
+     "beef_mean": 239063.0,
+     "rice_mean": 8033.5,
      "stud_in_mean": 0.0,
-     "net_mean": 345826.5,
-     "opex_mean": 40940.0,
-     "capex_mean": 264929.0,
+     "net_mean": 300549.5,
+     "opex_mean": 52775.0,
+     "capex_mean": 264166.0,
      "spoiled_mean": 0.0
     },
     {
@@ -228,16 +228,16 @@
       14,
       21
      ],
-     "revenue_mean": 450088.5,
-     "revenue_median": 450088.5,
-     "revenue_p25": 442066.25,
-     "revenue_p75": 458110.75,
-     "milk_mean": 112068.0,
-     "beef_mean": 327011.0,
-     "rice_mean": 11009.5,
+     "revenue_mean": 383520.5,
+     "revenue_median": 383520.5,
+     "revenue_p25": 370082.25,
+     "revenue_p75": 396958.75,
+     "milk_mean": 79355.5,
+     "beef_mean": 294380.5,
+     "rice_mean": 9784.5,
      "stud_in_mean": 0.0,
-     "net_mean": 373058.5,
-     "opex_mean": 77030.0,
+     "net_mean": 307915.5,
+     "opex_mean": 75605.0,
      "capex_mean": 307353.0,
      "spoiled_mean": 0.0
     },
@@ -246,37 +246,37 @@
       21,
       28
      ],
-     "revenue_mean": 509068.0,
-     "revenue_median": 509068.0,
-     "revenue_p25": 494480.0,
-     "revenue_p75": 523656.0,
-     "milk_mean": 144775.0,
-     "beef_mean": 354499.0,
-     "rice_mean": 9794.0,
+     "revenue_mean": 503209.0,
+     "revenue_median": 503209.0,
+     "revenue_p25": 487673.5,
+     "revenue_p75": 518744.5,
+     "milk_mean": 162620.5,
+     "beef_mean": 326766.5,
+     "rice_mean": 13822.0,
      "stud_in_mean": 0.0,
-     "net_mean": 435738.0,
-     "opex_mean": 73330.0,
-     "capex_mean": 426708.5,
+     "net_mean": 433999.0,
+     "opex_mean": 69210.0,
+     "capex_mean": 253154.5,
      "spoiled_mean": 0.0
     }
    ],
-   "worth_end_mean": 164643.42930570678,
-   "worth_end_median": 164643.42930570678,
-   "herd_end_mean": 23.0,
-   "slots_end_mean": 23.0,
+   "worth_end_mean": 249577.47823769873,
+   "worth_end_median": 249577.47823769873,
+   "herd_end_mean": 22.5,
+   "slots_end_mean": 22.5,
    "fields_end_mean": 1.0,
    "tier_counts_end": [
-    18,
-    20,
+    13,
+    25,
     7,
-    1
+    0
    ],
    "type_counts_end": [
-    26,
-    12,
-    8
+    20,
+    15,
+    10
    ],
-   "revenue_total_mean": 1459734.0
+   "revenue_total_mean": 1348574.0
   },
   "D": {
    "n": 2,
@@ -286,17 +286,17 @@
       0,
       7
      ],
-     "revenue_mean": 135723.5,
-     "revenue_median": 135723.5,
-     "revenue_p25": 134954.75,
-     "revenue_p75": 136492.25,
-     "milk_mean": 53133.5,
-     "beef_mean": 74665.0,
-     "rice_mean": 7925.0,
+     "revenue_mean": 111117.5,
+     "revenue_median": 111117.5,
+     "revenue_p25": 97233.25,
+     "revenue_p75": 125001.75,
+     "milk_mean": 46088.5,
+     "beef_mean": 56731.0,
+     "rice_mean": 8298.0,
      "stud_in_mean": 0.0,
-     "net_mean": 111883.5,
-     "opex_mean": 23840.0,
-     "capex_mean": 88213.5,
+     "net_mean": 89367.5,
+     "opex_mean": 21750.0,
+     "capex_mean": 74921.5,
      "spoiled_mean": 0.0
     },
     {
@@ -304,17 +304,17 @@
       7,
       14
      ],
-     "revenue_mean": 364012.5,
-     "revenue_median": 364012.5,
-     "revenue_p25": 363941.75,
-     "revenue_p75": 364083.25,
-     "milk_mean": 114377.5,
-     "beef_mean": 239067.0,
-     "rice_mean": 10568.0,
+     "revenue_mean": 334790.5,
+     "revenue_median": 334790.5,
+     "revenue_p25": 325648.75,
+     "revenue_p75": 343932.25,
+     "milk_mean": 81226.0,
+     "beef_mean": 245143.0,
+     "rice_mean": 8421.5,
      "stud_in_mean": 0.0,
-     "net_mean": 312257.5,
-     "opex_mean": 51755.0,
-     "capex_mean": 240355.0,
+     "net_mean": 295535.5,
+     "opex_mean": 39255.0,
+     "capex_mean": 253647.0,
      "spoiled_mean": 0.0
     },
     {
@@ -322,17 +322,17 @@
       14,
       21
      ],
-     "revenue_mean": 439614.0,
-     "revenue_median": 439614.0,
-     "revenue_p25": 408441.5,
-     "revenue_p75": 470786.5,
-     "milk_mean": 125441.5,
-     "beef_mean": 303312.0,
-     "rice_mean": 10860.5,
+     "revenue_mean": 417274.0,
+     "revenue_median": 417274.0,
+     "revenue_p25": 388831.0,
+     "revenue_p75": 445717.0,
+     "milk_mean": 116180.0,
+     "beef_mean": 291888.0,
+     "rice_mean": 9206.0,
      "stud_in_mean": 0.0,
-     "net_mean": 383764.0,
-     "opex_mean": 55850.0,
-     "capex_mean": 312834.0,
+     "net_mean": 355409.0,
+     "opex_mean": 61865.0,
+     "capex_mean": 309502.5,
      "spoiled_mean": 0.0
     },
     {
@@ -340,37 +340,37 @@
       21,
       28
      ],
-     "revenue_mean": 523752.0,
-     "revenue_median": 523752.0,
-     "revenue_p25": 516820.5,
-     "revenue_p75": 530683.5,
-     "milk_mean": 205976.5,
-     "beef_mean": 307126.5,
-     "rice_mean": 10649.0,
+     "revenue_mean": 514537.5,
+     "revenue_median": 514537.5,
+     "revenue_p25": 498390.25,
+     "revenue_p75": 530684.75,
+     "milk_mean": 123353.0,
+     "beef_mean": 381776.5,
+     "rice_mean": 9408.0,
      "stud_in_mean": 0.0,
-     "net_mean": 473512.0,
-     "opex_mean": 50240.0,
+     "net_mean": 464992.5,
+     "opex_mean": 49545.0,
      "capex_mean": 430040.0,
      "spoiled_mean": 0.0
     }
    ],
-   "worth_end_mean": 216575.17168612592,
-   "worth_end_median": 216575.17168612592,
-   "herd_end_mean": 23.0,
-   "slots_end_mean": 23.0,
+   "worth_end_mean": 320053.2593690985,
+   "worth_end_median": 320053.2593690985,
+   "herd_end_mean": 22.5,
+   "slots_end_mean": 22.5,
    "fields_end_mean": 1.0,
    "tier_counts_end": [
-    28,
-    15,
-    2,
-    1
+    31,
+    10,
+    4,
+    0
    ],
    "type_counts_end": [
-    21,
-    13,
-    12
+    22,
+    9,
+    14
    ],
-   "revenue_total_mean": 1463102.0
+   "revenue_total_mean": 1377719.5
   },
   "F": {
    "n": 2,
@@ -380,17 +380,17 @@
       0,
       7
      ],
-     "revenue_mean": 183132.0,
-     "revenue_median": 183132.0,
-     "revenue_p25": 175157.0,
-     "revenue_p75": 191107.0,
-     "milk_mean": 105673.0,
-     "beef_mean": 61974.0,
-     "rice_mean": 15485.0,
+     "revenue_mean": 145758.0,
+     "revenue_median": 145758.0,
+     "revenue_p25": 140288.5,
+     "revenue_p75": 151227.5,
+     "milk_mean": 61517.5,
+     "beef_mean": 58591.5,
+     "rice_mean": 25649.0,
      "stud_in_mean": 0.0,
-     "net_mean": 155847.0,
-     "opex_mean": 27285.0,
-     "capex_mean": 139854.5,
+     "net_mean": 126308.0,
+     "opex_mean": 19450.0,
+     "capex_mean": 110772.5,
      "spoiled_mean": 0.0
     },
     {
@@ -398,17 +398,17 @@
       7,
       14
      ],
-     "revenue_mean": 408866.5,
-     "revenue_median": 408866.5,
-     "revenue_p25": 398904.25,
-     "revenue_p75": 418828.75,
-     "milk_mean": 135709.5,
-     "beef_mean": 231697.5,
-     "rice_mean": 41459.5,
+     "revenue_mean": 379371.0,
+     "revenue_median": 379371.0,
+     "revenue_p25": 371146.5,
+     "revenue_p75": 387595.5,
+     "milk_mean": 98760.0,
+     "beef_mean": 225786.5,
+     "rice_mean": 54824.5,
      "stud_in_mean": 0.0,
-     "net_mean": 366881.5,
-     "opex_mean": 41985.0,
-     "capex_mean": 311220.5,
+     "net_mean": 345556.0,
+     "opex_mean": 33815.0,
+     "capex_mean": 310253.0,
      "spoiled_mean": 0.0
     },
     {
@@ -416,17 +416,17 @@
       14,
       21
      ],
-     "revenue_mean": 485831.0,
-     "revenue_median": 485831.0,
-     "revenue_p25": 473550.0,
-     "revenue_p75": 498112.0,
-     "milk_mean": 120199.0,
-     "beef_mean": 302539.5,
-     "rice_mean": 63092.5,
+     "revenue_mean": 444536.5,
+     "revenue_median": 444536.5,
+     "revenue_p25": 436452.25,
+     "revenue_p75": 452620.75,
+     "milk_mean": 89261.0,
+     "beef_mean": 309661.5,
+     "rice_mean": 45614.0,
      "stud_in_mean": 0.0,
-     "net_mean": 429821.0,
-     "opex_mean": 56010.0,
-     "capex_mean": 493484.5,
+     "net_mean": 392256.5,
+     "opex_mean": 52280.0,
+     "capex_mean": 355239.5,
      "spoiled_mean": 0.0
     },
     {
@@ -434,37 +434,37 @@
       21,
       28
      ],
-     "revenue_mean": 513049.5,
-     "revenue_median": 513049.5,
-     "revenue_p25": 487438.25,
-     "revenue_p75": 538660.75,
-     "milk_mean": 92114.0,
-     "beef_mean": 330745.5,
-     "rice_mean": 90190.0,
+     "revenue_mean": 534172.5,
+     "revenue_median": 534172.5,
+     "revenue_p25": 533260.25,
+     "revenue_p75": 535084.75,
+     "milk_mean": 159530.0,
+     "beef_mean": 308192.5,
+     "rice_mean": 66450.0,
      "stud_in_mean": 0.0,
-     "net_mean": 464779.5,
-     "opex_mean": 48270.0,
-     "capex_mean": 248153.5,
+     "net_mean": 484332.5,
+     "opex_mean": 49840.0,
+     "capex_mean": 381147.0,
      "spoiled_mean": 0.0
     }
    ],
-   "worth_end_mean": 324507.05838830624,
-   "worth_end_median": 324507.05838830624,
+   "worth_end_mean": 247452.9875170444,
+   "worth_end_median": 247452.9875170444,
    "herd_end_mean": 22.0,
    "slots_end_mean": 22.0,
    "fields_end_mean": 11.5,
    "tier_counts_end": [
-    34,
-    5,
-    3,
-    2
+    25,
+    16,
+    2,
+    1
    ],
    "type_counts_end": [
-    15,
-    17,
-    12
+    11,
+    20,
+    13
    ],
-   "revenue_total_mean": 1590879.0
+   "revenue_total_mean": 1503838.0
   },
   "L": {
    "n": 1,
@@ -474,17 +474,17 @@
       0,
       7
      ],
-     "revenue_mean": 130578.0,
-     "revenue_median": 130578.0,
-     "revenue_p25": 130578.0,
-     "revenue_p75": 130578.0,
-     "milk_mean": 50589.0,
-     "beef_mean": 65448.0,
-     "rice_mean": 8731.0,
-     "stud_in_mean": 5810.0,
-     "net_mean": 98868.0,
-     "opex_mean": 31710.0,
-     "capex_mean": 86827.0,
+     "revenue_mean": 98903.0,
+     "revenue_median": 98903.0,
+     "revenue_p25": 98903.0,
+     "revenue_p75": 98903.0,
+     "milk_mean": 50130.0,
+     "beef_mean": 39347.0,
+     "rice_mean": 9426.0,
+     "stud_in_mean": 0.0,
+     "net_mean": 69893.0,
+     "opex_mean": 29010.0,
+     "capex_mean": 63016.0,
      "spoiled_mean": 0.0
     },
     {
@@ -492,17 +492,17 @@
       7,
       14
      ],
-     "revenue_mean": 353794.0,
-     "revenue_median": 353794.0,
-     "revenue_p25": 353794.0,
-     "revenue_p75": 353794.0,
-     "milk_mean": 187429.0,
-     "beef_mean": 149926.0,
-     "rice_mean": 6049.0,
-     "stud_in_mean": 10390.0,
-     "net_mean": 303844.0,
-     "opex_mean": 49950.0,
-     "capex_mean": 243891.0,
+     "revenue_mean": 387851.0,
+     "revenue_median": 387851.0,
+     "revenue_p25": 387851.0,
+     "revenue_p75": 387851.0,
+     "milk_mean": 129072.0,
+     "beef_mean": 233314.0,
+     "rice_mean": 9705.0,
+     "stud_in_mean": 15760.0,
+     "net_mean": 339351.0,
+     "opex_mean": 48500.0,
+     "capex_mean": 267702.0,
      "spoiled_mean": 0.0
     },
     {
@@ -510,17 +510,17 @@
       14,
       21
      ],
-     "revenue_mean": 403359.0,
-     "revenue_median": 403359.0,
-     "revenue_p25": 403359.0,
-     "revenue_p75": 403359.0,
-     "milk_mean": 98211.0,
-     "beef_mean": 268952.0,
-     "rice_mean": 7356.0,
-     "stud_in_mean": 28840.0,
-     "net_mean": 323299.0,
-     "opex_mean": 80060.0,
-     "capex_mean": 307353.0,
+     "revenue_mean": 395100.0,
+     "revenue_median": 395100.0,
+     "revenue_p25": 395100.0,
+     "revenue_p75": 395100.0,
+     "milk_mean": 164847.0,
+     "beef_mean": 212351.0,
+     "rice_mean": 9602.0,
+     "stud_in_mean": 8300.0,
+     "net_mean": 332500.0,
+     "opex_mean": 62600.0,
+     "capex_mean": 314016.0,
      "spoiled_mean": 0.0
     },
     {
@@ -528,37 +528,37 @@
       21,
       28
      ],
-     "revenue_mean": 456772.0,
-     "revenue_median": 456772.0,
-     "revenue_p25": 456772.0,
-     "revenue_p75": 456772.0,
-     "milk_mean": 141257.0,
-     "beef_mean": 290647.0,
-     "rice_mean": 9218.0,
-     "stud_in_mean": 15650.0,
-     "net_mean": 387692.0,
-     "opex_mean": 69080.0,
+     "revenue_mean": 385614.0,
+     "revenue_median": 385614.0,
+     "revenue_p25": 385614.0,
+     "revenue_p75": 385614.0,
+     "milk_mean": 86675.0,
+     "beef_mean": 270182.0,
+     "rice_mean": 9277.0,
+     "stud_in_mean": 19480.0,
+     "net_mean": 314944.0,
+     "opex_mean": 70670.0,
      "capex_mean": 251005.0,
      "spoiled_mean": 0.0
     }
    ],
-   "worth_end_mean": 380951.44084562844,
-   "worth_end_median": 380951.44084562844,
+   "worth_end_mean": 373997.1404656228,
+   "worth_end_median": 373997.1404656228,
    "herd_end_mean": 22.0,
    "slots_end_mean": 22.0,
    "fields_end_mean": 1.0,
    "tier_counts_end": [
-    13,
-    7,
-    2,
+    18,
+    3,
+    1,
     0
    ],
    "type_counts_end": [
-    12,
+    6,
     5,
-    5
+    11
    ],
-   "revenue_total_mean": 1344503.0
+   "revenue_total_mean": 1267468.0
   },
   "T": {
    "n": 1,
@@ -568,17 +568,17 @@
       0,
       7
      ],
-     "revenue_mean": 86645.0,
-     "revenue_median": 86645.0,
-     "revenue_p25": 86645.0,
-     "revenue_p75": 86645.0,
-     "milk_mean": 21257.0,
-     "beef_mean": 58810.0,
-     "rice_mean": 6578.0,
+     "revenue_mean": 87292.0,
+     "revenue_median": 87292.0,
+     "revenue_p25": 87292.0,
+     "revenue_p75": 87292.0,
+     "milk_mean": 29513.0,
+     "beef_mean": 50459.0,
+     "rice_mean": 7320.0,
      "stud_in_mean": 0.0,
-     "net_mean": 64445.0,
-     "opex_mean": 22200.0,
-     "capex_mean": 47267.0,
+     "net_mean": 64192.0,
+     "opex_mean": 23100.0,
+     "capex_mean": 64275.0,
      "spoiled_mean": 0.0
     },
     {
@@ -586,17 +586,17 @@
       7,
       14
      ],
-     "revenue_mean": 382684.0,
-     "revenue_median": 382684.0,
-     "revenue_p25": 382684.0,
-     "revenue_p75": 382684.0,
-     "milk_mean": 132757.0,
-     "beef_mean": 243604.0,
-     "rice_mean": 6323.0,
+     "revenue_mean": 339071.0,
+     "revenue_median": 339071.0,
+     "revenue_p25": 339071.0,
+     "revenue_p75": 339071.0,
+     "milk_mean": 75173.0,
+     "beef_mean": 253641.0,
+     "rice_mean": 10257.0,
      "stud_in_mean": 0.0,
-     "net_mean": 339584.0,
-     "opex_mean": 43100.0,
-     "capex_mean": 304536.0,
+     "net_mean": 291031.0,
+     "opex_mean": 48040.0,
+     "capex_mean": 268387.0,
      "spoiled_mean": 0.0
     },
     {
@@ -604,17 +604,17 @@
       14,
       21
      ],
-     "revenue_mean": 402892.0,
-     "revenue_median": 402892.0,
-     "revenue_p25": 402892.0,
-     "revenue_p75": 402892.0,
-     "milk_mean": 114626.0,
-     "beef_mean": 275435.0,
-     "rice_mean": 12831.0,
+     "revenue_mean": 431010.0,
+     "revenue_median": 431010.0,
+     "revenue_p25": 431010.0,
+     "revenue_p75": 431010.0,
+     "milk_mean": 132350.0,
+     "beef_mean": 289780.0,
+     "rice_mean": 8880.0,
      "stud_in_mean": 0.0,
-     "net_mean": 339892.0,
-     "opex_mean": 63000.0,
-     "capex_mean": 307353.0,
+     "net_mean": 369510.0,
+     "opex_mean": 61500.0,
+     "capex_mean": 314798.0,
      "spoiled_mean": 0.0
     },
     {
@@ -622,37 +622,37 @@
       21,
       28
      ],
-     "revenue_mean": 563925.0,
-     "revenue_median": 563925.0,
-     "revenue_p25": 563925.0,
-     "revenue_p75": 563925.0,
-     "milk_mean": 115773.0,
-     "beef_mean": 432995.0,
-     "rice_mean": 15157.0,
+     "revenue_mean": 577510.0,
+     "revenue_median": 577510.0,
+     "revenue_p25": 577510.0,
+     "revenue_p75": 577510.0,
+     "milk_mean": 140327.0,
+     "beef_mean": 425078.0,
+     "rice_mean": 12105.0,
      "stud_in_mean": 0.0,
-     "net_mean": 489425.0,
-     "opex_mean": 74500.0,
+     "net_mean": 495410.0,
+     "opex_mean": 82100.0,
      "capex_mean": 251005.0,
      "spoiled_mean": 0.0
     }
    ],
-   "worth_end_mean": 202113.7575276027,
-   "worth_end_median": 202113.7575276027,
+   "worth_end_mean": 182377.45126790664,
+   "worth_end_median": 182377.45126790664,
    "herd_end_mean": 23.0,
    "slots_end_mean": 23.0,
    "fields_end_mean": 1.0,
    "tier_counts_end": [
+    10,
+    7,
     5,
-    12,
-    4,
-    2
+    1
    ],
    "type_counts_end": [
-    9,
+    11,
     10,
-    4
+    2
    ],
-   "revenue_total_mean": 1436146.0
+   "revenue_total_mean": 1434883.0
   }
  },
  "onboarding": {
@@ -689,60 +689,65 @@
     "beef",
     "rice"
    ],
-   "factor": 0.9435781978551703,
+   "factor": 0.9467890989275851,
    "announce_at": 1791135188.363467,
    "start_at": 1791135188.363467,
    "half_life_h": 4.63801311106081,
    "headline": "港口罷工，出口受阻",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 2,
    "targets": [
     "beef"
    ],
-   "factor": 1.2368581897465096,
-   "announce_at": 1791186780.8376682,
+   "factor": 1.1434290948732548,
+   "announce_at": 1791188580.8376682,
    "start_at": 1791188580.8376682,
    "half_life_h": 7.0989607604376035,
    "headline": "年節備貨潮提前",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 3,
    "targets": [
     "milk"
    ],
-   "factor": 1.2177773239766452,
+   "factor": 1.1338886619883226,
    "announce_at": 1791213940.431667,
    "start_at": 1791213940.431667,
    "half_life_h": 4.073526561266275,
    "headline": "烘焙展開幕，鮮奶需求大增",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 4,
    "targets": [
     "rice"
    ],
-   "factor": 0.8114930808278944,
+   "factor": 0.8807465404139472,
    "announce_at": 1791238719.6983805,
    "start_at": 1791238719.6983805,
    "half_life_h": 2.5021868177530706,
    "headline": "米倉滿載，糧商暫緩收購",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 5,
    "targets": [
     "rice"
    ],
-   "factor": 0.8844946515680164,
-   "announce_at": 1791247842.6706038,
+   "factor": 0.9172473257840082,
+   "announce_at": 1791249642.6706038,
    "start_at": 1791249642.6706038,
    "half_life_h": 2.9610723705345796,
    "headline": "中部豐收，新米大量上市",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 6,
@@ -751,60 +756,65 @@
     "beef",
     "rice"
    ],
-   "factor": 0.8657180456633645,
+   "factor": 0.9078590228316823,
    "announce_at": 1791276642.8861651,
    "start_at": 1791276642.8861651,
    "half_life_h": 6.977582272240757,
    "headline": "港口罷工，出口受阻",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 7,
    "targets": [
     "beef"
    ],
-   "factor": 1.1734068328648175,
-   "announce_at": 1791276774.238262,
+   "factor": 1.1117034164324087,
+   "announce_at": 1791278574.238262,
    "start_at": 1791278574.238262,
    "half_life_h": 2.1326844150763082,
    "headline": "烤肉季開跑",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 8,
    "targets": [
     "milk"
    ],
-   "factor": 1.2198119687701794,
+   "factor": 1.3773589765776344,
    "announce_at": 1791285328.933669,
    "start_at": 1791285328.933669,
    "half_life_h": 2.377616359643292,
    "headline": "鮮奶檢驗全數合格，買氣回溫",
-   "rare": false
+   "rare": true,
+   "tier": "big"
   },
   {
    "id": 9,
    "targets": [
     "beef"
    ],
-   "factor": 0.9149453427921586,
+   "factor": 0.9324726713960793,
    "announce_at": 1791286085.9276698,
    "start_at": 1791286085.9276698,
    "half_life_h": 6.469802015211371,
    "headline": "冷凍倉庫滿載，肉商暫緩收購",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 10,
    "targets": [
     "rice"
    ],
-   "factor": 1.1100909686174543,
-   "announce_at": 1791294638.4220722,
+   "factor": 1.080045484308727,
+   "announce_at": 1791296438.4220722,
    "start_at": 1791296438.4220722,
    "half_life_h": 4.918467885400828,
    "headline": "米食文化節開幕",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 11,
@@ -813,12 +823,13 @@
     "beef",
     "rice"
    ],
-   "factor": 1.080181127053183,
-   "announce_at": 1791304864.0402634,
+   "factor": 1.0650905635265915,
+   "announce_at": 1791306664.0402634,
    "start_at": 1791306664.0402634,
    "half_life_h": 5.646496917062843,
    "headline": "連假出遊潮，餐飲需求旺",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 12,
@@ -827,60 +838,65 @@
     "beef",
     "rice"
    ],
-   "factor": 1.2243988085351574,
-   "announce_at": 1791335497.397187,
+   "factor": 1.1371994042675788,
+   "announce_at": 1791337297.397187,
    "start_at": 1791337297.397187,
    "half_life_h": 7.345791190521091,
    "headline": "連假出遊潮，餐飲需求旺",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 13,
    "targets": [
     "beef"
    ],
-   "factor": 0.7988799580877575,
+   "factor": 0.8744399790438787,
    "announce_at": 1791343373.021155,
    "start_at": 1791343373.021155,
    "half_life_h": 3.2330459927750868,
    "headline": "冷凍倉庫滿載，肉商暫緩收購",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 14,
    "targets": [
     "rice"
    ],
-   "factor": 0.865650938380637,
-   "announce_at": 1791396977.864424,
+   "factor": 2.0,
+   "announce_at": 1791398777.864424,
    "start_at": 1791398777.864424,
    "half_life_h": 7.898435949914062,
-   "headline": "公糧收購暫停",
-   "rare": false
+   "headline": "國宴指定在地新米，糧商搶貨",
+   "rare": true,
+   "tier": "super"
   },
   {
    "id": 15,
    "targets": [
     "rice"
    ],
-   "factor": 1.3854562457946713,
+   "factor": 1.1354562457946713,
    "announce_at": 1791448654.7932565,
    "start_at": 1791448654.7932565,
    "half_life_h": 6.983323122373443,
    "headline": "米食文化節開幕",
-   "rare": true
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 16,
    "targets": [
     "milk"
    ],
-   "factor": 0.830249838784042,
+   "factor": 0.8901249193920211,
    "announce_at": 1791459810.310953,
    "start_at": 1791459810.310953,
    "half_life_h": 5.626416985112585,
    "headline": "物流塞車，乳品廠暫停收購",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 17,
@@ -889,12 +905,13 @@
     "beef",
     "rice"
    ],
-   "factor": 1.307856679171525,
+   "factor": 1.057856679171525,
    "announce_at": 1791475037.556752,
    "start_at": 1791475037.556752,
    "half_life_h": 5.929704036167073,
    "headline": "觀光牧場人潮湧入",
-   "rare": true
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 18,
@@ -903,96 +920,104 @@
     "beef",
     "rice"
    ],
-   "factor": 1.1860949283000481,
+   "factor": 1.118047464150024,
    "announce_at": 1791511737.0056887,
    "start_at": 1791511737.0056887,
    "half_life_h": 7.717543113547619,
    "headline": "連假出遊潮，餐飲需求旺",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 19,
    "targets": [
     "rice"
    ],
-   "factor": 1.0968476622243666,
+   "factor": 1.0734238311121833,
    "announce_at": 1791524753.0215597,
    "start_at": 1791524753.0215597,
    "half_life_h": 7.532855773176339,
    "headline": "米食文化節開幕",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 20,
    "targets": [
     "beef"
    ],
-   "factor": 0.7867504457949203,
+   "factor": 0.8683752228974602,
    "announce_at": 1791563410.7545364,
    "start_at": 1791563410.7545364,
    "half_life_h": 6.616601280044309,
    "headline": "冷凍倉庫滿載，肉商暫緩收購",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 21,
    "targets": [
     "beef"
    ],
-   "factor": 1.2259426309419736,
+   "factor": 1.1379713154709867,
    "announce_at": 1791567661.9467266,
    "start_at": 1791567661.9467266,
    "half_life_h": 6.472594017178324,
    "headline": "餐廳推出牛排節",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 22,
    "targets": [
     "rice"
    ],
-   "factor": 1.1203810134585228,
+   "factor": 1.0851905067292615,
    "announce_at": 1791578272.7564573,
    "start_at": 1791578272.7564573,
    "half_life_h": 5.460340095532937,
    "headline": "米食文化節開幕",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 23,
    "targets": [
     "beef"
    ],
-   "factor": 1.143875862700718,
-   "announce_at": 1791600533.0297751,
+   "factor": 1.096937931350359,
+   "announce_at": 1791602333.0297751,
    "start_at": 1791602333.0297751,
    "half_life_h": 6.453269269064638,
    "headline": "年節備貨潮提前",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 24,
    "targets": [
     "milk"
    ],
-   "factor": 1.0572557957124462,
+   "factor": 1.2554418467843347,
    "announce_at": 1791637411.771041,
    "start_at": 1791637411.771041,
    "half_life_h": 2.084707180718955,
    "headline": "學校午餐加訂鮮奶",
-   "rare": false
+   "rare": true,
+   "tier": "big"
   },
   {
    "id": 25,
    "targets": [
     "rice"
    ],
-   "factor": 0.9286532560462706,
-   "announce_at": 1791641914.4102035,
+   "factor": 2.0,
+   "announce_at": 1791643714.4102035,
    "start_at": 1791643714.4102035,
    "half_life_h": 5.258145625116663,
-   "headline": "公糧收購暫停",
-   "rare": false
+   "headline": "海外飯糰大流行，外銷訂單爆量",
+   "rare": true,
+   "tier": "super"
   },
   {
    "id": 26,
@@ -1001,132 +1026,143 @@
     "beef",
     "rice"
    ],
-   "factor": 1.0919002263736086,
+   "factor": 1.0709501131868044,
    "announce_at": 1791697281.300229,
    "start_at": 1791697281.300229,
    "half_life_h": 3.8457153975958263,
    "headline": "連假出遊潮，餐飲需求旺",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 27,
    "targets": [
     "rice"
    ],
-   "factor": 0.9029031737277448,
-   "announce_at": 1791704257.654514,
+   "factor": 0.9264515868638724,
+   "announce_at": 1791706057.654514,
    "start_at": 1791706057.654514,
    "half_life_h": 2.934357108830268,
    "headline": "米倉滿載，糧商暫緩收購",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 28,
    "targets": [
     "rice"
    ],
-   "factor": 0.9202085768192376,
+   "factor": 0.9351042884096188,
    "announce_at": 1791730755.7096987,
    "start_at": 1791730755.7096987,
    "half_life_h": 7.486624644731195,
    "headline": "米倉滿載，糧商暫緩收購",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 29,
    "targets": [
     "rice"
    ],
-   "factor": 0.8989405671515258,
-   "announce_at": 1791750323.873654,
+   "factor": 0.924470283575763,
+   "announce_at": 1791752123.873654,
    "start_at": 1791752123.873654,
    "half_life_h": 6.036375920417422,
    "headline": "中部豐收，新米大量上市",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 30,
    "targets": [
     "milk"
    ],
-   "factor": 0.8172078455077261,
-   "announce_at": 1791767482.2641494,
+   "factor": 0.883603922753863,
+   "announce_at": 1791769282.2641494,
    "start_at": 1791769282.2641494,
    "half_life_h": 2.995449582834707,
    "headline": "鄰近牧場產量大增",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 31,
    "targets": [
     "rice"
    ],
-   "factor": 0.8172052405824933,
+   "factor": 0.8836026202912467,
    "announce_at": 1791783976.8631124,
    "start_at": 1791783976.8631124,
    "half_life_h": 4.107936704290209,
    "headline": "米倉滿載，糧商暫緩收購",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 32,
    "targets": [
     "milk"
    ],
-   "factor": 0.6538169227931704,
+   "factor": 0.9038169227931704,
    "announce_at": 1791802752.8057857,
    "start_at": 1791802752.8057857,
    "half_life_h": 6.985969634586231,
    "headline": "連日寒流，冰品銷量下滑",
-   "rare": true
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 33,
    "targets": [
     "milk"
    ],
-   "factor": 1.161393618122847,
-   "announce_at": 1791841253.3728843,
+   "factor": 1.3335452135921353,
+   "announce_at": 1791843053.3728843,
    "start_at": 1791843053.3728843,
    "half_life_h": 3.236435481904364,
    "headline": "鮮奶檢驗全數合格，買氣回溫",
-   "rare": false
+   "rare": true,
+   "tier": "big"
   },
   {
    "id": 34,
    "targets": [
     "beef"
    ],
-   "factor": 1.1845405113821352,
+   "factor": 2.0,
    "announce_at": 1791882419.9728575,
    "start_at": 1791882419.9728575,
    "half_life_h": 6.414742188221558,
-   "headline": "牛肉麵大賽熱鬧登場",
-   "rare": false
+   "headline": "世界牛排大賽在本地舉辦",
+   "rare": true,
+   "tier": "super"
   },
   {
    "id": 35,
    "targets": [
     "milk"
    ],
-   "factor": 1.2303681187158986,
+   "factor": 1.1401840593579493,
    "announce_at": 1791897690.3345165,
    "start_at": 1791897690.3345165,
    "half_life_h": 5.027045013642942,
    "headline": "烘焙展開幕，鮮奶需求大增",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 36,
    "targets": [
     "rice"
    ],
-   "factor": 0.8202693028269084,
+   "factor": 0.8851346514134542,
    "announce_at": 1791923800.274635,
    "start_at": 1791923800.274635,
    "half_life_h": 4.016619515918226,
    "headline": "中部豐收，新米大量上市",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 37,
@@ -1135,36 +1171,39 @@
     "beef",
     "rice"
    ],
-   "factor": 1.1136421019377594,
+   "factor": 1.2977315764533195,
    "announce_at": 1791933520.295612,
    "start_at": 1791933520.295612,
    "half_life_h": 4.266682048686628,
    "headline": "農產品博覽會開幕",
-   "rare": false
+   "rare": true,
+   "tier": "big"
   },
   {
    "id": 38,
    "targets": [
     "milk"
    ],
-   "factor": 0.8207979597407579,
+   "factor": 0.885398979870379,
    "announce_at": 1791958559.839619,
    "start_at": 1791958559.839619,
    "half_life_h": 6.972091027920748,
    "headline": "物流塞車，乳品廠暫停收購",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 39,
    "targets": [
     "milk"
    ],
-   "factor": 1.1147742687229345,
+   "factor": 1.0823871343614673,
    "announce_at": 1791966622.1412172,
    "start_at": 1791966622.1412172,
    "half_life_h": 2.2705409700614045,
    "headline": "學校午餐加訂鮮奶",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 40,
@@ -1173,84 +1212,91 @@
     "beef",
     "rice"
    ],
-   "factor": 1.1043851215579923,
+   "factor": 1.077192560778996,
    "announce_at": 1791993132.0916553,
    "start_at": 1791993132.0916553,
    "half_life_h": 4.169360805100621,
    "headline": "連假出遊潮，餐飲需求旺",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 41,
    "targets": [
     "milk"
    ],
-   "factor": 1.3009427764223722,
+   "factor": 1.0509427764223724,
    "announce_at": 1792024447.84887,
    "start_at": 1792024447.84887,
    "half_life_h": 3.220010388413251,
    "headline": "鮮奶檢驗全數合格，買氣回溫",
-   "rare": true
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 42,
    "targets": [
     "milk"
    ],
-   "factor": 1.0905912708040966,
+   "factor": 1.0702956354020483,
    "announce_at": 1792031859.050756,
    "start_at": 1792031859.050756,
    "half_life_h": 4.625087883417049,
    "headline": "學校午餐加訂鮮奶",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 43,
    "targets": [
     "milk"
    ],
-   "factor": 1.358446353169512,
+   "factor": 1.108446353169512,
    "announce_at": 1792070616.0410316,
    "start_at": 1792070616.0410316,
    "half_life_h": 6.096645163324224,
    "headline": "連日高溫，冰品店大量進貨",
-   "rare": true
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 44,
    "targets": [
     "milk"
    ],
-   "factor": 0.9433605535172308,
-   "announce_at": 1792080290.3331695,
+   "factor": 0.7450204151379232,
+   "announce_at": 1792082090.3331695,
    "start_at": 1792082090.3331695,
    "half_life_h": 6.317032465056698,
    "headline": "超市推出鮮奶特賣",
-   "rare": false
+   "rare": true,
+   "tier": "big"
   },
   {
    "id": 45,
    "targets": [
     "beef"
    ],
-   "factor": 1.0699600372711386,
-   "announce_at": 1792111237.6142387,
+   "factor": 1.0599800186355695,
+   "announce_at": 1792113037.6142387,
    "start_at": 1792113037.6142387,
    "half_life_h": 3.900908966895705,
    "headline": "牛肉麵大賽熱鬧登場",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 46,
    "targets": [
     "beef"
    ],
-   "factor": 0.8061076566156213,
-   "announce_at": 1792117257.7937608,
+   "factor": 0.8780538283078106,
+   "announce_at": 1792119057.7937608,
    "start_at": 1792119057.7937608,
    "half_life_h": 5.032266191039549,
    "headline": "冷凍倉庫滿載，肉商暫緩收購",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 47,
@@ -1259,60 +1305,65 @@
     "beef",
     "rice"
    ],
-   "factor": 0.7587846124829811,
+   "factor": 0.6065884593622358,
    "announce_at": 1792208500.0237248,
    "start_at": 1792208500.0237248,
    "half_life_h": 5.065237112950453,
    "headline": "颱風過境，市場休市一日",
-   "rare": false
+   "rare": true,
+   "tier": "big"
   },
   {
    "id": 48,
    "targets": [
     "beef"
    ],
-   "factor": 1.1388050627176827,
+   "factor": 1.0944025313588412,
    "announce_at": 1792225837.0920348,
    "start_at": 1792225837.0920348,
    "half_life_h": 7.764219840572774,
    "headline": "年節備貨潮提前",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 49,
    "targets": [
     "milk"
    ],
-   "factor": 1.1451722364768147,
+   "factor": 1.0975861182384072,
    "announce_at": 1792260742.521907,
    "start_at": 1792260742.521907,
    "half_life_h": 5.7608086671901075,
    "headline": "連日高溫，冰品店大量進貨",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 50,
    "targets": [
     "rice"
    ],
-   "factor": 1.182274342582527,
+   "factor": 1.3492057569368954,
    "announce_at": 1792319159.7808719,
    "start_at": 1792319159.7808719,
    "half_life_h": 2.42061236644869,
    "headline": "米食文化節開幕",
-   "rare": false
+   "rare": true,
+   "tier": "big"
   },
   {
    "id": 51,
    "targets": [
     "rice"
    ],
-   "factor": 0.7618540758958041,
-   "announce_at": 1792340675.930596,
+   "factor": 0.608890556921853,
+   "announce_at": 1792342475.930596,
    "start_at": 1792342475.930596,
    "half_life_h": 5.402366603504046,
    "headline": "公糧收購暫停",
-   "rare": false
+   "rare": true,
+   "tier": "big"
   },
   {
    "id": 52,
@@ -1321,12 +1372,13 @@
     "beef",
     "rice"
    ],
-   "factor": 1.0585552650256054,
+   "factor": 1.0542776325128027,
    "announce_at": 1792380993.4097168,
    "start_at": 1792380993.4097168,
    "half_life_h": 3.555177032234761,
    "headline": "連假出遊潮，餐飲需求旺",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 53,
@@ -1335,84 +1387,91 @@
     "beef",
     "rice"
    ],
-   "factor": 0.8339892635729702,
+   "factor": 0.8919946317864851,
    "announce_at": 1792386781.974469,
    "start_at": 1792386781.974469,
    "half_life_h": 5.146928158788044,
    "headline": "颱風過境，市場休市一日",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 54,
    "targets": [
     "beef"
    ],
-   "factor": 0.8363341986150036,
+   "factor": 2.0,
    "announce_at": 1792387162.1430163,
    "start_at": 1792387162.1430163,
    "half_life_h": 2.493147310575266,
-   "headline": "進口牛肉到港量創新高",
-   "rare": false
+   "headline": "世界牛排大賽在本地舉辦",
+   "rare": true,
+   "tier": "super"
   },
   {
    "id": 55,
    "targets": [
     "milk"
    ],
-   "factor": 0.753190586055463,
-   "announce_at": 1792423302.0792308,
+   "factor": 0.8515952930277315,
+   "announce_at": 1792425102.0792308,
    "start_at": 1792425102.0792308,
    "half_life_h": 5.284877283570111,
    "headline": "超市推出鮮奶特賣",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 56,
    "targets": [
     "milk"
    ],
-   "factor": 1.092535337514621,
+   "factor": 0.09999999999999998,
    "announce_at": 1792432642.9617178,
    "start_at": 1792432642.9617178,
    "half_life_h": 2.0199659378719543,
-   "headline": "鮮奶檢驗全數合格，買氣回溫",
-   "rare": false
+   "headline": "冷藏車大罷工，鮮奶運不出去",
+   "rare": true,
+   "tier": "crash"
   },
   {
    "id": 57,
    "targets": [
     "beef"
    ],
-   "factor": 1.22260500384432,
-   "announce_at": 1792433497.4063444,
+   "factor": 1.13630250192216,
+   "announce_at": 1792435297.4063444,
    "start_at": 1792435297.4063444,
    "half_life_h": 6.206666887264663,
    "headline": "年節備貨潮提前",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 58,
    "targets": [
     "beef"
    ],
-   "factor": 1.398755050579061,
+   "factor": 1.148755050579061,
    "announce_at": 1792463183.7637372,
    "start_at": 1792463183.7637372,
    "half_life_h": 5.78382672906444,
    "headline": "烤肉季開跑",
-   "rare": true
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 59,
    "targets": [
     "milk"
    ],
-   "factor": 1.217408284026995,
-   "announce_at": 1792538251.1842496,
+   "factor": 1.1337041420134975,
+   "announce_at": 1792540051.1842496,
    "start_at": 1792540051.1842496,
    "half_life_h": 6.175816894303015,
    "headline": "連日高溫，冰品店大量進貨",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 60,
@@ -1421,12 +1480,13 @@
     "beef",
     "rice"
    ],
-   "factor": 1.2247488067729517,
+   "factor": 1.1373744033864759,
    "announce_at": 1792541816.3786888,
    "start_at": 1792541816.3786888,
    "half_life_h": 7.386704328529467,
    "headline": "連假出遊潮，餐飲需求旺",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 61,
@@ -1435,120 +1495,130 @@
     "beef",
     "rice"
    ],
-   "factor": 0.8038084555727301,
+   "factor": 0.09999999999999998,
    "announce_at": 1792541915.2367578,
    "start_at": 1792541915.2367578,
    "half_life_h": 7.207210493908576,
-   "headline": "港口罷工，出口受阻",
-   "rare": false
+   "headline": "全國消費急凍，農產品沒人買",
+   "rare": true,
+   "tier": "crash"
   },
   {
    "id": 62,
    "targets": [
     "rice"
    ],
-   "factor": 1.249331955428388,
-   "announce_at": 1792554119.8761964,
+   "factor": 1.149665977714194,
+   "announce_at": 1792555919.8761964,
    "start_at": 1792555919.8761964,
    "half_life_h": 7.282945771095925,
    "headline": "颱風過境，稻米收購價上漲",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 63,
    "targets": [
     "beef"
    ],
-   "factor": 1.1517846000026135,
+   "factor": 1.1008923000013067,
    "announce_at": 1792583178.7446415,
    "start_at": 1792583178.7446415,
    "half_life_h": 6.282019369073376,
    "headline": "牛肉麵大賽熱鬧登場",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 64,
    "targets": [
     "beef"
    ],
-   "factor": 1.0942871772755125,
+   "factor": 1.2832153829566344,
    "announce_at": 1792599871.1682093,
    "start_at": 1792599871.1682093,
    "half_life_h": 2.0802722340485422,
    "headline": "牛肉麵大賽熱鬧登場",
-   "rare": false
+   "rare": true,
+   "tier": "big"
   },
   {
    "id": 65,
    "targets": [
     "milk"
    ],
-   "factor": 1.0628474651867883,
-   "announce_at": 1792614730.9952445,
+   "factor": 1.056423732593394,
+   "announce_at": 1792616530.9952445,
    "start_at": 1792616530.9952445,
    "half_life_h": 6.51607380537504,
    "headline": "鮮奶檢驗全數合格，買氣回溫",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 66,
    "targets": [
     "beef"
    ],
-   "factor": 0.9485195089142601,
-   "announce_at": 1792639504.7704108,
+   "factor": 0.9492597544571301,
+   "announce_at": 1792641304.7704108,
    "start_at": 1792641304.7704108,
    "half_life_h": 5.46129155691476,
    "headline": "健康飲食風潮，肉品需求降溫",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 67,
    "targets": [
     "rice"
    ],
-   "factor": 1.385982063115063,
-   "announce_at": 1792643675.1226244,
+   "factor": 1.135982063115063,
+   "announce_at": 1792645475.1226244,
    "start_at": 1792645475.1226244,
    "half_life_h": 4.7590580490213705,
    "headline": "便當業者搶購新米",
-   "rare": true
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 68,
    "targets": [
     "beef"
    ],
-   "factor": 0.8455821068384639,
-   "announce_at": 1792650006.2397232,
+   "factor": 0.8977910534192319,
+   "announce_at": 1792651806.2397232,
    "start_at": 1792651806.2397232,
    "half_life_h": 6.449556167617411,
    "headline": "健康飲食風潮，肉品需求降溫",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 69,
    "targets": [
     "rice"
    ],
-   "factor": 1.1050306084744692,
+   "factor": 1.0775153042372347,
    "announce_at": 1792707895.8165345,
    "start_at": 1792707895.8165345,
    "half_life_h": 6.735920163628916,
    "headline": "米食文化節開幕",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 70,
    "targets": [
     "beef"
    ],
-   "factor": 1.1331614446547071,
+   "factor": 1.0915807223273535,
    "announce_at": 1792749412.4316063,
    "start_at": 1792749412.4316063,
    "half_life_h": 2.927507942923906,
    "headline": "餐廳推出牛排節",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 71,
@@ -1557,36 +1627,39 @@
     "beef",
     "rice"
    ],
-   "factor": 0.7560209124396421,
+   "factor": 0.8530104562198211,
    "announce_at": 1792754081.4527,
    "start_at": 1792754081.4527,
    "half_life_h": 4.594979466205645,
    "headline": "颱風過境，市場休市一日",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 72,
    "targets": [
     "milk"
    ],
-   "factor": 0.8888560711816833,
+   "factor": 0.9194280355908416,
    "announce_at": 1792766320.6428776,
    "start_at": 1792766320.6428776,
    "half_life_h": 2.5389279445645943,
    "headline": "超市推出鮮奶特賣",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 73,
    "targets": [
     "milk"
    ],
-   "factor": 1.125955296348749,
+   "factor": 1.3069664722615617,
    "announce_at": 1792791645.5558848,
    "start_at": 1792791645.5558848,
    "half_life_h": 2.0604424415918086,
    "headline": "連日高溫，冰品店大量進貨",
-   "rare": false
+   "rare": true,
+   "tier": "big"
   },
   {
    "id": 74,
@@ -1595,204 +1668,221 @@
     "beef",
     "rice"
    ],
-   "factor": 1.1977323335988093,
+   "factor": 0.09999999999999998,
    "announce_at": 1792804307.8634405,
    "start_at": 1792804307.8634405,
    "half_life_h": 5.042427756476938,
-   "headline": "觀光牧場人潮湧入",
-   "rare": false
+   "headline": "港口全面封閉，農產品出不了貨",
+   "rare": true,
+   "tier": "crash"
   },
   {
    "id": 75,
    "targets": [
     "rice"
    ],
-   "factor": 1.2024341704355908,
+   "factor": 2.0,
    "announce_at": 1792820346.669656,
    "start_at": 1792820346.669656,
    "half_life_h": 5.818923823295716,
-   "headline": "外銷訂單增加，米價走揚",
-   "rare": false
+   "headline": "國宴指定在地新米，糧商搶貨",
+   "rare": true,
+   "tier": "super"
   },
   {
    "id": 76,
    "targets": [
     "milk"
    ],
-   "factor": 0.9495715948337133,
-   "announce_at": 1792836643.538523,
+   "factor": 0.749678696125285,
+   "announce_at": 1792838443.538523,
    "start_at": 1792838443.538523,
    "half_life_h": 6.2139109945944515,
    "headline": "鄰近牧場產量大增",
-   "rare": false
+   "rare": true,
+   "tier": "big"
   },
   {
    "id": 77,
    "targets": [
     "beef"
    ],
-   "factor": 1.1164457770863454,
-   "announce_at": 1792842006.419388,
+   "factor": 2.0,
+   "announce_at": 1792843806.419388,
    "start_at": 1792843806.419388,
    "half_life_h": 5.15884062764115,
-   "headline": "餐廳推出牛排節",
-   "rare": false
+   "headline": "牛肉麵登上國際美食榜",
+   "rare": true,
+   "tier": "super"
   },
   {
    "id": 78,
    "targets": [
     "rice"
    ],
-   "factor": 1.2419027869779529,
-   "announce_at": 1792864988.5067713,
+   "factor": 1.1459513934889765,
+   "announce_at": 1792866788.5067713,
    "start_at": 1792866788.5067713,
    "half_life_h": 5.751874356503291,
    "headline": "便當業者搶購新米",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 79,
    "targets": [
     "milk"
    ],
-   "factor": 0.9468274439366514,
-   "announce_at": 1792871761.0374722,
+   "factor": 0.9484137219683257,
+   "announce_at": 1792873561.0374722,
    "start_at": 1792873561.0374722,
    "half_life_h": 7.997539018169464,
    "headline": "連日寒流，冰品銷量下滑",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 80,
    "targets": [
     "milk"
    ],
-   "factor": 0.9006503547093214,
+   "factor": 0.9253251773546607,
    "announce_at": 1792905375.9643342,
    "start_at": 1792905375.9643342,
    "half_life_h": 5.1322101011758825,
    "headline": "物流塞車，乳品廠暫停收購",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 81,
    "targets": [
     "milk"
    ],
-   "factor": 1.130157220711672,
+   "factor": 1.090078610355836,
    "announce_at": 1792912879.7892008,
    "start_at": 1792912879.7892008,
    "half_life_h": 6.163940179428707,
    "headline": "烘焙展開幕，鮮奶需求大增",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 82,
    "targets": [
     "beef"
    ],
-   "factor": 0.8688948274256112,
-   "announce_at": 1792925060.4951417,
+   "factor": 0.9094474137128056,
+   "announce_at": 1792926860.4951417,
    "start_at": 1792926860.4951417,
    "half_life_h": 7.701973964674383,
    "headline": "冷凍倉庫滿載，肉商暫緩收購",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 83,
    "targets": [
     "rice"
    ],
-   "factor": 0.9237436370348191,
+   "factor": 0.7303077277761143,
    "announce_at": 1792929326.054353,
    "start_at": 1792929326.054353,
    "half_life_h": 2.7939734867393375,
    "headline": "中部豐收，新米大量上市",
-   "rare": false
+   "rare": true,
+   "tier": "big"
   },
   {
    "id": 84,
    "targets": [
     "beef"
    ],
-   "factor": 1.179176530374496,
+   "factor": 1.114588265187248,
    "announce_at": 1792958499.1819782,
    "start_at": 1792958499.1819782,
    "half_life_h": 7.605944293522946,
    "headline": "年節備貨潮提前",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 85,
    "targets": [
     "milk"
    ],
-   "factor": 1.2365450983352557,
-   "announce_at": 1792963100.443593,
+   "factor": 1.1432725491676279,
+   "announce_at": 1792964900.443593,
    "start_at": 1792964900.443593,
    "half_life_h": 7.637696796351456,
    "headline": "學校午餐加訂鮮奶",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 86,
    "targets": [
     "milk"
    ],
-   "factor": 0.7986915286681222,
+   "factor": 0.8743457643340611,
    "announce_at": 1792983003.5753262,
    "start_at": 1792983003.5753262,
    "half_life_h": 5.361031826545855,
    "headline": "連日寒流，冰品銷量下滑",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 87,
    "targets": [
     "beef"
    ],
-   "factor": 1.1445741613327796,
+   "factor": 1.0972870806663897,
    "announce_at": 1792998303.2006996,
    "start_at": 1792998303.2006996,
    "half_life_h": 7.042721435148147,
    "headline": "烤肉季開跑",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 88,
    "targets": [
     "rice"
    ],
-   "factor": 1.232187017489408,
-   "announce_at": 1793030379.820427,
+   "factor": 1.386640263117056,
+   "announce_at": 1793032179.820427,
    "start_at": 1793032179.820427,
    "half_life_h": 6.052766705190143,
    "headline": "外銷訂單增加，米價走揚",
-   "rare": false
+   "rare": true,
+   "tier": "big"
   },
   {
    "id": 89,
    "targets": [
     "beef"
    ],
-   "factor": 1.135460294357981,
-   "announce_at": 1793038523.4400702,
+   "factor": 1.0927301471789905,
+   "announce_at": 1793040323.4400702,
    "start_at": 1793040323.4400702,
    "half_life_h": 7.736147393487322,
    "headline": "餐廳推出牛排節",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 90,
    "targets": [
     "milk"
    ],
-   "factor": 0.8159590963777728,
-   "announce_at": 1793044942.843221,
+   "factor": 0.6494693222833297,
+   "announce_at": 1793046742.843221,
    "start_at": 1793046742.843221,
    "half_life_h": 3.0302435720872087,
    "headline": "連日寒流，冰品銷量下滑",
-   "rare": false
+   "rare": true,
+   "tier": "big"
   },
   {
    "id": 91,
@@ -1801,12 +1891,13 @@
     "beef",
     "rice"
    ],
-   "factor": 1.2414870427360856,
+   "factor": 0.09999999999999998,
    "announce_at": 1793051300.9139078,
    "start_at": 1793051300.9139078,
    "half_life_h": 2.4983192525344524,
-   "headline": "農產品博覽會開幕",
-   "rare": false
+   "headline": "港口全面封閉，農產品出不了貨",
+   "rare": true,
+   "tier": "crash"
   },
   {
    "id": 92,
@@ -1815,84 +1906,91 @@
     "beef",
     "rice"
    ],
-   "factor": 1.1830716151507987,
+   "factor": 1.1165358075753993,
    "announce_at": 1793057953.325148,
    "start_at": 1793057953.325148,
    "half_life_h": 6.236265407267195,
    "headline": "觀光牧場人潮湧入",
-   "rare": false
-  },
-  {
-   "id": 94,
-   "targets": [
-    "milk"
-   ],
-   "factor": 0.906950217099529,
-   "announce_at": 1793076075.6945956,
-   "start_at": 1793077875.6945956,
-   "half_life_h": 6.31997431054731,
-   "headline": "連日寒流，冰品銷量下滑",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 93,
    "targets": [
     "rice"
    ],
-   "factor": 1.0776825111399775,
+   "factor": 2.0,
    "announce_at": 1793077317.524527,
    "start_at": 1793077317.524527,
    "half_life_h": 6.531691705972923,
-   "headline": "颱風過境，稻米收購價上漲",
-   "rare": false
+   "headline": "國宴指定在地新米，糧商搶貨",
+   "rare": true,
+   "tier": "super"
+  },
+  {
+   "id": 94,
+   "targets": [
+    "milk"
+   ],
+   "factor": 0.9284751085497646,
+   "announce_at": 1793077875.6945956,
+   "start_at": 1793077875.6945956,
+   "half_life_h": 6.31997431054731,
+   "headline": "連日寒流，冰品銷量下滑",
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 95,
    "targets": [
     "milk"
    ],
-   "factor": 0.8777505476776581,
-   "announce_at": 1793087407.5044222,
+   "factor": 0.9138752738388292,
+   "announce_at": 1793089207.5044222,
    "start_at": 1793089207.5044222,
    "half_life_h": 3.302180096941945,
    "headline": "鄰近牧場產量大增",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 96,
    "targets": [
     "beef"
    ],
-   "factor": 1.1829743675078814,
+   "factor": 2.0,
    "announce_at": 1793101157.623463,
    "start_at": 1793101157.623463,
    "half_life_h": 5.63317903979538,
-   "headline": "牛肉麵大賽熱鬧登場",
-   "rare": false
+   "headline": "牛肉麵登上國際美食榜",
+   "rare": true,
+   "tier": "super"
   },
   {
    "id": 97,
    "targets": [
     "rice"
    ],
-   "factor": 1.1749949096744712,
+   "factor": 1.1124974548372355,
    "announce_at": 1793103038.8927784,
    "start_at": 1793103038.8927784,
    "half_life_h": 6.045517942144507,
    "headline": "颱風過境，稻米收購價上漲",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 98,
    "targets": [
     "milk"
    ],
-   "factor": 1.1651536706317709,
-   "announce_at": 1793134497.5156424,
+   "factor": 1.1075768353158855,
+   "announce_at": 1793136297.5156424,
    "start_at": 1793136297.5156424,
    "half_life_h": 3.9221556268837774,
    "headline": "烘焙展開幕，鮮奶需求大增",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 99,
@@ -1901,12 +1999,13 @@
     "beef",
     "rice"
    ],
-   "factor": 0.8161872854063386,
-   "announce_at": 1793138370.2479596,
+   "factor": 0.8830936427031693,
+   "announce_at": 1793140170.2479596,
    "start_at": 1793140170.2479596,
    "half_life_h": 7.300320832957569,
    "headline": "颱風過境，市場休市一日",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 100,
@@ -1915,24 +2014,26 @@
     "beef",
     "rice"
    ],
-   "factor": 1.1242859338662783,
+   "factor": 1.0871429669331392,
    "announce_at": 1793174213.2688386,
    "start_at": 1793174213.2688386,
    "half_life_h": 6.989628534235864,
    "headline": "農產品博覽會開幕",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 101,
    "targets": [
     "beef"
    ],
-   "factor": 0.9499788005436278,
+   "factor": 0.9499894002718139,
    "announce_at": 1793181522.891774,
    "start_at": 1793181522.891774,
    "half_life_h": 6.035620129355985,
    "headline": "連假結束，餐廳訂單減少",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 102,
@@ -1941,120 +2042,130 @@
     "beef",
     "rice"
    ],
-   "factor": 1.1275292972264899,
+   "factor": 1.088764648613245,
    "announce_at": 1793231163.8993764,
    "start_at": 1793231163.8993764,
    "half_life_h": 3.3609563969663747,
    "headline": "觀光牧場人潮湧入",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 103,
    "targets": [
     "milk"
    ],
-   "factor": 1.1286268631553589,
+   "factor": 1.0893134315776793,
    "announce_at": 1793238328.9297502,
    "start_at": 1793238328.9297502,
    "half_life_h": 6.344587914643229,
    "headline": "鮮奶檢驗全數合格，買氣回溫",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 104,
    "targets": [
     "beef"
    ],
-   "factor": 1.1681425446812272,
-   "announce_at": 1793241121.6957092,
+   "factor": 1.1090712723406135,
+   "announce_at": 1793242921.6957092,
    "start_at": 1793242921.6957092,
    "half_life_h": 6.243146767691592,
    "headline": "年節備貨潮提前",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 105,
    "targets": [
     "beef"
    ],
-   "factor": 0.916724051109033,
-   "announce_at": 1793247229.522733,
+   "factor": 0.7250430383317747,
+   "announce_at": 1793249029.522733,
    "start_at": 1793249029.522733,
    "half_life_h": 2.324271242061681,
    "headline": "健康飲食風潮，肉品需求降溫",
-   "rare": false
+   "rare": true,
+   "tier": "big"
   },
   {
    "id": 106,
    "targets": [
     "rice"
    ],
-   "factor": 1.0883454674552362,
+   "factor": 1.069172733727618,
    "announce_at": 1793273972.7397826,
    "start_at": 1793273972.7397826,
    "half_life_h": 4.065496635047024,
    "headline": "外銷訂單增加，米價走揚",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 107,
    "targets": [
     "milk"
    ],
-   "factor": 1.2320081611420233,
+   "factor": 1.1410040805710115,
    "announce_at": 1793305760.317358,
    "start_at": 1793305760.317358,
    "half_life_h": 2.1590123990496157,
    "headline": "烘焙展開幕，鮮奶需求大增",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 108,
    "targets": [
     "rice"
    ],
-   "factor": 0.785196240238646,
+   "factor": 0.867598120119323,
    "announce_at": 1793310193.4827263,
    "start_at": 1793310193.4827263,
    "half_life_h": 2.5117848629919926,
    "headline": "中部豐收，新米大量上市",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 109,
    "targets": [
     "rice"
    ],
-   "factor": 0.9391366825923773,
-   "announce_at": 1793348867.8501625,
+   "factor": 0.9445683412961886,
+   "announce_at": 1793350667.8501625,
    "start_at": 1793350667.8501625,
    "half_life_h": 4.4083345107815735,
    "headline": "公糧收購暫停",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 110,
    "targets": [
     "rice"
    ],
-   "factor": 0.8219269999858405,
-   "announce_at": 1793400003.6405003,
+   "factor": 0.8859634999929202,
+   "announce_at": 1793401803.6405003,
    "start_at": 1793401803.6405003,
    "half_life_h": 7.2016204648797615,
    "headline": "連日好天氣，各地提早收割",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 111,
    "targets": [
     "milk"
    ],
-   "factor": 1.0809712748236386,
-   "announce_at": 1793461003.7620609,
+   "factor": 1.0654856374118193,
+   "announce_at": 1793462803.7620609,
    "start_at": 1793462803.7620609,
    "half_life_h": 6.870599310182497,
    "headline": "烘焙展開幕，鮮奶需求大增",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 112,
@@ -2063,96 +2174,104 @@
     "beef",
     "rice"
    ],
-   "factor": 0.780663564744086,
+   "factor": 0.865331782372043,
    "announce_at": 1793488896.6695564,
    "start_at": 1793488896.6695564,
    "half_life_h": 4.41587245307086,
    "headline": "颱風過境，市場休市一日",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 113,
    "targets": [
     "rice"
    ],
-   "factor": 0.8108567189046488,
+   "factor": 0.8804283594523244,
    "announce_at": 1793494608.3994746,
    "start_at": 1793494608.3994746,
    "half_life_h": 6.02010115508392,
    "headline": "連日好天氣，各地提早收割",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 114,
    "targets": [
     "milk"
    ],
-   "factor": 0.8267415964833215,
+   "factor": 0.657556197362491,
    "announce_at": 1793497543.6048858,
    "start_at": 1793497543.6048858,
    "half_life_h": 6.6849051382817715,
    "headline": "連日寒流，冰品銷量下滑",
-   "rare": false
+   "rare": true,
+   "tier": "big"
   },
   {
    "id": 115,
    "targets": [
     "milk"
    ],
-   "factor": 0.8323270330464192,
+   "factor": 2.0,
    "announce_at": 1793513323.0378926,
    "start_at": 1793513323.0378926,
    "half_life_h": 4.950748405798683,
-   "headline": "鄰近牧場產量大增",
-   "rare": false
+   "headline": "全國學校改喝鮮奶，訂單暴增",
+   "rare": true,
+   "tier": "super"
   },
   {
    "id": 116,
    "targets": [
     "rice"
    ],
-   "factor": 1.0829265527597625,
-   "announce_at": 1793533157.9858515,
+   "factor": 1.0664632763798811,
+   "announce_at": 1793534957.9858515,
    "start_at": 1793534957.9858515,
    "half_life_h": 5.499107079516305,
    "headline": "米食文化節開幕",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 117,
    "targets": [
     "milk"
    ],
-   "factor": 0.9179198940315445,
+   "factor": 0.9339599470157722,
    "announce_at": 1793543145.0097115,
    "start_at": 1793543145.0097115,
    "half_life_h": 2.1761629622485463,
    "headline": "連日寒流，冰品銷量下滑",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 118,
    "targets": [
     "rice"
    ],
-   "factor": 1.1516564755883203,
+   "factor": 1.10082823779416,
    "announce_at": 1793603618.1846561,
    "start_at": 1793603618.1846561,
    "half_life_h": 4.023978512992698,
    "headline": "米食文化節開幕",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 119,
    "targets": [
     "rice"
    ],
-   "factor": 1.0707354165412726,
+   "factor": 2.0,
    "announce_at": 1793612538.6171114,
    "start_at": 1793612538.6171114,
    "half_life_h": 4.255247888251154,
-   "headline": "外銷訂單增加，米價走揚",
-   "rare": false
+   "headline": "海外飯糰大流行，外銷訂單爆量",
+   "rare": true,
+   "tier": "super"
   },
   {
    "id": 120,
@@ -2161,212 +2280,213 @@
     "beef",
     "rice"
    ],
-   "factor": 0.9178715770038905,
+   "factor": 0.9339357885019453,
    "announce_at": 1793635646.2600796,
    "start_at": 1793635646.2600796,
    "half_life_h": 7.120247437295456,
    "headline": "港口罷工，出口受阻",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   },
   {
    "id": 121,
    "targets": [
     "milk"
    ],
-   "factor": 0.7663899444492943,
+   "factor": 0.8581949722246471,
    "announce_at": 1793682960.8893764,
    "start_at": 1793682960.8893764,
    "half_life_h": 6.235379639167491,
    "headline": "鄰近牧場產量大增",
-   "rare": false
+   "rare": false,
+   "tier": "normal"
   }
  ],
  "stud": {
-  "trades": 211,
-  "trades_player_listing": 48,
-  "trades_npc_listing": 163,
+  "trades": 182,
+  "trades_player_listing": 47,
+  "trades_npc_listing": 135,
   "by_price": {
-   "300_npc": 73,
+   "300_npc": 57,
    "970_npc": 68,
-   "5810": 3,
-   "300": 16,
-   "540_npc": 20,
-   "970": 8,
-   "760_npc": 2,
-   "1360": 2,
-   "540": 4,
-   "1820": 3,
-   "760": 6,
-   "2420": 3,
-   "3270": 3
+   "5810": 2,
+   "300": 19,
+   "540_npc": 9,
+   "970": 13,
+   "760": 2,
+   "2420_npc": 1,
+   "1360": 4,
+   "2420": 4,
+   "540": 2,
+   "3270": 1
   },
-  "listings_open_end": 8,
-  "lender_income_mean": 61960.0,
-  "lender_income_share": 0.043469323468313205,
-  "lender_income_max": 61960.0,
-  "all_player_stud_income": 61960.0,
+  "listings_open_end": 6,
+  "lender_income_mean": 50920.0,
+  "lender_income_share": 0.03581582282843714,
+  "lender_income_max": 50920.0,
+  "all_player_stud_income": 50920.0,
   "max_trade_price": 5810.0
  },
  "shop": {
   "D": {
-   "A": 95.0,
-   "B": 22.0,
-   "C": 37.0
-  },
-  "B": {
    "A": 84.0,
    "B": 35.0,
-   "C": 35.0
+   "C": 38.0
+  },
+  "B": {
+   "A": 81.0,
+   "B": 44.0,
+   "C": 33.0
   },
   "F": {
-   "A": 80.0,
-   "B": 44.0,
-   "C": 44.0
+   "A": 70.0,
+   "B": 38.0,
+   "C": 48.0
   },
   "C": {
-   "A": 130.0,
-   "B": 7.0,
-   "C": 7.0
+   "A": 142.0,
+   "B": 5.0,
+   "C": 12.0
   },
   "T": {
    "A": 63.0,
-   "B": 7.0,
+   "B": 11.0,
    "C": 8.0
   },
   "L": {
-   "A": 62.0,
-   "B": 6.0,
-   "C": 10.0
+   "A": 49.0,
+   "B": 13.0,
+   "C": 9.0
   },
   "all": {
-   "A": 514.0,
-   "B": 121.0,
-   "C": 141.0
+   "A": 489.0,
+   "B": 146.0,
+   "C": 148.0
   }
  },
  "value": {
   "origin": {
-   "breed": {
-    "n": 347,
-    "mean": 11337.96207874285
-   },
    "C": {
-    "n": 107,
-    "mean": 10428.118074769518
+    "n": 116,
+    "mean": 10844.988260416749
+   },
+   "breed": {
+    "n": 355,
+    "mean": 10955.24290375454
    },
    "A": {
-    "n": 293,
-    "mean": 11591.809294267323
-   },
-   "B": {
-    "n": 89,
-    "mean": 11154.505489929823
+    "n": 287,
+    "mean": 11916.473312409324
    },
    "stud": {
-    "n": 150,
-    "mean": 10753.894968597715
+    "n": 120,
+    "mean": 10076.0676386547
+   },
+   "B": {
+    "n": 95,
+    "mean": 10633.58296746002
    }
   },
   "kind": {
+   "0F0": {
+    "n": 128,
+    "mean": 15229.072189894227
+   },
    "1M0": {
-    "n": 76,
-    "mean": 7798.454878156463
+    "n": 90,
+    "mean": 8178.283555256777
    },
    "1F0": {
-    "n": 100,
-    "mean": 7383.501912494304
+    "n": 86,
+    "mean": 6928.808519187442
    },
    "2F0": {
-    "n": 93,
-    "mean": 10744.860121246706
-   },
-   "0F0": {
-    "n": 167,
-    "mean": 15888.073473372368
-   },
-   "0M0": {
-    "n": 116,
-    "mean": 3710.2108194071006
+    "n": 94,
+    "mean": 10927.423480866624
    },
    "0F1": {
-    "n": 47,
-    "mean": 22274.057447018127
-   },
-   "1F2": {
-    "n": 12,
-    "mean": 13783.895092285311
+    "n": 58,
+    "mean": 20841.847631424105
    },
    "1F1": {
-    "n": 40,
-    "mean": 10183.863260504822
-   },
-   "1M2": {
-    "n": 15,
-    "mean": 13994.764508392524
-   },
-   "2M0": {
-    "n": 84,
-    "mean": 11774.584677275068
-   },
-   "2F1": {
-    "n": 37,
-    "mean": 13541.038474394018
-   },
-   "2F2": {
-    "n": 11,
-    "mean": 19425.76042652829
-   },
-   "0F2": {
-    "n": 15,
-    "mean": 29655.15888317692
+    "n": 55,
+    "mean": 9751.062258150225
    },
    "1M1": {
     "n": 43,
-    "mean": 10658.44382250259
+    "mean": 10311.70183682292
+   },
+   "2M0": {
+    "n": 79,
+    "mean": 11972.747349841842
    },
    "0M1": {
-    "n": 74,
-    "mean": 4714.593543846436
-   },
-   "2M2": {
-    "n": 11,
-    "mean": 22147.28448771598
-   },
-   "0M2": {
-    "n": 13,
-    "mean": 6273.906006797771
+    "n": 56,
+    "mean": 4785.452664454677
    },
    "2M1": {
-    "n": 25,
-    "mean": 15226.284575129994
+    "n": 40,
+    "mean": 15834.341148113012
+   },
+   "0F2": {
+    "n": 21,
+    "mean": 29469.4269803912
+   },
+   "0M0": {
+    "n": 130,
+    "mean": 3677.725824924875
+   },
+   "2F1": {
+    "n": 44,
+    "mean": 13486.575709550129
+   },
+   "2M2": {
+    "n": 6,
+    "mean": 18634.49383789815
+   },
+   "0M2": {
+    "n": 11,
+    "mean": 5737.2385449104095
+   },
+   "1M2": {
+    "n": 12,
+    "mean": 14827.414727543432
+   },
+   "2F2": {
+    "n": 8,
+    "mean": 19783.252798951624
+   },
+   "1F2": {
+    "n": 6,
+    "mean": 13041.06289925138
    },
    "1F3": {
-    "n": 2,
-    "mean": 21173.007888255226
-   },
-   "0M3": {
-    "n": 3,
-    "mean": 11351.368441709337
-   },
-   "0F3": {
     "n": 1,
-    "mean": 45219.81469095863
+    "mean": 21459.520648649617
    },
    "1M3": {
+    "n": 2,
+    "mean": 28317.27123226522
+   },
+   "2M3": {
+    "n": 2,
+    "mean": 30601.80145747318
+   },
+   "2F3": {
     "n": 1,
-    "mean": 25510.666285322994
+    "mean": 23282.021927232945
    }
   },
   "avg_price": {
-   "milk": 12.194595917202562,
-   "beef": 12.273571584580154,
-   "rice": 5.137663947394787
+   "milk": 11.847737981115603,
+   "beef": 12.216917775313856,
+   "rice": 5.222606327388911
   }
  },
  "beef_grades": {
-  "A": 601.0,
-  "B": 595.0,
-  "C": 155.0
+  "A": 677.0,
+  "B": 521.0,
+  "C": 135.0
  },
  "fields": {
   "D": 1.0,

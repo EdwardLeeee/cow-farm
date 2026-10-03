@@ -71,7 +71,9 @@ def goal_a() -> dict:
             }
         row["pressure_mean"] = {cid: statistics.fmean(d["pressure_mean"][cid] for d in runs) for cid in CIDS}
         row["online_mean"] = statistics.fmean(d["online"]["mean"] for d in runs)
-        row["pass"] = all(row[c]["inside_min"] >= 0.95 for c in CIDS)
+        # D33（2026-10-03）起超級大事件 +100%、黑天鵝 −90% 照設計會把總價格帶出 0.6–1.7 倍，目標改成 ≥90%；
+        # 新聞以外的部分 ≥95% 由 backend/tests/test_scenarios.py 的 test_price_band 擋（研究筆記第 11 節）
+        row["pass"] = all(row[c]["inside_min"] >= 0.90 for c in CIDS)
         out[str(n)] = row
     return out
 
