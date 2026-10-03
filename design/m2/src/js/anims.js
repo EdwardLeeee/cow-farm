@@ -285,7 +285,7 @@ const A13 = {
     q('.gs-adult').style.opacity = swapped ? 1 : 0;
     q('.gs-adult').style.transform = `translateX(-50%) scale(${0.8 + 0.2 * outBack(seg(t, 0.7, 1.0))})`;
     const nk = seg(t, 1.0, 1.25);
-    q('.gs-old').style.opacity = 1 - seg(t, 0.95, 1.05);
+    q('.gs-old').style.opacity = 1 - seg(t, 0.95, 1.05); q('.gs-old').style.visibility = t >= 1.05 ? 'hidden' : 'visible';
     q('.gs-new').style.opacity = nk; q('.gs-new').style.transform = `scale(${0.7 + 0.3 * outBack(nk)})`;
     [...root.querySelectorAll('.sparkles i')].forEach((s, i) => {
       const k = seg(t, 0.75 + i * 0.05, 1.4);
