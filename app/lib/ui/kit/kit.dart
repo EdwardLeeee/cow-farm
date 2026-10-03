@@ -70,9 +70,10 @@ class AppButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null && !busy;
-    final line = enabled || busy ? AppColors.ink : AppColors.disabledLine;
+    // 處理中跟停用一樣是灰底、淡框（kit.css 的 .btn[disabled]），只有字是 ink-2、前面轉圈（.btn.busy；G-06）
+    final line = enabled ? AppColors.ink : AppColors.disabledLine;
     final fg = busy ? AppColors.ink2 : (enabled ? AppColors.ink : AppColors.ink3);
-    final bg = enabled || busy ? kind.color : AppColors.disabledBg;
+    final bg = enabled ? kind.color : AppColors.disabledBg;
     final text = Text(
       label,
       textAlign: TextAlign.center,

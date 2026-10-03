@@ -70,6 +70,9 @@ class ShopApi extends FakeGameApi {
   bool fail = false;
   Map<String, dynamic>? after;
 
+  /// 設了就讓升級等到 complete 才回（測試「處理中」，G-06）。
+  Completer<void>? upgradeGate;
+
   @override
   Future<ShopInfo> shop() async {
     calls.add('shop');
@@ -90,6 +93,7 @@ class ShopApi extends FakeGameApi {
   @override
   Future<Map<String, dynamic>> upgrade(UpgradeKind kind) async {
     calls.add('upgrade:${kind.wire}');
+    await upgradeGate?.future;
     if (after != null) stateJson = after!;
     return {};
   }

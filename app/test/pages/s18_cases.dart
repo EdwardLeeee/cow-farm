@@ -243,6 +243,9 @@ class StudApi extends FakeGameApi {
 
   bool marketPending = false;
   bool marketFail = false;
+
+  /// 設了就讓借種市場等到 complete 才回（測試下拉重新整理，G-09）。
+  Completer<void>? studGate;
   bool previewPending = false;
   List<Map<String, dynamic>> blockers = [];
 
@@ -254,6 +257,7 @@ class StudApi extends FakeGameApi {
   Future<StudMarket> stud() async {
     calls.add('stud');
     if (marketPending) return Completer<StudMarket>().future;
+    await studGate?.future;
     if (marketFail) throw const ApiException(500, 'internal', 'boom');
     return StudMarket.fromJson({
       'listings': [...studListings, _mine()],

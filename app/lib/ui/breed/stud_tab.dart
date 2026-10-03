@@ -21,6 +21,7 @@ import '../kit/kit.dart';
 import '../kit/meter.dart';
 import '../kit/note_line.dart';
 import '../kit/press.dart';
+import '../kit/pull_refresh.dart';
 import '../widgets/action_button.dart';
 import 'breed_page.dart';
 
@@ -281,14 +282,16 @@ class _StudTabState extends State<StudTab> {
     return AppFrame(
       tab: AppTab.breed,
       contentPadding: EdgeInsets.zero,
-      content: RefreshIndicator(
+      content: PullRefresh(
         onRefresh: _reload,
-        child: ListView(
+        builder: (context, refreshing) => ListView(
           key: const Key('stud'),
           controller: _scroll,
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(0, 4, 0, 16),
           children: [
+            // G-09：下拉重新整理時，最上面多一行「轉圈＋重新整理中…」
+            if (refreshing) ...[const PullIndicator(), const SizedBox(height: 10)],
             pad(widget.seg),
             const SizedBox(height: 12),
             pad(MyBullsCard(onToast: _showToast)),

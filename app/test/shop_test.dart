@@ -1,5 +1,7 @@
 // 商店：S19 抽牛（機率由伺服器給、錢不夠或牛舍滿了停用、抽到的結果、載入失敗重試）、
 // S10 設施（效果、費用、滿級、還沒開放、升級成功）；擴建、加大倉庫的按鈕直接到設施。
+import 'dart:async';
+
 import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
 import 'package:cowfarm/ui/kit/kit.dart';
@@ -183,5 +185,21 @@ void main() {
     await tester.pump();
     expect(m.tab, AppTab.shop);
     expect(m.shopFacility, isFalse);
+  });
+
+  testWidgets('G-06 升級中：那一顆轉圈寫「處理中…」，其他設施停用；回覆以後恢復', (tester) async {
+    Screen.w390.apply(tester);
+    final api = ShopApi()..upgradeGate = Completer<void>();
+    await showShop(tester, AppLang.zhHant, api: api, facility: true);
+    await tester.tap(find.byKey(const Key('up-bucket')));
+    await tester.pump();
+    expect(_btn(tester, 'up-bucket').busy, isTrue);
+    expect(_btn(tester, 'up-bucket').label, _zh.gBusy);
+    expect(_btn(tester, 'up-warehouse').busy, isFalse);
+    expect(_btn(tester, 'up-warehouse').onPressed, isNull, reason: '其他按鈕停用');
+    api.upgradeGate!.complete();
+    await tester.pump();
+    await tester.pump();
+    expect(_btn(tester, 'up-bucket').busy, isFalse);
   });
 }
