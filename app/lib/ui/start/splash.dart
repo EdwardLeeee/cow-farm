@@ -2,6 +2,7 @@
 // 下面的框放這個狀態要說的話（載入中、建立牧場中、載入失敗）。位置都照手機整個螢幕的高度算（--H），天空延伸到狀態列下面。
 // S13-04「牧場已經刪除了」只有天空和遊戲名，框在遊戲名下面（[scenery] false）。
 // S14-01 第一次打開（開新牧場／找回我的牧場）是同一個場景，沒有草地上的小草小花和版本號（[deco]、[version] false）。
+// S16-01 維護中用同一套天空、標題和草地（[MaintenanceScreen]）。
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -9,7 +10,9 @@ import 'package:flutter/material.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
 import '../../version.dart';
+import '../kit/app_icon.dart';
 import '../kit/cow_art.dart';
+import '../kit/kit.dart';
 
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key, this.child, this.scenery = true, this.deco = true, this.version = true});
@@ -136,6 +139,160 @@ class SplashScreen extends StatelessWidget {
   }
 }
 
+/// S16-01 伺服器維護中（s13.js 的 maint；screens.css 的 .tool-badge、.maint-time）：天空、「維護中」、牛和扳手圓章、草地，
+/// 下面一張卡：「伺服器正在維護」、預計恢復的時間、說明、「重新整理」。位置照整個螢幕的高度算，從 H × 0.12 起。
+/// 預計恢復的那一行：過了時間還在維護換成「比預計的時間晚一點，請再等一下」（S16-04）；沒有時間就不顯示（S16-05）。
+class MaintenanceScreen extends StatelessWidget {
+  const MaintenanceScreen({super.key, this.ends, this.late = false, required this.onReload});
+
+  /// 預計恢復的時間（手機的時區）；null 是沒有預計時間。
+  final DateTime? ends;
+
+  /// 已經過了預計恢復的時間。
+  final bool late;
+  final VoidCallback onReload;
+
+  @override
+  Widget build(BuildContext context) {
+    final mq = MediaQuery.of(context);
+    final s = Strings.of(context);
+    final h = mq.size.height, top = h * 0.12;
+    final ends = this.ends;
+    final eta = late ? s.s16Late : (ends == null ? null : s.maintenanceEta(ends));
+    return ColoredBox(
+      key: const Key('maintenance'),
+      color: AppColors.cream,
+      child: SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: h),
+          child: IntrinsicHeight(
+            child: Stack(
+              fit: StackFit.expand,
+              clipBehavior: Clip.hardEdge,
+              children: [
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: 0,
+                  height: h,
+                  child: const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0xFF94D3FF), Color(0xFFC4E9FF), Color(0xFFE4F6FF)],
+                        stops: [0, 0.42, 0.6],
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: top,
+                  child: Center(
+                    child: FittedBox(fit: BoxFit.scaleDown, child: _Title(s.s16Title, size: 36)),
+                  ),
+                ),
+                Positioned(left: -20, right: -20, top: top + 202, bottom: -20, child: const _Ground()),
+                // 牛 140×140，右邊疊一個扳手圓章（往左 24、離底 18）；整組置中、靠底對齊
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: top + 70,
+                  child: const Center(
+                    child: SizedBox(
+                      width: 140 + 64 - 24,
+                      height: 140,
+                      child: Stack(
+                        children: [
+                          Positioned(left: 0, bottom: 0, child: CowPicture(breed: 'holstein', width: 140, height: 140)),
+                          Positioned(left: 140 - 24, bottom: 18, child: _ToolBadge()),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                Column(
+                  children: [
+                    SizedBox(height: top + 236),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: AppCard(
+                        key: const Key('maintenance-card'),
+                        child: Column(
+                          children: [
+                            // <b> 在一般的 div 裡：字 18、行高 26
+                            Text(
+                              s.s16Lead,
+                              textAlign: TextAlign.center,
+                              style: AppText.style(18, weight: FontWeight.w700, lineHeight: 26),
+                            ),
+                            if (eta != null)
+                              Padding(
+                                key: const Key('maintenance-eta'),
+                                padding: const EdgeInsets.only(top: 6, bottom: 4),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const AppIcon('clock', size: 18),
+                                    const SizedBox(width: 4),
+                                    Flexible(
+                                      child: Text(
+                                        eta,
+                                        textAlign: TextAlign.center,
+                                        style: AppText.style(15, weight: FontWeight.w900),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            Text(s.s16Body, textAlign: TextAlign.center, style: KitText.hint()),
+                            const SizedBox(height: 12),
+                            AppButton(
+                              s.reload,
+                              key: const Key('maintenance-reload'),
+                              kind: ButtonKind.primary,
+                              block: true,
+                              icon: 'refresh',
+                              onPressed: onReload,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    SizedBox(height: mq.padding.bottom + 12),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// .tool-badge：64×64 的白色圓章（框 3、下陰影 3），中間一支 44 的扳手。
+class _ToolBadge extends StatelessWidget {
+  const _ToolBadge();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 64,
+    height: 64,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      color: Colors.white,
+      border: Border.all(color: AppColors.ink, width: AppSizes.border),
+      boxShadow: AppShadows.solid(3),
+    ),
+    child: const AppIcon('tools', size: 44),
+  );
+}
+
 class _Sun extends StatelessWidget {
   const _Sun();
 
@@ -155,14 +312,17 @@ class _Sun extends StatelessWidget {
 
 /// 遊戲名：白字、8px 可可色描邊（描邊在下、字在上，看起來外圈 4px）、往下 5px 的實心影子。
 class _Title extends StatelessWidget {
-  const _Title(this.text);
+  const _Title(this.text, {this.size = 44});
 
   final String text;
+
+  /// 字級（S16-01 維護中是 36；行高照樣 56）。
+  final double size;
 
   @override
   Widget build(BuildContext context) {
     TextStyle style(Paint? fg) => AppText.style(
-      44,
+      size,
       weight: FontWeight.w900,
       color: Colors.white,
       lineHeight: 56,
@@ -175,7 +335,8 @@ class _Title extends StatelessWidget {
       ..color = AppColors.ink;
     return Padding(
       key: const Key('game-title'),
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      // CSS 的 padding: 0 8px。字距 4：Chrome 加在每個字後面，Flutter 前後各加一半（第一個字往右 2），左右各挪 2 對回 Chrome
+      padding: const EdgeInsets.only(left: 8 - 2, right: 8 + 2),
       child: Stack(
         children: [
           Transform.translate(

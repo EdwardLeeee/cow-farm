@@ -173,7 +173,7 @@ class _StudTabState extends State<StudTab> {
       }
       // 其他原因（例如母牛剛被別的手機用掉了）：重抓機率，下面的提醒照最新的原因
       setState(_fetch.invalidate);
-      _showToast(ToastKind.err, actionErrorTextWith(s, m, err));
+      _showToast(actionErrorKind(err), actionErrorTextWith(s, m, err));
       return;
     }
     final calf = r.value?.calf;
@@ -714,7 +714,7 @@ class MyBullsCard extends StatelessWidget {
       final err = r.error;
       if (err == null) return;
       if (err case ApiActionError(:final error) when error.maintenance || error.unauthorized) return;
-      onToast(ToastKind.err, actionErrorTextWith(s, m, err));
+      onToast(actionErrorKind(err), actionErrorTextWith(s, m, err));
     }
 
     return AppCard(

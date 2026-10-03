@@ -448,7 +448,7 @@ void main() {
       m.dispose();
     });
 
-    testWidgets('原型外框：斷線很久在上方提示 S15-04；維護中整個換成 S16-01，沒有分頁', (tester) async {
+    testWidgets('斷線很久在上方提示 S15-04；維護中整個換成 S16-01，沒有分頁', (tester) async {
       final zh = Strings.forLang(AppLang.zhHant);
       final clock = FakeClock();
       final (m, _, push) = await loadedModel(clock: clock);
@@ -462,7 +462,7 @@ void main() {
       push.emit(const MaintenancePush(Maintenance(endsAtReal: 1790784000, active: true)));
       await tester.pump(Duration.zero);
       expect(find.byKey(const Key('maintenance')), findsOneWidget);
-      expect(find.text(zh.s16Title), findsOneWidget);
+      expect(find.text(zh.s16Title), findsWidgets); // 標題是描邊、影子、字三層
       expect(find.byType(AppTabBar), findsNothing);
       expect(find.byKey(const Key('long-offline')), findsNothing);
 

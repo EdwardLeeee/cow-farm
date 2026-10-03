@@ -93,7 +93,7 @@ class _BreedPageState extends State<BreedPage> {
         _fetch.invalidate();
       });
       if (err case ApiActionError(:final error) when error.maintenance || error.unauthorized) return;
-      _showToast(ToastKind.err, actionErrorTextWith(s, m, err));
+      _showToast(actionErrorKind(err), actionErrorTextWith(s, m, err));
       return;
     }
     final calf = r.value?.calf;

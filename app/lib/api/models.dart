@@ -1044,13 +1044,17 @@ class Session {
 
 /// `GET /v1/status`（不用 token）：開機先打，決定要不要顯示維護畫面（協定 6.1）。
 class ServerStatus {
-  const ServerStatus({this.protocol, this.maintenance});
+  const ServerStatus({this.protocol, this.maintenance, this.realTime});
   final int? protocol;
   final Maintenance? maintenance;
+
+  /// 伺服器的現實時間（Unix 秒）：維護畫面判斷「過了預計恢復的時間」（S16-04）用，不信手機的時鐘。
+  final double? realTime;
 
   factory ServerStatus.fromJson(Map<String, dynamic> j) => ServerStatus(
     protocol: j['protocol'] is num ? (j['protocol'] as num).toInt() : null,
     maintenance: Maintenance.fromJson(j['maintenance']),
+    realTime: _dn(j['real_time']),
   );
 }
 

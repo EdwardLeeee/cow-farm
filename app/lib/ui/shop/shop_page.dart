@@ -81,7 +81,7 @@ class _ShopPageState extends State<ShopPage> {
     final err = r.error;
     if (err != null) {
       if (err case ApiActionError(:final error) when error.maintenance || error.unauthorized) return;
-      _showToast(ToastKind.err, actionErrorTextWith(s, m, err));
+      _showToast(actionErrorKind(err), actionErrorTextWith(s, m, err));
       return;
     }
     final cow = r.value?.cow;
@@ -105,7 +105,7 @@ class _ShopPageState extends State<ShopPage> {
     final err = r.error;
     if (err != null) {
       if (err case ApiActionError(:final error) when error.maintenance || error.unauthorized) return;
-      _showToast(ToastKind.err, actionErrorTextWith(s, m, err));
+      _showToast(actionErrorKind(err), actionErrorTextWith(s, m, err));
       return;
     }
     setState(() => _done = kind);

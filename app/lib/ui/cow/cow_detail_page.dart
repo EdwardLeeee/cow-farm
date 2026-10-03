@@ -70,7 +70,10 @@ class _CowDetailPageState extends State<CowDetailPage> {
     final err = r.error;
     if (!mounted || err == null) return;
     if (err case ApiActionError(:final error) when error.maintenance || error.unauthorized) return;
-    _showToast(ToastKind.err, actionErrorTextWith(Strings.of(context, listen: false), context.read<GameModel>(), err));
+    _showToast(
+      actionErrorKind(err),
+      actionErrorTextWith(Strings.of(context, listen: false), context.read<GameModel>(), err),
+    );
   }
 
   Future<void> _ship(Cow cow) async {

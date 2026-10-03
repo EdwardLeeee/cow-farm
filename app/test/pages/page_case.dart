@@ -23,6 +23,7 @@ import 's09_cases.dart';
 import 's11_cases.dart';
 import 's13_cases.dart';
 import 's14_cases.dart';
+import 's15_s16_cases.dart';
 import 's17_cases.dart';
 import 's18_cases.dart';
 import 's19_cases.dart';
@@ -87,6 +88,7 @@ final List<PageCase> pageCases = [
   ...s11Cases,
   ...s13Cases,
   ...s14Cases,
+  ...s15s16Cases,
   ...s17Cases,
   ...s18Cases,
   ...s19Cases,
