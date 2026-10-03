@@ -96,12 +96,31 @@ const S11 = [];
 const full11 = (id, name, render, x = {}) => S11.push({ id, name, type: 'full', render, ...x });
 const part11 = (id, name, crop, render, x = {}) => S11.push({ id, name, type: 'part', crop, render, ...x });
 full11('S11-01', '場主升級慶祝', (ctx) => levelUp(ctx, { lv: 5 }));
-part11('S11-03', '新手引導提示（第 15 分鐘、第 20 分鐘）', '#crop', (ctx) => frame(ctx.dev, { tab: null, hud: false, content: `<div id="crop" class="stack">
-  <div class="coach"><span class="coach-ic">${cowSVG({ breed: 'holstein' }, { w: 56, h: 56 })}</span><div class="grow"><b>${t('s11.coachPenTitle')}</b><p>${t('s11.coachPenBody', { price: 280 })}</p></div><span class="coach-go">${btn(t('s11.coachPenGo'), { small: true, kind: 'primary' })}</span></div>
-  <div class="coach"><span class="coach-ic">${cowSVG({ breed: 'yellow', sex: 'bull', seed: 33 }, { w: 56, h: 56 })}</span><div class="grow"><b>${t('s11.coachBullTitle')}</b><p>${t('s11.coachBullBody')}</p></div><span class="coach-go">${btn(t('s11.coachBullGo'), { small: true, kind: 'pink' })}</span></div></div>` }));
+// 新手引導卡（企劃書 4.13；cow-app #136 的做法，ceo 2026-10-03 同意）：右上角的 × 是白色小圓章（直徑 24），圓心在卡片的右上角；
+// 點得到的範圍 44 × 44（就是 button 本身）往上超出卡片 26、往右超出 12（卡片裡放不下，會碰到按鈕）。hit：用虛線畫出點得到的範圍（說明用）
+function coachCard(kind, { cls = '', hit = false } = {}) {
+  const pen = kind === 'pen';
+  const pic = pen ? cowSVG({ breed: 'holstein' }, { w: 56, h: 56 }) : cowSVG({ breed: 'yellow', sex: 'bull', seed: 33 }, { w: 56, h: 56 });
+  const text = pen ? `<b>${t('s11.coachPenTitle')}</b><p>${t('s11.coachPenBody', { price: 280 })}</p>` : `<b>${t('s11.coachBullTitle')}</b><p>${t('s11.coachBullBody')}</p>`;
+  const go = pen ? btn(t('s11.coachPenGo'), { small: true, kind: 'primary' }) : btn(t('s11.coachBullGo'), { small: true, kind: 'pink' });
+  return `<div class="coach${cls ? ` ${cls}` : ''}${hit ? ' show-hit' : ''}"><span class="coach-ic">${pic}</span><div class="grow">${text}</div><span class="coach-go">${go}</span>
+    <button class="coach-x" aria-label="${t('g.close')}"><span class="cx-dot">${icon('close', 12)}</span></button></div>`;
+}
+part11('S11-03', '新手引導提示（第 15 分鐘、第 20 分鐘）', '#crop', (ctx) => frame(ctx.dev, { tab: null, hud: false, content: `<div id="crop" class="stack coach-sheet">
+  ${coachCard('pen', { hit: true })}
+  ${coachCard('bull')}</div>` }));
 part11('S11-04', '頂列經驗條：快升級、剛升級', '#crop', (ctx) => frame(ctx.dev, { tab: null, hud: false, content: `<div id="crop" class="g-sheet">
   <div class="g-hud">${hud({ level: 4, xp: 96, w: ctx.dev.w })}</div><div class="g-hud">${hud({ level: 5, xp: 0, w: ctx.dev.w })}</div>
   <p class="hint" data-note>經驗條＝這一級的累積收入進度（賣出＋借種收入）。Lv4 要 3,500 幣，Lv5 要 7,500 幣。</p></div>` }));
+
+// 新手引導卡在牧場頁：跑馬燈下面 12、左右各 12，蓋在「我的牛」上面（關掉就回來）；開局第 15 分鐘的牧場（還沒升級、小公牛還沒長大）
+full11('S11-06', '新手引導卡在牧場頁', (ctx) => ranchPage(ctx, {
+  herd: [{ id: 1, breed: 'holstein', x: 96, y: 420, facing: 'right', depth: 1, milk: true }, { id: 2, breed: 'yellow', sex: 'bull', age: 'calf', seed: 33, x: 262, y: 432, facing: 'left', depth: 1 }],
+  pen: { used: 2, slots: 2 },
+  hud: { level: 1, xp: 64, coins: 412 },
+  dock: { bucket: { qty: 6.2, cap: 28, perHour: 14 }, milkLots: [{ qty: 9, tier: 0, fresh: 1 }], cap: 150, beef: 0, rice: 0 },
+  overlays: coachCard('pen', { cls: 'on-ranch' }),
+}));
 
 // 升到 Lv2 的慶祝卡關掉以後出現一次（D22；企劃書 4.11）。這時候還沒備份、也沒打開過備份頁，所以頂列的齒輪上有小點。
 full11('S11-05', '升到 Lv2 之後：提醒備份牧場（只出現一次）', (ctx) => ranchPage(ctx, {
