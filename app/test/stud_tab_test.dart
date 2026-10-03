@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:cowfarm/api/game_api.dart';
 import 'package:cowfarm/api/models.dart';
 import 'package:cowfarm/l10n/l10n.dart';
+import 'package:cowfarm/state/game_model.dart';
 import 'package:cowfarm/ui/breed/breed_page.dart';
 import 'package:cowfarm/ui/breed/stud_log_page.dart';
 import 'package:cowfarm/ui/breed/stud_tab.dart';
@@ -14,6 +15,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'fakes.dart';
 import 'pages/page_case.dart';
+import 'pages/s03_cases.dart';
 import 'pages/s18_cases.dart';
 
 final _zh = Strings.forLang(AppLang.zhHant);
@@ -321,5 +323,28 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(seconds: 1));
     expect(find.byKey(const Key('pull-indicator')), findsNothing);
+  });
+
+  testWidgets('借種紀錄（S18-11）：每一列自己一個無障礙節點，讀螢幕一列一列讀（8790 走查：借出、借入兩列併成一個節點）', (tester) async {
+    final handle = tester.ensureSemantics();
+    Screen.w430.apply(tester);
+    final m = await ranchModel(api: StudApi());
+    m
+      ..selectTab(AppTab.breed)
+      ..selectBreed(stud: true)
+      ..openStudLog();
+    await pumpAppIn(tester, m, AppLang.zhHant, prefs: swipeHintSeen);
+    await tester.pump();
+    await tester.pump();
+    final rows = find.byType(StudLogRow);
+    expect(rows, findsNWidgets(4));
+    final nodes = [for (var i = 0; i < 4; i++) tester.getSemantics(rows.at(i))];
+    expect(nodes.map((n) => n.id).toSet(), hasLength(4), reason: '4 列是 4 個節點');
+    for (final n in nodes) {
+      final label = n.label;
+      expect(label, matches(RegExp('^(${_zh.s18Out}|${_zh.s18In})\n')), reason: label);
+      expect(RegExp('(^|\n)(${_zh.s18Out}|${_zh.s18In})\n').allMatches(label), hasLength(1), reason: '一個節點只有一筆：$label');
+    }
+    handle.dispose();
   });
 }
