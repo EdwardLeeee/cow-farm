@@ -1,10 +1,11 @@
 // A-11 牛在牧場走動、A-07 轉身。動作的數字照設計稿 anims.js：下面的參考值是用 node 跑 anims.js 的
 // walkPose、A07.frame 原始函式算出來的（設計稿的 seg、inOut、outBack）。
-// 牧場開著 HerdMotion（main.dart）時牛會走；點一頭牛轉正面停下來，小名片對準停下的地方；再點一次轉回側面，從停下的
+// 牧場開著 AppMotion（main.dart）時牛會走；點一頭牛轉正面停下來，小名片對準停下的地方；再點一次轉回側面，從停下的
 // 地方接著走。手機設定「減少動態」時牛站在原位，點到直接換成正面。
 import 'package:cowfarm/app.dart';
 import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
+import 'package:cowfarm/ui/kit/motion.dart';
 import 'package:cowfarm/ui/ranch/scene.dart';
 import 'package:cowfarm/ui/ranch/walk.dart';
 import 'package:flutter/material.dart';
@@ -15,14 +16,14 @@ import 'pages/s03_cases.dart';
 
 RanchScene ranchScene(WidgetTester tester) => tester.widget<RanchScene>(find.byType(RanchScene));
 
-/// 牧場（設計稿的 8 頭牛），開著 HerdMotion。
+/// 牧場（設計稿的 8 頭牛），開著 AppMotion。
 Future<GameModel> _pumpWalkingRanch(WidgetTester tester) async {
   Screen.w430.apply(tester);
   final m = await ranchModel();
   final settings = settingsFor(AppLang.zhHant, swipeHintSeen);
   await settings.load();
   await tester.pumpWidget(
-    HerdMotion(
+    AppMotion(
       enabled: true,
       child: CowFarmApp(model: m, settings: settings),
     ),

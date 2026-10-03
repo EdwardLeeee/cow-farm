@@ -9,6 +9,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../api/models.dart';
 import '../kit/cow_art.dart';
+import '../kit/motion.dart';
 import 'herd.dart';
 import 'ranch_game.dart';
 
@@ -91,21 +92,6 @@ class CowPlacement {
   }
 }
 
-/// 牧場的牛會不會走動、轉身（A-11、A-07）。app 打開時是開的（main.dart）；沒有包這個的時候（測試）關著，牛站在原位，
-/// 跟靜態的設計稿一樣。手機設定了「減少動態」也一樣關著。
-class HerdMotion extends InheritedWidget {
-  const HerdMotion({super.key, required this.enabled, required super.child});
-
-  final bool enabled;
-
-  static bool of(BuildContext context) =>
-      (context.dependOnInheritedWidgetOfExactType<HerdMotion>()?.enabled ?? false) &&
-      !MediaQuery.disableAnimationsOf(context);
-
-  @override
-  bool updateShouldNotify(HerdMotion oldWidget) => oldWidget.enabled != enabled;
-}
-
 /// 牧場場景：背景加上牛。[onPan] 給了就可以左右拖動（拖動時回報新的 pan）。
 /// [game] 是畫牛的 Flame 遊戲：牧場頁自己留著，泡泡和小名片才知道停下來的牛在哪裡。
 class RanchScene extends StatefulWidget {
@@ -143,7 +129,7 @@ class _RanchSceneState extends State<RanchScene> {
 
   @override
   Widget build(BuildContext context) {
-    final animate = HerdMotion.of(context);
+    final animate = AppMotion.of(context);
     final dpr = MediaQuery.devicePixelRatioOf(context);
     return LayoutBuilder(
       builder: (context, c) {

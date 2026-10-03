@@ -1,6 +1,6 @@
 // 整合走查（headless Chromium，正式畫面 + 還沒換掉的 M1 分頁），每步截圖：
 //   開新牧場（S02 取名、歡迎）→ 收奶 → 賣奶（S06）→ 擴建牛舍、加大奶桶（S10）→ 抽 C 級（S19）→
-//   等小牛長大 → 出貨（S04 → S07 → S20）→ 田地（S17）：派耕牛、收成 → 賣稻米 → 叫回耕牛 →
+//   等小牛長大 → 出貨（S04 → S07 → A-03 卡車 → S20）→ 田地（S17）：派耕牛、收成 → 賣稻米 → 叫回耕牛 →
 //   借種（S18）：上架、借別人的公牛、借種紀錄 → 圖鑑、排行榜（M1）→
 //   設定（S13）：語言、漲跌顏色、音效，最後刪除牧場（S13-04 → 開新牧場 → S02）→
 //   另開一個新牧場（新的瀏覽器設定檔）：收奶賣奶、擴建牛舍 → 自己配種（S08）：開局的公母配、機率、新小牛、已配種
@@ -304,9 +304,17 @@ const writeLog = () => fs.writeFileSync(
       await shot('ship-confirm');
       if (!(await enabled(button('確定出貨')))) { issue('出貨確認：「確定出貨」停用'); break; }
       await mark(); await tap(button('確定出貨'));
-      await wait(2500);
-      const res = await fullText();
-      shipped = `${(res.match(/[^\n]*出貨評級/) || ['?'])[0]}；${(res.match(/[\d,.]+ 公斤牛肉放進倉庫了/) || ['?'])[0]}；${(res.match(/現在全部賣掉約 [\d,]+ 幣/) || ['?'])[0]}`;
+      // A-03 出貨卡車：播 3.6 秒（畫面上有「點一下跳過」），播完換成評級結果（S20）
+      await wait(1500);
+      const truck = (await labels()).includes('點一下跳過');
+      await shot('ship-truck');
+      step('出貨卡車（A-03）', truck, truck ? '播到一半：有「點一下跳過」' : '沒看到卡車那一幕');
+      let res = '';
+      for (let i = 0; i < 16 && !/出貨評級/.test(res); i++) { await wait(500); res = await fullText(); }
+      const grade = (res.match(/[^\n]*出貨評級/) || [''])[0];
+      const kg = (res.match(/[\d,.]+ 公斤牛肉放進倉庫了/) || [''])[0];
+      if (grade && kg) shipped = `${grade}；${kg}；${(res.match(/現在全部賣掉約 [\d,]+ 幣/) || ['?'])[0]}`;
+      else issue('出貨：卡車播完後沒有看到評級結果（S20）');
       await shot('ship-result');
       await tap(button('好')).catch(() => {});
       await wait(800);
