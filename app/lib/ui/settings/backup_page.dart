@@ -259,7 +259,7 @@ class _BackupPageState extends State<BackupPage> {
       children: [
         _OtherRanch(ranch: c.ranch),
         const SizedBox(height: 10),
-        Text(s.s13OtherBody),
+        _DialogText(s.s13OtherBody),
         const SizedBox(height: 14),
         AppButton(
           s.s13OtherSwitch,
@@ -295,7 +295,7 @@ class _BackupPageState extends State<BackupPage> {
             kind: NoteKind.danger,
           ),
           const SizedBox(height: 8),
-          Text(s.s13SwitchAfter(name: there)),
+          _DialogText(s.s13SwitchAfter(name: there)),
           const SizedBox(height: 14),
           AppButton(
             s.s13SwitchConfirm,
@@ -323,10 +323,10 @@ class _BackupPageState extends State<BackupPage> {
     body: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(s.s13UnbindBody),
+        _DialogText(s.s13UnbindBody),
         if (last) ...[
           const SizedBox(height: 6),
-          Text(s.s13UnbindLast, key: const Key('unbind-last'), style: KitText.warn()),
+          _DialogText(s.s13UnbindLast, key: const Key('unbind-last'), style: KitText.warn()),
         ],
       ],
     ),
@@ -427,6 +427,23 @@ class _BindRow extends StatelessWidget {
   }
 }
 
+/// 對話框的內文（.dialog .body：14、粗、行高 21）。
+final _dialogBody = AppText.style(14, weight: FontWeight.w700, lineHeight: 21);
+
+/// 對話框裡的一段字：照 Chrome 的基線畫（14／21 的字 Flutter 比設計稿低 1.8，[CssParagraph]）。
+class _DialogText extends StatelessWidget {
+  const _DialogText(this.text, {super.key, this.style});
+
+  final String text;
+
+  /// 換字色、字級（例：.warn-text 13／19 橘字）；行高跟著換。
+  final TextStyle? style;
+
+  @override
+  Widget build(BuildContext context) =>
+      CssParagraph(TextSpan(text: text), style: style == null ? _dialogBody : _dialogBody.merge(style));
+}
+
 /// .other-ranch：S13-08 對話框裡那個牧場（頭像、「晨光河畔牧場 #1234」、「Lv 4」）。
 class _OtherRanch extends StatelessWidget {
   const _OtherRanch({required this.ranch});
@@ -454,10 +471,17 @@ class _OtherRanch extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(name, style: AppText.style(16, weight: FontWeight.w700, lineHeight: 21)),
-                Text(
-                  s.level(lv: ranch.level ?? 1),
-                  strutStyle: kDivStrut,
-                  style: KitText.hint(),
+                // .hint 是對話框 .body 裡的一般文字：行高照 .body 的 14／21 算（設定頁的牧場卡是 16 的 normal）
+                CssLine(
+                  TextSpan(
+                    style: _dialogBody,
+                    children: [
+                      TextSpan(
+                        text: s.level(lv: ranch.level ?? 1),
+                        style: KitText.hint(),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
