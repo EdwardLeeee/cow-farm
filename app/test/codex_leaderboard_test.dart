@@ -42,13 +42,13 @@ void main() {
     expect(m.codexBreed, isNull);
   });
 
-  testWidgets('圖鑑：畫面 339 寬以下一排 3 格，以上 4 格；品種名不換行（screens.css 的 @media、.dex-name）', (tester) async {
+  testWidgets('圖鑑：畫面寬度小於 390 一排 3 格，390 以上 4 格；品種名放不下就換行、置中（#126 的 screens.css）', (tester) async {
     final zh = Strings.forLang(AppLang.zhHant);
     final dairy = [
       for (final b in kCodexOrder)
         if (breedInfo(b)?.type == CowType.dairy) b,
     ];
-    for (final (screen, cols) in [(Screen.w320, 3), (Screen.w360, 4)]) {
+    for (final (screen, cols) in [(Screen.w320, 3), (Screen.w360, 3), (Screen.w390, 4)]) {
       final (m, _, _) = await loadedModel();
       await pumpApp(tester, m);
       screen.apply(tester); // pumpApp 固定 430 寬，之後才換成要測的寬度
@@ -64,7 +64,8 @@ void main() {
         of: find.byKey(Key('codex-${dairy[0]}')),
         matching: find.text(zh.breedName(dairy[0])),
       );
-      expect(tester.widget<Text>(name).softWrap, isFalse);
+      expect(tester.widget<Text>(name).softWrap, isNot(false));
+      expect(tester.widget<Text>(name).textAlign, TextAlign.center);
     }
   });
 

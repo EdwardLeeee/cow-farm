@@ -152,9 +152,9 @@ class _UseSection extends StatelessWidget {
       for (final b in kCodexOrder)
         if (breedInfo(b)?.type == use) b,
     ];
-    // .dex-grid 一排 4 格；畫面 339 寬以下排 3 格（screens.css 的 @media (max-width: 339px)：4 格時一格只剩 59，
-    // 長的牛名整個詞放不下）
-    final cols = MediaQuery.sizeOf(context).width < 340 ? 3 : 4;
+    // .dex-grid 一排 4 格；畫面寬度小於 390 排 3 格（screens.css 的 @media (max-width: 389px)；#126、ceo 2026-10-03：
+    // 360 寬排 4 格時，英文的長牛名要換三行）
+    final cols = MediaQuery.sizeOf(context).width < 390 ? 3 : 4;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -249,19 +249,15 @@ class DexCell extends StatelessWidget {
                       : CowSilhouette.dark(breed: breed, width: 74, height: 64, pad: 3),
                 ),
                 const SizedBox(height: 2),
-                // .dex-name 是 white-space: nowrap
-                OverflowBox(
-                  maxWidth: double.infinity,
-                  fit: OverflowBoxFit.deferToChild,
-                  child: Text(
-                    found ? s.breedName(breed) : s.gUnknownBreed,
-                    softWrap: false,
-                    style: AppText.style(
-                      12,
-                      weight: FontWeight.w900,
-                      color: found ? AppColors.ink : AppColors.ink2,
-                      lineHeight: 16,
-                    ),
+                // .dex-name：放不下就換行、置中（screens.css「英文、泰文」第 3 條；繁中的牛名放得下，不會換）
+                Text(
+                  found ? s.breedName(breed) : s.gUnknownBreed,
+                  textAlign: TextAlign.center,
+                  style: AppText.style(
+                    12,
+                    weight: FontWeight.w900,
+                    color: found ? AppColors.ink : AppColors.ink2,
+                    lineHeight: 16,
                   ),
                 ),
                 const SizedBox(height: 2),
