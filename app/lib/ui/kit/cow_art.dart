@@ -198,7 +198,7 @@ class CowFace extends StatelessWidget {
 
 /// 牛的淺色剪影（設計稿 kit.js 的 cowSVG 加 sil: true）：整隻牛填 #C2B3A6，中間一個白字、深色描邊的「？」
 /// （字級是高的 0.42、基線在高的 0.62、描邊 max(1.5, 高 × 0.03)）。找不到這頭牛（S04-11）、還沒發現的品種（S08-06）用。
-/// [CowSilhouette.dark] 是深色的（sil: 'dark'，填 #2A1E1A、沒有「？」）：圖鑑還沒發現的品種（S09）。
+/// [CowSilhouette.dark] 是深色的（sil: 'dark'，填 #2A1E1A、沒有「？」）：圖鑑還沒發現的品種（S09）、帳號失效（S15-03）。
 class CowSilhouette extends StatelessWidget {
   const CowSilhouette({
     super.key,

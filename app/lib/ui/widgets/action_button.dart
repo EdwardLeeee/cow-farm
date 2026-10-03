@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../l10n/format.dart';
 import '../../l10n/l10n.dart';
 import '../../state/game_model.dart';
+import '../kit/kit.dart';
 
 /// 所有會送出操作的按鈕都用這個：斷線或正在處理上一個操作時一律停用。
 class ActionButton extends StatelessWidget {
@@ -48,6 +49,22 @@ String actionErrorTextWith(Strings s, GameModel m, ActionError error) => switch 
   ),
   NetworkActionError() => s.networkError,
   OfflineActionError() => s.connecting,
+};
+
+/// 操作失敗的提示用哪一種（S16-03 錯誤文案總表的圖示）：先做別的事就能做的（牛舍滿了、小牛還沒長大、
+/// 在田裡、上架中…）和網路不穩是警告；最高級、還沒開放是提示；其他是錯誤。
+ToastKind actionErrorKind(ActionError error) => switch (error) {
+  ApiActionError(:final error) => switch (error.code) {
+    'pen_full' ||
+    'cow_not_adult' ||
+    'already_bred' ||
+    'cow_in_field' ||
+    'cow_listed' ||
+    'no_free_field' => ToastKind.warn,
+    'max_level' || 'not_yet_available' => ToastKind.info,
+    _ => ToastKind.err,
+  },
+  NetworkActionError() || OfflineActionError() => ToastKind.warn,
 };
 
 /// 有人借了我的公牛（G-05）：「{cow} 借給 {ranch}，收到 {price} 幣」。

@@ -351,7 +351,9 @@ class GameModel extends ChangeNotifier {
   /// /v1/status 回別的錯誤不擋開機：它只決定要不要顯示維護畫面，牧場照樣往下讀。連不上就丟 NetworkException。
   Future<bool> _maintenanceAtBoot() async {
     try {
-      final m = (await api.status()).maintenance;
+      final st = await api.status();
+      _markReal(st.realTime);
+      final m = st.maintenance;
       if (m == null || !m.active) return false;
       _enterMaintenance(m);
       return true;
@@ -743,6 +745,7 @@ class GameModel extends ChangeNotifier {
     final before = state?.level;
     state = s;
     _stateAt = _now();
+    _markReal(s.realTime);
     if (s.ranchName != null && s.ranchName!.isNotEmpty) ranchName = s.ranchName!;
     // 等級比上一次高：要慶祝（S11-01）。剛打開、剛開新牧場（之前沒有 state）不算；一次升好幾級只記最後那一級
     if (before != null && s.level > before) levelUp = (level: s.level, levelAt: s.levelProgress.levelAt);
@@ -755,6 +758,28 @@ class GameModel extends ChangeNotifier {
   void dismissLevelUp() {
     levelUp = null;
     _notify();
+  }
+
+  // 伺服器最後一次給的現實時間（Unix 秒）和那時候的單調時鐘。
+  double? _realAt;
+  double _realMono = 0;
+
+  void _markReal(double? real) {
+    if (real == null || real <= 0) return;
+    _realAt = real;
+    _realMono = _now();
+  }
+
+  /// 現在的現實時間（Unix 秒）：伺服器最後給的 real_time，加上之後手機單調時鐘走的時間。還沒收過就是 null。
+  double? get realNow {
+    final at = _realAt;
+    return at == null ? null : at + (_now() - _realMono);
+  }
+
+  /// 維護已經過了預計恢復的時間，還沒結束（S16-04「比預計的時間晚一點」）。沒有預計時間（S16-05）就是 false。
+  bool get maintenanceLate {
+    final ends = maintenance?.endsAtReal, now = realNow;
+    return ends != null && now != null && now > ends;
   }
 
   /// 可以打要 token 的 API：有 token、token 沒失效、沒有在維護。
@@ -846,7 +871,9 @@ class GameModel extends ChangeNotifier {
     _checkingStatus = true;
     var over = false;
     try {
-      final m = (await api.status()).maintenance;
+      final st = await api.status();
+      _markReal(st.realTime);
+      final m = st.maintenance;
       if (m != null && m.active) {
         maintenance = m; // 營運延長維護會改預計恢復時間
       } else {

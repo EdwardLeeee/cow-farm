@@ -477,7 +477,7 @@ class _SellCardState extends State<SellCard> {
     final err = r.error;
     if (err != null) {
       if (err case ApiActionError(:final error) when error.maintenance || error.unauthorized) return;
-      widget.onToast(ToastKind.err, actionErrorTextWith(s, m, err));
+      widget.onToast(actionErrorKind(err), actionErrorTextWith(s, m, err));
       return;
     }
     final res = r.value!;

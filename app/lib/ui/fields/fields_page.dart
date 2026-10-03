@@ -128,7 +128,7 @@ class _FieldsPageState extends State<FieldsPage> {
     final err = r.error;
     if (err != null) {
       if (err case ApiActionError(:final error) when error.maintenance || error.unauthorized) return;
-      _showToast(ToastKind.err, actionErrorTextWith(s, m, err));
+      _showToast(actionErrorKind(err), actionErrorTextWith(s, m, err));
       return;
     }
     ok?.call(s, m, r.value);
