@@ -381,6 +381,8 @@ class GameModel extends ChangeNotifier {
     api.token = null;
     push.close();
     state = null;
+    // 舊牧場還沒按「好」的升級慶祝（S11-01）不能留到新牧場
+    levelUp = null;
     market = null;
     ranchName = '';
     authLost = null;

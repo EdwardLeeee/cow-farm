@@ -225,6 +225,16 @@ void main() {
     expect(m.authLost, isNull);
   });
 
+  test('刪除牧場清掉還沒按「好」的升級慶祝（S11-01）：新牧場不會跳舊牧場的升級卡', () async {
+    final api = FakeGameApi();
+    final (m, _, _) = await loadedModel(api: api);
+    api.stateJson = {...api.stateJson, 'level': (api.stateJson['level'] as int) + 1};
+    await m.refreshState();
+    expect(m.levelUp, isNotNull, reason: '升級了、還沒按「好」');
+    expect((await m.deleteRanch()).ok, isTrue);
+    expect(m.levelUp, isNull);
+  });
+
   test('刪除時牧場已經在別的手機（signed_in_elsewhere）：顯示 S14-05，不算刪掉', () async {
     final api = FakeGameApi()..deleteError = const ApiException(401, 'signed_in_elsewhere', 'elsewhere');
     final (m, _, _) = await loadedModel(api: api);
