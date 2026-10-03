@@ -1,0 +1,12 @@
+/* 第 14 輪草稿的樣式：01 打掃小幫手重畫（日系動畫的畫風）。說明圖的版面跟第 13 輪一樣 */
+body { background: #FFF9EF; }
+.board { padding: 28px 36px 36px; background: #FFF9EF; }
+.b-label { display: inline-block; font-size: 22px; font-weight: 900; line-height: 34px; padding: 0 14px; background: var(--yellow); border: 3px solid var(--ink); border-radius: 12px; }
+.b-title { margin-top: 12px; font-size: 26px; font-weight: 900; line-height: 34px; }
+.b-sub { margin-top: 4px; font-size: 16px; font-weight: 700; line-height: 24px; color: var(--ink-2); }
+.b-notes { margin: 24px 0 0; padding-left: 22px; font-size: 15px; font-weight: 700; line-height: 24px; color: var(--ink-2); }
+.pr-row { display: flex; align-items: flex-end; gap: 36px; margin-top: 22px; }
+.pr-cell { display: flex; flex-direction: column; gap: 8px; }
+.pr-cap { font-size: 15px; font-weight: 900; line-height: 22px; }
+.pr-cap span { display: block; font-size: 13px; font-weight: 700; color: var(--ink-2); }
+.pr-art { background: linear-gradient(180deg, #DDF0FF 0, #F4F9FF 60%, #FFFFFF 100%); border: 2px solid #E2D4C2; border-radius: 18px; line-height: 0; overflow: hidden; }
