@@ -13,7 +13,7 @@ def font(size, w='Bold'): return ImageFont.truetype(FONT.format(w), size, index=
 INK, MUTED, BG, RED = (75, 51, 38), (138, 111, 96), (255, 249, 239), (229, 72, 77)
 NOTE = (194, 84, 27)  # 註解的字（給看圖的人，不是畫面的一部分）
 DEVNAME = {430: '430 寬（大手機，例 iPhone 14 Pro Max）', 390: '390 寬（一般手機，例 iPhone 14）'}
-SCREEN_ORDER = ['G'] + [f'S{i:02d}' for i in range(1, 21)]
+SCREEN_ORDER = ['G'] + [f'S{i:02d}' for i in range(1, 22)]
 
 def safe(s):
     s = s.replace('/', '／').replace(':', '：').replace(' ', '')

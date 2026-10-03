@@ -466,7 +466,7 @@
 
 /* ================= S13 設定、S14 找回牧場、S15、S16 ================= */
 .me-card { display: flex; align-items: center; gap: 10px; padding: 8px 12px; }
-.me-card b { display: block; font-size: 16px; line-height: 21px; }
+.me-card b { display: block; font-size: 16px; line-height: 21px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* 名字一行，放不下用「…」（cow-app #128：英文 320 備份頁旁邊有「Not backed up」時被擠成兩行） */
 .avatar.sm { width: 46px; height: 46px; box-shadow: 0 2px 0 var(--ink); }
 .avatar.sm svg { width: 40px; height: 40px; margin-top: 3px; }
 .set-group { padding: 2px 12px; }
@@ -899,3 +899,70 @@
    清單留一點內距，選中那張的綠框和卡片的下陰影捲動時才不會被切掉 */
 .sheet.ox-pick { display: flex; flex-direction: column; max-height: calc(var(--H) * 0.6); }
 .sheet.ox-pick .list { flex: 1 1 auto; min-height: 0; overflow-y: auto; margin: -3px -3px 0; padding: 3px 3px 6px; }
+
+/* ================= S21 牧場資料（D34；使用者 2026-10-03 選第 12 輪 01-B、02-B） ================= */
+.prof-card { display: flex; align-items: center; gap: 14px; padding: 12px 12px 12px 14px; }
+.prof-av { position: relative; flex: none; line-height: 0; }
+.avatar.xl { width: 80px; height: 80px; }
+.avatar.xl svg { width: 74px; height: 74px; margin-top: 6px; }
+.prof-av .hud-edit.big { left: 56px; top: 56px; width: 28px; height: 28px; border-radius: 14px; }
+.prof-card .grow { display: flex; flex-direction: column; gap: 2px; }
+.prof-name { display: flex; align-items: center; gap: 6px; min-height: 44px; max-width: 100%; text-align: left; }
+.prof-name b { min-width: 0; font-size: 20px; font-weight: 900; line-height: 26px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.prof-name-ic { flex: none; display: inline-flex; align-items: center; gap: 2px; line-height: 0; }
+/* 成就徽章：一排 4 個（339 寬以下 3 個）；已解鎖的彩色，還沒解鎖的灰色剪影，有計數的寫進度 */
+.ach-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 6px; margin-top: 10px; }
+.ach { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; text-align: center; }
+.ach-b { display: grid; place-items: center; border-radius: 50%; border: 3px solid var(--ink); box-shadow: 0 3px 0 var(--ink); line-height: 0; }
+.ach-b.off { background: var(--disabled-bg); border-color: var(--disabled-line); box-shadow: 0 3px 0 var(--disabled-line); }
+.ach-b.off > svg, .ach-b.off .ach-txt { filter: brightness(0); opacity: 0.22; }
+.ach-txt { font-weight: 900; line-height: 1; color: var(--ink); }
+.ach-name { font-size: 12px; font-weight: 900; line-height: 16px; overflow-wrap: anywhere; }
+.ach.off .ach-name { color: var(--ink-2); }
+.ach-p { font-size: 12px; line-height: 14px; color: var(--ink-2); }
+@media (max-width: 339px) { .ach-grid { grid-template-columns: repeat(3, 1fr); } }
+/* 點一個徽章：大圖、名稱、條件、解鎖日期或進度；分階段的列出每一階 */
+.ach-detail { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 4px 0 14px; text-align: center; }
+.ach-title { font-size: 20px; font-weight: 900; line-height: 26px; }
+.ach-cond { font-size: 15px; font-weight: 700; line-height: 22px; color: var(--ink-2); }
+.ach-date { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 900; line-height: 20px; }
+.ach-date.off { color: var(--ink-2); }
+.ach-bar { display: flex; align-items: center; gap: 10px; width: 100%; }
+.ach-bar .bar { flex: 1; }
+.ach-bar .num { font-size: 15px; }
+.ach-tiers { display: flex; flex-direction: column; gap: 8px; width: 100%; text-align: left; }
+.ach-tier { display: flex; align-items: center; gap: 10px; padding: 8px 10px; background: #FFFFFF; border: 2px solid var(--line-soft); border-radius: 14px; }
+.ach-tier-dot { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid var(--ink); background: var(--disabled-bg); }
+.ach-tier:not(.ok) .ach-tier-dot { border-color: var(--disabled-line); }
+.ach-tier .grow { display: flex; flex-direction: column; }
+.ach-tier b { font-size: 15px; line-height: 20px; }
+.ach-when { flex: none; display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 900; color: var(--ink-2); }
+/* 換頭像：只能選圖鑑裡發現過的；還沒發現的畫成剪影加鎖（換頭像不用錢，所以不寫價錢） */
+.av-circle { display: grid; place-items: center; overflow: hidden; border-radius: 50%; background: #BFE6FF; border: 2.5px solid var(--ink); line-height: 0; }
+.av-circle svg { margin-top: 4px; }
+.av-preview { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #FFFFFF; border: 2px solid var(--line-soft); border-radius: 16px; }
+.av-preview .av-circle { flex: none; width: 52px; height: 52px; }
+.av-preview .av-circle svg { width: 48px; height: 48px; }
+.av-preview .av-circle.now { opacity: 0.6; }
+.av-preview .grow { margin-left: 6px; display: flex; flex-direction: column; }
+.av-preview b { font-size: 17px; line-height: 23px; }
+.av-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 12px; }
+.av-cell { position: relative; aspect-ratio: 1; display: grid; place-items: center; border-radius: 16px; }
+.av-cell .av-circle { width: 88%; height: 88%; }
+.av-cell .av-circle svg { width: 92%; height: 92%; }
+.av-cell.on { background: #E4F7D8; box-shadow: 0 0 0 3px var(--green-2) inset; }
+.av-cell .pick-check { right: -5px; top: -5px; }
+.av-cell.locked .av-circle { background: var(--disabled-bg); border-color: var(--disabled-line); }
+.av-cell.locked .av-circle svg { filter: brightness(0); opacity: 0.22; }
+.av-cell.tapped { background: #FFF1DF; box-shadow: 0 0 0 3px #E8964A inset; }
+.av-lock { position: absolute; right: 0; bottom: 0; width: 20px; height: 20px; border-radius: 10px; background: #FFFFFF; border: 2px solid var(--disabled-line); display: grid; place-items: center; line-height: 0; }
+.av-count { display: flex; align-items: center; gap: 4px; margin-top: 10px; }
+.av-sheet .btn-row { margin-top: 12px; }
+/* 320 寬：一排 6 個時一格不到 44，改 5 個；面板會比畫面高，所以拿掉上面那一列預覽（選中的格子本來就有綠框和勾） */
+@media (max-width: 339px) { .av-grid { grid-template-columns: repeat(5, 1fr); } .av-preview { display: none; } }
+/* 改名頁（獨立一頁）：錢不夠的提示 */
+.rn-warn { display: flex; align-items: center; gap: 4px; }
+
+/* 斷線時的登入鈕（S13-21；cow-app #127，ceo 2026-10-03）：兩顆一起變淡、不能按，官方的顏色和字都不改；下面寫要連上網路 */
+.sso-area.off .sso { opacity: 0.4; }
+.sso-off { text-align: center; }

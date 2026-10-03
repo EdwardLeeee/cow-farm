@@ -1,24 +1,24 @@
 {
  "430": {
-  "states": 190,
+  "states": 204,
   "minFont": 12,
   "bad": [],
   "hscroll": []
  },
  "390": {
-  "states": 190,
+  "states": 204,
   "minFont": 12,
   "bad": [],
   "hscroll": []
  },
  "360": {
-  "states": 190,
+  "states": 204,
   "minFont": 12,
   "bad": [],
   "hscroll": []
  },
  "320": {
-  "states": 190,
+  "states": 204,
   "minFont": 12,
   "bad": [
    "S03-08",
