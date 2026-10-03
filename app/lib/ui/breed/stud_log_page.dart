@@ -193,57 +193,63 @@ class StudLogRow extends StatelessWidget {
     final ranch = logRanchText(s, e.ranch);
     final calf = e.calfBreed == null ? null : logCowText(s, e.calfBreed!, e.calfId);
     final amt = e.out ? '+${fmt(e.price)}' : '−${fmt(e.price)}';
-    return AppCard(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      child: Row(
-        children: [
-          // .log-dir：借出橘、借入粉紅
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            decoration: BoxDecoration(
-              color: e.out ? AppColors.orange : AppColors.pink,
-              border: Border.all(color: AppColors.ink, width: 2),
-              borderRadius: const BorderRadius.all(AppRadii.r10),
-            ),
-            child: Text(
-              e.out ? s.s18Out : s.s18In,
-              softWrap: false,
-              style: AppText.style(12, weight: FontWeight.w900, lineHeight: 20),
-            ),
-          ),
-          const SizedBox(width: 8),
-          // .grow：名字很長、中間沒有空白時可以在任何字母之間換行（5-1）
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // <b> 是外層 div（16px、行高 normal）裡的一行字：每行至少 24 高（div 的 strut），不是 b 自己的 20
-                Text(
-                  e.out ? s.s18LentTo(cow: cow, ranch: ranch) : s.s18BorrowedFrom(cow: cow, ranch: ranch),
-                  strutStyle: kDivStrut,
-                  style: AppText.style(14, weight: FontWeight.w700, lineHeight: 20),
-                ),
-                Text(
-                  calf == null ? logWhen(s, m, e.time) : '${logWhen(s, m, e.time)}${s.gSep}${s.s18CalfBorn(cow: calf)}',
-                  style: KitText.hint(),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          // .log-amt：「+870 幣」，數字 16 特粗；借出的數字綠色
-          Text.rich(
-            TextSpan(
-              style: AppText.style(12, weight: FontWeight.w700),
-              children: fillSpans(
-                s.costCoins(v: '\u0000'),
-                AppText.number(16, color: e.out ? const Color(0xFF2C8A4B) : AppColors.ink),
-                amt,
+    // 每一列自己一個無障礙節點：不然同一個清單的幾列會併成一個，讀螢幕一口氣讀完（8790 走查看到）
+    return Semantics(
+      container: true,
+      child: AppCard(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Row(
+          children: [
+            // .log-dir：借出橘、借入粉紅
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              decoration: BoxDecoration(
+                color: e.out ? AppColors.orange : AppColors.pink,
+                border: Border.all(color: AppColors.ink, width: 2),
+                borderRadius: const BorderRadius.all(AppRadii.r10),
+              ),
+              child: Text(
+                e.out ? s.s18Out : s.s18In,
+                softWrap: false,
+                style: AppText.style(12, weight: FontWeight.w900, lineHeight: 20),
               ),
             ),
-            softWrap: false,
-          ),
-        ],
+            const SizedBox(width: 8),
+            // .grow：名字很長、中間沒有空白時可以在任何字母之間換行（5-1）
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // <b> 是外層 div（16px、行高 normal）裡的一行字：每行至少 24 高（div 的 strut），不是 b 自己的 20
+                  Text(
+                    e.out ? s.s18LentTo(cow: cow, ranch: ranch) : s.s18BorrowedFrom(cow: cow, ranch: ranch),
+                    strutStyle: kDivStrut,
+                    style: AppText.style(14, weight: FontWeight.w700, lineHeight: 20),
+                  ),
+                  Text(
+                    calf == null
+                        ? logWhen(s, m, e.time)
+                        : '${logWhen(s, m, e.time)}${s.gSep}${s.s18CalfBorn(cow: calf)}',
+                    style: KitText.hint(),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            // .log-amt：「+870 幣」，數字 16 特粗；借出的數字綠色
+            Text.rich(
+              TextSpan(
+                style: AppText.style(12, weight: FontWeight.w700),
+                children: fillSpans(
+                  s.costCoins(v: '\u0000'),
+                  AppText.number(16, color: e.out ? const Color(0xFF2C8A4B) : AppColors.ink),
+                  amt,
+                ),
+              ),
+              softWrap: false,
+            ),
+          ],
+        ),
       ),
     );
   }

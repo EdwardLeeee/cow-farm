@@ -20,6 +20,7 @@ import '../kit/meter.dart';
 import '../kit/press.dart';
 import '../widgets/action_button.dart';
 import '../widgets/ticker_builder.dart';
+import 'news_tier.dart';
 
 /// 市場分頁（整頁，含頂列和分頁列）：賣出成功、失敗的提示疊在最上面。
 class MarketPage extends StatefulWidget {
@@ -920,9 +921,22 @@ class NewsCard extends StatelessWidget {
 
   final List<NewsItem> items;
 
+  /// 清單最多放幾則最新的（使用者 2026-10-03：「市場那邊留三個新聞就好」）。
+  static const maxItems = 3;
+
   @override
   Widget build(BuildContext context) {
     final s = Strings.of(context);
+    final now = context.watch<GameModel>().gameNow;
+    final pins = [
+      for (final n in items)
+        if (n.pinnedAt(now)) n,
+    ];
+    // 伺服器的新聞是新的在前；結束的超級事件回到清單，照時間排
+    final rest = [
+      for (final n in items)
+        if (!n.pinnedAt(now)) n,
+    ].take(maxItems).toList();
     return AppCard(
       key: const Key('news'),
       child: Column(
@@ -931,22 +945,26 @@ class NewsCard extends StatelessWidget {
           _CardHead(
             title: CardTitle(s.newsTitle, color: const Color(0xFFFFC2B6), icon: 'news'),
           ),
-          if (items.isEmpty)
+          // 進行中的超級大事件、超級黑天鵝：大卡釘在最上面（S06-17），不算在下面的 3 則裡
+          if (pins.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            for (final (i, n) in pins.indexed) ...[if (i > 0) const SizedBox(height: 10), NewsPinCard(news: n)],
+          ],
+          if (rest.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            for (final (i, n) in rest.indexed) ...[if (i > 0) const SizedBox(height: 8), _NewsItem(news: n)],
+          ] else if (pins.isEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(2, 10, 2, 2),
               child: Text(s.noNews, style: KitText.hint()),
-            )
-          else ...[
-            const SizedBox(height: 8),
-            for (final (i, n) in items.indexed) ...[if (i > 0) const SizedBox(height: 8), _NewsItem(news: n)],
-          ],
+            ),
         ],
       ),
     );
   }
 }
 
-/// .news-item：商品標籤、大新聞／預告、看漲／看跌、多久以前；下面是標題。
+/// .news-item：商品標籤、級別（超級大事件、超級黑天鵝；結束以後回到清單的）、大新聞、利多／利空、多久以前；下面是標題。
 class _NewsItem extends StatelessWidget {
   const _NewsItem({required this.news});
 
@@ -983,7 +1001,9 @@ class _NewsItem extends StatelessWidget {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(s.newsTag(news), style: AppText.style(13, weight: FontWeight.w900)),
-                    if (news.big) CowBadge(BadgeKind.full, s.s06BigNews),
+                    if (news.tier.extreme) NewsTierBadge(tier: news.tier),
+                    // 超級事件的 big 也是 true（協定：大事件以上），標籤只放級別那一個
+                    if (news.tier == NewsTier.big) CowBadge(BadgeKind.full, s.s06BigNews),
                     if (up != null)
                       Row(
                         mainAxisSize: MainAxisSize.min,

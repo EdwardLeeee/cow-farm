@@ -20,6 +20,7 @@ import '../kit/cow_bits.dart';
 import '../kit/frame.dart';
 import '../kit/kit.dart';
 import '../kit/press.dart';
+import '../market/news_tier.dart';
 import '../widgets/action_button.dart';
 import '../widgets/ticker_builder.dart';
 import 'coach_card.dart';
@@ -624,7 +625,9 @@ class _SwipeHint extends StatelessWidget {
   );
 }
 
-/// 大新聞提示（S03-15）：標籤、商品圖示、標題、「牛肉收購價 +25%，現在 15 幣／公斤」、「去市場看看」、右上角關閉。
+/// 大新聞提示（S03-15～17）：標籤、商品圖示、標題、「牛肉收購價 +25%，現在 15 幣／公斤」、「去市場看看」、右上角關閉。
+/// 超級大事件、超級黑天鵝（S03-22～24，D33）：同一個位置、一樣大，換成金色（兩顆小星星）、深色（白字、白色的 ✕），
+/// 標籤換成級別，幅度的字放大（20），標題那一列往下 6（專屬標題比較長，第一行才不會碰到 ✕ 的點擊範圍）。
 class _BigNews extends StatelessWidget {
   const _BigNews({
     required this.news,
@@ -640,93 +643,111 @@ class _BigNews extends StatelessWidget {
   final VoidCallback onClose;
   final VoidCallback onGo;
 
+  static const _radius = BorderRadius.all(AppRadii.r18);
+
   @override
   Widget build(BuildContext context) {
     final s = Strings.of(context);
     final c = news.commodity;
     final up = news.pct >= 0;
-    final pct = '${up ? '+' : '−'}${(news.pct.abs() * 100).round()}%';
-    // 全部商品一起漲跌（S03-16、17）：說明句只寫漲跌幅，不寫單一商品的名字和價格
+    final sup = news.tier == NewsTier.superUp, swan = news.tier == NewsTier.crash;
+    final extreme = sup || swan;
+    final pct = newsPctText(news);
+    // 全部商品一起漲跌（S03-16、17、24）：說明句只寫漲跌幅，不寫單一商品的名字和價格
     final body = c == null
         ? s.s03BigNewsAll(chg: '\u0000')
         : s.s03BigNewsBody(name: s.commodity(c), chg: '\u0000', price: priceText(quote?.price ?? 0), unit: s.unitOf(c));
-    return Container(
-      key: const Key('big-news'),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFF6D6),
-        border: Border.all(color: AppColors.ink, width: AppSizes.border),
-        borderRadius: const BorderRadius.all(AppRadii.r18),
-        boxShadow: AppShadows.solid(4),
-      ),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Column(
+    final fg = swan ? Colors.white : AppColors.ink;
+    final line = swan ? kSwanLine : AppColors.ink;
+    final pctColor = swan
+        ? crashPctColor(upIsRed: upIsRed)
+        : up
+        ? AppColors.up(upIsRed: upIsRed)
+        : AppColors.down(upIsRed: upIsRed);
+    // 卡片裡的字沒設字級：外層是 16、行高 normal（CSS 的 strut）。標籤、標題、說明都是行內的字，每一行的高度和基線
+    // 照 Chrome 的算法（CssLine）：標籤那一行 27 高（標籤的字對齊外層的基線），說明那一行跟著幅度的字（.bn-main b 的行高 24）是 24 高
+    final strut = AppText.style(16);
+    final (strutAbove, strutBelow) = CssLine.metrics(TextSpan(style: strut));
+    final tagHeight = extreme ? 26.0 : 24.0;
+    final tagBaseline =
+        2 +
+        CssLine.metrics(
+          TextSpan(
+            style: extreme
+                ? NewsTierBadge.textStyle(prompt: true)
+                : AppText.style(12, weight: FontWeight.w900, lineHeight: 20),
+          ),
+        ).$1;
+    final tagAbove = math.max(strutAbove, tagBaseline), tagBelow = math.max(strutBelow, tagHeight - tagBaseline);
+    // 整張卡是一個 Stack（內距 12 加框 3 包在裡面）：右上角 ✕ 的 44 × 44 整塊都在範圍裡，才點得到
+    final content = Stack(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(12 + AppSizes.border),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  decoration: BoxDecoration(
-                    color: AppColors.red,
-                    border: Border.all(color: AppColors.ink, width: 2),
-                    borderRadius: const BorderRadius.all(AppRadii.r10),
-                  ),
-                  child: Text(
-                    s.s06BigNews,
-                    style: AppText.style(12, weight: FontWeight.w900, color: Colors.white, lineHeight: 20),
-                  ),
-                ),
+              Container(
+                height: tagAbove + tagBelow,
+                alignment: Alignment.topLeft,
+                padding: EdgeInsets.only(top: tagAbove - tagBaseline),
+                child: extreme
+                    ? NewsTierBadge(tier: news.tier, onDark: swan, prompt: true)
+                    : Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.red,
+                          border: Border.all(color: AppColors.ink, width: 2),
+                          borderRadius: const BorderRadius.all(AppRadii.r10),
+                        ),
+                        child: Text(
+                          s.s06BigNews,
+                          style: AppText.style(12, weight: FontWeight.w900, color: Colors.white, lineHeight: 20),
+                        ),
+                      ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: extreme ? 14 : 8),
               Row(
                 children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      // CSS 寫 2.5px，boards 量出來是 2（Chrome 畫成 2px）；照核准的 boards
-                      border: Border.all(color: AppColors.ink, width: 2),
-                      borderRadius: const BorderRadius.all(AppRadii.r16),
-                    ),
-                    // 全部商品：三種商品的圖示（上兩個、下一個，.bn-ic.all）
-                    child: c == null
-                        ? const Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [AppIcon('milk', size: 22), SizedBox(width: 2), AppIcon('beef', size: 22)],
-                              ),
-                              AppIcon('rice', size: 22),
-                            ],
-                          )
-                        : AppIcon(c.wire, size: 34),
-                  ),
+                  NewsIconBox(commodity: c),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(s.newsHeadline(news), style: AppText.style(18, weight: FontWeight.w900, lineHeight: 24)),
-                        const SizedBox(height: 2),
-                        Text.rich(
+                        CssLine(
                           TextSpan(
-                            style: AppText.style(14, weight: FontWeight.w700, lineHeight: 20),
+                            style: strut,
+                            children: [
+                              TextSpan(
+                                text: s.newsHeadline(news),
+                                style: AppText.style(18, weight: FontWeight.w900, color: fg, lineHeight: 24),
+                              ),
+                            ],
+                          ),
+                          wrap: true,
+                        ),
+                        const SizedBox(height: 2),
+                        CssLine(
+                          TextSpan(
+                            style: AppText.style(
+                              14,
+                              weight: FontWeight.w700,
+                              color: swan ? const Color(0xFFE5DEEE) : AppColors.ink,
+                              lineHeight: 20,
+                            ),
                             children: fillSpans(
                               body,
                               AppText.style(
-                                16,
+                                extreme ? 20 : 16,
                                 weight: FontWeight.w900,
-                                color: up ? AppColors.up(upIsRed: upIsRed) : AppColors.down(upIsRed: upIsRed),
+                                color: pctColor,
+                                lineHeight: 24,
                               ),
                               pct,
                             ),
                           ),
+                          wrap: true,
                         ),
                       ],
                     ),
@@ -744,26 +765,72 @@ class _BigNews extends StatelessWidget {
               ),
             ],
           ),
-          Positioned(
-            right: -12 + 4,
-            top: -12 + 4,
-            child: Semantics(
-              container: true,
-              button: true,
-              label: s.gClose,
-              // 平的元件：按下蓋一層顏色（圓形，G-13）
-              child: Pressable(
-                key: const Key('big-news-close'),
-                onTap: onClose,
-                builder: (context, look) => PressTint(
-                  tint: look.tint,
-                  shape: BoxShape.circle,
-                  child: const SizedBox(width: 44, height: 44, child: Center(child: AppIcon('close', size: 18))),
+        ),
+        // 超級大事件的兩顆小星星（.bn-spark：卡片框裡的左 146、上 8 和左 168、上 22）
+        if (sup) ...[
+          const Positioned(
+            left: AppSizes.border + 146,
+            top: AppSizes.border + 8,
+            child: IgnorePointer(child: AppIcon('sparkle', size: 16)),
+          ),
+          const Positioned(
+            left: AppSizes.border + 168,
+            top: AppSizes.border + 22,
+            child: IgnorePointer(child: AppIcon('sparkle', size: 10)),
+          ),
+        ],
+        // .bn-close：卡片框裡的右 4、上 4
+        Positioned(
+          right: AppSizes.border + 4,
+          top: AppSizes.border + 4,
+          child: Semantics(
+            container: true,
+            button: true,
+            label: s.gClose,
+            // 平的元件：按下蓋一層顏色（圓形，G-13）
+            child: Pressable(
+              key: const Key('big-news-close'),
+              onTap: onClose,
+              builder: (context, look) => PressTint(
+                tint: look.tint,
+                shape: BoxShape.circle,
+                child: SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: Center(
+                    // 深色的超級黑天鵝：✕ 是白的
+                    child: swan
+                        ? const ColorFiltered(
+                            colorFilter: ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                            child: AppIcon('close', size: 18),
+                          )
+                        : const AppIcon('close', size: 18),
+                  ),
                 ),
               ),
             ),
           ),
-        ],
+        ),
+      ],
+    );
+    return Container(
+      key: const Key('big-news'),
+      decoration: BoxDecoration(
+        color: extreme ? null : const Color(0xFFFFF6D6),
+        borderRadius: _radius,
+        boxShadow: [BoxShadow(color: line, offset: const Offset(0, 4))],
+      ),
+      foregroundDecoration: BoxDecoration(
+        border: Border.all(color: line, width: AppSizes.border),
+        borderRadius: _radius,
+      ),
+      child: ClipRRect(
+        borderRadius: _radius,
+        clipBehavior: extreme ? Clip.antiAlias : Clip.none,
+        child: CustomPaint(
+          painter: extreme ? NewsTierBackground.prompt(swan: swan) : null,
+          child: content,
+        ),
       ),
     );
   }

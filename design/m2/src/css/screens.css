@@ -458,7 +458,13 @@
 .lv-big b { font-size: 76px; line-height: 88px; color: var(--ink); -webkit-text-stroke: 0; }
 .lv-sub { font-size: 18px; font-weight: 900; text-align: center; margin-bottom: 6px; }
 .unlock-box { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; padding: 10px; background: #FFFFFF; border: 2px solid var(--line-soft); border-radius: 16px; }
-.coach { display: flex; align-items: center; gap: 8px; padding: 10px 10px 10px 8px; background: #FFFFFF; border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 4px 0 var(--ink); }
+.coach { position: relative; display: flex; align-items: center; gap: 8px; padding: 10px 10px 10px 8px; background: #FFFFFF; border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 4px 0 var(--ink); }
+/* 右上角的 ×：白色小圓章（直徑 24、框 2.5、圖示 12），圓心在卡片外框的右上角（cow-app #136）；點得到的範圍 44 × 44 往上超出 26、往右超出 12 */
+.coach-x { position: absolute; right: -15px; top: -29px; width: 44px; height: 44px; padding: 0; background: none; border: 0; } /* 點得到的範圍：外框右邊 +12、上面 −26 */
+.coach-x .cx-dot { position: absolute; left: 20px; top: 14px; width: 24px; height: 24px; border-radius: 12px; background: #FFFFFF; border: 2.5px solid var(--ink); display: grid; place-items: center; line-height: 0; }
+.coach.show-hit .coach-x { outline: 2px dashed #C2541B; outline-offset: -2px; border-radius: 6px; } /* 局部表：虛線是點得到的範圍（說明用） */
+.coach-sheet { padding-top: 30px; margin-right: -12px; padding-right: 12px; } /* 局部表：上面、右邊留出 × 和點得到的範圍，卡片寬度不變 */
+.coach.on-ranch { position: absolute; left: 12px; right: 12px; top: calc(var(--safe-top) + var(--hud-h) + 58px); z-index: 60; }
 .coach-ic { flex: none; width: 56px; height: 56px; border-radius: 50%; background: #BFE6FF; border: 2.5px solid var(--ink); overflow: hidden; line-height: 0; display: grid; place-items: end center; }
 .coach b { font-size: 15px; line-height: 20px; }
 .coach p { font-size: 13px; font-weight: 700; line-height: 19px; color: var(--ink-2); margin-top: 2px; }

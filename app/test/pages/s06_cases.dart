@@ -8,6 +8,7 @@ import 'package:cowfarm/api/models.dart';
 import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
 import 'package:cowfarm/ui/market/market_page.dart';
+import 'package:cowfarm/ui/market/news_tier.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -28,6 +29,8 @@ Map<String, dynamic> newsJson(
   bool upcoming = false,
   bool big = false,
   double pct = 0.12,
+  String? tier,
+  String? state,
 }) => {
   'id': id,
   'code': code,
@@ -36,18 +39,19 @@ Map<String, dynamic> newsJson(
   'commodity': commodity,
   'targets': commodity == null ? ['milk', 'beef', 'rice'] : [commodity],
   'direction': dir,
-  'big': big,
+  'big': big || (tier != null && tier != 'normal'),
+  'tier': ?tier,
   'time': t0 - ago,
   'announce_at': t0 - ago,
   'start_at': upcoming ? t0 + 1800 : t0 - ago,
   'end_at': t0 + 7200,
-  'state': upcoming ? 'upcoming' : 'active',
+  'state': state ?? (upcoming ? 'upcoming' : 'active'),
 };
 
 /// 設計稿的 4 則新聞（新的在前面）。
 List<Map<String, dynamic>> designNews() => [
   newsJson(101, 'milk_up.1', 'milk', 'up', ago: 12 * 60),
-  newsJson(102, 'beef_up.3', 'beef', 'up', ago: _h, upcoming: true),
+  newsJson(102, 'beef_up.3', 'beef', 'up', ago: _h),
   newsJson(103, 'all_down.2', null, 'down', ago: 3 * _h),
   newsJson(104, 'rice_up.1', 'rice', 'up', ago: 5 * _h),
 ];
@@ -325,12 +329,14 @@ final s06Cases = <PageCase>[
   ),
   PageCase(
     'S06-14',
-    '新聞：沒有、漲、跌、大新聞、全部商品',
+    '新聞：沒有、利多、利空、大新聞、全部商品（最多 3 則）',
     (tester, lang) async {
+      // 剛出來的大新聞（牛肉）、利多（牛奶）、利空（全部商品）
       final m = await ranchModel(api: MarketApi(answers: designAnswers));
       final news = [
         NewsItem.fromJson(newsJson(201, 'beef_up.1', 'beef', 'up', ago: 0, big: true, pct: 0.35)),
-        for (final n in designNews()) NewsItem.fromJson(n),
+        NewsItem.fromJson(designNews()[0]),
+        NewsItem.fromJson(designNews()[2]),
       ];
       await pumpSheet(tester, lang, [const NewsCard(items: []), NewsCard(items: news)], model: m);
     },
@@ -339,6 +345,8 @@ final s06Cases = <PageCase>[
       expect(find.text(_zh.noNews), findsOneWidget);
       expect(find.text(_zh.s06BigNews), findsOneWidget);
       expect(find.text(_zh.bothTag), findsOneWidget);
+      expect(find.text(_zh.s06Up), findsNWidgets(2));
+      expect(find.text(_zh.s06Down), findsOneWidget);
     },
   ),
   PageCase(
@@ -389,6 +397,41 @@ final s06Cases = <PageCase>[
     check: (tester) {
       expect(tester.widget<Text>(find.byKey(const Key('est-total'))).data, _zh.costCoins(v: '229,008'));
       expect(find.text('987,654'), findsOneWidget);
+    },
+  ),
+  PageCase(
+    'S06-17',
+    '新聞：超級大事件、超級黑天鵝（進行中）釘在最上面，結束的回到清單',
+    (tester, lang) async {
+      // 牛肉 +100%（8 分鐘前，現在 24 幣／公斤）、三種一起 −90%（40 分鐘前）進行中，釘在最上面；
+      // 下面的清單：牛奶利多（12 分鐘前）、全部利空（3 小時前）、已經結束的稻米 +100%（9 小時前，標籤留著）
+      final m = await ranchModel(market: ranchMarket(beef: 24));
+      final news = [
+        newsJson(401, 'beef_super.1', 'beef', 'up', ago: 8 * 60, pct: 1, tier: 'super'),
+        designNews()[0],
+        newsJson(402, 'all_swan.1', null, 'down', ago: 40 * 60, pct: 0.9, tier: 'crash'),
+        designNews()[2],
+        newsJson(403, 'rice_super.1', 'rice', 'up', ago: 9 * _h, pct: 1, tier: 'super', state: 'ended'),
+      ];
+      await pumpSheet(tester, lang, [NewsCard(items: news.map(NewsItem.fromJson).toList())], model: m);
+    },
+    crop: find.byKey(const Key('sheet')),
+    check: (tester) {
+      expect(find.byType(NewsPinCard), findsNWidgets(2));
+      expect(find.byKey(const Key('news-pin-401')), findsOneWidget);
+      expect(find.byKey(const Key('news-pin-402')), findsOneWidget);
+      expect(find.byKey(const Key('tier-super')), findsNWidgets(2), reason: '大卡一個、結束的回到清單一個');
+      expect(find.byKey(const Key('tier-crash')), findsOneWidget);
+      expect(find.text('+100%'), findsOneWidget);
+      expect(find.text('−90%'), findsOneWidget);
+      expect(
+        find.text(
+          '${_zh.s06PinUp(name: _zh.commodity(Commodity.beef))}\n${_zh.s06PinNow(price: '24', unit: _zh.unitOf(Commodity.beef))}',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text(_zh.s06PinDownAll), findsOneWidget);
+      expect(find.text(_zh.s06BigNews), findsNothing, reason: '超級事件的 big 也是 true，標籤只放級別');
     },
   ),
 ];
