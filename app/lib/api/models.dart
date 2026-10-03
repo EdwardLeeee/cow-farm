@@ -479,6 +479,7 @@ class Economy {
     this.calfGrowH = const [],
     this.peakWeightKg = const {},
     this.bullWeightMult,
+    this.fieldCapH,
   });
 
   /// 一般、優良、稀有、傳說：牛奶、牛肉的賣價倍率，也是耕牛的稻米產量倍率。
@@ -499,6 +500,9 @@ class Economy {
   /// 母牛的最佳體重，依用途；公牛 = 這個 × [bullWeightMult]。
   final Map<CowType, double> peakWeightKg;
   final double? bullWeightMult;
+
+  /// 一塊田最多存這頭耕牛壯年幾小時的產量（S17「最多存 8 小時的量」）；田的上限 = [oxRicePerH] × 稀有度倍率 × 這個。
+  final double? fieldCapH;
 
   /// 稀有度 [tier] 的倍率；沒有就是 null（畫面不寫倍數）。
   double? tier(int tier) => tier >= 0 && tier < tierMult.length ? tierMult[tier] : null;
@@ -526,6 +530,7 @@ class Economy {
           if (e.value is num) CowType.parse(e.key): (e.value as num).toDouble(),
       },
       bullWeightMult: _dn(j['bull_weight_mult']),
+      fieldCapH: _dn(j['field_cap_h']),
     );
   }
 }

@@ -33,13 +33,15 @@ String fullInText(Strings s, double minutes) {
   return m >= 60 ? '${s.hours(h: m ~/ 60)} ${s.minutes(m: m % 60)}' : s.minutes(m: m);
 }
 
-/// 每塊田最多存耕牛壯年幾小時的量（「最多存 8 小時的量」）。協定的 economy 沒有這個數字（伺服器的 params.field_cap_h），
-/// 用田的上限 ÷ 這頭牛壯年的產量（ox_rice_per_h × 稀有度倍率；伺服器的 field_cap_for 就是這樣算上限）算回來；算不出來寫 8。
-int fieldCapHours(Economy? e, double? capacity, Cow? ox) {
+/// 每塊田最多存耕牛壯年幾小時的量（「最多存 8 小時的量」）：協定 2.3 的 economy.field_cap_h。
+/// 舊的伺服器沒給時，用田的上限 ÷ 這頭牛壯年的產量（ox_rice_per_h × 稀有度倍率；協定寫的上限算法）算回來；
+/// 算不出來寫 8。
+double fieldCapHours(Economy? e, double? capacity, Cow? ox) {
+  if (e?.fieldCapH case final h? when h > 0) return h;
   final per = e?.oxRicePerH, mult = e?.tierMult;
   if (capacity == null || ox == null || per == null || per <= 0 || mult == null || mult.isEmpty) return 8;
   final h = capacity / (per * mult[ox.tier.clamp(0, mult.length - 1)]);
-  return h.isFinite && h > 0 ? h.round() : 8;
+  return h.isFinite && h > 0 ? h.roundToDouble() : 8;
 }
 
 /// 選耕牛的面板裡，不能選的原因。
@@ -311,29 +313,36 @@ class _FieldsPageState extends State<FieldsPage> {
         ],
       );
     }
-    final screen = MediaQuery.sizeOf(context).height;
     return AppSheet(
       title: title,
       onClose: _closePicker,
+      // .sheet.ox-pick：整個面板最高到畫面的 6 成；耕牛多的時候清單縮小、可以捲
+      maxHeight: MediaQuery.sizeOf(context).height * 0.6,
       children: [
-        // 耕牛很多的時候清單可以捲（設計稿沒畫到；面板最高到畫面的 6 成）
-        ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: screen * 0.6),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (final (i, (c, off)) in options.indexed) ...[
-                  if (i > 0) const SizedBox(height: 10),
-                  OxOption(
-                    key: Key('ox-${c.key}'),
-                    cow: c,
-                    off: off,
-                    on: c.key == picked.key,
-                    onTap: off == null ? () => setState(() => _picked = c.key) : null,
-                  ),
+        // .list 的 margin -3 -3 0、padding 3 3 6：左右上多 3 不裁，選中那張的綠框捲動時不被切掉；
+        // 下面留 6，最後一張的下陰影也看得到
+        Flexible(
+          child: ClipRect(
+            clipper: const _OutsetClip(EdgeInsets.fromLTRB(3, 3, 3, 0)),
+            child: SingleChildScrollView(
+              key: const Key('ox-list'),
+              clipBehavior: Clip.none,
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final (i, (c, off)) in options.indexed) ...[
+                    if (i > 0) const SizedBox(height: 10),
+                    OxOption(
+                      key: Key('ox-${c.key}'),
+                      cow: c,
+                      off: off,
+                      on: c.key == picked.key,
+                      onTap: off == null ? () => setState(() => _picked = c.key) : null,
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),
@@ -354,6 +363,19 @@ class _FieldsPageState extends State<FieldsPage> {
       ],
     );
   }
+}
+
+/// 裁切範圍往外多 [outset]（CSS 的 overflow 裁在 padding 外緣：清單的 margin 負、padding 正，裁的地方比內容大一圈）。
+class _OutsetClip extends CustomClipper<Rect> {
+  const _OutsetClip(this.outset);
+
+  final EdgeInsets outset;
+
+  @override
+  Rect getClip(Size size) => outset.inflateRect(Offset.zero & size);
+
+  @override
+  bool shouldReclip(_OutsetClip oldClipper) => oldClipper.outset != outset;
 }
 
 /// 開新田（S17-10、S17-11）：「開新田（4,608 幣）」。已經最多塊換成停用的「田地已經 12 塊（最多）」；
@@ -435,7 +457,9 @@ class FieldCard extends StatelessWidget {
 
   /// 沒有能下田的耕牛：空田的「派耕牛」停用，加一行橘字（S17-02）。
   final bool noOx;
-  final int capHours;
+
+  /// 「最多存 {h} 小時的量」的 h（[fieldCapHours]）。
+  final double capHours;
   final bool recalling;
   final VoidCallback? onAssign;
   final void Function(Cow ox)? onRecall;
@@ -583,7 +607,7 @@ class FieldCard extends StatelessWidget {
                 s.recall,
                 key: Key('field-recall-${field.index}'),
                 small: true,
-                leading: const _HandInRing(),
+                icon: 'hand',
                 busy: recalling,
                 onPressed: cow == null || onRecall == null ? null : () => onRecall!(cow),
               ),
@@ -611,7 +635,7 @@ class FieldCard extends StatelessWidget {
           const SizedBox(height: 8),
           CssLine(
             TextSpan(
-              text: full ? s.fieldFull : s.s17FullIn(time: fullInText(s, left), h: capHours),
+              text: full ? s.fieldFull : s.s17FullIn(time: fullInText(s, left), h: rateText(capHours)),
               style: full ? KitText.warn() : KitText.hint(),
             ),
             wrap: true,
@@ -620,25 +644,6 @@ class FieldCard extends StatelessWidget {
       ),
     );
   }
-}
-
-/// 「叫回」的手掌：設計稿的 .fc-ox svg（耕牛小圖的淡綠底、2px 框、圓角 12）也套到了按鈕裡 18px 的圖示，所以核准的
-/// 圖上手掌外面有一圈淡綠底的圓框，手掌畫在裡面 14px（box-sizing: border-box）。
-class _HandInRing extends StatelessWidget {
-  const _HandInRing();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 18,
-    height: 18,
-    alignment: Alignment.center,
-    decoration: BoxDecoration(
-      shape: BoxShape.circle,
-      color: const Color(0xFFE4F4DA),
-      border: Border.all(color: AppColors.ink, width: 2),
-    ),
-    child: const AppIcon('hand', size: 14),
-  );
 }
 
 /// .card.ox-opt：面板裡的一頭耕牛。能選的：稀有度、每小時；選好的淡綠底、綠框、右邊打勾。

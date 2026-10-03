@@ -120,6 +120,7 @@ Map<String, dynamic> ranchState({
       'tier_mult': [1.0, 1.3, 1.7, 2.5],
       'beef_grade_mult': {'A': 1.25, 'B': 1.0, 'C': 0.75},
       'ox_rice_per_h': 11.0,
+      'field_cap_h': 8.0,
     },
     'pen': {
       'slots': penSlots,

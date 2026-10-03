@@ -98,6 +98,28 @@ void main() {
     expect(_btn(tester, 'field-assign-1').onPressed, isNull);
   });
 
+  testWidgets('面板：耕牛很多時整個面板最高到畫面的 6 成，清單可以捲，按鈕還在面板裡', (tester) async {
+    Screen.w430.apply(tester);
+    final many = [
+      ...fieldsHerd(),
+      for (var id = 30; id < 42; id++) {...designCow(id, 'yellow', kg: 380, value: 4200), 'rice_per_h': 11.0},
+    ];
+    await showFields(
+      tester,
+      AppLang.zhHant,
+      api: FieldsApi(state: fieldsState(cows: many)),
+    );
+    await openOxSheet(tester);
+    final screenH = tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    final sheet = tester.getRect(find.byKey(const Key('sheet')));
+    expect(sheet.height, lessThanOrEqualTo(screenH * 0.6 + 0.01));
+    final list = tester.state<ScrollableState>(
+      find.descendant(of: find.byKey(const Key('ox-list')), matching: find.byType(Scrollable)),
+    );
+    expect(list.position.maxScrollExtent, greaterThan(0));
+    expect(tester.getRect(find.byKey(const Key('ox-assign'))).bottom, lessThanOrEqualTo(sheet.bottom));
+  });
+
   testWidgets('叫回：叫伺服器（叫回的是那塊田的牛）', (tester) async {
     Screen.w430.apply(tester);
     final api = FieldsApi();
@@ -187,13 +209,29 @@ void main() {
     expect(fullInText(_zh, 0.4), '1 分');
   });
 
-  test('最多存幾小時：田的上限 ÷（壯年一般耕牛每小時 × 稀有度倍率）；算不出來寫 8', () {
-    const e = Economy(tierMult: [1.0, 1.3, 1.7, 2.5], oxRicePerH: 11);
+  test('最多存幾小時：讀 economy.field_cap_h；舊的伺服器沒給時，用田的上限 ÷（壯年一般耕牛每小時 × 稀有度倍率）；算不出來寫 8', () {
     Cow ox(int tier) => Cow.fromJson({...designCow(2, 'yellow', bull: true), 'tier': tier});
-    expect(fieldCapHours(e, 88, ox(0)), 8);
-    expect(fieldCapHours(e, 114.4, ox(1)), 8);
+    expect(Economy.fromJson({'field_cap_h': 8.0})!.fieldCapH, 8);
+    const given = Economy(tierMult: [1.0, 1.3, 1.7, 2.5], oxRicePerH: 11, fieldCapH: 6);
+    expect(fieldCapHours(given, 88, ox(0)), 6, reason: '伺服器給了就照用，不從田的上限算回來');
+    expect(fieldCapHours(given, null, null), 6);
+
+    const old = Economy(tierMult: [1.0, 1.3, 1.7, 2.5], oxRicePerH: 11);
+    expect(fieldCapHours(old, 88, ox(0)), 8);
+    expect(fieldCapHours(old, 114.4, ox(1)), 8);
+    expect(fieldCapHours(old, 66, ox(0)), 6);
     expect(fieldCapHours(null, 88, ox(0)), 8);
-    expect(fieldCapHours(e, null, null), 8);
+    expect(fieldCapHours(old, null, null), 8);
+  });
+
+  testWidgets('「最多存 x 小時的量」照伺服器的 field_cap_h，有小數寫一位', (tester) async {
+    Screen.w430.apply(tester);
+    final st = fieldsState();
+    st['economy'] = {...st['economy'] as Map<String, dynamic>, 'field_cap_h': 7.5};
+    await showFields(tester, AppLang.zhHant, api: FieldsApi(state: st));
+    // 第 1 塊田：62.5 / 88，每小時 11
+    final text = _zh.s17FullIn(time: fullInText(_zh, (88 - 62.5) / 11 * 60), h: '7.5');
+    expect(find.text(text, findRichText: true), findsOneWidget);
   });
 
   test('面板的順序：能下田的（產量高的先）、在田裡的（田號小的先）、上架中的、小牛（快長大的先）；乳牛、肉牛不列', () {
