@@ -1,0 +1,171 @@
+/* 第 12 輪草稿的樣式：D34 牧場資料（改名、換頭像）、D33 超級大事件和超級黑天鵝。顏色和元件沿用 M2 設計稿（design/m2/src/css） */
+
+/* ---------- 說明圖的版面（不是畫面的一部分） ---------- */
+body { background: #FFF9EF; }
+.board { padding: 28px 36px 36px; background: #FFF9EF; }
+.b-label { display: inline-block; font-size: 22px; font-weight: 900; line-height: 34px; padding: 0 14px; background: var(--yellow); border: 3px solid var(--ink); border-radius: 12px; }
+.b-title { margin-top: 12px; font-size: 26px; font-weight: 900; line-height: 34px; }
+.b-sub { margin-top: 4px; font-size: 16px; font-weight: 700; line-height: 24px; color: var(--ink-2); }
+.b-row { display: grid; gap: 30px 40px; margin-top: 22px; align-items: start; }
+.b-cell { margin: 0; }
+.b-cell figcaption { min-height: 68px; margin-bottom: 10px; font-size: 14px; font-weight: 700; line-height: 20px; color: #C2541B; }
+.b-cell figcaption b { display: block; font-size: 18px; font-weight: 900; line-height: 26px; color: var(--ink); }
+.b-cell .phone { outline: 2px solid #E2D4C2; }
+.b-notes { margin: 24px 0 0; padding-left: 22px; font-size: 15px; font-weight: 700; line-height: 24px; color: var(--ink-2); }
+.b-notes b { color: var(--ink); }
+.note-ring { position: absolute; z-index: 95; border: 3px dashed #C2541B; border-radius: 34px; pointer-events: none; }
+.note-tag { position: absolute; z-index: 95; padding: 2px 10px; background: #FFFFFF; border: 2px solid #C2541B; border-radius: 10px; font-size: 13px; font-weight: 900; line-height: 20px; color: #C2541B; white-space: nowrap; }
+
+/* ---------- D34 進入點：頂列頭像右下角的小鉛筆（頭像本身會切圓，所以鉛筆放在頭像外面） ---------- */
+.profile { position: relative; }
+.hud-edit { position: absolute; left: 38px; top: 38px; z-index: 3; width: 22px; height: 22px; border-radius: 11px; background: var(--yellow); border: 2px solid var(--ink); display: grid; place-items: center; line-height: 0; }
+
+/* ---------- D34 牧場資料面板 ---------- */
+.prof-head { display: flex; align-items: center; gap: 14px; padding: 2px 0 12px; }
+.prof-av { position: relative; flex: none; width: 66px; height: 66px; }
+.prof-av .av-circle { width: 66px; height: 66px; border-radius: 33px; }
+.prof-av .av-circle svg { width: 60px; height: 60px; }
+.av-edit { position: absolute; right: -4px; bottom: -2px; width: 26px; height: 26px; border-radius: 13px; background: var(--yellow); border: 2px solid var(--ink); display: grid; place-items: center; line-height: 0; }
+.prof-head .grow { display: flex; flex-direction: column; gap: 4px; }
+.ph-name { font-size: 18px; font-weight: 900; line-height: 24px; white-space: nowrap; }
+.ph-tag { margin-left: 6px; font-size: 14px; color: var(--ink-2); }
+.ph-sub { display: flex; align-items: center; gap: 10px; }
+.prof-link { display: inline-flex; align-items: center; gap: 2px; font-size: 14px; font-weight: 900; text-decoration: underline; text-underline-offset: 3px; }
+.prof-sec { display: flex; align-items: center; gap: 8px; margin: 0 2px 8px; font-size: 15px; font-weight: 900; line-height: 24px; }
+.prof-sec .hint { font-size: 12.5px; }
+.badge.free { background: var(--green); }
+.price-tag { display: inline-flex; align-items: center; gap: 3px; height: 26px; padding: 0 9px 0 4px; background: #FFFFFF; border: 2px solid var(--ink); border-radius: 13px; font-size: 13px; font-weight: 900; }
+.price-tag .num { font-size: 15px; }
+.prof-rule { margin: 8px 2px 0; }
+.prof-warn { display: flex; align-items: center; gap: 4px; margin: 8px 2px 0; }
+.prof-sheet .btn-row { margin-top: 12px; }
+.btn-price { display: inline-flex; align-items: center; gap: 2px; margin-left: 2px; padding: 0 8px 0 3px; height: 28px; background: #FFFFFF; border: 2px solid var(--ink); border-radius: 14px; }
+.btn[disabled] .btn-price { background: transparent; border-color: var(--disabled-line); }
+.btn[disabled] .btn-price svg { opacity: 0.45; }
+.prof-sheet.kb-up { bottom: var(--kb-h); padding-bottom: 12px; }
+
+/* ---------- D34 換頭像 ---------- */
+.av-circle { display: grid; place-items: center; overflow: hidden; border-radius: 50%; background: #BFE6FF; border: 2.5px solid var(--ink); line-height: 0; }
+.av-circle svg { margin-top: 4px; }
+.av-top { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.av-top h2 { margin: 0; }
+.av-preview { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #FFFFFF; border: 2px solid var(--line-soft); border-radius: 16px; }
+.av-preview .av-circle { flex: none; width: 52px; height: 52px; }
+.av-preview .av-circle svg { width: 48px; height: 48px; }
+.av-preview .av-circle.now { opacity: 0.6; }
+.av-preview .grow { margin-left: 6px; display: flex; flex-direction: column; }
+.av-preview b { font-size: 17px; line-height: 23px; }
+.av-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 12px; }
+.av-cell { position: relative; aspect-ratio: 1; display: grid; place-items: center; border-radius: 16px; }
+.av-cell .av-circle { width: 88%; height: 88%; }
+.av-cell .av-circle svg { width: 92%; height: 92%; }
+.av-cell.on { background: #E4F7D8; box-shadow: 0 0 0 3px var(--green-2) inset; }
+.av-cell .pick-check { right: -5px; top: -5px; }
+.av-cell.locked .av-circle { background: var(--disabled-bg); border-color: var(--disabled-line); }
+.av-cell.locked .av-circle svg { filter: brightness(0); opacity: 0.22; }
+.av-lock { position: absolute; right: 0; bottom: 0; width: 20px; height: 20px; border-radius: 10px; background: #FFFFFF; border: 2px solid var(--disabled-line); display: grid; place-items: center; line-height: 0; }
+.av-count { display: flex; align-items: center; gap: 4px; margin-top: 10px; }
+.av-sheet .btn-row { margin-top: 12px; }
+
+/* ---------- D33 共用：超級大事件（金色）、超級黑天鵝（深色） ---------- */
+.badge.sup { background: linear-gradient(180deg, #FFE98F, #FFC13B); }
+.badge.swan { background: #2F2A35; color: #FFFFFF; }
+.swan-ic { display: inline-block; line-height: 0; color: #FFFFFF; }
+/* 深色底上的黑天鵝標籤改成白底深字，不然看不到外框 */
+.news-item.swan .badge.swan, .pin.swan .badge.swan { background: #FFFFFF; color: #2F2A35; border-color: #FFFFFF; }
+.news-item.swan .badge.swan .swan-ic, .pin.swan .badge.swan .swan-ic { color: #2F2A35; }
+.n-pct { flex: none; font-size: 22px; line-height: 26px; }
+.n-pct.up { color: var(--up); }
+.n-pct.down { color: var(--down); }
+
+/* ---------- D33 新聞卡 A：留在原本的位置，那一則換顏色、加標籤和幅度 ---------- */
+.news-item.sup { background: #FFF3C4; border: 2.5px solid #E0A82E; }
+.news-item.swan { background: #2F2A35; border: 2.5px solid #2F2A35; }
+.news-item.swan .n-tag, .news-item.swan .n-text { color: #FFFFFF; }
+.news-item.swan .n-when { color: #CFC6DA; }
+.news-item.swan .n-dir.down, .news-item.swan .n-pct.down { color: #7BE0A6; }
+.n-row { display: flex; align-items: center; gap: 8px; margin-top: 3px; }
+.n-row .n-text { flex: 1; min-width: 0; margin-top: 0; font-weight: 900; }
+
+/* ---------- D33 新聞卡 B：釘在新聞卡最上面的大卡 ---------- */
+.pins { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.pin { position: relative; overflow: hidden; padding: 8px 12px 12px; border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 3px 0 var(--ink); }
+.pin.sup { background: radial-gradient(circle at 88% 10%, #FFFBE6 0, #FFE58A 55%, #FFD45E 100%); }
+.pin.swan { background: linear-gradient(160deg, #3A3342, #221E27); color: #FFFFFF; border-color: #17141B; box-shadow: 0 3px 0 #17141B; }
+.pin-top { position: relative; display: flex; align-items: center; gap: 6px; }
+.pin-top .n-when { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--ink-2); }
+.pin.swan .pin-top .n-when { color: #CFC6DA; }
+.pin-main { position: relative; display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.pin-ic { flex: none; width: 52px; height: 52px; border-radius: 16px; background: #FFFFFF; border: 2.5px solid var(--ink); display: grid; place-items: center; line-height: 0; }
+.pin-ic.all { grid-template-columns: 22px 22px; gap: 0 2px; place-content: center; }
+.pin-ic.all > :last-child { grid-column: 1 / 3; justify-self: center; }
+.pin-main b.t { display: block; font-size: 16px; font-weight: 900; line-height: 22px; }
+.pin-fx { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+.pin-sub { font-size: 13px; font-weight: 700; line-height: 18px; color: var(--ink-2); }
+.pin.swan .pin-sub { color: #E5DEEE; }
+.pin-big { flex: none; font-size: 28px; line-height: 32px; }
+.pin.sup .pin-big { color: var(--up); }
+.pin.swan .pin-big { color: #7BE0A6; }
+.pin-rays { position: absolute; right: -46px; top: -54px; width: 170px; height: 170px; opacity: 0.6; pointer-events: none; }
+
+/* ---------- D33 牧場頁的提示 A：原本的大新聞提示卡換成超級的樣子 ---------- */
+.big-news.sup { background: radial-gradient(circle at 85% 0%, #FFFBE6 0, #FFE58A 60%, #FFD45E 100%); }
+.big-news.sup .bn-tag, .big-news.swan .bn-tag { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; line-height: 22px; }
+.big-news.sup .bn-tag { background: linear-gradient(180deg, #FFE98F, #FFC13B); color: var(--ink); }
+.big-news.swan { background: linear-gradient(160deg, #3A3342, #221E27); color: #FFFFFF; border-color: #17141B; box-shadow: 0 4px 0 #17141B; }
+.big-news.swan .bn-tag { background: #FFFFFF; color: #2F2A35; border-color: #FFFFFF; }
+.big-news.swan .bn-tag .swan-ic { color: #2F2A35; }
+.big-news.swan .bn-close svg path { stroke: #FFFFFF; }
+.big-news.swan .bn-main p { color: #E5DEEE; }
+.big-news.sup .bn-main .up-text { font-size: 20px; }
+.big-news.swan .bn-main .down-text { font-size: 20px; color: #7BE0A6; }
+.bn-spark { position: absolute; line-height: 0; pointer-events: none; }
+.big-news.swan .btn, .sx.swan .btn { color: var(--ink); }
+
+/* ---------- D33 牧場頁的提示 B：整個畫面變暗，中間一張大卡 ---------- */
+.sx-back { position: absolute; inset: 0; z-index: 70; }
+.sx-back.sup { background: radial-gradient(circle at 50% 45%, rgba(255, 214, 94, 0.55) 0, rgba(46, 29, 20, 0.62) 70%); }
+.sx-back.swan { background: rgba(18, 14, 24, 0.78); }
+.sx { position: absolute; left: 20px; right: 20px; top: 50%; transform: translateY(-50%); z-index: 80; overflow: hidden; padding: 18px 16px 16px; text-align: center; border: 3px solid var(--ink); border-radius: 26px; box-shadow: 0 6px 0 var(--ink); }
+.sx.sup { background: radial-gradient(circle at 50% 0%, #FFFBE6 0, #FFE58A 58%, #FFD45E 100%); }
+.sx.swan { background: linear-gradient(170deg, #3A3342, #1C1920); color: #FFFFFF; border-color: #0E0C11; box-shadow: 0 6px 0 #0E0C11; }
+.sx .bn-close { position: absolute; right: 6px; top: 6px; z-index: 2; width: 44px; height: 44px; display: grid; place-items: center; line-height: 0; }
+.sx.swan .bn-close svg path { stroke: #FFFFFF; }
+.sx > :not(.sx-rays):not(.bn-close) { position: relative; }
+.sx-tag { display: inline-flex; align-items: center; gap: 4px; padding: 0 12px; font-size: 15px; font-weight: 900; line-height: 26px; border: 2.5px solid var(--ink); border-radius: 14px; }
+.sx.sup .sx-tag { background: #FFFFFF; }
+.sx.swan .sx-tag { background: #FFFFFF; color: #2F2A35; border-color: #FFFFFF; }
+.sx.swan .sx-tag .swan-ic { color: #2F2A35; }
+.sx-ic { width: 84px; height: 84px; margin: 14px auto 2px; display: grid; place-items: center; line-height: 0; background: #FFFFFF; border: 3px solid var(--ink); border-radius: 24px; }
+.sx-ic.all { grid-template-columns: 30px 30px; gap: 0 4px; place-content: center; }
+.sx-ic.all > :last-child { grid-column: 1 / 3; justify-self: center; }
+.sx-big { font-size: 60px; font-weight: 900; line-height: 68px; }
+.sx.sup .sx-big { color: var(--up); text-shadow: 0 3px 0 #FFFFFF; }
+.sx.swan .sx-big { color: #7BE0A6; }
+.sx-title { font-size: 19px; font-weight: 900; line-height: 26px; }
+.sx-sub { margin-top: 4px; font-size: 14px; font-weight: 700; line-height: 20px; color: var(--ink-2); }
+.sx.swan .sx-sub { color: #E5DEEE; }
+.sx .btn { margin-top: 16px; }
+.sx-rays { position: absolute; left: 50%; top: -150px; width: 440px; height: 440px; margin-left: -220px; opacity: 0.55; pointer-events: none; }
+
+/* ---------- R12-06 標題草稿表 ---------- */
+.hl { width: 100%; margin-top: 20px; border-collapse: separate; border-spacing: 0; background: #FFFFFF; border: 3px solid var(--ink); border-radius: 18px; overflow: hidden; }
+.hl th, .hl td { padding: 10px 14px; text-align: left; vertical-align: top; border-bottom: 2px solid var(--line-soft); }
+.hl tr:last-child th, .hl tr:last-child td { border-bottom: 0; }
+.hl thead th { font-size: 17px; font-weight: 900; line-height: 26px; }
+.hl thead th.sup { background: #FFF3C4; }
+.hl thead th.swan { background: #2F2A35; color: #FFFFFF; }
+.hl tbody th { width: 128px; font-size: 17px; font-weight: 900; line-height: 26px; white-space: nowrap; }
+.hl tbody th span { display: inline-flex; align-items: center; gap: 6px; }
+.hl ol { margin: 0; padding-left: 22px; font-size: 17px; font-weight: 700; line-height: 30px; }
+.hl td.sup { background: #FFFBEA; }
+.hl td.swan { background: #F4F1F7; }
+.av-cell.tapped { background: #FFF1DF; box-shadow: 0 0 0 3px #E8964A inset; }
+
+/* ---------- R12-99 總覽 ---------- */
+.ov-row { margin-top: 26px; }
+.ov-title { font-size: 20px; font-weight: 900; line-height: 28px; }
+.ov-cells { display: flex; gap: 28px; margin-top: 10px; }
+.ov-cap { min-height: 44px; font-size: 14px; line-height: 20px; }
+.ov-cap b { font-weight: 900; }
+.ov-ph { overflow: hidden; outline: 2px solid #E2D4C2; }
