@@ -1128,6 +1128,31 @@ class PricePoint {
 }
 
 /// 新聞（協定 3.11）：標題由 app 用 [code] 查字串表 `news.<code>`（Strings.newsTitle）。
+/// 新聞的級別（D33；協定 `news[].tier`）。舊的伺服器沒有 tier：照 `big` 分一般、大新聞。
+enum NewsTier {
+  normal('normal'),
+  big('big'),
+
+  /// 超級大事件（+100%，收購價變兩倍，只往上）。
+  superUp('super'),
+
+  /// 超級黑天鵝（−90%，剩一成，只往下）。
+  crash('crash');
+
+  const NewsTier(this.wire);
+  final String wire;
+
+  static NewsTier? tryParse(Object? v) {
+    for (final t in values) {
+      if (t.wire == v) return t;
+    }
+    return null;
+  }
+
+  /// 超級大事件、超級黑天鵝：進行中時在市場的新聞卡變成釘在最上面的大卡（S06-17），牧場頁的提示換顏色（S03-22～24）。
+  bool get extreme => this == superUp || this == crash;
+}
+
 class NewsItem {
   const NewsItem({
     required this.id,
@@ -1143,6 +1168,8 @@ class NewsItem {
     this.startAt,
     this.endAt,
     this.upcoming = false,
+    this.tier = NewsTier.normal,
+    this.ended = false,
   });
   final String id;
   final String code; // 例 milk_up.1、all_down.3
@@ -1153,12 +1180,17 @@ class NewsItem {
   final Commodity? commodity; // 不只一種時是 null（看 targets）
   final List<Commodity> targets;
   final bool? up; // 利多 true／利空 false
-  final bool big; // 罕見的大新聞（±30–40%）
+  final bool big; // 大事件以上（tier 不是 normal；D33 以前是罕見的大新聞 ±30–40%）
   final double? time; // 遊戲時間（= announceAt）
   final double? announceAt;
   final double? startAt; // 開始影響價格
   final double? endAt;
   final bool upcoming; // 伺服器給的狀態：預告，還沒開始影響價格
+  final NewsTier tier;
+  final bool ended; // 伺服器給的狀態：已經結束
+
+  /// 在 [gameNow] 時要不要釘在新聞卡最上面（S06-17）：進行中的超級大事件、超級黑天鵝。結束以後回到清單。
+  bool pinnedAt(double gameNow) => tier.extreme && !ended && (endAt == null || gameNow < endAt!);
 
   /// 在 [gameNow] 時是不是還在預告階段（「即將發生 → 進行中」由 app 用 start_at 判斷）。
   bool isUpcomingAt(double gameNow) => startAt != null ? gameNow < startAt! : upcoming;
@@ -1177,6 +1209,8 @@ class NewsItem {
     startAt: _dn(j['start_at']),
     endAt: _dn(j['end_at']),
     upcoming: j['state'] == 'upcoming',
+    tier: NewsTier.tryParse(j['tier']) ?? (_b(j['big']) ? NewsTier.big : NewsTier.normal),
+    ended: j['state'] == 'ended',
   );
 }
 
