@@ -131,6 +131,7 @@
 .badge.calf { background: #D5EBFF; }
 .badge.old { background: #E8E1D8; }
 .badge.mix { background: #E6DED4; }
+.badge.sick { gap: 1px; background: #FFE1DC; }
 .badge.full { background: #FFC2B6; }
 .badge.new { background: var(--yellow); }
 .badge.lock { background: #EFE8DF; color: var(--ink-2); border-color: var(--disabled-line); }
@@ -151,6 +152,7 @@
 .bar.yellow { background: #FFF4CC; }
 .bar.yellow i { background: #FFB938; }
 .bar.red i { background: #FF8A80; }
+.bar.gray i { background: #CDBFAE; } /* 停住的進度（病牛在田裡，v0.3 第 5 節） */
 .bar.thick { height: 18px; border-radius: 10px; }
 
 /* ---------- 提示（G-04） ---------- */

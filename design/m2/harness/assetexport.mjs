@@ -17,7 +17,8 @@ const imp = (p) => import(pathToFileURL(join(M2, p)).href);
 
 const { BREEDS, CODEX_ORDER, MIX_LOOK } = await imp('src/cow/breeds.js');
 const { drawCow } = await imp('src/cow/render.js');
-const { calfBow, hasBow } = await imp('src/cow/calf.js');
+const { calfBow, hasBow, CALF_LOOK } = await imp('src/cow/calf.js');
+const { sickLines, SICK_BUBBLE_INNER } = await imp('src/cow/sick.js');
 const { ICON_NAMES, TAB_KEYS, icon, tabIcon } = await imp('src/js/icons.js');
 const { backdrop, sparkle, HERD, WIDE } = await imp('src/js/scene.js');
 const { TK, truckBack, truckFront, wheel, A03_HERD } = await imp('src/js/truck.js');
@@ -57,7 +58,8 @@ function cowFile(entry, facing) {
   const top = bow ? Math.min(-r.height, bow.top) : -r.height;
   const x0 = f(bx0 * r.scale - PAD), x1 = f(bx1 * r.scale + PAD), y0 = f(top - PAD), y1 = PAD;
   const w = f(x1 - x0), h = f(y1 - y0);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x0} ${y0} ${w} ${h}" width="${w}" height="${h}">${r.svg}${bow ? bow.svg : ''}</svg>\n`;
+  // 病牛（v0.3 第 5 節）：額頭的藍色線畫進圖裡；頭上的溫度計泡泡是 ui 的 parts/sick_bubble，app 另外疊
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x0} ${y0} ${w} ${h}" width="${w}" height="${h}">${r.svg}${bow ? bow.svg : ''}${entry.sick ? sickLines(r) : ''}</svg>\n`;
   const meta = {
     w, h, x0, y0, height: f(r.height),
     face: { cx: f(r.face.cx), cy: f(r.face.cy), r: f(r.face.r) },
@@ -93,6 +95,17 @@ function cows() {
       images[name] = { ...meta, sha256: sha(svg) };
     }
   }
+  // 病牛（v0.3 第 5 節；第 13 輪 04-A）：一律轉正面，所以只有 front。臉色發青、額頭藍線；成年牛照品種，小牛照 CALF_LOOK
+  const sick = (breed, sex, age, seeds, right) => {
+    for (const facing of right ? ['left', 'right'] : ['left']) seeds.forEach((seed, v) => {
+      const name = `${breed}_${sex}_${age}_front_${facing}_v${v}_sick`;
+      const { svg, meta } = cowFile({ breed, sex, age, pose: 'front', seed, sick: true }, facing);
+      files[`svg/${name}.svg`] = svg;
+      images[name] = { ...meta, sha256: sha(svg) };
+    });
+  };
+  for (const breed of [...CODEX_ORDER, ...Object.values(MIX_LOOK)]) for (const sex of ['cow', 'bull']) sick(breed, sex, 'adult', breeds[breed].seeds, breeds[breed].right);
+  for (const breed of Object.values(CALF_LOOK)) for (const sex of ['cow', 'bull']) sick(breed, sex, 'calf', breeds[breed].seeds, breeds[breed].right);
   const manifest = {
     about: [
       'cow-ui 的 design/m2/harness/assetexport.mjs 產生的，不要手改。',
@@ -101,6 +114,7 @@ function cows() {
       '年紀只有 calf、adult：老牛用 adult 的圖。朝右只有 right 為 true 的品種有，其他品種朝右時把朝左的圖左右翻轉。',
       '變體：seeds 的長度就是變體數，app 用「牛的編號 mod 變體數」挑。',
       '雜種牛（breeds 裡 mix 為 true）：照用途挑，乳牛 mixDairy、耕牛 mixDraft、肉牛 mixBeef；只有 adult（小牛一律用 CALF_LOOK 那個品種的小牛圖）。',
+      '病牛：名字後面加 _sick，只有 front（病牛一律轉正面）；臉色發青、額頭藍線已經畫在圖裡。成年牛照品種（含雜種牛），小牛照 CALF_LOOK。頭上的溫度計泡泡用 ui 的 parts/sick_bubble 另外疊（位置見 ui.json 的 about）。',
     ],
     generator: closure(['src/cow/breeds.js', 'src/cow/render.js', 'src/cow/calf.js']),
     breeds,
@@ -142,6 +156,8 @@ function ui() {
   put('parts/truck_tailgate.svg', wrap([hx - 8, hy - 62, 12, 66], gate));
   // 星星亮光（傳說牛頭上、揭曉動畫）：半徑 10；設計稿的描邊固定 1.6，畫小的星星時描邊不要跟著縮
   put('parts/sparkle.svg', wrap([-12, -12, 24, 24], sparkle(0, 0, 10)));
+  // 病牛頭上的溫度計泡泡（v0.3 第 5 節）：中心 (0, 0)、半徑 10，尾巴往左下指向牛頭
+  put('parts/sick_bubble.svg', wrap([-12.6, -11, 24.6, 25.8], SICK_BUBBLE_INNER));
   const manifest = {
     about: [
       'cow-ui 的 design/m2/harness/assetexport.mjs 產生的，不要手改。files 的 key 是 app/assets/ui/ 底下的路徑。',
@@ -149,6 +165,8 @@ function ui() {
       'parts/road：出貨那一幕的路，畫在螢幕座標：上緣 = 螢幕高 × 0.74 − 34，高 70，左右各多 10；48 寬一段，左右重複接。',
       'parts/truck_*：卡車自己的座標 270×152（anchors.truck）。back 畫在牛後面，front 畫在牛前面；輪子、擋板另外畫。',
       'parts/sparkle：半徑 10，中心在 (0, 0)；描邊 1.6，設計稿畫小的星星時描邊不縮。',
+      'parts/sick_bubble：病牛頭上的溫度計泡泡，中心在 (0, 0)、半徑 10。放的位置照 cows.json 那張牛圖的 face、headTop：中心 (face.cx + 0.9315 × face.r, headTop.y − 0.2 × face.r)，半徑 0.5 × face.r（設計稿 src/cow/sick.js 的 sickBubbleAt）。',
+      'icons/poop：大便（霜淇淋捲），牧場場景裡的大便也是這張：底部中間對齊地上那一點，寬約 19（場景座標）。',
     ],
     generator: closure(['src/js/icons.js', 'src/js/scene.js', 'src/js/truck.js']),
     anchors: {
