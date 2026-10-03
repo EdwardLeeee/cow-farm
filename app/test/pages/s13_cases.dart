@@ -1,5 +1,5 @@
 // S13 設定的頁面狀態（設計稿 s13.js）：設定主頁、語言、漲跌顏色、刪除牧場、刪除完成。
-// 備份牧場（S13-02、S13-07～09、S13-11～16、S13-19）下一個 PR 做，還在待做清單。
+// 備份牧場（S13-02、S13-07～16、S13-19）下一個 PR 做，還在待做清單。
 import 'package:cowfarm/api/game_api.dart';
 import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
@@ -67,7 +67,8 @@ final s13Cases = [
       expect(find.byKey(const Key('settings')), findsOneWidget);
       expect(find.text('晨光河畔牧場'), findsOneWidget);
       expect(find.text('#1234${_zh.gSep}${_zh.level(lv: 4)}'), findsOneWidget);
-      expect(find.text(_zh.s13NotBacked), findsOneWidget);
+      expect(find.byKey(const Key('set-backup')), findsNothing, reason: '備份牧場下一個 PR 做（ceo 2026-10-03）');
+      expect(find.byKey(const Key('set-privacy')), findsNothing, reason: '隱私權政策的網址 M5 才有');
       expect(find.text(langName(AppLang.zhHant)), findsOneWidget);
       expect(find.text(_zh.s13Footer(game: _zh.appTitle)), findsOneWidget);
     },
@@ -132,16 +133,6 @@ final s13Cases = [
     crop: find.byKey(const Key('delete-form')),
     check: (tester) {
       expect(tester.widget<AppButton>(find.byKey(const Key('delete-confirm'))).onPressed, isNotNull);
-    },
-  ),
-  PageCase(
-    'S13-10',
-    '設定主頁：已備份',
-    (tester, lang) => showSettings(tester, lang, links: ['apple']),
-    crop: find.byKey(const Key('set-account')),
-    check: (tester) {
-      expect(find.text(_zh.s13Backed), findsOneWidget);
-      expect(find.text(_zh.s13NotBacked), findsNothing);
     },
   ),
   PageCase(

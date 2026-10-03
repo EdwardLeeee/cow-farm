@@ -99,11 +99,7 @@ void main() {
     ]) {
       expect(tester.getSemantics(find.byKey(Key(key))), isSemantics(label: label, hasTapAction: true), reason: key);
     }
-    expect(
-      tester.getSemantics(find.byKey(const Key('set-backup'))),
-      isSemantics(label: '${_zh.s13BackupTitle} ${_zh.s13NotBacked}', hasTapAction: false),
-      reason: '備份牧場那一頁下一個 PR 做',
-    );
+    expect(find.byKey(const Key('set-backup')), findsNothing, reason: '備份牧場下一個 PR 做');
     handle.dispose();
   });
 

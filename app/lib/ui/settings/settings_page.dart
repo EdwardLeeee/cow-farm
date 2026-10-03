@@ -1,5 +1,8 @@
 // S13 設定（設計稿 s13.js 的 settings、S13-17 語言、S13-18 漲跌顏色）。頂列的齒輪打開；整頁，沒有頂列和分頁列。
-// 刪除牧場（S13-03）在 delete_page.dart。「備份牧場」那一頁（S13-02 以後）還沒做，那一列現在按了不會換頁。
+// 刪除牧場（S13-03）在 delete_page.dart。
+// 先不顯示的兩列（ceo 2026-10-03，不放按了沒反應的列）：
+// - 「備份牧場」（S13-02 以後、S13-10）：下一個 PR 做；之後也只在有 Apple／Google 登入設定的建置顯示。
+// - 「隱私權政策」：網頁 M5 才有，網址填好以後再加，用瀏覽器打開。
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -10,7 +13,6 @@ import '../../state/settings.dart';
 import '../../theme/tokens.dart';
 import '../../version.dart';
 import '../kit/app_icon.dart';
-import '../kit/cow_bits.dart';
 import '../kit/frame.dart';
 import '../kit/kit.dart';
 import '../kit/page_head.dart';
@@ -86,7 +88,7 @@ class SettingsFrame extends StatelessWidget {
   }
 }
 
-/// S13-01 設定主頁（S13-10：已經備份了，「備份牧場」那一列標「已備份」）。
+/// S13-01 設定主頁。
 class SettingsHome extends StatefulWidget {
   const SettingsHome({super.key});
 
@@ -103,7 +105,6 @@ class _SettingsHomeState extends State<SettingsHome> {
     final m = context.watch<GameModel>();
     final settings = context.watch<SettingsController>();
     final s = Strings.of(context);
-    final backed = m.state?.accountLinks.isNotEmpty ?? false;
     const chevron = AppIcon('chevron', size: 18);
     return SettingsFrame(
       title: s.s13Title,
@@ -150,26 +151,6 @@ class _SettingsHomeState extends State<SettingsHome> {
           key: const Key('set-account'),
           rows: [
             SetRow(
-              key: const Key('set-backup'),
-              icon: 'backup',
-              label: s.s13BackupTitle,
-              sub: s.s13BackupSub,
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CowBadge(
-                    backed ? BadgeKind.working : BadgeKind.listed,
-                    backed ? s.s13Backed : s.s13NotBacked,
-                    key: const Key('backup-status'),
-                  ),
-                  const SizedBox(width: 4),
-                  chevron,
-                ],
-              ),
-              semanticsLabel: '${s.s13BackupTitle} ${backed ? s.s13Backed : s.s13NotBacked}',
-              // 「備份牧場」那一頁（S13-02 以後）下一個 PR 做
-            ),
-            SetRow(
               key: const Key('set-delete'),
               icon: 'trash',
               label: s.s13Delete,
@@ -181,13 +162,6 @@ class _SettingsHomeState extends State<SettingsHome> {
         ),
         SetGroup(
           rows: [
-            SetRow(
-              key: const Key('set-privacy'),
-              icon: 'shield',
-              label: s.s13PrivacyPolicy,
-              trailing: SetExternal(s.s13Web),
-              // 隱私權政策的網頁 M5 才有（跟商店資料一起）；有網址以後用瀏覽器打開
-            ),
             SetRow(
               key: const Key('set-version'),
               icon: 'info',

@@ -475,7 +475,9 @@ const writeLog = () => fs.writeFileSync(
   const setText = await fullText();
   await shot('s13-settings');
   const meLine = (setText.match(/#\d{4,}・Lv \d+/) || [''])[0];
-  step('設定主頁（S13-01）', meLine !== '' && setText.includes('還沒備份'), `${meLine}；${setText.includes('還沒備份') ? '還沒備份' : '(沒看到「還沒備份」)'}`);
+  // 「備份牧場」「隱私權政策」先不顯示（ceo 2026-10-03）
+  const hidden = !setText.includes('備份牧場') && !setText.includes('隱私權政策');
+  step('設定主頁（S13-01）', meLine !== '' && hidden, `${meLine}；${hidden ? '沒有備份牧場、隱私權政策兩列' : '(還看得到備份牧場或隱私權政策)'}`);
 
   await tap(button(/^語言/).first());
   await wait(1200);
