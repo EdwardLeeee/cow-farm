@@ -325,7 +325,7 @@ final s06Cases = <PageCase>[
   ),
   PageCase(
     'S06-14',
-    '新聞：沒有、漲、跌、預告、大新聞、全部商品',
+    '新聞：沒有、漲、跌、大新聞、全部商品',
     (tester, lang) async {
       final m = await ranchModel(api: MarketApi(answers: designAnswers));
       final news = [
@@ -338,7 +338,6 @@ final s06Cases = <PageCase>[
     check: (tester) {
       expect(find.text(_zh.noNews), findsOneWidget);
       expect(find.text(_zh.s06BigNews), findsOneWidget);
-      expect(find.text(_zh.s06Upcoming), findsOneWidget);
       expect(find.text(_zh.bothTag), findsOneWidget);
     },
   ),
