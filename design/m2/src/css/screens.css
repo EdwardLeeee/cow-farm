@@ -217,6 +217,7 @@
 .lot .u { font-size: 12px; font-weight: 700; margin-right: 2px; }
 .lot-name { font-size: 12px; font-weight: 700; color: var(--ink-2); }
 .lot .badge { margin-left: auto; }
+.lot .badge.mix { margin-left: 0; } /* 雜種的批次：「雜種」放在稀有度的位置（S05-06） */
 .lot-fresh { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12px; font-weight: 700; }
 .lot-fresh .bar { flex: 1; height: 12px; }
 .lot-fresh .num { font-size: 14px; min-width: 36px; text-align: right; }
@@ -386,6 +387,26 @@
 .dex-hero { padding: 0; overflow: hidden; }
 .dex-pics { position: relative; display: flex; justify-content: center; align-items: flex-end; gap: 4px; padding: 8px 0 6px; }
 .dex-intro { font-size: 16px; font-weight: 700; line-height: 24px; padding: 0 2px; }
+/* 雜種牛（v0.3 第 1.1 節，第 13 輪 03-A）：「其他」那一格整排寬，三種體型並排、名字在右邊（寬度小於 390 時名字換到下面）；
+   詳細頁三種體型的正面並排，下面寫用途 */
+.dex-mix-tile { grid-column: 1 / -1; flex-direction: row; justify-content: center; gap: 10px; padding: 4px 10px 6px; }
+.dm-pics { display: flex; align-items: flex-end; line-height: 0; }
+.dm-text { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.dm-text .dex-name { font-size: 15px; line-height: 20px; }
+.mix-pics { gap: 2px; padding: 10px 0 8px; }
+.mix-pics .mp { display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 0; }
+.mix-pics .use { line-height: 18px; }
+/* 雜種牛長大揭曉（S03-25，A-13 長成雜種牛時的結尾）：名字卡裡多一行橘字（少吃了哪幾種）、說明和「好」 */
+.gs-adult.on { opacity: 1; }
+.mix-title { max-width: calc(100% - 32px); margin-bottom: 4px; font-size: 24px; line-height: 30px; text-align: center; }
+.grow-stage.mix-stage { width: 200px; height: 166px; }
+.mix-stage svg { width: auto; height: 100%; }
+/* 矮的手機（320×568）：牛縮小、標題再小一點，名字卡才不會碰到上下的安全區 */
+@media (max-height: 640px) { .grow-stage.mix-stage { height: 112px; } .mix-title { font-size: 20px; line-height: 26px; } .reveal-name.mix-end { gap: 4px; padding: 8px 14px 12px; } .mix-end .mr-hint { line-height: 17px; } }
+.reveal-name.mix-end { width: min(300px, calc(100% - 32px)); padding: 10px 16px 16px; }
+.mix-end .mr-why { margin-top: 2px; font-size: 16px; line-height: 22px; text-align: center; }
+.mix-end .mr-hint { text-align: center; line-height: 19px; }
+.mix-end .btn { margin-top: 6px; }
 
 /* S09-05 24 種全圖（大張，不是手機畫面） */
 .all-sheet { width: 1320px; padding: 28px 32px 32px; background: #FFF9EF; }
@@ -805,6 +826,8 @@
   /* 畫面寬度小於 390（360、320）的圖鑑排 3 欄：4 欄時 360 寬一格只剩約 69 px，英文的「Black Velvet Dairy」「Cotton Candy Highland」
      要換三行（cow-app #116、ceo 2026-10-03）。排 3 欄以後三種語言的牛名都不超過兩行；430、390 照舊 4 欄 */
   .dex-grid { grid-template-columns: repeat(3, 1fr); }
+  .dex-mix-tile { flex-direction: column; gap: 2px; }
+  .dm-text { align-items: center; }
 }
 
 /* 按下狀態表（G-11～G-13）的排版：每種元件一塊，各狀態並排，放不下就換行；橘色字是註解 */
@@ -963,6 +986,8 @@
 .av-cell.tapped { background: #FFF1DF; box-shadow: 0 0 0 3px #E8964A inset; }
 .av-lock { position: absolute; right: 0; bottom: 0; width: 20px; height: 20px; border-radius: 10px; background: #FFFFFF; border: 2px solid var(--disabled-line); display: grid; place-items: center; line-height: 0; }
 .av-count { display: flex; align-items: center; gap: 4px; margin-top: 10px; }
+.av-sub { margin: 10px 2px 0; font-size: 13px; font-weight: 900; line-height: 18px; color: var(--ink-2); }
+.av-grid.other { margin-top: 4px; }
 .av-sheet .btn-row { margin-top: 12px; }
 /* 320 寬：一排 6 個時一格不到 44，改 5 個；面板會比畫面高，所以拿掉上面那一列預覽（選中的格子本來就有綠框和勾） */
 @media (max-width: 339px) { .av-grid { grid-template-columns: repeat(5, 1fr); } .av-preview { display: none; } }

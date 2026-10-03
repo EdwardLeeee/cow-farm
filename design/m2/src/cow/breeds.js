@@ -112,7 +112,16 @@ export const BREEDS = {
     coat: '#2F3F74', pattern: 'stars', patternColor: '#FFFFFF', seedColor: '#FFE9A8',
     muzzle: '#D9CFE6', earColor: 'coat', seed: 67,
   },
+
+  // ---- 雜種牛（v0.3 第 1.1 節；使用者 2026-10-03 選第 13 輪 03-A 灰褐素色）：不是 24 種之一，不在 CODEX_ORDER ----
+  // 稀有、傳說的小牛沒吃到指定的飼料，長大就變成這個；照用途分三種體型，毛色一樣。名字、介紹的字串是 breed.mix.*（三種共用）
+  mixDairy: { name: '雜種牛', use: 'dairy', mix: true, traits: {}, coat: '#BDB2A5', pattern: 'solid', muzzle: '#ECE2D7', earColor: 'coat', seed: 71 },
+  mixDraft: { name: '雜種牛', use: 'draft', mix: true, traits: {}, coat: '#BDB2A5', pattern: 'solid', muzzle: '#ECE2D7', earColor: 'coat', seed: 73 },
+  mixBeef: { name: '雜種牛', use: 'beef', mix: true, traits: {}, coat: '#BDB2A5', pattern: 'solid', muzzle: '#ECE2D7', earColor: 'coat', seed: 75 },
 };
+// 雜種牛照用途畫哪一種體型
+export const MIX_LOOK = { dairy: 'mixDairy', draft: 'mixDraft', beef: 'mixBeef' };
+export const MIX_MULT = 0.6;
 
 // 圖鑑順序：企劃書 4.5 的編號 1–24
 export const CODEX_ORDER = [
@@ -148,6 +157,7 @@ export const INTRO = {
   fluffyWagyu: '和牛的長毛版本，毛又亮又蓬，一樣有短角。',
   whiteWagyu: '奶油白的毛帶著光澤，頭上一對短角。',
   starry: '深藍色的毛上有白色星星，是最難遇到的肉牛。',
+  mix: '灰褐色的素毛，看不出原本會是什麼品種。',
 };
 
 export function tierOf(b) { return Object.keys(b.traits || {}).filter((k) => b.traits[k]).length; }

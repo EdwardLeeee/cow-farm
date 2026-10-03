@@ -1,9 +1,9 @@
 // S03 牧場主畫面
-import { frame, btn, bar, toast, badge, tierChip, useChip, sexText, cowRow, icon, fmt, BREEDS } from '../kit.js';
+import { frame, btn, bar, toast, badge, tierChip, useChip, sexText, cowRow, icon, fmt, cowSVG, BREEDS } from '../kit.js';
 import { ranchScene, HERD, WIDE } from '../scene.js';
-import { RANCH, COWS, PEN, BUCKET, WAREHOUSE, MARKET, NEWS, sum, cowName, compact, vsBase, newsTag, newsText } from '../fixtures.js';
-import { t, tb, dur, useName, sexName, tierName } from '../i18n.js';
-import { tierOf } from '../../cow/breeds.js';
+import { RANCH, COWS, PEN, BUCKET, WAREHOUSE, MARKET, NEWS, sum, cowName, compact, vsBase, newsTag, newsText, MIX_COW } from '../fixtures.js';
+import { t, tb, dur, useName, sexName, tierName, calfName, feedList } from '../i18n.js';
+import { tierOf, MIX_MULT } from '../../cow/breeds.js';
 import { TIER_CLS, tierTag, pctText, newsIcons } from './s06.js';
 
 const L = '#4B3326';
@@ -245,6 +245,20 @@ full('S03-11', '收起來：奶桶、倉庫、收購價收成一條（收奶鈕�
 part('S03-12', '收起來的那一條：奶桶滿了、奶桶是 0', '#crop', (ctx) => frame(ctx.dev, { tab: null, hud: false, content: `<div id="crop" class="g-sheet slim-sheet">${dock({ collapsed: true, bucket: { qty: 42 } })}${dock({ collapsed: true, bucket: { qty: 0 } })}</div>` }));
 full('S03-13', '往右滑：牧場的另一邊（池塘、大樹）', (ctx) => ranchPage(ctx, { pan: WIDE - 390 }));
 full('S03-14', '第一次打開牧場：提示可以左右滑動（只出現一次）', (ctx) => ranchPage(ctx, { swipeHint: true }));
+// 小牛長大揭曉、變成雜種牛（v0.3 第 1.1 節；使用者 2026-10-03 選第 13 輪 03-A）：A-13 播到最後停住的樣子。
+// 長大的樣子是雜種牛、名字換成「雜種牛 #20」、「雜種」標籤代替稀有度；橘字說少吃了哪幾種（不說原本會是哪個品種）、
+// 說明倍數和配種照樣可能長出稀有的品種；要按「好」才關（一般的長大揭曉點一下就關）。不接 A-06
+function mixGrown(ctx) {
+  const c = MIX_COW;
+  const inner = `<div class="disc-title gs-title mix-title">${t('anim.grownUp', { cow: calfName('dairy', c.id) })}</div>
+    <div class="grow-stage mix-stage"><div class="gs-adult on">${cowSVG({ breed: c.breed, sex: c.sex }, { w: 180, h: 158 })}</div></div>
+    <div class="reveal-name gs-name mix-end"><b>${cowName(c)}</b><div class="chips">${useChip('dairy')}<span class="use">${sexName(c.sex)}</span>${badge('mix', t('badgeMix'))}</div>
+      <p class="warn-text mr-why">${t('anim.mixGrown', { feeds: feedList(c.missed) })}</p>
+      <p class="hint mr-hint">${t('anim.mixHint', { mult: MIX_MULT })}</p>
+      ${btn(t('ok'), { kind: 'primary', block: true })}</div>`;
+  return ranchPage(ctx).replace('<div class="overlays">', `<div class="overlays"><div class="backdrop"></div><div class="reveal">${inner}</div>`);
+}
+full('S03-25', '小牛長大揭曉：變成雜種牛（A-13 的結尾）', (ctx) => mixGrown(ctx));
 part('S03-10', '耕牛在田裡：清單顯示「工作中」、場景裡看不到', '#crop', (ctx) => frame(ctx.dev, {
   tab: 'ranch', content: `<div id="crop" class="list" style="padding:4px 0 8px">${COWS.filter((c) => c.field != null).map(cowListRow).join('')}</div>`,
 }));

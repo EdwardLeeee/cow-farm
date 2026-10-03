@@ -1,7 +1,7 @@
 // S09 圖鑑（24 格）與 S12 排行榜（紀錄分頁）
 import { frame, btn, seg, icon, fmt, cowSVG, bar, tierChip, useChip, badge, BREEDS } from '../kit.js';
 import { FOUND, RANK, RANCH, compactBig, LONG_NAMES } from '../fixtures.js';
-import { CODEX_ORDER, NEW_IN_M2, TIER_NAME, TRAIT_NAME, USE_NAME, tierOf } from '../../cow/breeds.js';
+import { CODEX_ORDER, NEW_IN_M2, TIER_NAME, TRAIT_NAME, USE_NAME, tierOf, MIX_LOOK, MIX_MULT } from '../../cow/breeds.js';
 import { t, LANG, breedName, breedIntro, useName, tierName } from '../i18n.js';
 
 const USES = [['dairy', '乳牛'], ['draft', '耕牛'], ['beef', '肉牛']];
@@ -14,7 +14,14 @@ function cell(k, found) {
     <span class="dex-pic">${cowSVG({ breed: k }, { w: 74, h: 64, pad: 3, sil: found ? false : 'dark' })}</span>
     <span class="dex-name">${found ? breedName(k) : t('g.unknownBreed')}</span>${tierChip(tier)}</button>`;
 }
-function codexPage(ctx, { found = FOUND, tall = true } = {}) {
+// 雜種牛（v0.3 第 1.1 節；第 13 輪 03-A）：最下面「其他」另外一格，一格整排寬、三種體型並排；不算在 24 種裡，也不算完成度。
+// 第一次長出雜種牛以前是剪影
+function mixTile(found) {
+  return `<button class="dex-cell dex-mix-tile${found ? '' : ' unknown'}">
+    <span class="dm-pics">${USES.map(([u]) => cowSVG({ breed: MIX_LOOK[u] }, { w: 70, h: 62, pad: 2, sil: found ? false : 'dark' })).join('')}</span>
+    <span class="dm-text"><span class="dex-name">${found ? breedName(MIX_LOOK.dairy) : t('g.unknownBreed')}</span><span class="hint">${t('s09.mixBodies')}</span></span></button>`;
+}
+function codexPage(ctx, { found = FOUND, mix = false, tall = true } = {}) {
   const n = found.length;
   const all = n === 24;
   const content = `<div class="stack">
@@ -26,6 +33,8 @@ function codexPage(ctx, { found = FOUND, tall = true } = {}) {
     </article>
     ${USES.map(([u]) => `<section><h3 class="sec-title">${useChip(u)}<span class="hint">${t('s09.useCount', { use: useName(u), n: 8 })}</span></h3>
       <div class="dex-grid">${CODEX_ORDER.filter((k) => BREEDS[k].use === u).map((k) => cell(k, found.includes(k))).join('')}</div></section>`).join('')}
+    <section><h3 class="sec-title"><span class="use">${t('s09.other')}</span><span class="hint">${t('s09.otherHint', { n: 24 })}</span></h3>
+      <div class="dex-grid">${mixTile(mix)}</div></section>
   </div>`;
   return frame(ctx.dev, { tab: 'records', content, tall });
 }
@@ -58,6 +67,26 @@ function detailPage(ctx, k, { found = true } = {}) {
   return frame(ctx.dev, { tab: 'records', content });
 }
 
+// 雜種牛的詳細：三種體型的正面並排、沒有編號、「雜種」標籤代替稀有度；數值照一般牛 × 0.6（產奶量不變，賣價乘倍數；耕田的收成乘倍數）
+function mixDetail(ctx, { found = true } = {}) {
+  const pics = `<div class="dex-pics mix-pics">${USES.map(([u]) => `<span class="mp">${cowSVG({ breed: MIX_LOOK[u] }, { w: 88, h: 92, pad: 3, sil: found ? false : 'dark' })}${found ? useChip(u) : ''}</span>`).join('')}</div>`;
+  const stats = [
+    [t('s09.milkCow'), `14 <small>${t('g.perHourMilk')}</small>`],
+    [t('g.plow'), `${(11 * MIX_MULT).toFixed(1)} <small>${t('g.perHourRice')}</small>`],
+    [t('s09.mult'), `×${MIX_MULT.toFixed(1)}`],
+  ];
+  const content = `<div class="stack">
+    <div class="page-head"><button class="icon-btn" aria-label="${t('back')}">${icon('back', 22)}</button><div class="grow"><h1>${found ? breedName(MIX_LOOK.dairy) : t('g.unknownBreed')}</h1><div class="chips" style="margin-top:3px">${badge('mix', t('badgeMix'))}${found ? '' : badge('lock', t('s09.notFoundYet'))}</div></div></div>
+    <article class="card dex-hero"><div class="hero-bg"></div>${pics}</article>
+    ${found ? `<p class="dex-intro">${breedIntro(MIX_LOOK.dairy)}</p>
+    <div class="kv">${stats.map(([a, v]) => `<div class="cell"><div class="k">${a}</div><div class="v num">${v}</div></div>`).join('')}</div>
+    <article class="card"><div class="card-head"><span class="card-title pink">${icon('heart', 16)}${t('s09.mixHowTitle')}</span></div><p class="hint" style="margin-top:6px;color:var(--ink)">${t('s09.mixHow')}</p></article>
+    <p class="hint">${t('s09.firstFound', { date: t('date.mdOnly', { m: 10, d: 3 }), n: 1 })}</p>`
+      : `<article class="card"><div class="empty"><div class="t1">${t('s09.unknownTitle')}</div><div class="t2">${t('s09.mixHow')}</div></div></article>`}
+  </div>`;
+  return frame(ctx.dev, { tab: 'records', content });
+}
+
 // 24 種全圖（給使用者核准外型）：側面＋正面，一排一種用途
 function allSheet() {
   const box = (k) => {
@@ -75,10 +104,12 @@ function allSheet() {
 const S = [];
 const full = (id, name, render, x = {}) => S.push({ id, name, type: 'full', render, ...x });
 full('S09-01', '列表：24 格（長頁）', (ctx) => codexPage(ctx), { tall: true });
-full('S09-02', '全部發現', (ctx) => codexPage(ctx, { found: CODEX_ORDER, tall: false }));
+full('S09-02', '全部發現', (ctx) => codexPage(ctx, { found: CODEX_ORDER, mix: true, tall: false }));
 full('S09-03', '品種詳細（已發現）', (ctx) => detailPage(ctx, 'jersey'));
 full('S09-04', '品種詳細（還沒發現）', (ctx) => detailPage(ctx, 'goldenEar', { found: false }));
 S.push({ id: 'S09-05', name: '24 種全圖（核准外型）', type: 'sheet', viewport: { w: 1320, h: 1400 }, render: () => allSheet() });
+full('S09-06', '雜種牛的詳細（已發現）', (ctx) => mixDetail(ctx));
+full('S09-07', '雜種牛的詳細（還沒發現）', (ctx) => mixDetail(ctx, { found: false }));
 
 // ---------------- S12 排行榜 ----------------
 // 每週排行榜在台灣時間週一 00:00 重新計算（D25），畫面換成手機當地的時間（ceo 2026-10-02）。星期用全名 weekdayFull（縮寫 weekday 留給 date.mdw）。
