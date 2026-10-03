@@ -152,6 +152,7 @@
 .bar.yellow { background: #FFF4CC; }
 .bar.yellow i { background: #FFB938; }
 .bar.red i { background: #FF8A80; }
+.bar.gray { background: #F1EBE3; }
 .bar.gray i { background: #CDBFAE; } /* 停住的進度（病牛在田裡，v0.3 第 5 節） */
 .bar.thick { height: 18px; border-radius: 10px; }
 

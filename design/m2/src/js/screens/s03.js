@@ -100,7 +100,7 @@ export function ranchPage(ctx, o = {}) {
     const a = sc.anchors[o.pop.id];
     const left = Math.max(12, Math.min(dev.w - 220, a.head[0] - 43));
     // data-foot：牛腳的位置；上面放不下時名片放到牛的下面（kit.js 的 placeCowPop）
-    over += `<div class="cow-pop" data-foot="${a.foot[1]}" data-hx="${a.head[0]}"${o.pop.noflip ? ' data-noflip' : ''} style="left:${left}px;top:${a.head[1] - 14}px;transform:translateY(-100%)">${o.pop.html}</div>`;
+    over += `<div class="cow-pop${o.pop.cls ? ` ${o.pop.cls}` : ''}" data-foot="${a.foot[1]}" data-hx="${a.head[0]}"${o.pop.noflip ? ' data-noflip' : ''} style="left:${left}px;top:${a.head[1] - 14}px;transform:translateY(-100%)">${o.pop.html}</div>`;
   }
   const pen = o.pen || PEN;
   const body = `
@@ -168,7 +168,7 @@ export function popHtml(c) {
   const b = BREEDS[c.breed], tier = tierOf(b);
   const chips = [useChip(b.use), `<span class="use">${sexName(c.sex)}</span>`, ...(c.age === 'calf' ? [] : [tierChip(tier)]), ...statusChips(c)];
   // 病牛（v0.3 第 5 節）：不產奶、不能配種上架、出貨只剩一成；按鈕換成治療（第 13 輪 04-A）
-  if (c.sick) return `<div class="name">${cowName(c)}</div><div class="chips" style="margin-top:4px">${chips.join('')}</div><div class="meta">${t('s03.sickNoMilk')}</div><div class="meta">${t('s03.sickShip')}</div>${btn(t('treat', { price: fmt(TREAT_PRICE) }), { small: true, block: true, kind: 'primary', ic: 'coin' })}`;
+  if (c.sick) return `<div class="name">${cowName(c)}</div><div class="chips" style="margin-top:4px">${chips.join('')}</div><div class="meta wrap">${t('s03.sickNoMilk')}</div><div class="meta wrap">${t('s03.sickShip')}</div>${btn(t('treat', { price: fmt(TREAT_PRICE) }), { small: true, block: true, kind: 'primary', ic: 'coin' })}`;
   const meta = c.age === 'calf' ? t('growUp', { v: dur(c.grow_) }) : b.use === 'dairy' && c.sex === 'cow' ? t('s03.popMilk', { tier: tierName(tier), n: c.milk }) : t('weight', { v: c.kg });
   return `<div class="name">${cowName(c)}</div><div class="chips" style="margin-top:4px">${chips.join('')}</div><div class="meta">${meta}</div>${btn(t('s03.popDetail'), { small: true, block: true, kind: 'primary' })}`;
 }
@@ -280,7 +280,7 @@ export const SICK_HERD = HERD.map((h) => (h.id === 3 ? { ...h, pose: 'front', si
 full('S03-26', '牧場有大便：右上角出現大便數', (ctx) => ranchPage(ctx, { poops: [0, 1, 2, 3] }));
 full('S03-27', '太髒了：大便數變紅「會生病」', (ctx) => ranchPage(ctx, { poops: POOPS_ALL }));
 full('S03-28', '有病牛：轉正面、臉色發青、頭上溫度計', (ctx) => ranchPage(ctx, { poops: POOPS_ALL, herd: SICK_HERD }));
-full('S03-29', '點病牛：名片寫「生病了」、按鈕換成治療', (ctx) => ranchPage(ctx, { poops: POOPS_ALL, herd: SICK_HERD, pop: { id: 3, html: popHtml(SICK3) } }));
+full('S03-29', '點病牛：名片寫「生病了」、按鈕換成治療', (ctx) => ranchPage(ctx, { poops: POOPS_ALL, herd: SICK_HERD, pop: { id: 3, html: popHtml(SICK3), cls: 'sick' } }));
 part('S03-30', '牛舍清單：病牛那一列', '#crop', (ctx) => frame(ctx.dev, {
   tab: 'ranch', content: `<div id="crop" class="list" style="padding:4px 0 8px">${cowListRow(SICK3)}${cowListRow(COWS.find((c) => c.id === 7))}</div>`,
 }));
