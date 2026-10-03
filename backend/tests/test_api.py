@@ -158,6 +158,7 @@ def test_session_and_state_fields(h):
         "peak_weight_kg": dict(zip(TYPE_WIRE, FP.peak_weight_kg)),
         "bull_weight_mult": FP.bull_weight_mult,
         "field_cap_h": FP.field_cap_h,
+        "rename_price": 1000,  # S21：第二次起改名的價錢
     }
     cows = {c["id"]: c for c in st["cows"]}
     assert len(cows) == 2
@@ -705,6 +706,7 @@ def test_stud_borrow_pays_owner_and_calf_goes_to_borrower(h):
         "name_words": None,
         "is_bot": False,
         "level": sa["level"],
+        "avatar": None,  # S21：沒選過頭像
     }
     assert not {"owner_id", "owner_name", "is_bot", "type_name", "tier_name"} & set(lst)
     assert next(c for c in state(h, a)["cows"] if c["id"] == bull["id"])["listed"] == lst["id"]
@@ -839,6 +841,7 @@ def test_stud_log(h):
             "name_words": None,
             "is_bot": False,
             "level": st["level"],
+            "avatar": None,  # S21：沒選過頭像
         }
 
     la = h.get("/v1/stud/log", a).json()
@@ -979,6 +982,7 @@ def test_leaderboard_ranch_and_level(h):
             "name_words": None,
             "is_bot": False,
             "level": st["level"],
+            "avatar": None,  # S21：沒選過頭像
         }
         assert sum(e["is_me"] for e in lb["entries"]) == 1
         if kind == "weekly":  # 下次重算的現實時間（app 依手機時區顯示「每週一 00:00 重新計算」）
@@ -1045,6 +1049,7 @@ def test_websocket_stud_notice_to_owner(h):
             "name_words": None,
             "is_bot": False,
             "level": sb["level"],
+            "avatar": None,  # S21：沒選過頭像
         }
 
 

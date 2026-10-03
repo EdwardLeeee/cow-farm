@@ -108,3 +108,32 @@ def test_stud_fee_examples_from_d26():
     price, kg, at_max = stud_fee(fp, 1, 0, adult, adult)  # 剛成年的耕牛：30 公斤 × 1.1 = 33 公斤
     assert (price, round(kg, 2), at_max) == (40, 33.0, False)
     assert stud_fee(fp, 1, 0, adult, adult + fp.peak_age_h[1] * 3600)[2]  # 長到最佳體重就不再漲
+
+
+S21_JS = DESIGN / "src" / "js" / "screens" / "s21.js"
+
+
+def test_achievements_match_design_badges():
+    """成就（S21）：伺服器的 18 個 key、順序、目標數字跟設計稿 s21.js 的 BADGES 一樣；
+    字串表有每一個（分階段的每一階）的名字和條件。"""
+    from server.achievements import ACHIEVEMENTS
+
+    if not S21_JS.exists() or not ZH.exists():
+        pytest.skip("找不到設計稿")
+    src = S21_JS.read_text(encoding="utf-8")
+    body = src[src.index("export const BADGES = [") : src.index("];", src.index("export const BADGES = ["))]
+    design = []
+    for m in re.finditer(r"\{ key: '(\w+)'(.*?)\}(?:,|\s*$)", body, re.M):
+        key, rest = m.group(1), m.group(2)
+        tiers = re.search(r"tiers: \[([\d, ]+)\]", rest)
+        of = re.search(r"\bof: (\d+)", rest)
+        goal = tuple(int(x) for x in tiers.group(1).split(",")) if tiers else int(of.group(1)) if of else None
+        design.append((key, goal))
+    assert design == list(ACHIEVEMENTS)
+    zh = json.loads(ZH.read_text(encoding="utf-8"))
+    for key, goal in ACHIEVEMENTS:
+        stages = range(1, len(goal) + 1) if isinstance(goal, tuple) else [None]
+        for i in stages:
+            for part in ("name", "cond"):
+                k = f"ach.{key}.{part}" + (f".{i}" if i else "")
+                assert k in zh, k

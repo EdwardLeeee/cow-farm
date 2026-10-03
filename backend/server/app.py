@@ -28,7 +28,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from . import views as V
 from .config import Config
 from .game import GameError, Player, ship_value
-from .runtime import GameServer, token_hash
+from .runtime import GameServer, check_ranch_name, token_hash
 from .store import Store
 
 log = logging.getLogger("cowfarm")
@@ -104,6 +104,17 @@ class BreedReq(_Req):
 
 class UpgradeReq(_Req):
     kind: Literal["pen", "bucket", "warehouse", "fresh", "field"]
+    request_id: str
+
+
+# ---- S21 牧場資料（D34） ----
+class RenameReq(_Req):
+    name: Any  # 字串；在 runtime 照 D23 檢查（協定 2.2 節）
+    request_id: str
+
+
+class AvatarReq(_Req):
+    breed: Any  # 品種代號；在服務層檢查
     request_id: str
 
 
@@ -556,6 +567,41 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
 
         return await server.run_action(
             p.pid, lambda now: g.upgrade(p.pid, req.kind, now), _rid(req.request_id), "upgrade", respond
+        )
+
+    # ---- 牧場資料（S21，D34；協定 2.5 節） ----
+    @app.post("/v1/ranch/rename")
+    async def ranch_rename(req: RenameReq, p: Player = Depends(current)):
+        if not isinstance(req.name, str):
+            raise GameError("bad_request", "name 要是字串", 400, {"fields": ["name"]})
+        name = check_ranch_name(req.name)
+        g = server.game
+
+        def respond(res, now):
+            st = state_of(p, now)
+            return {
+                **base(now),
+                "name": res["name"],
+                "cost": res["cost"],
+                "coins": st["coins"],
+                "profile": st["profile"],
+                "state": st,
+            }
+
+        return await server.run_action(
+            p.pid, lambda now: g.rename(p.pid, name, now), _rid(req.request_id), "ranch_rename", respond
+        )
+
+    @app.post("/v1/ranch/avatar")
+    async def ranch_avatar(req: AvatarReq, p: Player = Depends(current)):
+        g = server.game
+
+        def respond(res, now):
+            st = state_of(p, now)
+            return {**base(now), "avatar": res["avatar"], "profile": st["profile"], "state": st}
+
+        return await server.run_action(
+            p.pid, lambda now: g.set_avatar(p.pid, req.breed, now), _rid(req.request_id), "ranch_avatar", respond
         )
 
     # ---- 行情與排行榜 ----

@@ -109,6 +109,7 @@ PR 3–10 都做完了（2026-10-02）。每個 PR 合併時更新這張表的�
 | 405 | `method_not_allowed` | 方法不對 | | `unknownError` | |
 | 4xx | `http_error` | 其他 HTTP 錯誤，狀態碼照原本的：請求本文讀不出來（例如不是 UTF-8，400）、`/v1` 以外的靜態檔案讀不到 | | `unknownError` | |
 | 409 | `not_enough_coins` | 金幣不夠 | `need`、`have`（整數） | `notEnoughCoins`（`{n}` = need − have） | |
+| 409 | `avatar_locked` | 換頭像選了圖鑑裡還沒發現的品種（2.5 節） | `breed` | `s21.avatarLocked` | |
 | 409 | `not_enough_stock` | 倉庫裡沒有這麼多牛奶／牛肉／稻米 | `have`、`want` | `err.not_enough_stock` | |
 | 409 | `pen_full` | 牛舍滿了（買牛、配種、借種都要有空格給小牛） | `slots` | `penFull` | |
 | 409 | `cow_not_adult` | 小牛還沒長大 | `cow_id`、`until` | `err.cow_not_adult` | |
@@ -149,8 +150,8 @@ PR 3–10 都做完了（2026-10-02）。每個 PR 合併時更新這張表的�
 排行榜、借種上架的主人、借種紀錄的對方、借種通知的借方，都用這個形狀：
 
 ```json
-{"player_id": 31, "name": "小花的快樂牧場", "name_words": null, "is_bot": false, "level": 3}
-{"player_id": 4, "name": null, "name_words": [8, 0, 5], "is_bot": true, "level": 6}
+{"player_id": 31, "name": "小花的快樂牧場", "name_words": null, "is_bot": false, "level": 3, "avatar": "jersey"}
+{"player_id": 4, "name": null, "name_words": [8, 0, 5], "is_bot": true, "level": 6, "avatar": null}
 ```
 
 | 欄位 | 型別 | 說明 |
@@ -160,6 +161,7 @@ PR 3–10 都做完了（2026-10-02）。每個 PR 合併時更新這張表的�
 | `name_words` | int[3]／null | 電腦牧場名的三組詞編號（各 0–11）；真人是 null |
 | `is_bot` | bool | 電腦假玩家（含公營種牛站） |
 | `level` | int／null | 場主等級；公營種牛站是 null |
+| `avatar` | string／null | S21：頭像的品種代號（同 `cows[].breed`）。真人才有；電腦、公營種牛站、還沒選過頭像的真人是 null，app 畫荷斯坦 |
 
 app 怎麼顯示：
 - 名字：真人用 `name`；電腦用字串表 `namegen.pattern`，把 `{first}`、`{second}`、`{third}` 換成 `namegen.first.<name_words[0]>`、`namegen.second.<name_words[1]>`、`namegen.third.<name_words[2]>`（玩家目前的語言），前面加 `botPrefix`（例「電腦 露珠溪谷牧野」）。
@@ -313,7 +315,13 @@ app 怎麼顯示：
  "stud": {"listings": [], "income": 0},
  "economy": {"tier_mult": [1.0, 1.3, 1.7, 2.5], "beef_grade_mult": {"A": 1.25, "B": 1.0, "C": 0.75}, "ox_rice_per_h": 11.0,
              "dairy_milk_per_h": 14.0, "calf_grow_h": [1.0, 2.0, 4.0, 8.0],
-             "peak_weight_kg": {"dairy": 250.0, "dual": 450.0, "beef": 800.0}, "bull_weight_mult": 1.1, "field_cap_h": 8.0},
+             "peak_weight_kg": {"dairy": 250.0, "dual": 450.0, "beef": 800.0}, "bull_weight_mult": 1.1, "field_cap_h": 8.0,
+             "rename_price": 1000},
+ "profile": {"avatar": null, "renames": 0},
+ "achievements": [{"key": "firstMilk", "unlocked_at": 1791130200.0},
+                  {"key": "gradeA", "unlocked_at": null, "progress": 1.0, "goal": 10},
+                  {"key": "codex", "progress": 2.0, "tiers": [{"goal": 5, "unlocked_at": null}, {"goal": 12, "unlocked_at": null}, {"goal": 24, "unlocked_at": null}]},
+                  "…共 18 個"],
  "account": {"links": []},
  "maintenance": null
 }
@@ -334,6 +342,8 @@ app 怎麼顯示：
 | `economy` | object | 經濟倍數，直接讀伺服器的參數（`params.py`），app 不要寫死：`tier_mult`（一般、優良、稀有、傳說：牛奶、牛肉的賣價倍率，也是耕牛的稻米產量倍率；S05「優良牛奶 ×1.3」、S09 品種卡）、`beef_grade_mult`（牛肉評級 A／B／C 的賣價倍率）、`ox_rice_per_h`（壯年一般耕牛每遊戲小時的稻米公斤數；某頭牛 = 這個 × `tier_mult` × 年齡曲線，現在的值看 `cows[].rice_per_h`）、`dairy_milk_per_h`（壯年母乳牛每遊戲小時產幾瓶；× 年齡曲線，稀有度不影響產量、只影響賣價；S09-03「產奶 14 瓶／時」）、`calf_grow_h`（小牛長大要幾遊戲小時，依稀有度 0–3；S08-06「小牛長大 1–4 小時」、S09-03）、`peak_weight_kg`（母牛的最佳體重，依用途，key 同 `cows[].type`：`dairy`、`dual`、`beef`；S09-03）、`bull_weight_mult`（公牛的體重 = 母牛 × 這個）、`field_cap_h`（一塊田最多存這頭耕牛**壯年**幾小時的產量：`fields[].capacity` = `ox_rice_per_h` × `tier_mult` × 這個，不乘年齡曲線。過了壯年、產量變少的耕牛要更久才長滿，例：產量剩 4 成時要 8 ÷ 0.4 = 20 小時；S17「最多存 8 小時的量」）。牛奶賣價 = 市價 × `tier_mult` × 新鮮度；牛肉 = 市價 × `beef_grade_mult` × `tier_mult` × 存放折價。**這些只是給畫面顯示的說明數字**：帳一律由伺服器算，app 不能拿它們自己算成交價或收入（手機不算帳；要價格用 `POST /v1/sell/quote`、`GET /v1/ship/preview`） |
 | `account` | object | PR 9：`links[]` 綁定的帳號 `{"provider": "apple"｜"google", "linked_at_real"}`。空陣列 = 還沒備份（頂列齒輪的小點 G-10、S13-01「還沒備份」） |
 | `maintenance` | object／null | PR 8：維護預告或維護中（第 6 節）；沒有是 null |
+| `profile` | object | S21 牧場資料（D34）：`avatar` 頭像的品種代號（沒選過是 null，app 畫荷斯坦）、`renames` 改過幾次名（0 = 下次改名免費，之後每次 `economy.rename_price` 幣）。改名、換頭像見 2.5 節 |
+| `achievements` | object[] | S21 的 18 個成就，順序跟設計稿 `s21.js` 的 `BADGES` 一樣。名字和條件查字串表 `ach.<key>.name`、`ach.<key>.cond`（見下）。目標數字由伺服器給，app 不寫死 |
 
 `cows[]` 每頭牛：
 
@@ -418,6 +428,39 @@ v2 拿掉的：`type_name`、`tier_name`、`ready_at`、`breed_ready`（看 `can
 
 `rice`：`in_fields` 田裡長好還沒收的稻米、`stock` 倉庫裡的稻米、`per_hour` 所有有耕牛的田每小時產量加起來（= `fields[].per_hour` 的總和）。**長滿的田也算**（伺服器的 `farm.rice_rate`），所以有田長滿時，它比田裡實際還在長的量多。S17 田地頁的「每小時」要的是還在長的量：app 從 `fields[]` 加總還沒長滿（`rice < capacity`）的田的 `per_hour`。這是顯示用的推算：app 用上面的公式推算每塊田的 `rice`，兩次 `state` 之間有田長滿，「每小時」也會跟著變少。
 
+`economy.rename_price`：第二次起改名的價錢（幣，現在 1,000；第一次免費，看 `profile.renames`）。
+
+`achievements[]`（S21，D34；第一版只展示，沒有獎勵）。三種形狀：
+
+| 種類 | 欄位 | 解鎖了沒 |
+|---|---|---|
+| 一般 | `key`、`unlocked_at` | `unlocked_at` 不是 null |
+| 有計數 | `key`、`unlocked_at`、`progress`、`goal` | 同上；`progress` 到 `goal` 那一刻解鎖 |
+| 分階段 | `key`、`progress`、`tiers[{goal, unlocked_at}]` | 有任一階的 `unlocked_at` 不是 null；名字和條件查 `ach.<key>.name.<階>`、`ach.<key>.cond.<階>`（第一階是 1） |
+
+時間都是遊戲時間（同 `codex[].found_at`）。18 個 key 和條件：
+
+| key | 種類 | 條件 |
+|---|---|---|
+| `firstMilk` | 一般 | 第一次收奶（收到 > 0 瓶） |
+| `firstSale` | 一般 | 第一次在市場賣出東西 |
+| `firstShip` | 一般 | 第一次出貨 |
+| `gradeA` | 計數 10 | 出貨評到 A 級的次數 |
+| `newLife` | 一般 | 第一次配種生出小牛（自己配、借種都算） |
+| `borrow` | 一般 | 第一次借到別人的公牛（公營種牛站的也算） |
+| `popularBull` | 計數 10 | 自己上架的公牛被借走的次數 |
+| `rice` | 計數 1,000 | 累計收成的稻米（公斤） |
+| `codex` | 分階段 5、12、24 | 圖鑑發現幾種牛；每一階的解鎖時間 = 第 N 種被發現的時間 |
+| `legend` | 一般 | 第一次擁有傳說牛（配種、借種、抽到都算） |
+| `level` | 分階段 10、20 | 場主等級（`progress` = 現在的等級） |
+| `rich` | 分階段 100,000、1,000,000 | 總資產（= 排行榜 networth；`progress` 是現在的值） |
+| `tailwind` | 一般 | 在那種商品的超級大事件期間賣出（D33 的 `tier: "super"`） |
+| `weekChamp` | 一般 | 某一週收入排行榜第 1 名：那一週結束（週一 00:00 台灣時間）時記，`unlocked_at` 是那個重算的時間。跟排行榜一樣，電腦牧場也算名次 |
+| `pureBreed`、`healer`、`clean`、`trucks` | 一般 | v0.3 的新玩法（純種飼育、妙手回春、乾淨牧場、卡車收藏家）做好以後才有，現在一律 `unlocked_at: null` |
+
+- 等級、總資產在玩家每次做動作之後檢查（總資產跟著行情變，沒動作時不會解鎖）。S21 上線前就已經達標的牧場，記成上線後第一次動作的時間。
+- 計數從 S21 上線開始算；之前做過的不補。
+
 ### 2.4 `POST /v1/collect` 收奶
 
 請求：`{"request_id": "<uuid>"}`
@@ -437,6 +480,18 @@ v2 拿掉的：`type_name`、`tier_name`、`ready_at`、`breed_ready`（看 `can
 | `collected` | 這次從奶桶移到倉庫幾瓶 |
 | `spoiled` | 順便丟掉幾瓶已經壞掉的牛奶 |
 | `warehouse_full` | 倉庫滿了、奶桶還有剩（不是錯誤，回 200；S03-04） |
+
+### 2.5 牧場資料：改名、換頭像（S21，D34）
+
+| 端點 | 請求 | 回應（另外都附 `profile`、`state`） | 錯誤 |
+|---|---|---|---|
+| `POST /v1/ranch/rename` 改牧場名 | `{"name": "小花的新牧場", "request_id": "<uuid>"}` | `name`（去掉前後空白之後）、`cost`（花了多少：第一次 0，之後 `economy.rename_price`）、`coins` | `invalid_name`（2.2 節）、`not_enough_coins`（`need`、`have`）、`bad_request`（`name` 不是字串） |
+| `POST /v1/ranch/avatar` 換頭像 | `{"breed": "jersey", "request_id": "<uuid>"}` | `avatar` | `avatar_locked`（409，`breed`：圖鑑裡還沒發現）、`bad_request`（不是 24 種品種代號之一） |
+
+- 改名：次數不限，#編號不變；名字照 2.2 節的規則，由伺服器檢查，不必唯一。改成跟原本一樣的名字也算一次（會扣錢），app 在名字沒變時不要讓玩家送出。
+- 頭像：只能選圖鑑裡發現過的品種，免費。
+- 兩個都照 1.3 節：同一個 `request_id` 重送回同一個結果，只改一次、只扣一次錢。
+- 排行榜、借種的主人和對方等牧場物件（1.6 節）都會帶新的名字和 `avatar`。
 
 ## 3. 市場、出貨、商店、配種、升級、田地
 
@@ -1066,3 +1121,4 @@ app 啟動時先打這個（還沒有 token 也能打），再決定要不要顯
 - 2026-10-02：1.6、第 4 節寫清楚公營種牛站：每種用途至少一頭（#89 起伺服器照這樣補）；基因照商店 C 級的機率抽，大多是一般公牛（約 3% 是優良以上）。欄位不變。
 - 2026-10-03：2.3 節 `economy` 加 `field_cap_h`（S17「最多存 8 小時的量」，直接讀 params）；寫清楚 `rice.per_hour`（所有有牛的田加起來，長滿的也算）、`fields[].per_hour`（長滿了也不是 0；有沒有長滿看 `rice ≥ capacity`）和 `fields[].capacity` 的算法（壯年產量，不乘年齡曲線）。伺服器的行為不變。
 - 2026-10-03：4.3 節寫清楚：上架已經不在市場上時預覽回 `404 listing_not_found`（伺服器本來就這樣），`blockers` 的 `listing_gone` 是上架還在、公牛不能借；app 兩種都顯示 S18-10。只改說明。
+- 2026-10-03：S21 牧場資料（D34）：2.3 節 `state` 加 `profile`（`avatar`、`renames`）和 `achievements`（18 個成就），`economy` 加 `rename_price`；1.6 節牧場物件加 `avatar`；新的 2.5 節 `POST /v1/ranch/rename`、`POST /v1/ranch/avatar`；1.4 節加 `avatar_locked`。只加不改。

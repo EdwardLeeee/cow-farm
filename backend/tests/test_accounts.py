@@ -156,6 +156,7 @@ def test_account_in_use_then_switch(env):
         "name_words": None,
         "is_bot": False,
         "level": 1,
+        "avatar": None,  # S21：沒選過頭像
     }
     rid = new_rid()
     body = {"switch_ticket": d["switch_ticket"], "request_id": rid}
