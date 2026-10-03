@@ -5,12 +5,23 @@ import '../../theme/tokens.dart';
 import 'press.dart';
 
 /// .seg：一排切換（白底、粗框、圓角 22、下陰影 3）；選中的黃底。平的元件，按下蓋色（G-12）。
+/// [small]：.seg.small（每顆最矮 32、字 13；排行榜的總資產／圖鑑／本週收入）。
+/// 每顆的 key 是「[keyPrefix]-第幾顆」（同一頁有兩排時分得出來）。
 class SegControl extends StatelessWidget {
-  const SegControl({super.key, required this.labels, required this.selected, required this.onSelect});
+  const SegControl({
+    super.key,
+    required this.labels,
+    required this.selected,
+    required this.onSelect,
+    this.small = false,
+    this.keyPrefix = 'seg',
+  });
 
   final List<String> labels;
   final int selected;
   final ValueChanged<int> onSelect;
+  final bool small;
+  final String keyPrefix;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -38,13 +49,13 @@ class SegControl extends StatelessWidget {
                   button: true,
                   selected: i == selected,
                   child: Pressable(
-                    key: Key('seg-$i'),
+                    key: Key('$keyPrefix-$i'),
                     onTap: () => onSelect(i),
                     builder: (context, look) => PressTint(
                       tint: look.tint,
                       borderRadius: const BorderRadius.all(AppRadii.r16),
                       child: Container(
-                        constraints: const BoxConstraints(minHeight: 36),
+                        constraints: BoxConstraints(minHeight: small ? 32 : 36),
                         alignment: Alignment.center,
                         decoration: i == selected
                             ? BoxDecoration(
@@ -58,7 +69,7 @@ class SegControl extends StatelessWidget {
                           label,
                           softWrap: false,
                           style: AppText.style(
-                            15,
+                            small ? 13 : 15,
                             weight: i == selected ? FontWeight.w900 : FontWeight.w700,
                             color: i == selected ? AppColors.ink : AppColors.ink2,
                           ),

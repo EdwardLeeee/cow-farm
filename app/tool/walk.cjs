@@ -1,7 +1,7 @@
 // 整合走查（headless Chromium，正式畫面 + 還沒換掉的 M1 分頁），每步截圖：
 //   開新牧場（S02 取名、歡迎）→ 收奶 → 賣奶（S06）→ 擴建牛舍、加大奶桶（S10）→ 抽 C 級（S19）→
 //   等小牛長大 → 出貨（S04 → S07 → A-03 卡車 → S20）→ 田地（S17）：派耕牛、收成 → 賣稻米 → 叫回耕牛 →
-//   借種（S18）：上架、借別人的公牛、借種紀錄 → 圖鑑（S09）：點一格看品種詳細 → 排行榜（M1）→
+//   借種（S18）：上架、借別人的公牛、借種紀錄 → 圖鑑（S09）：點一格看品種詳細 → 排行榜（S12）：總資產、圖鑑、本週收入 →
 //   設定（S13）：語言、漲跌顏色、音效，最後刪除牧場（S13-04 → 開新牧場 → S02）→
 //   另開一個新牧場（新的瀏覽器設定檔）：收奶賣奶、擴建牛舍 → 自己配種（S08）：開局的公母配、機率、新小牛、已配種
 //
@@ -470,7 +470,7 @@ const writeLog = () => fs.writeFileSync(
   await tap((await back.count()) ? back.first() : button(/^返回/).first()).catch(() => {});
   await wait(800);
 
-  // ---- 10. 圖鑑（S09）、排行榜（M1）----
+  // ---- 10. 圖鑑（S09）、排行榜（S12）----
   await tab('紀錄');
   await tap(button('圖鑑').first());
   await wait(900);
@@ -496,9 +496,21 @@ const writeLog = () => fs.writeFileSync(
   }
   await tap(button('排行榜').first());
   await wait(1500);
-  const rank = ((await fullText()).match(/我的名次[^\n]*/) || [''])[0];
+  // S12：下面那一條「我的名次」「第 N 名」（或「未上榜」）、分數、單位是分開的字
+  const ranks = await labels();
+  const at = ranks.indexOf('我的名次');
+  const rank = at < 0 ? '' : ranks.slice(at, at + 4).join(' ');
   await shot('leaderboard');
-  step('排行榜（M1 紀錄）', rank !== '', rank);
+  step('排行榜（S12）', /我的名次 (第 \d+ 名|未上榜)/.test(rank), rank);
+  // 圖鑑榜、本週收入各看一次
+  for (const kind of ['圖鑑', '本週收入']) {
+    const b = page.getByRole('button', { name: kind, exact: true });
+    await tap(b.last());
+    await wait(1200);
+    const all = await labels();
+    const i = all.indexOf('我的名次');
+    step(`排行榜（S12）：${kind}`, i >= 0 && /^(第 \d+ 名|未上榜)$/.test(all[i + 1] || ''), i < 0 ? '' : all.slice(i, i + 4).join(' '));
+  }
 
   step('升級慶祝（S11-01）', levelUps.length > 0, levelUps.join('、'));
 

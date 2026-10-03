@@ -1088,6 +1088,14 @@ class GameModel extends ChangeNotifier {
     _notify();
   }
 
+  /// 排行榜看的是哪一種（S12：總資產、圖鑑、本週收入）。
+  RankKind rankKind = RankKind.networth;
+
+  void selectRankKind(RankKind kind) {
+    rankKind = kind;
+    _notify();
+  }
+
   /// 圖鑑的品種詳細（S09-03、S09-04）。
   void openCodex(String breed) {
     codexBreed = breed;

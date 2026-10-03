@@ -69,27 +69,33 @@ void main() {
     }
   });
 
-  testWidgets('排行榜：三個分頁、自己的名次、電腦假玩家標「電腦」', (tester) async {
+  testWidgets('排行榜（S12）：總資產、圖鑑、本週收入各讀一次；自己的名次在下面那一條；電腦牧場前面加「電腦」、後面 #編號', (tester) async {
     final (m, api, _) = await loadedModel();
     await pumpApp(tester, m);
     m.selectTab(AppTab.records);
     await tester.pump();
-    await tester.tap(find.text('排行榜'));
-    await tester.pumpAndSettle();
-    expect(find.text('總資產'), findsOneWidget);
-    expect(find.text('收藏'), findsOneWidget);
-    expect(find.text('本週收入'), findsOneWidget);
-    expect(api.calls, contains('rank:networth'));
-    expect(find.text('我的名次：2　31,000 幣'), findsOneWidget);
-    // v2：電腦牧場名用詞庫編號組，前面加「電腦」，後面加 #編號（協定 1.6）
+    await tester.tap(find.byKey(const Key('seg-1')));
+    await tester.pump();
+    await tester.pump();
     final zh = Strings.forLang(AppLang.zhHant);
-    expect(find.text('電腦 ${zh.ranchNameFromWords([8, 0, 5])} #0003'), findsOneWidget);
-    expect(find.text('電腦 ${zh.ranchNameFromWords([0, 1, 0])} #0004'), findsOneWidget);
-    expect(find.text('晨光草原牧場 #0031'), findsOneWidget);
+    expect(api.calls, contains('rank:networth'));
+    expect(tester.widget<Text>(find.byKey(const Key('my-rank'))).data, zh.s12RankN(n: 2));
+    expect(find.text('31,000'), findsOneWidget, reason: '我的名次那一條的分數');
+    // v2：電腦牧場名用詞庫編號組，前面加「電腦」，後面加 #編號（協定 1.6）
+    expect(find.text(zh.botPrefix), findsNWidgets(2));
+    expect(find.text(zh.ranchNameFromWords([8, 0, 5])), findsOneWidget);
+    expect(find.text('#0003'), findsOneWidget);
+    expect(find.descendant(of: find.byKey(const Key('rank-row-2')), matching: find.text('晨光草原牧場')), findsOneWidget);
+    expect(find.text('#0031'), findsOneWidget);
+    expect(find.text(zh.s12Me), findsOneWidget, reason: '自己那一列');
 
-    await tester.tap(find.text('收藏'));
-    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('rank-kind-1')));
+    await tester.pump();
+    await tester.pump();
     expect(api.calls, contains('rank:collection'));
-    expect(find.text('我的名次：2　31,000'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('rank-kind-2')));
+    await tester.pump();
+    await tester.pump();
+    expect(api.calls, contains('rank:weekly'));
   });
 }
