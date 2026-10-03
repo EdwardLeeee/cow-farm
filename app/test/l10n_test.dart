@@ -39,7 +39,8 @@ void main() {
       for (final k in kStringTables['zh-Hant']!.keys)
         if (RegExp(r'^breed\.(\w+)\.name$').firstMatch(k) case final m?) m[1]!,
     ];
-    expect(breeds, hasLength(24), reason: '24 種牛（企劃書 4.5）');
+    expect(breeds, hasLength(25), reason: '24 種牛（企劃書 4.5）加雜種牛 mix（D35，#157）');
+    expect(breeds, contains('mix'));
     for (final lang in AppLang.values) {
       final s = Strings.forLang(lang);
       for (final b in breeds) {
