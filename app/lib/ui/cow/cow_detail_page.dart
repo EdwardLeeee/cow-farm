@@ -376,16 +376,7 @@ class _Hero extends StatelessWidget {
             child: Stack(
               children: [
                 const Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [Color(0xFFBFE6FF), Color(0xFFE4F6FF), Color(0xFFCDEFB4), Color(0xFFBDEBA4)],
-                        stops: [0, 0.62, 0.625, 1],
-                      ),
-                    ),
-                  ),
+                  child: DecoratedBox(decoration: BoxDecoration(gradient: kHeroGradient)),
                 ),
                 SizedBox(
                   width: double.infinity,

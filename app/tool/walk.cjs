@@ -1,14 +1,14 @@
 // 整合走查（headless Chromium，正式畫面 + 還沒換掉的 M1 分頁），每步截圖：
 //   開新牧場（S02 取名、歡迎）→ 收奶 → 賣奶（S06）→ 擴建牛舍、加大奶桶（S10）→ 抽 C 級（S19）→
 //   等小牛長大 → 出貨（S04 → S07 → A-03 卡車 → S20）→ 田地（S17）：派耕牛、收成 → 賣稻米 → 叫回耕牛 →
-//   借種（S18）：上架、借別人的公牛、借種紀錄 → 圖鑑、排行榜（M1）→
+//   借種（S18）：上架、借別人的公牛、借種紀錄 → 圖鑑（S09）：點一格看品種詳細 → 排行榜（M1）→
 //   設定（S13）：語言、漲跌顏色、音效，最後刪除牧場（S13-04 → 開新牧場 → S02）→
 //   另開一個新牧場（新的瀏覽器設定檔）：收奶賣奶、擴建牛舍 → 自己配種（S08）：開局的公母配、機率、新小牛、已配種
 //
 // 做法：打開 Flutter 網頁版的無障礙樹（flt-semantics），照按鈕的名字操作。正式畫面的分頁、配種頁上面的
-// 「自己配種／借種」都是按鈕；M1 畫面裡的次分頁（圖鑑／排行榜）是 tab。頂列的金幣沒有名字，讀「設定」前面最後一個數字。
+// 「自己配種／借種」、紀錄頁上面的「圖鑑／排行榜」都是按鈕。頂列的金幣沒有名字，讀「設定」前面最後一個數字。
 // 用法（Node 18+；Playwright 只讀借用 connect4 已安裝的套件，瀏覽器用 ~/.cache/ms-playwright）：
-//   free -m   # available ≥ 2000 MB 再跑
+//   free -m   # available ≥ 1000 MB 再跑
 //   PLAYWRIGHT_MODULE=~/Desktop/connect4-web2-worktrees/mobile/frontend/node_modules/playwright \
 //     systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 \
 //     node app/tool/walk.cjs http://127.0.0.1:8790/ app/build/walk
@@ -470,13 +470,31 @@ const writeLog = () => fs.writeFileSync(
   await tap((await back.count()) ? back.first() : button(/^返回/).first()).catch(() => {});
   await wait(800);
 
-  // ---- 10. 圖鑑、排行榜（M1）----
+  // ---- 10. 圖鑑（S09）、排行榜（M1）----
   await tab('紀錄');
-  await subTab('圖鑑');
-  const dex = (await labels()).find((x) => x.startsWith('已發現')) || '';
+  await tap(button('圖鑑').first());
+  await wait(900);
+  // 「已發現 n / 24」那張卡是清單的一項，卡片裡的字併成一個節點（「已發現\n2 / 24\n小牛出生…」）
+  const dexCount = async () => ((await labels()).find((x) => x.startsWith('已發現')) || '').match(/\d+ \/ \d+/)?.[0] || '';
+  const dex = await dexCount();
   await shot('codex');
-  step('圖鑑（M1 紀錄）', dex !== '', dex);
-  await subTab('排行榜');
+  step('圖鑑（S09）：已發現 n / 24', dex !== '', dex);
+  // 點第一格已發現的（名字不是「？？？」、最後是稀有度）→ 品種詳細有「第一次發現」，返回回到圖鑑
+  const cell = (await nodes()).find((x) => x.role === 'button' && /(一般|優良|稀有|傳說)$/.test(x.label) && !x.label.startsWith('？'));
+  const breedName = cell ? cell.label.split(/\s/)[0] : '';
+  if (breedName) {
+    await tap(button(new RegExp(`^${breedName}`)).first());
+    await wait(900);
+    const first = (await labels()).find((x) => x.startsWith('第一次發現')) || '';
+    await shot('codex-detail');
+    step(`圖鑑（S09）：點「${breedName}」看品種詳細`, first !== '', first);
+    await tap(button('返回').first());
+    await wait(900);
+    step('圖鑑（S09）：返回回到圖鑑', (await dexCount()) !== '');
+  } else {
+    issue('圖鑑：找不到已發現的格子');
+  }
+  await tap(button('排行榜').first());
   await wait(1500);
   const rank = ((await fullText()).match(/我的名次[^\n]*/) || [''])[0];
   await shot('leaderboard');

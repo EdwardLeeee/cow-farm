@@ -12,10 +12,9 @@ import 'kit/frame.dart';
 import 'market/market_page.dart';
 import 'ranch/pen_list.dart';
 import 'ranch/ranch_page.dart';
+import 'records/records_page.dart';
 import '../state/game_model.dart';
 import 'widgets/action_button.dart';
-import 'screens/codex_screen.dart';
-import 'screens/leaderboard_screen.dart';
 import 'settings/settings_page.dart';
 import 'shop/shop_page.dart';
 import 'start/start_flow.dart';
@@ -86,6 +85,9 @@ class _HomeShellState extends State<HomeShell> {
     } else if (m.tab == AppTab.fields) {
       // 田地（S17）：自己的外框，選耕牛的面板、收成的提示疊在最上面
       page = const FieldsPage();
+    } else if (m.tab == AppTab.records) {
+      // 紀錄：圖鑑（S09）和排行榜（S12，還是 M1）
+      page = const RecordsPage();
     } else {
       page = AppFrame(tab: m.tab, content: _content(m), contentPadding: EdgeInsets.zero);
     }
@@ -96,7 +98,8 @@ class _HomeShellState extends State<HomeShell> {
           m.detailCowKey == null &&
           !m.penListOpen &&
           !m.warehouseOpen &&
-          !(m.tab == AppTab.breed && m.studLogOpen),
+          !(m.tab == AppTab.breed && m.studLogOpen) &&
+          !(m.tab == AppTab.records && m.codexBreed != null),
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
         if (m.settingsView != null) {
@@ -105,6 +108,8 @@ class _HomeShellState extends State<HomeShell> {
           m.closeCow();
         } else if (m.tab == AppTab.breed && m.studLogOpen) {
           m.closeStudLog();
+        } else if (m.tab == AppTab.records && m.codexBreed != null) {
+          m.closeCodex();
         } else if (m.warehouseOpen) {
           m.closeWarehouse();
         } else {
@@ -139,7 +144,7 @@ class _HomeShellState extends State<HomeShell> {
       AppTab.fields => const SizedBox.shrink(), // 田地是自己的整頁（FieldsPage），不會走到這裡
       AppTab.breed => const SizedBox.shrink(), // 配種是自己的整頁（BreedPage），不會走到這裡
       AppTab.shop => const SizedBox.shrink(), // 商店是自己的整頁（ShopPage），不會走到這裡
-      AppTab.records => const _Records(),
+      AppTab.records => const SizedBox.shrink(), // 紀錄是自己的整頁（RecordsPage），不會走到這裡
     };
   }
 }
@@ -253,24 +258,3 @@ class _LongOffline extends StatelessWidget {
 }
 
 /// 紀錄：圖鑑與排行榜兩個分頁。
-class _Records extends StatelessWidget {
-  const _Records();
-
-  @override
-  Widget build(BuildContext context) {
-    return const DefaultTabController(
-      length: 2,
-      child: Column(
-        children: [
-          TabBar(
-            tabs: [
-              Tab(text: S.subCodex),
-              Tab(text: S.subRank),
-            ],
-          ),
-          Expanded(child: TabBarView(children: [CodexScreen(), LeaderboardScreen()])),
-        ],
-      ),
-    );
-  }
-}

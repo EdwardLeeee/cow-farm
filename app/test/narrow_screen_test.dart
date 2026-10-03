@@ -27,22 +27,25 @@ void main() {
           expect(tester.takeException(), isNull, reason: c);
         }
       }
-      // 次分頁也看一次：配種、商店是正式畫面的分頁膠囊（seg-0、seg-1），紀錄還是 M1 的 Tab
-      if (tab == AppTab.breed || tab == AppTab.shop) {
+      // 次分頁也看一次：配種、商店、紀錄是正式畫面的分頁膠囊（seg-0、seg-1）
+      if (tab == AppTab.breed || tab == AppTab.shop || tab == AppTab.records) {
         for (final seg in ['seg-1', 'seg-0']) {
           await tester.tap(find.byKey(Key(seg)));
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull, reason: '${tab.name} $seg');
         }
       }
-      final tabs = find.byType(Tab);
+      // 排行榜（S12）還是 M1 的 Tab：切過去，三個分頁各點一次
       if (tab == AppTab.records) {
-        expect(tabs.evaluate().length, greaterThan(1), reason: '${tab.name} 應該有次分頁');
-      }
-      for (var i = 0; i < tabs.evaluate().length; i++) {
-        await tester.tap(tabs.at(i));
+        await tester.tap(find.byKey(const Key('seg-1')));
         await tester.pumpAndSettle();
-        expect(tester.takeException(), isNull);
+        final tabs = find.byType(Tab);
+        expect(tabs.evaluate().length, greaterThan(1), reason: '排行榜應該有三個分頁');
+        for (var i = 0; i < tabs.evaluate().length; i++) {
+          await tester.tap(tabs.at(i));
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+        }
       }
     });
   }

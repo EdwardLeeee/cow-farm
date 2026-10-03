@@ -48,9 +48,12 @@ TextStyle _chipText() => AppText.style(12, weight: FontWeight.w900, lineHeight: 
 
 /// .tier：稀有度（一般、優良、稀有、傳說；傳說是漸層加星星）。
 class TierChip extends StatelessWidget {
-  const TierChip(this.tier, {super.key});
+  const TierChip(this.tier, {super.key, this.compact = false});
 
   final int tier;
+
+  /// 圖鑑格子裡的小號（.dex-cell .tier：高 20、框 1.5、左右 5）。
+  final bool compact;
 
   static const _colors = [Color(0xFFF1EADF), Color(0xFFCFEFC4), Color(0xFFCFE6FF)];
 
@@ -58,19 +61,22 @@ class TierChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final legend = tier >= 3;
     return Container(
-      height: 22,
-      padding: const EdgeInsets.symmetric(horizontal: 7),
+      height: compact ? 20 : 22,
+      padding: EdgeInsets.symmetric(horizontal: compact ? 5 : 7),
       decoration: BoxDecoration(
         color: legend ? null : _colors[tier.clamp(0, 2)],
         gradient: legend ? const LinearGradient(colors: [Color(0xFFFFE27A), Color(0xFFFFC4D6)]) : null,
-        border: Border.all(color: AppColors.ink, width: 2),
-        borderRadius: const BorderRadius.all(Radius.circular(11)),
+        border: Border.all(color: AppColors.ink, width: compact ? 1.5 : 2),
+        borderRadius: BorderRadius.all(Radius.circular(compact ? 10 : 11)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (legend) ...[const AppIcon('sparkle', size: 12), const SizedBox(width: 2)],
-          Text(Strings.of(context).tierName(tier.clamp(0, 3)), style: _chipText()),
+          Text(
+            Strings.of(context).tierName(tier.clamp(0, 3)),
+            style: compact ? AppText.style(12, weight: FontWeight.w900, lineHeight: 16) : _chipText(),
+          ),
         ],
       ),
     );

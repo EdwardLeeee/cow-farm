@@ -45,27 +45,30 @@ class MeterBar extends StatelessWidget {
     super.key,
     required this.fraction,
     this.height = 14,
+    this.radius = 8,
     this.fill = AppColors.blue2,
     this.track = const Color(0xFFE6F3FC),
   });
 
   /// 綠（.bar.green）：新鮮度 70% 以上。
-  const MeterBar.green({super.key, required this.fraction, this.height = 14})
+  const MeterBar.green({super.key, required this.fraction, this.height = 14, this.radius = 8})
     : fill = const Color(0xFF8CD46F),
       track = const Color(0xFFEAF7E1);
 
   /// 黃（.bar.yellow）：新鮮度 30–70%、倉庫快滿。
-  const MeterBar.yellow({super.key, required this.fraction, this.height = 14})
+  /// [height] 18、[radius] 10 是粗的（.bar.thick，圖鑑的已發現）。
+  const MeterBar.yellow({super.key, required this.fraction, this.height = 14, this.radius = 8})
     : fill = const Color(0xFFFFB938),
       track = const Color(0xFFFFF4CC);
 
   /// 紅（.bar.red，底色不變）：快壞了、倉庫滿了。
-  const MeterBar.red({super.key, required this.fraction, this.height = 14})
+  const MeterBar.red({super.key, required this.fraction, this.height = 14, this.radius = 8})
     : fill = const Color(0xFFFF8A80),
       track = const Color(0xFFE6F3FC);
 
   final double fraction;
   final double height;
+  final double radius;
   final Color fill;
   final Color track;
 
@@ -78,10 +81,10 @@ class MeterBar extends StatelessWidget {
         color: track,
         // CSS 寫 2.5px，boards 量出來是 2（Chrome 畫成 2px）；照核准的 boards
         border: Border.all(color: AppColors.ink, width: 2),
-        borderRadius: const BorderRadius.all(Radius.circular(8)),
+        borderRadius: BorderRadius.all(Radius.circular(radius)),
       ),
       child: ClipRRect(
-        borderRadius: const BorderRadius.all(Radius.circular(6)),
+        borderRadius: BorderRadius.all(Radius.circular(radius - 2)),
         child: Align(
           alignment: Alignment.centerLeft,
           child: FractionallySizedBox(
