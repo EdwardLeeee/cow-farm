@@ -127,3 +127,38 @@ body { background: #FFF9EF; }
 /* 說明用的佔位（不是畫面的一部分） */
 .slot-note, .skip-note { padding: 10px 12px; border: 2px dashed #C2541B; border-radius: 14px; font-size: 14px; font-weight: 900; line-height: 20px; color: #C2541B; text-align: center; background: rgba(255, 255, 255, 0.6); }
 .skip-note { padding: 4px 12px; }
+/* ---------- 01 打掃小幫手 ---------- */
+.hp-card { position: relative; width: 390px; height: 844px; border-radius: 28px; overflow: hidden; border: 2px solid #E2D4C2; display: flex; align-items: flex-end; justify-content: center; line-height: 0; }
+.hp-bg { position: absolute; inset: 0; background: linear-gradient(180deg, #CDEBFF 0, #E9F6FF 55%, #CDEFB4 55.2%, #BDEBA4 100%); }
+.hp-card svg { position: relative; margin-bottom: 64px; }
+.hp-info { width: 390px; display: flex; flex-direction: column; gap: 14px; }
+.hp-names { display: flex; align-items: center; gap: 12px; }
+.hp-av { flex: none; width: 72px; height: 72px; border-radius: 36px; background: #FFF6D6; border: 3px solid var(--ink); display: grid; place-items: center; overflow: hidden; line-height: 0; }
+.hp-names b { display: block; font-size: 26px; font-weight: 900; line-height: 34px; }
+.hp-names span { font-size: 15px; font-weight: 700; color: var(--ink-2); }
+.hp-mood { font-size: 16px; font-weight: 700; line-height: 24px; }
+.rate-card { padding: 14px 16px; background: #FFFFFF; border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 4px 0 var(--ink); }
+.rate-card h3 { margin: 0 0 6px; font-size: 17px; font-weight: 900; line-height: 24px; }
+.rate-row { display: flex; align-items: baseline; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 2px dashed var(--line-soft); }
+.rate-card h3 + .rate-row { border-top: 0; padding-top: 0; }
+.rate-store { font-size: 15px; font-weight: 900; color: var(--ink-2); }
+.rate-big { font-size: 28px; font-weight: 900; line-height: 34px; color: #3E8E2F; }
+.rate-card p { margin: 4px 0 0; font-size: 14px; font-weight: 700; line-height: 21px; }
+.hp-why { margin: 0; padding-left: 20px; font-size: 14px; font-weight: 700; line-height: 22px; color: var(--ink-2); }
+.helper-pill { gap: 6px; padding-left: 3px; }
+.helper-pill svg { border-radius: 15px; background: #FFF6D6; }
+.helper-pill b { font-size: 14px; }
+.hp-left { font-size: 12px; color: var(--ink-2); }
+
+/* ---------- R13-99 總覽 ---------- */
+.ov-row { margin-top: 26px; }
+.ov-title { font-size: 20px; font-weight: 900; line-height: 28px; }
+.ov-cells { display: flex; flex-wrap: wrap; gap: 28px; margin-top: 10px; }
+.ov-cap { min-height: 28px; font-size: 15px; line-height: 22px; }
+.ov-cap b { font-weight: 900; }
+.ov-ph { overflow: hidden; outline: 2px solid #E2D4C2; }
+.ov-pair { display: flex; gap: 14px; }
+.ov-fig { width: 230px; display: flex; justify-content: center; padding: 10px 0 6px; background: linear-gradient(180deg, #E6F5FF 0, #F1FAE8 62%, #E3F2D3 100%); border: 2px solid #E2D4C2; border-radius: 18px; line-height: 0; }
+.ov-grid { display: grid; grid-template-columns: repeat(3, 110px); gap: 6px; padding: 10px; background: linear-gradient(180deg, #E6F5FF 0, #F1FAE8 62%, #E3F2D3 100%); border: 2px solid #E2D4C2; border-radius: 18px; line-height: 0; }
+.ov-sub { display: block; max-width: 230px; font-size: 13px; font-weight: 700; line-height: 19px; color: var(--ink-2); }
+.ov-cell:has(.ov-fig) .ov-cap { max-width: 230px; min-height: 48px; }

@@ -56,6 +56,7 @@ const app = document.getElementById('app');
 await loadLang('zh-Hant');
 // 畫面模組的常數會用到字串：字串表載好才載入（跟 m2 的 main.js 一樣）
 const { dock, cowListRow } = await import('../../../m2/src/js/screens/s03.js');
+const { HELPERS, helperSVG, helperInner, helperFace } = await import('./helper.js');
 
 const PAD = 36, GAP = 40;
 
@@ -506,15 +507,18 @@ function feedLine(c, look) {
   }
   return `<div class="fl-icons">${ks.map((k) => `<span class="fl-ic${c.ate[k] ? ' done' : ''}">${FEED_IC[TRAIT_FEED[k]](20)}${c.ate[k] ? `<i>${icon('ok', 12)}</i>` : ''}</span>`).join('')}${ks.every((k) => c.ate[k]) ? '<span class="tr-done">都吃過了</span>' : ''}</div>`;
 }
+const herd05 = () => herdWithCalves('A');
+const detail05 = (look) => calfPage(CALVES[15], 'A', { traits: traitCard(CALVES[15], look) });
+const bubbles05 = (look) => { const herd = herd05(); return ranch({ herd, pen: PEN13, extra: calfExtras(herd, 'A'), overlays: (an) => [15, 21, 22].map((id) => wantBubble(CALVES[id], look, an[id])).join('') }); };
 function r1305(look) {
-  const o = LOOK5[look], herd = herdWithCalves('A');
+  const o = LOOK5[look], herd = herd05();
   const rows = [15, 21, 22].map((id) => calfRow(CALVES[id], 'A', feedLine(CALVES[id], look))).concat([cowListRow(COWS.find((c) => c.id === 3))]);
   return board({
     id: `R13-05-小牛卡片-${look}-${o.file}-390`, title: `05 小牛卡片和想吃泡泡　${look}：${o.title}`, width: boardWidth(4),
     sub: '使用者：「要提醒用戶要吃啥」。機率是事前機率（照爸媽的基因或商店公開的機率），不是答案（v0.3 第 1 節）。小牛的樣子先用 02-A，照使用者選的換。',
     cells: [
-      { cap: '小牛的詳細', note: '燕麥還沒吃、苜蓿吃過了、光澤 0% 不用吃玉米', html: calfPage(CALVES[15], 'A', { traits: traitCard(CALVES[15], look) }) },
-      { cap: '牧場：小牛頭上的泡泡', note: look === 'A' ? '還沒吃、機率大於 0 的飼料；要吃兩種以上時每 3 秒換一種' : '還沒吃、機率大於 0 的飼料，幾種就畫幾個', html: ranch({ herd, pen: PEN13, extra: calfExtras(herd, 'A'), overlays: (an) => [15, 21, 22].map((id) => wantBubble(CALVES[id], look, an[id])).join('') }) },
+      { cap: '小牛的詳細', note: '燕麥還沒吃、苜蓿吃過了、光澤 0% 不用吃玉米', html: detail05(look) },
+      { cap: '牧場：小牛頭上的泡泡', note: look === 'A' ? '還沒吃、機率大於 0 的飼料；要吃兩種以上時每 3 秒換一種' : '還沒吃、機率大於 0 的飼料，幾種就畫幾個', html: bubbles05(look) },
       { cap: '快長大了：提醒卡', note: '再 1 小時內長大、還有沒吃的飼料：跳一次（一頭一張，可以關）', html: ranch({ herd, pen: PEN13, extra: calfExtras(herd, 'A'), overlays: growAlert(CALVES[15], look) }) },
       { cap: '牛舍清單', note: look === 'A' ? '一個特徵一行（0% 的不寫）' : '一排飼料小圖，吃過的打勾', html: listPage(rows) },
     ],
@@ -525,12 +529,85 @@ function r1305(look) {
   });
 }
 
+// ---------- 01 打掃小幫手 ----------
+const LOOK1 = {
+  A: { file: '吊帶褲和馬尾', alt: ['阿穗姐', '穗穗姐'], tool: [62, 534], mood: '元氣派：馬尾跟著跑來跑去；吊帶褲是最典型的牧場工作服。', wear: '短袖襯衫加吊帶褲（袖子到手肘）、頭巾、雨鞋、工作手套' },
+  B: { file: '圍裙和草帽', alt: ['夏夏姐', '千千姐'], tool: [213, 520], mood: '溫柔派：草帽、圍裙、側邊辮子，像隔壁牧場的大姊姊。', wear: '長袖連身裙（長度過膝）、圍裙、草帽、短靴' },
+  C: { file: '連身工作服和帽子', alt: ['葵姐', '小葵姐'], tool: [80, 518], mood: '可靠派：連身工作服、一手叉腰、一手扶著鏟子，做事俐落。', wear: '長袖連身工作服（袖子捲到前臂）、帽子、小領巾、雨鞋' },
+};
+const HS = 0.21; // 場景裡的大小：身高約 115（成年牛約 70–90）
+// 牧場裡：小幫手在前排撿大便；還剩 3 坨，清掉的地方冒小星星；右上角換成「打掃中」（提案）
+function helperScene(look) {
+  const o = LOOK1[look], left = [[236, 398], [38, 498], [362, 448]], done = [[284, 472], [132, 412]];
+  const x0 = 250 - 150 * HS, y0 = 505 - 546 * HS, [tx, ty] = [x0 + o.tool[0] * HS, y0 + o.tool[1] * HS];
+  const extra = () => left.map(([x, y]) => poopA(x, y, 19)).join('')
+    + `<g transform="translate(${f2(x0)} ${f2(y0)}) scale(${HS})">${helperInner(look, { lineK: 2 })}</g>` + poopA(tx, ty - 1, 12);
+  const overlays = (an, map) => done.map(([x, y]) => { const [sx, sy] = map([x, y]); return `<div class="poof" style="left:${f2(sx)}px;top:${f2(sy - 8)}px">${icon('sparkle', 16)}${icon('sparkle', 11)}${icon('sparkle', 9)}</div>`; }).join('');
+  const pill = `<div class="dirty helper-pill">${helperFace(look, 30)}<span><b>${HELPERS[look].name}</b> 打掃中</span><span class="hp-left">還有 6 天</span></div>`;
+  return ranch({ extra, overlays, center: pill });
+}
+function rateCard() {
+  return `<div class="rate-card">
+    <h3>預估的商店年齡分級（只看小幫手）</h3>
+    <div class="rate-row"><span class="rate-store">App Store</span><b class="rate-big">4+</b></div>
+    <p>年齡分級問卷的「Mature or Suggestive Themes」（性暗示）、「Sexual Content or Nudity」（性內容或裸露）都答「None」→ 4+。<span class="hint">（答 Infrequent 會變 9+、13+）</span></p>
+    <div class="rate-row"><span class="rate-store">Google Play</span><b class="rate-big">3 歲以上</b></div>
+    <p>IARC 問卷跟性有關的題目（性暗示、裸露）都答「沒有」→ 台灣、泰國顯示「3 歲以上」；美國 ESRB 是 Everyone、歐洲 PEGI 3。</p>
+    <p class="hint">整個 app 的分級還要看其他題目（例如商店抽牛），不只看小幫手。</p>
+  </div>`;
+}
+function r1301(look) {
+  const o = LOOK1[look], h = HELPERS[look];
+  const fig = `<div class="hp-card"><div class="hp-bg"></div>${helperSVG(look, { w: 340, h: 635 })}</div>`;
+  const info = `<div class="hp-info">
+    <div class="hp-names"><span class="hp-av">${helperFace(look, 64)}</span><div><b>${h.name}</b><span>備選：${o.alt.join('、')}</span></div></div>
+    <p class="hp-mood">${o.mood}</p>
+    ${rateCard()}
+    <ul class="hp-why"><li>成年女性：約 5 頭身、大人的臉和身材，名字用「姐」</li><li>穿著：${o.wear}；沒有露出的衣服</li><li>身材比一般角色豐滿一點；一般站姿，沒有特寫、刻意的角度或晃動的動畫</li></ul>
+  </div>`;
+  return board({
+    id: `R13-01-打掃小幫手-${look}-${o.file}-390`, title: `01 打掃小幫手　${look}：${h.name}（${h.outfit}）`, width: boardWidth(3),
+    sub: '成年的牧場大姊姊，日系可愛的畫法；雇用以後在牧場裡走來走去撿大便（v0.3 第 5.1 節）。三個造型共用同一個身體，換髮型、衣服、工具。',
+    cells: [
+      { cap: '全身', note: '撿大便的工具也一起畫', html: fig },
+      { cap: '牧場裡：撿大便', note: '縮小放進場景（身高比成年牛高一點）；右上角換成「打掃中」（提案）', html: helperScene(look) },
+      { cap: '名字、分級', note: '名字用「姐」，一看就是大人', html: info },
+    ],
+    notes: [
+      '雇用：一天 800 幣、最多先付 7 天；雇用期間每 30 分鐘清掉全部大便（v0.3 第 5.1 節）。商店的雇用畫面、走路的動畫，使用者選好造型以後再畫。',
+      '分級是 cow-ui 照 Apple、Google 現在的問卷估的（2026-10 查過）；送審時照 app 的實際內容回答。再畫得更豐滿很多、加特寫或晃動的動畫，可能被認定有性暗示，分級會變高。',
+    ],
+  });
+}
+
+// ---------- 總覽：五項都要選，每項一排、選項並排 ----------
+function r1399() {
+  const S = 0.6, sw = Math.round(dev.w * S), sh = Math.round(dev.h * S);
+  const mini = (html) => `<div class="ov-ph" style="width:${sw}px;height:${sh}px"><div style="transform:scale(${S});transform-origin:0 0">${html}</div></div>`;
+  const cell = (cap, inner, sub = '') => `<div class="ov-cell"><div class="ov-cap"><b>${cap}</b>${sub ? `<span class="ov-sub">${sub}</span>` : ''}</div>${inner}</div>`;
+  const grid6 = (keyOf, extra, art) => `<div class="ov-grid">${['cow', 'bull'].map((sex) => USES.map((u) => art(u, sex, pairK(keyOf(u), extra, { w: 110, h: 96, top: 10 }))).join('')).join('')}</div>`;
+  const calfGrid = (look) => grid6((u) => calfKey(look, u), { age: 'calf' }, (u, sex, k) => calfArt({ use: u, sex }, look, { w: 110, h: 96, k }));
+  const mixGrid = (look) => grid6((u) => mixKey(look, u), {}, (u, sex, k) => cowArt({ breed: mixKey(look, u), sex }, { w: 110, h: 96, top: 10, k }));
+  const rows = [
+    ['01 打掃小幫手：選一個造型（名字也可以換）', ['A', 'B', 'C'].map((k) => cell(`${k}　${HELPERS[k].name}`, `<div class="ov-fig">${helperSVG(k, { w: 200, h: 373 })}</div>`, HELPERS[k].outfit))],
+    ['02 小牛的 6 種樣子（上排母、下排公；左到右乳牛、耕牛、肉牛）', ['A', 'B'].map((k) => cell(`${k}　${LOOK2[k].name}`, calfGrid(k)))],
+    ['03 雜種牛（上排母、下排公；左到右乳牛、耕牛、肉牛）', ['A', 'B'].map((k) => cell(`${k}　${LOOK3[k].name}`, mixGrid(k)))],
+    ['04 大便、病牛（點一下或劃過去清掉，兩個方向都一樣）', ['A', 'B'].map((k) => cell(`${k}　${LOOK4[k].name}`, mini(poopScene(k))))],
+    ['05 小牛卡片、想吃泡泡', ['A', 'B'].map((k) => cell(`${k}　${LOOK5[k].name}`, `<div class="ov-pair">${mini(detail05(k))}${mini(bubbles05(k))}</div>`))],
+  ];
+  const body = rows.map(([title, cs]) => `<div class="ov-row"><div class="ov-title">${title}</div><div class="ov-cells">${cs.join('')}</div></div>`).join('');
+  return { html: `<div class="board" style="width:${PAD * 2 + 4 * sw + 3 * 28 + 28}px"><div class="b-label">R13-99-總覽對照</div><div class="b-title">第 13 輪：照顧牧場（v0.3）要選的五項</div>
+    <div class="b-sub">每一項選一個；各自的大圖見 R13-01～05。</div>${body}</div>` };
+}
+
 // ---------- 說明圖清單 ----------
 const BOARDS = [
+  ...['A', 'B', 'C'].map((k) => ({ id: `R13-01-${k}`, w: 390, render: () => r1301(k) })),
   ...['A', 'B'].map((k) => ({ id: `R13-02-${k}`, w: 390, render: () => r1302(k) })),
   ...['A', 'B'].map((k) => ({ id: `R13-03-${k}`, w: 390, render: () => r1303(k) })),
   ...['A', 'B'].map((k) => ({ id: `R13-04-${k}`, w: 390, render: () => r1304(k) })),
   ...['A', 'B'].map((k) => ({ id: `R13-05-${k}`, w: 390, render: () => r1305(k) })),
+  { id: 'R13-99', w: 390, render: r1399 },
 ];
 
 async function settle() {

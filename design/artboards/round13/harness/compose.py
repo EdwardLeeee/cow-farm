@@ -1,5 +1,5 @@
 # 第 13 輪草稿：raw/ 的截圖（make.mjs 出的，單張 DPR 2、總覽 DPR 1.5）存到 round13/（進 git 的圖）。
-# 存全彩（RGB），不轉 256 色：這一輪有深色底、金色漸層、放射的光，轉 256 色時小圖示會變色（牛奶瓶蓋從藍色變綠），會看錯顏色。
+# 存全彩（RGB），不轉 256 色：轉 256 色時小圖示會變色（第 12 輪發現的：牛奶瓶蓋從藍色變綠），會看錯顏色。
 # 用法（在 design/artboards/round13 底下跑）：python3 harness/compose.py
 import glob
 import os
