@@ -15,6 +15,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart' show AppleLogoPainte
 import '../../auth/sign_in.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
+import '../kit/kit.dart';
 import '../kit/press.dart';
 
 class SsoButton extends StatelessWidget {
@@ -106,4 +107,59 @@ class _GoogleMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       Image.asset('assets/sso/google_g.png', width: 20, height: 20, filterQuality: FilterQuality.medium);
+}
+
+/// .sso-area：登入按鈕一顆一顆往下排（間距 12），下面一行說明（間距 10）。[hint] 是按鈕和說明中間多的一句
+/// （S14-07 Android 的提醒）。[onTap] 是 null 就全部停用。
+class SsoArea extends StatelessWidget {
+  const SsoArea({super.key, required this.providers, required this.onTap, this.hint});
+
+  final List<SignInProvider> providers;
+  final void Function(SignInProvider)? onTap;
+  final String? hint;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = Strings.of(context);
+    final tap = onTap;
+    return Column(
+      key: const Key('sso-area'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final (i, p) in providers.indexed) ...[
+          if (i > 0) const SizedBox(height: 12),
+          SsoButton(key: Key('sso-${p.wire}'), provider: p, onTap: tap == null ? null : () => tap(p)),
+        ],
+        if (hint case final h?) ...[
+          const SizedBox(height: 10),
+          Text(h, key: const Key('sso-hint'), style: KitText.hint()),
+        ],
+        const SizedBox(height: 10),
+        Text(s.s13Privacy, textAlign: TextAlign.center, style: KitText.hint()),
+      ],
+    );
+  }
+}
+
+/// .card.sso-busy：登入畫面關掉以後、等伺服器回覆（S13-15「綁定中…」、S14-06「登入中…」）。最少 108 高。
+class SsoBusyCard extends StatelessWidget {
+  const SsoBusyCard(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    child: ConstrainedBox(
+      // min-height 108 含上下內距 10、12 和框 3
+      constraints: const BoxConstraints(minHeight: 108 - 10 - 12 - 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Spinner(),
+          const SizedBox(width: 10),
+          Text(text, style: AppText.style(16, weight: FontWeight.w900)),
+        ],
+      ),
+    ),
+  );
 }

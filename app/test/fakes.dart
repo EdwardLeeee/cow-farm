@@ -637,6 +637,34 @@ class FakeGameApi implements GameApi {
     ]);
   }
 
+  /// 找回時伺服器回的錯誤（account_not_linked、sign_in_failed、連不上）；null 就成功。
+  Exception? recoverError;
+  final recoverRequests = <({SignInProvider provider, String idToken, String nonce, String requestId})>[];
+
+  /// 設了就讓找回等到 complete 才回（測試「登入中…」）。
+  Completer<void>? recoverGate;
+
+  @override
+  Future<Session> recoverAccount({
+    required SignInProvider provider,
+    required String idToken,
+    required String nonce,
+    required String requestId,
+  }) async {
+    calls.add('recover:${provider.wire}');
+    recoverRequests.add((provider: provider, idToken: idToken, nonce: nonce, requestId: requestId));
+    await recoverGate?.future;
+    if (recoverError != null) throw recoverError!;
+    stateJson = switchedStateJson;
+    return Session(
+      token: 'tok-recovered',
+      playerId: 1234,
+      ranchName: '晨光河畔牧場',
+      created: false,
+      state: GameState.fromJson(switchedStateJson),
+    );
+  }
+
   @override
   Future<Session> switchAccount({required String ticket, required String requestId}) async {
     calls.add('switch');

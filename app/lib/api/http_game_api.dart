@@ -44,10 +44,13 @@ class HttpGameApi implements GameApi {
     return base.replace(path: '$basePath$path', queryParameters: query);
   }
 
-  Map<String, String> get _headers => {
+  Map<String, String> get _headers => _headersWith(auth: true);
+
+  /// [auth] 是 false 就不帶 token（找回牧場：這支手機的 token 可能已經失效，協定 5.5 不用 token）。
+  Map<String, String> _headersWith({required bool auth}) => {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    if (token != null) 'Authorization': 'Bearer $token',
+    if (auth && token != null) 'Authorization': 'Bearer $token',
   };
 
   Future<Map<String, dynamic>> _send(Future<http.Response> Function() doRequest) async {
@@ -113,11 +116,17 @@ class HttpGameApi implements GameApi {
   Future<Map<String, dynamic>> _post(String path, Map<String, dynamic> body) =>
       _send(() => _client.post(_uri(path), headers: _headers, body: jsonEncode(body)));
 
-  /// 會改變狀態的 POST：產生一次 request_id（[requestId] 給了就用它），重送時沿用。
-  Future<Map<String, dynamic>> _mutate(String path, Map<String, dynamic> body, {String? requestId}) {
+  /// 會改變狀態的 POST：產生一次 request_id（[requestId] 給了就用它），重送時沿用。[auth] 見 [_headersWith]。
+  Future<Map<String, dynamic>> _mutate(String path, Map<String, dynamic> body, {String? requestId, bool auth = true}) {
     final payload = {...body, 'request_id': requestId ?? _uuid.v4()};
     final encoded = jsonEncode(payload);
-    return _send(() => _client.post(_uri(path), headers: _headers, body: encoded));
+    return _send(
+      () => _client.post(
+        _uri(path),
+        headers: _headersWith(auth: auth),
+        body: encoded,
+      ),
+    );
   }
 
   @override
@@ -214,7 +223,13 @@ class HttpGameApi implements GameApi {
   Future<StudLog> studLog() async => StudLog.fromJson(await _get('/v1/stud/log'));
 
   @override
-  Future<String> accountNonce() async => '${(await _post('/v1/account/nonce', const {}))['nonce'] ?? ''}';
+  Future<String> accountNonce() async {
+    // 不用 token（協定 5.1）：找回牧場時這支手機的 token 可能已經失效
+    final r = await _send(
+      () => _client.post(_uri('/v1/account/nonce'), headers: _headersWith(auth: false), body: '{}'),
+    );
+    return '${r['nonce'] ?? ''}';
+  }
 
   @override
   Future<List<AccountLink>> linkAccount({
@@ -242,6 +257,21 @@ class HttpGameApi implements GameApi {
   @override
   Future<Session> switchAccount({required String ticket, required String requestId}) async =>
       Session.fromJson(await _mutate('/v1/account/switch', {'switch_ticket': ticket}, requestId: requestId));
+
+  @override
+  Future<Session> recoverAccount({
+    required SignInProvider provider,
+    required String idToken,
+    required String nonce,
+    required String requestId,
+  }) async => Session.fromJson(
+    await _mutate(
+      '/v1/account/recover',
+      {'provider': provider.wire, 'id_token': idToken, 'nonce': nonce},
+      requestId: requestId,
+      auth: false,
+    ),
+  );
 
   @override
   Future<void> deleteRanch({required String requestId}) =>

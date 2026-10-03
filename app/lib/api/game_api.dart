@@ -108,6 +108,16 @@ abstract class GameApi {
   /// 解除綁定（協定 5.4）：回剩下的綁定。
   Future<List<AccountLink>> unlinkAccount(SignInProvider provider, {required String requestId});
 
+  /// 找回牧場（協定 5.5；不用 token）：新手機或重裝後用綁定的帳號登入，伺服器發那個牧場的新 token，
+  /// 原本的 token 全部失效（舊手機收到 signed_in_elsewhere）。帳號沒有綁牧場回 `account_not_linked`（S14-03）。
+  /// 找回可以重來：沒收到回應就重新登入再找回一次，伺服器再發一個新 token。
+  Future<Session> recoverAccount({
+    required SignInProvider provider,
+    required String idToken,
+    required String nonce,
+    required String requestId,
+  });
+
   /// 換回那個牧場（協定 5.3）：伺服器刪掉這支手機現在的牧場、發那個牧場的新 token。[ticket] 只能用一次，
   /// 沒收到回應時用同一個 [ticket]、[requestId] 原封不動重送，10 分鐘內拿到第一次的回應。
   Future<Session> switchAccount({required String ticket, required String requestId});
