@@ -495,6 +495,7 @@ class GameModel extends ChangeNotifier {
     tab = AppTab.ranch;
     settingsView = null;
     profileOpen = false;
+    renameOpen = false;
     detailCowKey = null;
     penListOpen = false;
     warehouseOpen = false;
@@ -1060,8 +1061,35 @@ class GameModel extends ChangeNotifier {
 
   void closeProfile() {
     profileOpen = false;
+    renameOpen = false;
     _notify();
   }
+
+  /// 改名頁（S21-04）開著：在牧場資料點牧場名打開，返回回到牧場資料。
+  bool renameOpen = false;
+
+  void openRename() {
+    renameOpen = true;
+    _notify();
+  }
+
+  void closeRename() {
+    renameOpen = false;
+    _notify();
+  }
+
+  /// 改牧場名（S21）：成功就關掉改名頁（回到牧場資料，提示由牧場資料頁顯示）。
+  Future<ActionResult<Map<String, dynamic>>> renameRanch(String name) async {
+    final r = await _act(() => api.renameRanch(name));
+    if (r.ok) {
+      renameOpen = false;
+      _notify();
+    }
+    return r;
+  }
+
+  /// 換頭像（S21）。
+  Future<ActionResult<Map<String, dynamic>>> setAvatar(String breed) => _act(() => api.setAvatar(breed));
 
   /// 頂列的齒輪：打開設定主頁（S13-01）。
   void openSettings() {
