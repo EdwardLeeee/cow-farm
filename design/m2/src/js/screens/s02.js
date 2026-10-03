@@ -5,9 +5,9 @@ import { frame, btn, cowSVG, icon, dialog, nameWidth } from '../kit.js';
 import { t, tb, dur, cowName, sexName } from '../i18n.js';
 
 // 系統鍵盤：實作時是手機自己的鍵盤，設計稿畫成灰色色塊（高度照各手機常見的鍵盤高度）
-const KB_H = { 430: 300, 390: 292, 360: 280, 320: 254 };
-const KB_NOTE = '灰色的方塊是手機自己的鍵盤（系統畫面，不畫）；輸入框、字數和按鈕都要在鍵盤上面看得到。';
-function keyboard(w) {
+export const KB_H = { 430: 300, 390: 292, 360: 280, 320: 254 };
+export const KB_NOTE = '灰色的方塊是手機自己的鍵盤（系統畫面，不畫）；輸入框、字數和按鈕都要在鍵盤上面看得到。';
+export function keyboard(w) {
   const rows = [10, 9, 7].map((n, r) => `<div class="kb-row">${Array.from({ length: n }, () => '<i></i>').join('')}</div>`).join('');
   return `<div class="kb" style="height:${KB_H[w] || 292}px"><div class="kb-label" data-note>系統鍵盤（不畫）</div>${rows}<div class="kb-row last"><i class="w"></i><i class="sp"></i><i class="w"></i></div></div>`;
 }

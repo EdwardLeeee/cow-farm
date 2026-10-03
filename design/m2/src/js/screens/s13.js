@@ -40,7 +40,8 @@ function settings(ctx, { backed = false, overlays = '', offline = false } = {}) 
 }
 
 // 備份牧場。bound：已經綁定的帳號（'apple'、'google'）；android：Android 版（沒有 Apple 登入；綁過 Apple 才顯示 Apple 那一列）
-function backupPage(ctx, { bound = [], android = false, busy = false, ranch = RANCH, overlays = '' } = {}) {
+// offline：斷線（S13-21）：登入鈕變淡、不能按，下面寫要連上網路；「連線中…」在標題那一列（S13-20 的規則）
+function backupPage(ctx, { bound = [], android = false, busy = false, ranch = RANCH, overlays = '', offline = false } = {}) {
   const todo = (android ? ['google'] : ['apple', 'google']).filter((k) => !bound.includes(k));
   const intro = bound.length
     ? `<p class="bk-lead">${t('s13.backup.done')}</p>`
@@ -49,9 +50,10 @@ function backupPage(ctx, { bound = [], android = false, busy = false, ranch = RA
   // 只綁了 Apple：iPhone 提醒以後換 Android 要再綁 Google；Android 本來就沒有 Apple 登入，提醒找回要用 Google（缺口清單 2-4）
   const onlyApple = bound.length === 1 && bound[0] === 'apple';
   const more = onlyApple ? `<p class="hint">${t(android ? 's13.backup.addGoogleAndroid' : 's13.backup.addGoogle')}</p>` : '';
-  const area = busy ? `<div class="sso-area">${busyCard(t('s13.binding'))}</div>` : todo.length ? `<div class="sso-area">${ssoGroup(todo)}${privacy()}</div>` : '';
+  const area = busy ? `<div class="sso-area">${busyCard(t('s13.binding'))}</div>`
+    : todo.length ? `<div class="sso-area${offline ? ' off' : ''}">${ssoGroup(todo)}${offline ? `<p class="hint sso-off">${t('s13.ssoOffline')}</p>` : privacy()}</div>` : '';
   const before = !bound.length && !busy ? `<p class="rule-line shop-rule">${icon('info', 18)}<span>${t('s13.backup.before')}</span></p>` : '';
-  return page(ctx, t('s13.backup.title'), `${ranchCard(ranch, bound.length ? stOk() : stNo())}<div class="bk-body">${intro}${rows}${more}${area}${before}</div>`, { overlays });
+  return page(ctx, t('s13.backup.title'), `${ranchCard(ranch, bound.length ? stOk() : stNo())}<div class="bk-body">${intro}${rows}${more}${area}${before}</div>`, { overlays, offline });
 }
 function deletePage(ctx, typed = '') {
   const word = t('s13.del.word'), ok = typed === word;
@@ -101,6 +103,8 @@ p13('S13-14', '兩種帳號都綁了：各一列，沒有登入按鈕', '.bk-bod
 p13('S13-15', '綁定中…（登入視窗關掉後，等伺服器回覆）', '.sso-area', (ctx) => backupPage(ctx, { busy: true }));
 p13('S13-16', 'Android 版：只綁了 Google 時，沒有 Apple 那一列也沒有 Apple 登入按鈕', '.bk-body', (ctx) => backupPage(ctx, { android: true, bound: ['google'] }));
 p13('S13-19', 'Android 版：只綁了 Apple，提醒再綁 Google', '.bk-body', (ctx) => backupPage(ctx, { android: true, bound: ['apple'] }), { board: '只綁Apple-狀態表' });
+// 斷線時的登入鈕（cow-app #127，ceo 2026-10-03）：兩顆一起變淡、不能按（官方的顏色和字不改），下面寫要連上網路；S14 找回牧場一樣
+p13('S13-21', '備份牧場斷線：登入鈕變淡、不能按', '.sso-area', (ctx) => backupPage(ctx, { offline: true }));
 
 // ---------- 語言、漲跌顏色（D25） ----------
 // 選單用各自的文字寫；第一次打開跟著手機的語言（中文 → 繁中、泰文 → 泰文、其他 → 英文）

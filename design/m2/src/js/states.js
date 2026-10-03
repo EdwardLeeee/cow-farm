@@ -13,6 +13,7 @@ import { S09, S12 } from './screens/s09.js';
 import { S10M, S11M, S19M } from './screens/s10.js';
 import { S13M, S14M, S15M, S16M } from './screens/s13.js';
 import S17 from './screens/s17.js';
+import S21 from './screens/s21.js';
 
-export const SCREENS = [G, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10M, S11M, S12, S13M, S14M, S15M, S16M, S17, S18, S19M, S20M];
+export const SCREENS = [G, S01, S02, S03, S04, S05, S06, S07, S08, S09, S10M, S11M, S12, S13M, S14M, S15M, S16M, S17, S18, S19M, S20M, S21];
 export const STATES = SCREENS.flatMap((m) => m.states.map((s) => ({ ...s, screen: m.id, screenName: m.name })));

@@ -57,6 +57,8 @@ const I = {
   cowf: (s = 16) => `<svg viewBox="0 0 20 20" width="${s}" height="${s}"><circle cx="10" cy="7.6" r="5.2" fill="#FFD0DE" stroke="${L}" stroke-width="2"/><path d="M10 12.8v5.2M7.2 15.6h5.6" fill="none" stroke="${L}" stroke-width="2" stroke-linecap="round"/></svg>`,
   plus: (s = 18) => `<svg viewBox="0 0 20 20" width="${s}" height="${s}"><path d="M10 4v12M4 10h12" stroke="${L}" stroke-width="2.8" stroke-linecap="round"/></svg>`,
   history: (s = 20) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><rect x="4" y="3" width="16" height="18.5" rx="2.4" fill="#FFFFFF" stroke="${L}" stroke-width="2.1"/><path d="M8 8h8M8 12h8M8 16h5" stroke="${L}" stroke-width="2" stroke-linecap="round"/></svg>`,
+  // 一疊金幣（成就「小富翁／大富翁」：還沒解鎖時畫成剪影也看得出是一疊錢）
+  coins: (s = 24) => `<svg viewBox="0 0 28 28" width="${s}" height="${s}">${[[17, 21], [12, 15.5], [16, 10]].map(([x, y]) => `<ellipse cx="${x}" cy="${y + 2.4}" rx="8.6" ry="3.6" fill="#E7A93A" stroke="${L}" stroke-width="2"/><ellipse cx="${x}" cy="${y}" rx="8.6" ry="3.6" fill="#FFD45E" stroke="${L}" stroke-width="2"/>`).join('')}</svg>`,
   // 鉛筆（D34：頂列頭像右下角的小圓章，告訴玩家點頭像可以打開牧場資料、改名、換頭像）
   pencil: (s = 13) => `<svg viewBox="0 0 16 16" width="${s}" height="${s}"><path d="M2.6 13.4l.8-3.3 7.2-7.2a1.6 1.6 0 0 1 2.3 0l.2.2a1.6 1.6 0 0 1 0 2.3l-7.2 7.2z" fill="#FFFFFF" stroke="${L}" stroke-width="1.7" stroke-linejoin="round"/><path d="M9.3 4.2l2.5 2.5" stroke="${L}" stroke-width="1.5"/></svg>`,
   // 超級黑天鵝（D33）：一隻往左游的天鵝側影，顏色跟著字（currentColor）
