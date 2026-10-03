@@ -93,6 +93,9 @@ const Map<String, List<String>> kPlaceholders = {
   's06.formula': ['mult'],
   's06.lots': ['n'],
   'sellConfirm': ['qty', 'unit'],
+  's06.pinUp': ['name'],
+  's06.pinDown': ['name'],
+  's06.pinNow': ['price', 'unit'],
   'sold': ['avg', 'qty', 'total', 'unit'],
   's04.about': ['v'],
   's04.originShop': ['g'],
@@ -465,9 +468,15 @@ const Map<String, String> _zhHant = {
   'tooMuch': '一次賣太多，均價會變差，要不要分批？',
   'sellConfirm': '確認賣出 {qty} {unit}',
   'newsTitle': '新聞',
-  's06.upcoming': '預告',
-  's06.up': '看漲',
-  's06.down': '看跌',
+  's06.up': '利多',
+  's06.down': '利空',
+  's06.superTag': '超級大事件',
+  's06.swanTag': '超級黑天鵝',
+  's06.pinUp': '{name}收購價變兩倍',
+  's06.pinDown': '{name}收購價只剩一成',
+  's06.pinUpAll': '全部商品的收購價\n都變兩倍',
+  's06.pinDownAll': '全部商品的收購價\n都只剩一成',
+  's06.pinNow': '現在 {price} 幣／{unit}',
   'noNews': '目前沒有新聞。',
   'sold': '賣出 {qty} {unit}，均價 {avg}，共 {total} 幣',
   's04.age': '年齡',
@@ -793,6 +802,30 @@ const Map<String, String> _zhHant = {
   'news.all_down.1': '颱風過境，市場休市一日',
   'news.all_down.2': '物價調查公布，消費者縮減開支',
   'news.all_down.3': '港口罷工，出口受阻',
+  'news.milk_super.1': '全國學校改喝鮮奶，訂單暴增',
+  'news.milk_super.2': '國際冰淇淋大賽開幕，鮮奶搶光',
+  'news.milk_super.3': '鮮奶拿鐵爆紅，咖啡店搶不到奶',
+  'news.milk_swan.1': '乳品廠大停電，鮮奶全面停收',
+  'news.milk_swan.2': '冷藏車大罷工，鮮奶運不出去',
+  'news.milk_swan.3': '超級寒流來襲，冰品店全部休息',
+  'news.beef_super.1': '世界牛排大賽在本地舉辦',
+  'news.beef_super.2': '全國烤肉節提前開跑，肉商搶貨',
+  'news.beef_super.3': '牛肉麵登上國際美食榜',
+  'news.beef_swan.1': '冷凍物流大當機，肉商全面停收',
+  'news.beef_swan.2': '便宜進口牛肉湧入，價格崩盤',
+  'news.beef_swan.3': '全國蔬食週開跑，牛肉沒人買',
+  'news.rice_super.1': '新米拿下國際金獎，米價翻倍',
+  'news.rice_super.2': '海外飯糰大流行，外銷訂單爆量',
+  'news.rice_super.3': '國宴指定在地新米，糧商搶貨',
+  'news.rice_swan.1': '糧商全面停收，新米堆成山',
+  'news.rice_swan.2': '百年一見大豐收，新米賣不出去',
+  'news.rice_swan.3': '麵食大流行，米飯沒人吃',
+  'news.all_super.1': '世界美食節在本地登場',
+  'news.all_super.2': '觀光人潮創新高，餐廳天天客滿',
+  'news.all_super.3': '超級連假來了，餐飲需求翻倍',
+  'news.all_swan.1': '超級颱風來襲，市場全面停擺',
+  'news.all_swan.2': '港口全面封閉，農產品出不了貨',
+  'news.all_swan.3': '全國消費急凍，農產品沒人買',
   'namegen.first.0': '晨光',
   'namegen.first.1': '青草',
   'namegen.first.2': '白雲',
@@ -1132,9 +1165,15 @@ const Map<String, String> _en = {
   'tooMuch': 'Selling a lot at once lowers the average price. Split it up?',
   'sellConfirm': 'Sell {qty} {unit}',
   'newsTitle': 'News',
-  's06.upcoming': 'Upcoming',
-  's06.up': 'Rising',
-  's06.down': 'Falling',
+  's06.up': 'Bullish',
+  's06.down': 'Bearish',
+  's06.superTag': 'Super boom',
+  's06.swanTag': 'Black swan',
+  's06.pinUp': '{name} price doubles',
+  's06.pinDown': '{name} price drops to a tenth',
+  's06.pinUpAll': 'All prices\ndouble',
+  's06.pinDownAll': 'All prices drop\nto a tenth',
+  's06.pinNow': 'Now {price} coins/⁠{unit}',
   'noNews': 'No news right now.',
   'sold': 'Sold {qty} {unit}, avg {avg}, total {total} coins',
   's04.age': 'Age',
@@ -1461,6 +1500,30 @@ const Map<String, String> _en = {
   'news.all_down.1': 'Typhoon closes markets for a day',
   'news.all_down.2': 'Price survey out; shoppers cut spending',
   'news.all_down.3': 'Port strike blocks exports',
+  'news.milk_super.1': 'Schools nationwide switch to fresh milk',
+  'news.milk_super.2': 'Ice cream world cup opens; milk sells out',
+  'news.milk_super.3': 'Milk lattes go viral; cafés run dry',
+  'news.milk_swan.1': 'Dairy plants lose power; milk buying halts',
+  'news.milk_swan.2': 'Cold-truck strike: milk can\'t ship',
+  'news.milk_swan.3': 'Record cold snap shuts every ice cream shop',
+  'news.beef_super.1': 'World steak contest comes to town',
+  'news.beef_super.2': 'National BBQ fest starts early; buyers rush in',
+  'news.beef_super.3': 'Beef noodle soup tops world food charts',
+  'news.beef_swan.1': 'Cold-chain systems crash; beef buying stops',
+  'news.beef_swan.2': 'Cheap imported beef floods in; prices crash',
+  'news.beef_swan.3': 'Veggie week starts nationwide; no one buys beef',
+  'news.rice_super.1': 'New rice wins world gold; price doubles',
+  'news.rice_super.2': 'Rice balls take off abroad; exports soar',
+  'news.rice_super.3': 'State banquet picks local rice; buyers rush in',
+  'news.rice_swan.1': 'Grain buyers stop buying; rice piles up',
+  'news.rice_swan.2': 'Once-in-a-century harvest: rice won\'t sell',
+  'news.rice_swan.3': 'Noodle craze: no one wants rice',
+  'news.all_super.1': 'World food festival comes to town',
+  'news.all_super.2': 'Record tourist crowds pack every restaurant',
+  'news.all_super.3': 'Mega holiday arrives; food demand doubles',
+  'news.all_swan.1': 'Super typhoon shuts down all markets',
+  'news.all_swan.2': 'Ports close; farm goods can\'t ship',
+  'news.all_swan.3': 'Spending freezes nationwide; farm goods go unsold',
   'namegen.first.0': 'Dawn',
   'namegen.first.1': 'Fern',
   'namegen.first.2': 'Cloud',
@@ -1799,9 +1862,15 @@ const Map<String, String> _th = {
   'tooMuch': 'ขายทีเดียวเยอะเกินไป ราคาเฉลี่ยจะแย่ลง แบ่งขายหลายรอบดีไหม?',
   'sellConfirm': 'ยืนยันขาย {qty} {unit}',
   'newsTitle': 'ข่าว',
-  's06.upcoming': 'กำลังจะมา',
-  's06.up': 'แนวโน้มขึ้น',
-  's06.down': 'แนวโน้มลง',
+  's06.up': 'ปัจจัยบวก',
+  's06.down': 'ปัจจัยลบ',
+  's06.superTag': 'บูมสุดขีด',
+  's06.swanTag': 'หงส์ดำ',
+  's06.pinUp': 'ราคารับซื้อ{name}เพิ่มเป็นสองเท่า',
+  's06.pinDown': 'ราคารับซื้อ{name}เหลือหนึ่งในสิบ',
+  's06.pinUpAll': 'ราคารับซื้อทุกอย่าง\nเพิ่มเป็นสองเท่า',
+  's06.pinDownAll': 'ราคารับซื้อทุกอย่าง\nเหลือหนึ่งในสิบ',
+  's06.pinNow': 'ตอนนี้ {price} เหรียญ/⁠{unit}',
   'noNews': 'ตอนนี้ยังไม่มีข่าว',
   'sold': 'ขาย {qty} {unit} ราคาเฉลี่ย {avg} รวม {total} เหรียญ',
   's04.age': 'อายุ',
@@ -2128,6 +2197,30 @@ const Map<String, String> _th = {
   'news.all_down.1': 'พายุพัดผ่าน ตลาดปิดหนึ่งวัน',
   'news.all_down.2': 'ผลสำรวจราคาสินค้าออกมา ผู้บริโภครัดเข็มขัด',
   'news.all_down.3': 'ท่าเรือนัดหยุดงาน การส่งออกสะดุด',
+  'news.milk_super.1': 'โรงเรียนทั่วประเทศหันมาดื่มนมสด ออร์เดอร์พุ่ง',
+  'news.milk_super.2': 'เปิดศึกไอศกรีมนานาชาติ นมสดขาดตลาด',
+  'news.milk_super.3': 'ลาเต้นมสดฮิตถล่มทลาย ร้านกาแฟแย่งซื้อนม',
+  'news.milk_swan.1': 'โรงงานนมไฟดับ หยุดรับซื้อนมสดทั้งหมด',
+  'news.milk_swan.2': 'รถห้องเย็นหยุดวิ่ง นมสดส่งไม่ออก',
+  'news.milk_swan.3': 'หนาวจัดเป็นประวัติการณ์ ร้านไอศกรีมปิดหมด',
+  'news.beef_super.1': 'ศึกสเต็กโลกมาจัดที่⁠นี่',
+  'news.beef_super.2': 'เทศกาลปิ้งย่างทั่วประเทศเริ่มเร็ว พ่อค้าแย่งซื้อเนื้อ',
+  'news.beef_super.3': 'ก๋วยเตี๋ยวเนื้อติดอันดับอาหารโลก',
+  'news.beef_swan.1': 'ระบบขนส่งห้องเย็นล่ม พ่อค้าหยุดรับซื้อเนื้อ',
+  'news.beef_swan.2': 'เนื้อนำเข้าราคาถูกทะลัก ราคาดิ่ง',
+  'news.beef_swan.3': 'สัปดาห์กินผักทั่วประเทศ ไม่มีใครซื้อเนื้อ',
+  'news.rice_super.1': 'ข้าวใหม่คว้าทองระดับโลก ราคาพุ่งสองเท่า',
+  'news.rice_super.2': 'ข้าวปั้นฮิตทั่วโลก ส่งออกพุ่ง',
+  'news.rice_super.3': 'งานเลี้ยงระดับชาติเลือกข้าวใหม่ พ่อค้าแย่งซื้อ',
+  'news.rice_swan.1': 'พ่อค้าข้าวหยุดรับซื้อ ข้าวใหม่กองเป็นภูเขา',
+  'news.rice_swan.2': 'ผลผลิตล้นในรอบร้อยปี ข้าวใหม่ขายไม่ออก',
+  'news.rice_swan.3': 'กระแสก๋วยเตี๋ยวมาแรง ไม่มีใครกินข้าว',
+  'news.all_super.1': 'เทศกาลอาหารโลกมาจัดที่⁠นี่',
+  'news.all_super.2': 'นักท่องเที่ยวล้นหลาม ร้านอาหารเต็มทุกวัน',
+  'news.all_super.3': 'วันหยุดยาวพิเศษมาแล้ว ความต้องการอาหารเพิ่มเท่าตัว',
+  'news.all_swan.1': 'ซูเปอร์ไต้ฝุ่นถล่ม ตลาดปิดทั้งหมด',
+  'news.all_swan.2': 'ท่าเรือปิดหมด สินค้าเกษตรส่งไม่ออก',
+  'news.all_swan.3': 'การใช้จ่ายทั่วประเทศหยุดชะงัก สินค้าเกษตรไม่มีคนซื้อ',
   'namegen.first.0': 'แสงเช้า',
   'namegen.first.1': 'ใบหญ้า',
   'namegen.first.2': 'เมฆขาว',
@@ -3072,14 +3165,32 @@ abstract class GeneratedStrings {
   /// `newsTitle`：新聞
   String get newsTitle => table['newsTitle']!;
 
-  /// `s06.upcoming`：預告
-  String get s06Upcoming => table['s06.upcoming']!;
-
-  /// `s06.up`：看漲
+  /// `s06.up`：利多
   String get s06Up => table['s06.up']!;
 
-  /// `s06.down`：看跌
+  /// `s06.down`：利空
   String get s06Down => table['s06.down']!;
+
+  /// `s06.superTag`：超級大事件
+  String get s06SuperTag => table['s06.superTag']!;
+
+  /// `s06.swanTag`：超級黑天鵝
+  String get s06SwanTag => table['s06.swanTag']!;
+
+  /// `s06.pinUp`：{name}收購價變兩倍
+  String s06PinUp({required Object name}) => fill('s06.pinUp', {'name': name});
+
+  /// `s06.pinDown`：{name}收購價只剩一成
+  String s06PinDown({required Object name}) => fill('s06.pinDown', {'name': name});
+
+  /// `s06.pinUpAll`：全部商品的收購價\n都變兩倍
+  String get s06PinUpAll => table['s06.pinUpAll']!;
+
+  /// `s06.pinDownAll`：全部商品的收購價\n都只剩一成
+  String get s06PinDownAll => table['s06.pinDownAll']!;
+
+  /// `s06.pinNow`：現在 {price} 幣／{unit}
+  String s06PinNow({required Object price, required Object unit}) => fill('s06.pinNow', {'price': price, 'unit': unit});
 
   /// `noNews`：目前沒有新聞。
   String get noNews => table['noNews']!;
@@ -4055,6 +4166,78 @@ abstract class GeneratedStrings {
 
   /// `news.all_down.3`：港口罷工，出口受阻
   String get newsAllDown3 => table['news.all_down.3']!;
+
+  /// `news.milk_super.1`：全國學校改喝鮮奶，訂單暴增
+  String get newsMilkSuper1 => table['news.milk_super.1']!;
+
+  /// `news.milk_super.2`：國際冰淇淋大賽開幕，鮮奶搶光
+  String get newsMilkSuper2 => table['news.milk_super.2']!;
+
+  /// `news.milk_super.3`：鮮奶拿鐵爆紅，咖啡店搶不到奶
+  String get newsMilkSuper3 => table['news.milk_super.3']!;
+
+  /// `news.milk_swan.1`：乳品廠大停電，鮮奶全面停收
+  String get newsMilkSwan1 => table['news.milk_swan.1']!;
+
+  /// `news.milk_swan.2`：冷藏車大罷工，鮮奶運不出去
+  String get newsMilkSwan2 => table['news.milk_swan.2']!;
+
+  /// `news.milk_swan.3`：超級寒流來襲，冰品店全部休息
+  String get newsMilkSwan3 => table['news.milk_swan.3']!;
+
+  /// `news.beef_super.1`：世界牛排大賽在本地舉辦
+  String get newsBeefSuper1 => table['news.beef_super.1']!;
+
+  /// `news.beef_super.2`：全國烤肉節提前開跑，肉商搶貨
+  String get newsBeefSuper2 => table['news.beef_super.2']!;
+
+  /// `news.beef_super.3`：牛肉麵登上國際美食榜
+  String get newsBeefSuper3 => table['news.beef_super.3']!;
+
+  /// `news.beef_swan.1`：冷凍物流大當機，肉商全面停收
+  String get newsBeefSwan1 => table['news.beef_swan.1']!;
+
+  /// `news.beef_swan.2`：便宜進口牛肉湧入，價格崩盤
+  String get newsBeefSwan2 => table['news.beef_swan.2']!;
+
+  /// `news.beef_swan.3`：全國蔬食週開跑，牛肉沒人買
+  String get newsBeefSwan3 => table['news.beef_swan.3']!;
+
+  /// `news.rice_super.1`：新米拿下國際金獎，米價翻倍
+  String get newsRiceSuper1 => table['news.rice_super.1']!;
+
+  /// `news.rice_super.2`：海外飯糰大流行，外銷訂單爆量
+  String get newsRiceSuper2 => table['news.rice_super.2']!;
+
+  /// `news.rice_super.3`：國宴指定在地新米，糧商搶貨
+  String get newsRiceSuper3 => table['news.rice_super.3']!;
+
+  /// `news.rice_swan.1`：糧商全面停收，新米堆成山
+  String get newsRiceSwan1 => table['news.rice_swan.1']!;
+
+  /// `news.rice_swan.2`：百年一見大豐收，新米賣不出去
+  String get newsRiceSwan2 => table['news.rice_swan.2']!;
+
+  /// `news.rice_swan.3`：麵食大流行，米飯沒人吃
+  String get newsRiceSwan3 => table['news.rice_swan.3']!;
+
+  /// `news.all_super.1`：世界美食節在本地登場
+  String get newsAllSuper1 => table['news.all_super.1']!;
+
+  /// `news.all_super.2`：觀光人潮創新高，餐廳天天客滿
+  String get newsAllSuper2 => table['news.all_super.2']!;
+
+  /// `news.all_super.3`：超級連假來了，餐飲需求翻倍
+  String get newsAllSuper3 => table['news.all_super.3']!;
+
+  /// `news.all_swan.1`：超級颱風來襲，市場全面停擺
+  String get newsAllSwan1 => table['news.all_swan.1']!;
+
+  /// `news.all_swan.2`：港口全面封閉，農產品出不了貨
+  String get newsAllSwan2 => table['news.all_swan.2']!;
+
+  /// `news.all_swan.3`：全國消費急凍，農產品沒人買
+  String get newsAllSwan3 => table['news.all_swan.3']!;
 
   /// `namegen.first.0`：晨光
   String get namegenFirst0 => table['namegen.first.0']!;

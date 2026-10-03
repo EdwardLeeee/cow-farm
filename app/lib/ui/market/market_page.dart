@@ -984,7 +984,6 @@ class _NewsItem extends StatelessWidget {
                   children: [
                     Text(s.newsTag(news), style: AppText.style(13, weight: FontWeight.w900)),
                     if (news.big) CowBadge(BadgeKind.full, s.s06BigNews),
-                    if (news.upcoming) CowBadge(BadgeKind.fresh, s.s06Upcoming),
                     if (up != null)
                       Row(
                         mainAxisSize: MainAxisSize.min,

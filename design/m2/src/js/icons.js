@@ -57,6 +57,8 @@ const I = {
   cowf: (s = 16) => `<svg viewBox="0 0 20 20" width="${s}" height="${s}"><circle cx="10" cy="7.6" r="5.2" fill="#FFD0DE" stroke="${L}" stroke-width="2"/><path d="M10 12.8v5.2M7.2 15.6h5.6" fill="none" stroke="${L}" stroke-width="2" stroke-linecap="round"/></svg>`,
   plus: (s = 18) => `<svg viewBox="0 0 20 20" width="${s}" height="${s}"><path d="M10 4v12M4 10h12" stroke="${L}" stroke-width="2.8" stroke-linecap="round"/></svg>`,
   history: (s = 20) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}"><rect x="4" y="3" width="16" height="18.5" rx="2.4" fill="#FFFFFF" stroke="${L}" stroke-width="2.1"/><path d="M8 8h8M8 12h8M8 16h5" stroke="${L}" stroke-width="2" stroke-linecap="round"/></svg>`,
+  // 超級黑天鵝（D33）：一隻往左游的天鵝側影，顏色跟著字（currentColor）
+  swan: (s = 14) => `<svg viewBox="0 0 20 20" width="${s}" height="${s}"><path d="M2.4 5.6L5 4.6C5.3 3 7.3 2.4 8.5 3.6c1.1 1.1.4 2.8-.5 4.1-.8 1.2-1.1 2.4-.4 3.5 2.6-1.3 6.2-2 10.2-3.2-.1 4.8-3.3 8-8 8-3.5 0-5.6-1.6-5.9-3.9-.2-1.4.5-2.8 1.4-4 .8-1.1 1.2-2 .7-2.6-.4-.4-1-.3-1.5 0z" fill="currentColor"/></svg>`,
   medal: (s = 18) => `<svg viewBox="0 0 20 20" width="${s}" height="${s}"><path d="M6 1.8h3l1 4.4H7zM14 1.8h-3l-1 4.4h3z" fill="#A9DBFF" stroke="${L}" stroke-width="1.5" stroke-linejoin="round"/><circle cx="10" cy="12.2" r="6" fill="#FFD45E" stroke="${L}" stroke-width="1.8"/></svg>`,
 };
 

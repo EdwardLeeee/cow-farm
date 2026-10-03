@@ -288,6 +288,31 @@
 .n-dir.down { color: var(--down); }
 .n-when { margin-left: auto; font-size: 12px; font-weight: 700; color: var(--ink-2); }
 .n-text { margin-top: 3px; font-size: 14px; font-weight: 700; line-height: 20px; }
+/* ---------- D33 超級大事件（+100%）、超級黑天鵝（−90%）：使用者 2026-10-03 選第 12 輪的 04-B、05-A ---------- */
+/* 標籤：超級大事件金色、超級黑天鵝深色（放在深色底上時改白底深字，不然看不到外框） */
+.badge.sup { gap: 2px; background: linear-gradient(180deg, #FFE98F, #FFC13B); }
+.badge.swan { gap: 2px; background: #2F2A35; color: #FFFFFF; }
+.news-pin.swan .badge.swan { background: #FFFFFF; color: #2F2A35; border-color: #FFFFFF; }
+/* 新聞卡：超級的那幾則（進行中）變成大卡，釘在新聞卡最上面；結束以後回到下面的清單（照時間排） */
+.news-pins { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+.news-pin { position: relative; overflow: hidden; padding: 8px 12px 12px; border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 3px 0 var(--ink); }
+.news-pin.sup { background: radial-gradient(circle at 88% 10%, #FFFBE6 0, #FFE58A 55%, #FFD45E 100%); }
+.news-pin.swan { background: linear-gradient(160deg, #3A3342, #221E27); color: #FFFFFF; border-color: #17141B; box-shadow: 0 3px 0 #17141B; }
+.np-top { position: relative; display: flex; align-items: center; gap: 6px; }
+.np-top .n-when { margin-left: auto; }
+.news-pin.swan .n-when { color: #CFC6DA; }
+.np-main { position: relative; display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.np-ic { flex: none; width: 52px; height: 52px; border-radius: 16px; background: #FFFFFF; border: 2.5px solid var(--ink); display: grid; place-items: center; line-height: 0; }
+.np-ic.all { grid-template-columns: 22px 22px; gap: 0 2px; place-content: center; }
+.np-ic.all > :last-child { grid-column: 1 / 3; justify-self: center; }
+.np-t { display: block; font-size: 16px; font-weight: 900; line-height: 22px; }
+.np-fx { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+.np-big { flex: none; font-size: 28px; line-height: 32px; }
+.news-pin.sup .np-big { color: var(--up); }
+.news-pin.swan .np-big { color: #7BE0A6; }
+.np-sub { font-size: 13px; font-weight: 700; line-height: 18px; color: var(--ink-2); }
+.news-pin.swan .np-sub { color: #E5DEEE; }
+.np-rays { position: absolute; right: -46px; top: -54px; width: 170px; height: 170px; opacity: 0.6; pointer-events: none; }
 
 /* ================= S08 配種、S18 借種 ================= */
 .rule-line { display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: #FFE9F0; border: 2px solid #F5B5C8; border-radius: 12px; font-size: 13px; font-weight: 900; line-height: 18px; }
@@ -298,6 +323,7 @@
 .pick.off .pick-pic, .pick.off .pick-name { opacity: 0.45; }
 .pick-pic { line-height: 0; }
 .pick-name { font-size: 13px; font-weight: 900; line-height: 18px; white-space: nowrap; }
+.pick-name .pid.own { display: block; font-size: 12px; line-height: 16px; color: var(--ink-2); } /* #編號要換到第三行時（kit.js 的 fitPickNames；泰文長牛名） */
 .pick-meta { line-height: 0; }
 .pick-check { position: absolute; right: -6px; top: -6px; line-height: 0; }
 .pick-empty { margin-top: 6px; display: flex; flex-direction: column; gap: 2px; padding: 12px; background: #FFFFFF; border: 2px dashed var(--line-soft); border-radius: 14px; }
@@ -651,6 +677,20 @@
 .bn-ic.all { display: grid; grid-template-columns: 22px 22px; gap: 0 2px; place-content: center; }
 .bn-ic.all > :last-child { grid-column: 1 / 3; justify-self: center; }
 .bn-close { position: absolute; right: 4px; top: 4px; width: 44px; height: 44px; display: grid; place-items: center; line-height: 0; }
+/* D33 超級大事件、超級黑天鵝的提示（S03-22～24）：位置、大小跟大新聞提示一樣，只換顏色、標籤，幅度的字放大 */
+.big-news.sup { background: radial-gradient(circle at 85% 0%, #FFFBE6 0, #FFE58A 60%, #FFD45E 100%); }
+.big-news.sup .bn-tag, .big-news.swan .bn-tag { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; line-height: 22px; }
+.big-news.sup .bn-tag { background: linear-gradient(180deg, #FFE98F, #FFC13B); color: var(--ink); }
+.big-news.swan { background: linear-gradient(160deg, #3A3342, #221E27); color: #FFFFFF; border-color: #17141B; box-shadow: 0 4px 0 #17141B; }
+.big-news.swan .bn-tag { background: #FFFFFF; color: #2F2A35; border-color: #FFFFFF; }
+.big-news.swan .bn-close svg path { stroke: #FFFFFF; }
+.big-news.swan .bn-main p { color: #E5DEEE; }
+/* 專屬標題比較長：標題那一列往下 6，第一行才不會碰到 ✕ 的點擊範圍（44 × 44） */
+.big-news.sup .bn-main, .big-news.swan .bn-main { margin-top: 14px; }
+.big-news.sup .bn-main .up-text { font-size: 20px; }
+.big-news.swan .bn-main .down-text { font-size: 20px; color: #7BE0A6; }
+.big-news.swan .btn { color: var(--ink); } /* 按鈕會繼承卡片的白字 */
+.bn-spark { position: absolute; line-height: 0; pointer-events: none; }
 
 /* 借種費（D26：系統依體重算） */
 .fee-box { background: #FFFFFF; border: 2px solid var(--line-soft); border-radius: 16px; padding: 10px 12px; }
