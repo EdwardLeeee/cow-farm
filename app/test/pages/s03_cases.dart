@@ -284,7 +284,14 @@ Map<String, dynamic> _superNews(int id, String code, String? commodity, {require
 final _zh = Strings.forLang(AppLang.zhHant);
 
 /// 狀態表（設計稿的 .g-sheet）：沒有頂列、分頁列的頁面，內容一個個排下來。
-Future<void> pumpSheet(WidgetTester tester, AppLang lang, List<Widget> children, {GameModel? model}) async {
+/// [padding] 是整張表的邊距（設計稿的 .g-sheet：左右 12、上 12、下 24；S11-03 的表右邊多留 12 給 ×）。
+Future<void> pumpSheet(
+  WidgetTester tester,
+  AppLang lang,
+  List<Widget> children, {
+  GameModel? model,
+  EdgeInsets padding = const EdgeInsets.fromLTRB(12, 4 + 8, 12, 16 + 8),
+}) async {
   final m = model ?? await ranchModel();
   final settings = settingsFor(lang);
   await settings.load();
@@ -304,7 +311,7 @@ Future<void> pumpSheet(WidgetTester tester, AppLang lang, List<Widget> children,
           backgroundColor: AppColors.cream,
           body: SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(12, 4 + 8, 12, 16 + 8),
+              padding: padding,
               child: Column(
                 key: const Key('sheet'),
                 crossAxisAlignment: CrossAxisAlignment.stretch,
