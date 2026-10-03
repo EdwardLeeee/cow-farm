@@ -58,6 +58,8 @@ class SettingsFrame extends StatelessWidget {
     this.overlays = const [],
     this.scrollKey,
     this.bottomInset = 0,
+    this.onBack,
+    this.noBack = false,
   });
 
   final String title;
@@ -67,6 +69,12 @@ class SettingsFrame extends StatelessWidget {
 
   /// 內容下面多留的空間（鍵盤蓋住的部分）。
   final double bottomInset;
+
+  /// 返回鈕做什麼；沒給就是回到設定的上一層（S14 找回牧場用同一個頁面框，返回到 S14-01）。
+  final VoidCallback? onBack;
+
+  /// 沒有返回鈕（S14-04 歡迎回來）。
+  final bool noBack;
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +93,7 @@ class SettingsFrame extends StatelessWidget {
           children: [
             PageHead(
               title: title,
-              onBack: m.settingsBack,
+              onBack: noBack ? null : (onBack ?? m.settingsBack),
               action: offline ? const OfflinePill() : null,
               actionFixed: true,
             ),

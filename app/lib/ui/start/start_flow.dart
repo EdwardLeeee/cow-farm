@@ -1,6 +1,7 @@
-// 打開 app 到進牧場之前的畫面：S01 啟動與載入、S02 取名（建立牧場）、S13-04 牧場已經刪除了。
+// 打開 app 到進牧場之前的畫面：S01 啟動與載入、S02 取名（建立牧場）、S13-04 牧場已經刪除了、S14 找回牧場。
 // 順序（ceo 2026-10-02 方案 A）：沒有牧場 → S02 取名 → 就叫這個 → S01-03 建立中 → S02-02 歡迎卡 → 進牧場。
-// S14-01（開新牧場／找回我的牧場）在第 7 步跟找回一起做，那時第一次打開要變回 S14-01 → 開新牧場 → S02。
+// 設好 Apple／Google 登入的建置，第一次打開先問 S14-01：開新牧場 → S02；找回我的牧場 → S14-02 → S14-04 歡迎回來 → 進牧場
+// （recover_pages.dart）。網頁試玩版、沒設 client ID 的建置沒有 S14-01，照原本直接 S02。
 import 'dart:async';
 import 'dart:math';
 
@@ -15,12 +16,15 @@ import '../kit/cow_art.dart';
 import '../kit/kit.dart';
 import '../widgets/action_button.dart';
 import 'namer.dart';
+import 'recover_pages.dart';
 import 'splash.dart';
 import 'welcome.dart';
 
 /// 現在該顯示哪一個開場畫面（不在牧場裡的時候）。
 bool showsStartFlow(GameModel m) =>
-    m.maintenance == null && m.authLost == null && (m.state == null || m.needsRanch || m.creating || m.welcomePending);
+    m.maintenance == null &&
+    m.authLost == null &&
+    (m.state == null || m.needsRanch || m.creating || m.welcomePending || m.welcomeBack);
 
 class StartFlow extends StatefulWidget {
   const StartFlow({super.key, this.random});
@@ -127,6 +131,12 @@ class _StartFlowState extends State<StartFlow> {
       );
     } else if (m.ranchDeleted) {
       page = SplashScreen(scenery: false, child: _Deleted(model: m));
+    } else if (m.welcomeBack) {
+      page = const WelcomeBackPage();
+    } else if (m.recoverOpen) {
+      page = const RecoverPage();
+    } else if (m.showsFirstOpen) {
+      page = const FirstOpenPage();
     } else if (m.needsRanch || m.welcomePending) {
       page = NamerPage(
         controller: _name,

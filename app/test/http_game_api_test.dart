@@ -399,6 +399,36 @@ void main() {
       }
     });
 
+    test('找回（協定 5.5）：不帶 token（這支手機的 token 可能已經失效），拿 nonce 也不帶；回那個牧場的新 token', () async {
+      final reqs = <http.Request>[];
+      final client = MockClient((r) async {
+        reqs.add(r);
+        if (r.url.path == '/v1/account/nonce') return _json({'nonce': 'n1', 'expires_at_real': 1790772011.2});
+        return _json({
+          'token': 'Pq8',
+          'player_id': 17,
+          'ranch_name': '青草小丘農莊',
+          'created': false,
+          'state': sampleStateJson(),
+        });
+      });
+      final api = HttpGameApi(base: base, client: client, sleep: noSleep)..token = 'stale';
+      expect(await api.accountNonce(), 'n1');
+      final s = await api.recoverAccount(
+        provider: SignInProvider.google,
+        idToken: 'eyJ.g',
+        nonce: 'n1',
+        requestId: 'r7',
+      );
+      expect(s.token, 'Pq8');
+      expect(s.playerId, 17);
+      expect(reqs.map((r) => r.url.path), ['/v1/account/nonce', '/v1/account/recover']);
+      for (final r in reqs) {
+        expect(r.headers.containsKey('Authorization'), isFalse, reason: r.url.path);
+      }
+      expect(jsonDecode(reqs[1].body), {'provider': 'google', 'id_token': 'eyJ.g', 'nonce': 'n1', 'request_id': 'r7'});
+    });
+
     test('解除：POST /v1/account/unlink，回剩下的綁定', () async {
       late http.Request req;
       final client = MockClient((r) async {

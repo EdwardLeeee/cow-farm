@@ -100,6 +100,30 @@ class BindOutcome {
   final ActionError? error;
 }
 
+/// 找回牧場（S14-02）的結果。
+enum RecoverStatus {
+  /// 找回來了：畫面換成 S14-04「歡迎回來」。
+  recovered,
+
+  /// 玩家關掉登入畫面（S14-08「已取消登入」）。
+  cancelled,
+
+  /// 登入畫面那邊失敗，或伺服器說憑證不對（S14-08「登入失敗，請再試一次」）。
+  failed,
+
+  /// 這個帳號沒有備份過牧場（S14-03）。
+  none,
+
+  /// 連不上、其他錯誤：[RecoverOutcome.error] 照一般的錯誤提示。
+  error,
+}
+
+class RecoverOutcome {
+  const RecoverOutcome(this.status, {this.error});
+  final RecoverStatus status;
+  final ActionError? error;
+}
+
 /// 整個 app 的狀態（ChangeNotifier）。
 ///
 /// 規則：所有帳都由伺服器算。這裡只保存伺服器最後一次給的資料，並用單調時鐘推算
@@ -176,6 +200,25 @@ class GameModel extends ChangeNotifier {
 
   /// 登入畫面關掉以後、等伺服器回覆綁定（S13-15「綁定中…」）。登入畫面開著的時候不算。
   bool binding = false;
+
+  // ---- 找回牧場（S14；能登入的建置才有） ----
+  /// 第一次打開選了「開新牧場」（S14-01 → S02），或從 S13-04、S15-03 按「開新牧場」：之後沒有牧場就直接取名。
+  bool newRanchChosen = false;
+
+  /// 開著「找回我的牧場」（S14-02）。
+  bool recoverOpen = false;
+
+  /// 登入畫面關掉以後、等伺服器回覆找回（S14-06「登入中…」）。
+  bool recovering = false;
+
+  /// 這個帳號沒有備份過牧場（S14-03）：「換一個帳號」「開新牧場」。
+  bool recoverNone = false;
+
+  /// 找回來了，還沒按「進牧場」（S14-04「歡迎回來！」）。
+  bool welcomeBack = false;
+
+  /// 第一次打開、手機上沒有牧場：能登入的建置先問「開新牧場」還是「找回我的牧場」（S14-01）。
+  bool get showsFirstOpen => needsRanch && canSignIn && !newRanchChosen && !ranchDeleted && !creating;
 
   /// token 失效的原因：unauthorized（S15-03）或 signed_in_elsewhere（S14-05）。null 代表正常。
   /// 不會自動開新牧場（M1 會默默換成新牧場，scope.md 第 10 節第 9 項）。
@@ -379,6 +422,7 @@ class GameModel extends ChangeNotifier {
   /// 放棄這支手機上失效的牧場，改開新牧場（S15-03「開新牧場」）：清掉 token，回到取名。
   Future<void> startOver() async {
     await _forgetRanch();
+    newRanchChosen = true;
     _notify();
   }
 
@@ -419,6 +463,7 @@ class GameModel extends ChangeNotifier {
   /// S13-04「牧場已經刪除了」按「開新牧場」：進 S02 取名。
   void startNewRanch() {
     ranchDeleted = false;
+    newRanchChosen = true;
     _notify();
   }
 
@@ -457,6 +502,10 @@ class GameModel extends ChangeNotifier {
     _offlineSince = null;
     _onlineBefore = false;
     _dropped = false;
+    recoverOpen = false;
+    recovering = false;
+    recoverNone = false;
+    welcomeBack = false;
   }
 
   // ---------------------------------------------------------------------------
@@ -573,6 +622,94 @@ class GameModel extends ChangeNotifier {
   }
 
   ({String ticket, String id})? _switchRequest;
+
+  // ---------------------------------------------------------------------------
+  // 找回牧場（S14；協定 5.5）
+  // ---------------------------------------------------------------------------
+  /// S14-01 按「開新牧場」：進 S02 取名，不用登入。
+  void chooseNewRanch() {
+    newRanchChosen = true;
+    recoverOpen = false;
+    recoverNone = false;
+    _notify();
+  }
+
+  /// 按「找回我的牧場」（S14-01）：打開 S14-02。
+  void openRecover() {
+    if (!canSignIn) return;
+    recoverOpen = true;
+    recoverNone = false;
+    _notify();
+  }
+
+  /// S14-02 的返回：回到 S14-01。
+  void closeRecover() {
+    if (recovering) return;
+    recoverOpen = false;
+    recoverNone = false;
+    _notify();
+  }
+
+  /// S14-03 按「換一個帳號」：回到登入按鈕（登入以後已經登出 Google，再按會重新選帳號）。
+  void recoverAnother() {
+    recoverNone = false;
+    _notify();
+  }
+
+  /// S14-04 按「進牧場」。
+  void enterRecoveredRanch() {
+    welcomeBack = false;
+    _notify();
+  }
+
+  /// 按 S14-02 的登入按鈕：拿 nonce → Apple／Google 的登入畫面 → 找回（不帶 token）。成功就換成那個牧場的 token，
+  /// 畫面換成 S14-04「歡迎回來」。找回可以重來：沒收到回應就重新登入再找回一次，伺服器再發一個新的 token，
+  /// 所以 request_id 每次都是新的（跟換回不一樣，見 [switchRanch]）。
+  Future<RecoverOutcome> recoverRanch(SignInProvider provider) async {
+    final service = signIn;
+    if (service == null || !canSignIn || busy) {
+      return const RecoverOutcome(RecoverStatus.error, error: OfflineActionError());
+    }
+    busy = true;
+    recoverNone = false;
+    _notify();
+    try {
+      final nonce = await api.accountNonce();
+      final result = await service.signIn(provider, nonce: nonce);
+      switch (result) {
+        case SignInCancelled():
+          return const RecoverOutcome(RecoverStatus.cancelled);
+        case SignInFailed():
+          return const RecoverOutcome(RecoverStatus.failed);
+        case SignInCredential(:final idToken):
+          recovering = true;
+          _notify();
+          final session = await api.recoverAccount(
+            provider: provider,
+            idToken: idToken,
+            nonce: nonce,
+            requestId: const Uuid().v4(),
+          );
+          await _adoptRanch(session);
+          welcomeBack = true;
+          return const RecoverOutcome(RecoverStatus.recovered);
+      }
+    } on ApiException catch (e) {
+      if (e.code == 'account_not_linked') {
+        recoverNone = true;
+        return const RecoverOutcome(RecoverStatus.none);
+      }
+      if (e.code == 'sign_in_failed') return const RecoverOutcome(RecoverStatus.failed);
+      _handleApiError(e);
+      return RecoverOutcome(RecoverStatus.error, error: ApiActionError(e));
+    } on NetworkException {
+      return const RecoverOutcome(RecoverStatus.error, error: NetworkActionError());
+    } finally {
+      busy = false;
+      recovering = false;
+      _notify();
+    }
+  }
 
   /// 換成伺服器給的另一個牧場（換回；之後找回也走這裡）：先換掉記憶體裡的 token，舊牧場還在路上的回應
   /// （state、401）就會丟掉；清掉舊牧場的畫面，存新 token，用回應裡的 state，重新連推播、抓行情。

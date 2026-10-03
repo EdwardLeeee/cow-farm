@@ -229,20 +229,9 @@ class _BackupPageState extends State<BackupPage> {
                 style: KitText.hint(),
               ),
             if (busy)
-              const _BusyCard(key: Key('sso-busy'))
+              SsoBusyCard(s.s13Binding, key: const Key('sso-busy'))
             else if (todo.isNotEmpty)
-              Column(
-                key: const Key('sso-area'),
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (final (i, p) in todo.indexed) ...[
-                    if (i > 0) const SizedBox(height: 12),
-                    SsoButton(key: Key('sso-${p.wire}'), provider: p, onTap: canTap ? () => _bind(p) : null),
-                  ],
-                  const SizedBox(height: 10),
-                  Text(s.s13Privacy, textAlign: TextAlign.center, style: KitText.hint()),
-                ],
-              ),
+              SsoArea(providers: todo, onTap: canTap ? _bind : null),
             if (bound.isEmpty && !busy)
               NoteLine(key: const Key('backup-before'), icon: 'info', text: s.s13BackupBefore, kind: NoteKind.info),
           ]),
@@ -487,29 +476,6 @@ class _OtherRanch extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// .card.sso-busy：綁定中…（S13-15；登入畫面關掉以後，等伺服器回覆）。
-class _BusyCard extends StatelessWidget {
-  const _BusyCard({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final s = Strings.of(context);
-    return AppCard(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 108 - 10 - 12 - 6),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Spinner(),
-            const SizedBox(width: 10),
-            Text(s.s13Binding, style: AppText.style(16, weight: FontWeight.w900)),
-          ],
-        ),
       ),
     );
   }
