@@ -2,6 +2,7 @@
 //   開新牧場（S02 取名、歡迎）→ 收奶 → 賣奶（S06）→ 擴建牛舍、加大奶桶（S10）→ 抽 C 級（S19）→
 //   等小牛長大 → 出貨（S04 → S07 → S20）→ 田地（S17）：派耕牛、收成 → 賣稻米 → 叫回耕牛 →
 //   借種（S18）：上架、借別人的公牛、借種紀錄 → 圖鑑、排行榜（M1）→
+//   設定（S13）：語言、漲跌顏色、音效，最後刪除牧場（S13-04 → 開新牧場 → S02）→
 //   另開一個新牧場（新的瀏覽器設定檔）：收奶賣奶、擴建牛舍 → 自己配種（S08）：開局的公母配、機率、新小牛、已配種
 //
 // 做法：打開 Flutter 網頁版的無障礙樹（flt-semantics），照按鈕的名字操作。正式畫面的分頁、配種頁上面的
@@ -50,7 +51,7 @@ const writeLog = () => fs.writeFileSync(
     p.on('websocket', (ws) => { note('ws open'); ws.on('close', () => note('ws close')); });
     return p;
   };
-  /// 現在操作的分頁。第 11 步（自己配種）換一個新的瀏覽器設定檔，所以是 let；下面的小工具都讀這個變數。
+  /// 現在操作的分頁。第 12 步（自己配種）換一個新的瀏覽器設定檔，所以是 let；下面的小工具都讀這個變數。
   let page = await newPage();
 
   // ---- 小工具 ----
@@ -352,7 +353,8 @@ const writeLog = () => fs.writeFileSync(
   step('賣稻米（S06）', (await coins()) > c8, `金幣 ${c8} → ${await coins()}`);
 
   // ---- 9. 借種（S18）：叫回耕牛（在田裡不能上架）→ 上架 → 借別人的公牛給自己的母牛 → 借種紀錄 ----
-  const studTab = async () => { await tab('配種'); await tap(button('借種').first()); await wait(2500); };
+  // 「借不到了」重新整理後頁面還捲在下面，上面的「自己配種／借種」不在無障礙樹裡：先捲回最上面
+  const studTab = async () => { await tab('配種'); await scrollTop(); await tap(button('借種').first()); await wait(2500); };
   /// 市場的每一列是一顆按鈕，名字是整列的字（品種名公、用途、稀有度、主人：…），單獨一行的數字是借種費。
   const listingRows = async () => (await nodes())
     .filter((x) => x.role === 'button' && x.label.includes('主人：'))
@@ -465,7 +467,89 @@ const writeLog = () => fs.writeFileSync(
 
   step('升級慶祝（S11-01）', levelUps.length > 0, levelUps.join('、'));
 
-  // ---- 11. 自己配種（S08）：另開一個新牧場（新的瀏覽器設定檔），開局的小公牛長大以後跟開局的母牛直接配 ----
+  // ---- 11. 設定（S13）：頂列的齒輪 → 設定主頁 → 語言、漲跌顏色換過再換回來 → 音效關掉再打開 →
+  //          刪除牧場（這個牧場的最後一步）：打「刪除」→ S13-04「牧場已經刪除了」→「開新牧場」到 S02 取名 ----
+  await tab('牧場');
+  await tap(button(/^設定/).first());
+  await wait(1500);
+  const setText = await fullText();
+  await shot('s13-settings');
+  const meLine = (setText.match(/#\d{4,}・Lv \d+/) || [''])[0];
+  // 「備份牧場」「隱私權政策」先不顯示（ceo 2026-10-03）
+  const hidden = !setText.includes('備份牧場') && !setText.includes('隱私權政策');
+  step('設定主頁（S13-01）', meLine !== '' && hidden, `${meLine}；${hidden ? '沒有備份牧場、隱私權政策兩列' : '(還看得到備份牧場或隱私權政策)'}`);
+
+  await tap(button(/^語言/).first());
+  await wait(1200);
+  await tap(button('English').first());
+  await wait(1500);
+  const enTitle = (await labels()).includes('Language');
+  await shot('s13-language-en');
+  await tap(button('繁體中文').first());
+  await wait(1500);
+  const zhBack = (await labels()).includes('語言');
+  await tap(button('返回').first());
+  await wait(1000);
+  step('語言（S13-17）：換英文再換回繁中', enTitle && zhBack, `${enTitle ? '標題換成 Language' : '(沒換成英文)'}；${zhBack ? '換回繁中' : '(沒換回)'}`);
+
+  await tap(button(/^漲跌顏色/).first());
+  await wait(1000);
+  await shot('s13-updown');
+  await tap(button(/^綠漲紅跌/).first());
+  await wait(1000);
+  const greenUp = (await nodes()).some((x) => x.label.startsWith('漲跌顏色') && x.label.includes('綠漲紅跌'));
+  await tap(button(/^漲跌顏色/).first());
+  await wait(1000);
+  await tap(button(/^漲紅跌綠/).first());
+  await wait(1000);
+  const redUp = (await nodes()).some((x) => x.label.startsWith('漲跌顏色') && x.label.includes('漲紅跌綠'));
+  step('漲跌顏色（S13-18）：換綠漲紅跌再換回來', greenUp && redUp);
+
+  // 音效是開關（switch）：關掉再打開，看 aria-checked 有沒有跟著變
+  const soundLoc = async () => {
+    const sw = page.getByRole('switch', { name: '音效', exact: true });
+    return (await sw.count()) ? sw.first() : button('音效').first();
+  };
+  const checked = async () => (await (await soundLoc()).getAttribute('aria-checked')) || '?';
+  const s0 = await checked();
+  await tap(await soundLoc());
+  await wait(800);
+  const s1 = await checked();
+  await tap(await soundLoc());
+  await wait(800);
+  const s2 = await checked();
+  step('音效開關（S13-01）：關掉再打開', s0 === 'true' && s1 === 'false' && s2 === 'true', `${s0} → ${s1} → ${s2}`);
+
+  // 刪除牧場：打「刪除」→ 刪除我的牧場 → S13-04 → 開新牧場
+  await tap(button('刪除我的牧場').first());
+  await wait(1500);
+  await shot('s13-delete');
+  const delOff = !(await enabled(button('刪除我的牧場').last()));
+  const box = page.getByRole('textbox').first();
+  await box.click().catch(() => {});
+  await wait(500);
+  await page.keyboard.type('刪除');
+  await wait(800);
+  const delOn = await enabled(button('刪除我的牧場').last());
+  await shot('s13-delete-typed');
+  if (!delOff) issue('刪除牧場：還沒打字按鈕就能按');
+  if (!delOn) issue('刪除牧場：打了「刪除」按鈕還是停用');
+  let deleted = '';
+  if (delOn) {
+    await mark(); await tap(button('刪除我的牧場').last());
+    await wait(3000);
+    deleted = (await labels()).find((x) => x.includes('牧場已經刪除了')) || '';
+    await shot('s13-deleted');
+    await tap(button('開新牧場').first()).catch(() => {});
+    await wait(2000);
+    const namer = (await button('幫我想一個').count()) > 0;
+    await shot('s13-new-ranch');
+    if (!namer) issue(`刪除牧場：按「開新牧場」沒有到取名：${await news()}`);
+    deleted = namer ? `${deleted.replace(/\n/g, ' ')}；開新牧場 → 取名` : '';
+  }
+  step('刪除牧場（S13-03 → S13-04 → S02）', deleted !== '', deleted);
+
+  // ---- 12. 自己配種（S08）：另開一個新牧場（新的瀏覽器設定檔），開局的小公牛長大以後跟開局的母牛直接配 ----
   // 開局牛舍 2 格是滿的、小牛沒位子：先收奶賣奶、擴建牛舍（S10）
   page = await newPage();
   note(`第二個牧場（自己配種）：${(await newRanch()).replace(/\n/g, ' ')}`);

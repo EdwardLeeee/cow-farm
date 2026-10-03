@@ -1,4 +1,4 @@
-// 打開 app 到進牧場之前的畫面：S01 啟動與載入、S02 取名（建立牧場）。
+// 打開 app 到進牧場之前的畫面：S01 啟動與載入、S02 取名（建立牧場）、S13-04 牧場已經刪除了。
 // 順序（ceo 2026-10-02 方案 A）：沒有牧場 → S02 取名 → 就叫這個 → S01-03 建立中 → S02-02 歡迎卡 → 進牧場。
 // S14-01（開新牧場／找回我的牧場）在第 7 步跟找回一起做，那時第一次打開要變回 S14-01 → 開新牧場 → S02。
 import 'dart:async';
@@ -11,6 +11,7 @@ import '../../l10n/l10n.dart';
 import '../../state/game_model.dart';
 import '../../theme/tokens.dart';
 import '../kit/app_icon.dart';
+import '../kit/cow_art.dart';
 import '../kit/kit.dart';
 import '../widgets/action_button.dart';
 import 'namer.dart';
@@ -124,6 +125,8 @@ class _StartFlowState extends State<StartFlow> {
           ],
         ),
       );
+    } else if (m.ranchDeleted) {
+      page = SplashScreen(scenery: false, child: _Deleted(model: m));
     } else if (m.needsRanch || m.welcomePending) {
       page = NamerPage(
         controller: _name,
@@ -179,6 +182,42 @@ class _LoadingRow extends StatelessWidget {
       ),
     ],
   );
+}
+
+/// S13-04 牧場已經刪除了：牛、「牧場已經刪除了」「謝謝你這段時間的照顧。」、「開新牧場」（→ S02 取名）。
+class _Deleted extends StatelessWidget {
+  const _Deleted({required this.model});
+
+  final GameModel model;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = Strings.of(context);
+    return AppCard(
+      key: const Key('ranch-deleted'),
+      child: Column(
+        children: [
+          const CowPicture(breed: 'holstein', width: 120, height: 120),
+          // <b> 在一般的 div 裡：字 18，跟 div 的 16px 一起排成 26 高的一行（基線照 Chrome 的，見 CssParagraph）
+          CssParagraph(
+            TextSpan(text: s.s13Deleted),
+            style: AppText.style(18, weight: FontWeight.w700, lineHeight: 26),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(s.s13Thanks, textAlign: TextAlign.center, style: KitText.hint()),
+          const SizedBox(height: 12),
+          AppButton(
+            s.s14NewRanch,
+            key: const Key('new-ranch'),
+            kind: ButtonKind.primary,
+            block: true,
+            onPressed: model.startNewRanch,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// S01-04 載入失敗：連不上伺服器、請確認網路、每幾秒也會自動再試，加「重試」。

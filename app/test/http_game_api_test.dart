@@ -263,4 +263,21 @@ void main() {
     await api.collect();
     expect(calls, 3);
   });
+
+  test('刪除牧場（協定 5.6）：用給的 request_id，沒收到回應重送也是同一個', () async {
+    final reqs = <http.Request>[];
+    final client = MockClient((req) async {
+      reqs.add(req);
+      if (reqs.length == 1) throw http.ClientException('timeout');
+      return http.Response(jsonEncode({'deleted': true}), 200);
+    });
+    final api = HttpGameApi(base: base, client: client, sleep: noSleep)..token = 'tok';
+    await api.deleteRanch(requestId: '6f1c8e2a-3b4d-4e5f-8a9b-0c1d2e3f4a5b');
+    expect(reqs, hasLength(2));
+    for (final r in reqs) {
+      expect(r.url.path, '/v1/account/delete');
+      expect(r.headers['Authorization'], 'Bearer tok');
+      expect(jsonDecode(r.body), {'request_id': '6f1c8e2a-3b4d-4e5f-8a9b-0c1d2e3f4a5b'});
+    }
+  });
 }

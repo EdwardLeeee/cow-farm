@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
+import 'package:uuid/uuid.dart';
 
 import '../api/game_api.dart';
 import '../api/models.dart';
@@ -70,6 +71,9 @@ class ReconnectedNotice extends GameNotice {
 /// 底部分頁。配種裡有「自己配種／借種」，紀錄裡有「圖鑑／排行榜」。
 enum AppTab { ranch, market, fields, breed, shop, records }
 
+/// 設定（S13）裡的哪一頁：設定主頁、語言（S13-17）、刪除牧場（S13-03）。
+enum SettingsView { home, language, delete }
+
 /// 整個 app 的狀態（ChangeNotifier）。
 ///
 /// 規則：所有帳都由伺服器算。這裡只保存伺服器最後一次給的資料，並用單調時鐘推算
@@ -129,6 +133,9 @@ class GameModel extends ChangeNotifier {
   /// 牧場剛建好、還沒按歡迎卡的「進牧場」（S02-02）。按了呼叫 [enterRanch]。
   bool welcomePending = false;
 
+  /// 牧場剛刪除（S13-04「牧場已經刪除了」）。按「開新牧場」呼叫 [startNewRanch]，才進 S02 取名。
+  bool ranchDeleted = false;
+
   /// token 失效的原因：unauthorized（S15-03）或 signed_in_elsewhere（S14-05）。null 代表正常。
   /// 不會自動開新牧場（M1 會默默換成新牧場，scope.md 第 10 節第 9 項）。
   String? authLost;
@@ -155,6 +162,9 @@ class GameModel extends ChangeNotifier {
 
   // ---- 畫面導覽 ----
   AppTab tab = AppTab.ranch;
+
+  /// 開著的設定頁（頂列的齒輪打開，S13）；null 是沒有開。關掉回到原本那一頁。
+  SettingsView? settingsView;
 
   /// 牧場頁按「我的牛」開的牛舍清單（S03-07）。
   bool penListOpen = false;
@@ -321,21 +331,78 @@ class GameModel extends ChangeNotifier {
 
   /// 放棄這支手機上失效的牧場，改開新牧場（S15-03「開新牧場」）：清掉 token，回到取名。
   Future<void> startOver() async {
-    await tokens.delete(TokenStore.tokenKey);
-    await tokens.delete(TokenStore.ranchKey);
+    await _forgetRanch();
+    _notify();
+  }
+
+  /// 刪除牧場（S13-03 按「刪除我的牧場」；協定 5.6）。成功就忘掉這個牧場，畫面換成 S13-04「牧場已經刪除了」。
+  /// 失敗（S13-05）再按一次用同一個 request_id：第一次其實刪掉了、只是沒收到回應的話，伺服器回第一次的回應。
+  Future<ActionResult<void>> deleteRanch() async {
+    if (busy) return const ActionResult.fail(OfflineActionError());
+    busy = true;
+    _notify();
+    final requestId = _deleteRequestId ??= const Uuid().v4();
+    try {
+      await api.deleteRanch(requestId: requestId);
+    } on ApiException catch (e) {
+      // 401 unauthorized：token 已經失效。刪除時遇到，多半是前一次其實刪掉了、超過 10 分鐘伺服器就不認得那個
+      // request_id（協定 5.6：刪除後這個 token 收到 unauthorized，app 回到 S13-04），一樣當成刪掉了。
+      // signed_in_elsewhere（牧場已經在別的手機）、維護照一般的處理（S14-05、S16-01）。
+      if (e.code != 'unauthorized') {
+        busy = false;
+        _handleApiError(e);
+        _notify();
+        return ActionResult.fail(ApiActionError(e));
+      }
+    } on NetworkException {
+      busy = false;
+      _notify();
+      return const ActionResult.fail(NetworkActionError());
+    }
+    busy = false;
+    _deleteRequestId = null;
+    ranchDeleted = true;
+    await _forgetRanch();
+    _notify();
+    return const ActionResult.ok(null);
+  }
+
+  String? _deleteRequestId;
+
+  /// S13-04「牧場已經刪除了」按「開新牧場」：進 S02 取名。
+  void startNewRanch() {
+    ranchDeleted = false;
+    _notify();
+  }
+
+  /// 忘掉這支手機上的牧場：token、牧場資料、推播、開著的頁面都清掉，回到「還沒有牧場」。
+  /// 先清掉記憶體裡的 token，還在路上的回應（舊牧場的 state、401）就會丟掉（[_loadState]、[_handleApiError]）。
+  Future<void> _forgetRanch() async {
     api.token = null;
     push.close();
     state = null;
+    // 舊牧場還沒按「好」的升級慶祝（S11-01）不能留到新牧場
+    levelUp = null;
     market = null;
     ranchName = '';
     authLost = null;
     welcomePending = false;
     needsRanch = true;
-    _notify();
+    tab = AppTab.ranch;
+    settingsView = null;
+    detailCowKey = null;
+    penListOpen = false;
+    warehouseOpen = false;
+    studLogOpen = false;
+    await tokens.delete(TokenStore.tokenKey);
+    await tokens.delete(TokenStore.ranchKey);
   }
 
   Future<void> _loadState() async {
-    _setState(await api.getState());
+    final token = api.token;
+    final s = await api.getState();
+    if (api.token != token) return; // 這段時間牧場換了（刪除）：舊牧場的資料不要
+    _setState(s);
     _httpOk = true;
   }
 
@@ -409,7 +476,8 @@ class GameModel extends ChangeNotifier {
   /// 處理了回 true；其他錯誤由呼叫的地方決定（操作的錯誤畫面用錯誤碼查文案）。
   bool _handleApiError(ApiException e) {
     if (e.unauthorized) {
-      authLost = e.code;
+      // 已經沒有 token（牧場剛刪除）：是舊牧場還在路上的請求，不算失效
+      if (api.token != null) authLost = e.code;
       return true;
     }
     if (e.maintenance) {
@@ -602,6 +670,24 @@ class GameModel extends ChangeNotifier {
     penListOpen = false;
     warehouseOpen = false;
     studLogOpen = false;
+    _notify();
+  }
+
+  /// 頂列的齒輪：打開設定主頁（S13-01）。
+  void openSettings() {
+    settingsView = SettingsView.home;
+    _notify();
+  }
+
+  /// 設定主頁的一列：語言（S13-17）、刪除牧場（S13-03）。
+  void openSettingsView(SettingsView v) {
+    settingsView = v;
+    _notify();
+  }
+
+  /// 設定的返回：語言、刪除牧場回到設定主頁；設定主頁關掉設定，回到原本那一頁。
+  void settingsBack() {
+    settingsView = settingsView == SettingsView.home ? null : SettingsView.home;
     _notify();
   }
 

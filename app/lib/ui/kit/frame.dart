@@ -294,42 +294,52 @@ class Hud extends StatelessWidget {
             ),
           ),
           SizedBox(width: narrow ? 6 : 8),
+          // 齒輪：打開設定（S13）。G-12：浮起，按下往下 2（小點跟著動）
           Semantics(
             container: true,
             button: true,
             label: gearDot ? s.hudSettingsNotBacked : s.hudSettings,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
+            child: Pressable(
+              key: const Key('gear'),
+              lift: 3,
+              onTap: () => context.read<GameModel>().openSettings(),
+              builder: (context, look) => Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  PressTint(
+                    tint: look.tint,
                     shape: BoxShape.circle,
-                    color: Colors.white,
-                    border: Border.all(color: AppColors.ink, width: AppSizes.border),
-                    boxShadow: AppShadows.solid(),
-                  ),
-                  child: const AppIcon('gear', size: 24),
-                ),
-                if (gearDot)
-                  Positioned(
-                    right: -3,
-                    top: -3,
                     child: Container(
-                      key: const Key('gear-dot'),
-                      width: 14,
-                      height: 14,
+                      width: 44,
+                      height: 44,
+                      alignment: Alignment.center,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: const Color(0xFFFF6B5E),
-                        // CSS 寫 2.5px，boards 量出來是 2（Chrome 畫成 2px）；照核准的 boards
-                        border: Border.all(color: AppColors.ink, width: 2),
+                        color: Colors.white,
+                        border: Border.all(color: AppColors.ink, width: AppSizes.border),
+                        boxShadow: AppShadows.solid(look.shadow),
                       ),
+                      child: const AppIcon('gear', size: 24),
                     ),
                   ),
-              ],
+                  if (gearDot)
+                    Positioned(
+                      right: -3,
+                      top: -3,
+                      child: Container(
+                        key: const Key('gear-dot'),
+                        width: 14,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: const Color(0xFFFF6B5E),
+                          // CSS 寫 2.5px，boards 量出來是 2（Chrome 畫成 2px）；照核准的 boards
+                          border: Border.all(color: AppColors.ink, width: 2),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ],

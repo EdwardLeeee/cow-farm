@@ -314,6 +314,35 @@ List<InlineSpan> fillSpans(String text, TextStyle style, String value) {
   ];
 }
 
+/// 相鄰的全形標點擠掉半格（Chrome 預設的 text-spacing-trim: normal 裡的 trim-adjacent；設計稿是 Chrome 畫的）：
+/// 收尾標點後面又接收尾標點（例：「…牧場」、所有…」的「」」），前一個擠掉後半格；開頭標點前面也是開頭標點，後一個擠掉前半格。
+/// Flutter 不會自己做，用字型的 halt（半形寬）把要擠的那個字變成半格。
+List<InlineSpan> cjkTrimSpans(String text) {
+  bool closing(String c) => '」』）〕】》〉、。，．：；'.contains(c);
+  bool opening(String c) => '「『（〔【《〈'.contains(c);
+  final chars = text.characters.toList();
+  final spans = <InlineSpan>[];
+  final run = StringBuffer();
+  for (final (i, c) in chars.indexed) {
+    final trim =
+        (closing(c) && i + 1 < chars.length && closing(chars[i + 1])) || (opening(c) && i > 0 && opening(chars[i - 1]));
+    if (!trim) {
+      run.write(c);
+      continue;
+    }
+    if (run.isNotEmpty) spans.add(TextSpan(text: run.toString()));
+    run.clear();
+    spans.add(
+      TextSpan(
+        text: c,
+        style: const TextStyle(fontFeatures: [FontFeature.enable('halt')]),
+      ),
+    );
+  }
+  if (run.isNotEmpty) spans.add(TextSpan(text: run.toString()));
+  return spans;
+}
+
 /// .btn-row：並排的按鈕（每顆 flex: 1、間距 10）。放不下時換到下一排、撐滿整排（screens.css 第 12 條：英文、泰文放不下才換行）。
 /// 跟 CSS 的 flex-wrap 一樣：每顆最窄是自己的字不換行的寬度；一排放得下就平分，有一顆比平分還寬就照它的寬、其他的分剩下的。
 class BtnRow extends MultiChildRenderObjectWidget {
@@ -602,6 +631,32 @@ class CssLine extends StatelessWidget {
         p.dispose();
         return fits ? line() : Text.rich(span, key: textKey, textAlign: textAlign);
       },
+    );
+  }
+}
+
+/// 會換行的段落，字照 Chrome 的基線畫（同一個字級的段落用）。行高跟 CSS 一樣，但 Flutter 把行高多出來（或不夠）的部分
+/// 照字型的上下比例分，Chrome 是上下各自四捨五入、再上面放 floor(一半)（[CssLine]），每一行的字都差一樣多，
+/// 例：14px、行高 22 的字 Flutter 比設計稿低 1.6。版面不動，只把畫出來的字移回 Chrome 的位置。
+class CssParagraph extends StatelessWidget {
+  const CssParagraph(this.span, {super.key, required this.style, this.textAlign});
+
+  final TextSpan span;
+
+  /// 整段的字級和行高（[span] 裡的字用同一個字級）。
+  final TextStyle style;
+  final TextAlign? textAlign;
+
+  @override
+  Widget build(BuildContext context) {
+    final size = style.fontSize!;
+    final (above, _) = CssLine.metrics(TextSpan(text: ' ', style: style));
+    // Flutter 的基線：有行高時照 1.16 : 0.288 分，沒有就是字型的 ascent
+    final h = style.height;
+    final flutter = h == null ? 1.16 * size : h * size * 1.16 / (1.16 + 0.288);
+    return Transform.translate(
+      offset: Offset(0, above - flutter),
+      child: Text.rich(span, style: style, textAlign: textAlign),
     );
   }
 }
