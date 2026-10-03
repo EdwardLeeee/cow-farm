@@ -99,7 +99,7 @@ def cow_view(game: Game, p: Player, c: Cow, now: float) -> dict:
         "grade_probs": grade_dict(beef_grade_probs(fp, c, now)) if adult else None,
         "origin": c.origin or None,
         # D26：成年、沒配過種的公牛現在的借種費（上架前就先算好給 S04-04）；其他牛 null
-        "stud_fee": stud_fee_view(fp, c.tier, *stud_fee(fp, c.ctype, c.tier, c.adult_at, now))
+        "stud_fee": stud_fee_view(fp, c.tier, *stud_fee(fp, c.ctype, c.tier, c.adult_at, now, c.speed))
         if c.bull and adult and not c.bred
         else None,
     }
