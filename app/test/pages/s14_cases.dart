@@ -119,11 +119,15 @@ final s14Cases = [
     '找回成功：歡迎回來',
     (tester, lang) async {
       final api = FakeGameApi()..switchedStateJson = recoveredState();
-      await showRecover(tester, lang, api: api);
+      final m = await showRecover(tester, lang, api: api);
       await tester.tap(find.byKey(const Key('sso-apple')));
       await tester.pump();
       await tester.pump();
       expect(find.byKey(const Key('welcome-back')), findsOneWidget);
+      // 換成那個牧場時推播重新連線；設計稿畫的是連上以後（連上之前標題下面會有「連線中…」）
+      (m.push as FakePush).isConnected = true;
+      await tester.pump();
+      expect(find.byKey(const Key('offline-pill')), findsNothing);
       await settleImages(tester);
     },
     check: (tester) {

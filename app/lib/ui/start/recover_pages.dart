@@ -26,7 +26,7 @@ import '../settings/sso_button.dart';
 import '../widgets/action_button.dart';
 import 'splash.dart';
 
-/// S14-01 第一次打開：S01 的天空、遊戲名、兩頭牛、草地，下面「開新牧場」「找回我的牧場」（設計稿沒有版本號）。
+/// S14-01 第一次打開：S01 的天空、遊戲名、兩頭牛、草地，下面「開新牧場」「找回我的牧場」（設計稿沒有小草小花和版本號）。
 class FirstOpenPage extends StatelessWidget {
   const FirstOpenPage({super.key});
 
@@ -36,6 +36,7 @@ class FirstOpenPage extends StatelessWidget {
     final s = Strings.of(context);
     return SplashScreen(
       key: const Key('first-open'),
+      deco: false,
       version: false,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -216,10 +217,11 @@ class _NoRanch extends StatelessWidget {
                   style: AppText.style(17, weight: FontWeight.w900, lineHeight: 24),
                 ),
                 const SizedBox(height: 10),
-                Text(
-                  s.s14NoneBody,
-                  textAlign: TextAlign.center,
+                // .empty .t2：14、行高 21，照 Chrome 的基線（Flutter 低 1.8）
+                CssParagraph(
+                  TextSpan(text: s.s14NoneBody),
                   style: AppText.style(14, weight: FontWeight.w700, color: AppColors.ink2, lineHeight: 21),
+                  textAlign: TextAlign.center,
                 ),
               ],
             ),

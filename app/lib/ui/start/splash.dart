@@ -1,7 +1,7 @@
 // S01 啟動與載入（design/m2/src/js/screens/s01.js、screens.css 的 .splash）：天空、太陽、遊戲名、兩頭牛、草地，
 // 下面的框放這個狀態要說的話（載入中、建立牧場中、載入失敗）。位置都照手機整個螢幕的高度算（--H），天空延伸到狀態列下面。
 // S13-04「牧場已經刪除了」只有天空和遊戲名，框在遊戲名下面（[scenery] false）。
-// S14-01 第一次打開（開新牧場／找回我的牧場）是同一個場景，沒有版本號（[version] false）。
+// S14-01 第一次打開（開新牧場／找回我的牧場）是同一個場景，沒有草地上的小草小花和版本號（[deco]、[version] false）。
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -12,13 +12,16 @@ import '../../version.dart';
 import '../kit/cow_art.dart';
 
 class SplashScreen extends StatelessWidget {
-  const SplashScreen({super.key, this.child, this.scenery = true, this.version = true});
+  const SplashScreen({super.key, this.child, this.scenery = true, this.deco = true, this.version = true});
 
   /// 框裡的內容（S01-01 啟動畫面沒有）。
   final Widget? child;
 
   /// 太陽、兩頭牛、草地和版本號。沒有的話（S13-04）框在 H × 0.2 + 100，緊接在遊戲名下面。
   final bool scenery;
+
+  /// 草地上的小草、小花（s01.js 的 splash-deco；有 [scenery] 才有；S14-01 沒有）。
+  final bool deco;
 
   /// 最下面的版本號（有 [scenery] 才有；S14-01 沒有）。
   final bool version;
@@ -68,7 +71,7 @@ class SplashScreen extends StatelessWidget {
                 ),
                 // 草地：比畫面左右各寬 20，上緣是一道弧
                 if (scenery) Positioned(left: -20, right: -20, top: top + 222, bottom: -20, child: const _Ground()),
-                if (scenery)
+                if (scenery && deco)
                   Positioned(
                     left: 0,
                     right: 0,
