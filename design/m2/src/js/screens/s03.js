@@ -98,7 +98,9 @@ export function ranchPage(ctx, o = {}) {
   }
   if (o.pop) {
     const a = sc.anchors[o.pop.id];
-    const left = Math.max(12, Math.min(dev.w - 220, a.head[0] - 43));
+    // 名片寬 208（病牛的名片 236，S03-29）：左右都留 12，擋在畫面裡
+    const pw = o.pop.cls === 'sick' ? 236 : 208;
+    const left = Math.max(12, Math.min(dev.w - 12 - pw, a.head[0] - 43));
     // data-foot：牛腳的位置；上面放不下時名片放到牛的下面（kit.js 的 placeCowPop）
     over += `<div class="cow-pop${o.pop.cls ? ` ${o.pop.cls}` : ''}" data-foot="${a.foot[1]}" data-hx="${a.head[0]}"${o.pop.noflip ? ' data-noflip' : ''} style="left:${left}px;top:${a.head[1] - 14}px;transform:translateY(-100%)">${o.pop.html}</div>`;
   }
