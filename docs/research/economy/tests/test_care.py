@@ -21,6 +21,7 @@ from cowecon.farm import (  # noqa: E402
     beef_grade_probs,
     beef_weight,
     cow_milk_between,
+    cow_milk_rate,
     cow_rice_rate,
     make_genotype,
     required_feeds,
@@ -450,6 +451,77 @@ class TestFloor(unittest.TestCase):
         f.use_floor(2, T0 + HOUR)
         sm.follow_owner("p1", f)
         self.assertEqual((lst.speed, lst.adult_at), (1.5, bull.adult_at))
+
+
+class TestFloorPhases(unittest.TestCase):
+    """ceo 2026-10-08：地板分兩段。長快地板（乾草床、青草地）只乘「長到最壯之前」，軟墊地只乘「過了最壯以後」。"""
+
+    def setUp(self):
+        self.f = farm()
+        self.f.floors = 0b1111
+        self.p = FP.peak_age_h[0]
+
+    def test_meadow_only_speeds_up_before_peak(self):
+        f, p = self.f, self.p
+        cow = add_cow(f, 0, adult_h=0)
+        f.use_floor(2, T0)
+        self.assertAlmostEqual(cow.adult_age_h(T0 + p / 1.5 * HOUR), p)  # 最壯只要 2/3 的時間
+        self.assertAlmostEqual(cow.adult_age_h(T0 + (p / 1.5 + 10) * HOUR), p + 10)  # 之後照常
+        calf = add_cow(f, 0, now=T0)
+        self.assertAlmostEqual(calf.adult_at - T0, FP.tier_growth_h[0] / 1.5 * HOUR)  # 小牛長大也快
+
+    def test_cushion_only_slows_after_peak(self):
+        f, p = self.f, self.p
+        cow = add_cow(f, 0, adult_h=0)
+        f.use_floor(3, T0)
+        self.assertAlmostEqual(cow.adult_age_h(T0 + p * HOUR), p)  # 最壯之前照常
+        self.assertAlmostEqual(cow.adult_age_h(T0 + (p + 20) * HOUR), p + 15)  # 之後 ×0.75
+        calf = add_cow(f, 0, now=T0)
+        self.assertAlmostEqual(calf.adult_at - T0, FP.tier_growth_h[0] * HOUR)
+
+    def test_switch_keeps_age_continuous(self):
+        """換地板時年紀不跳（最壯之前、之後都一樣），換回泥土地也是。"""
+        f, p = self.f, self.p
+        young = add_cow(f, 0, adult_h=10)
+        old = add_cow(f, 0, adult_h=p + 30)
+        calf = add_cow(f, 0, now=T0)
+        t = T0
+        for i, floor in enumerate((2, 3, 1, 0, 3)):
+            t += (7 + 11 * i) * HOUR
+            before = [c.adult_age_h(t) for c in (young, old, calf)]
+            f.use_floor(floor, t)
+            for c, a in zip((young, old, calf), before):
+                self.assertAlmostEqual(c.adult_age_h(t), a, places=9)
+            self.assertAlmostEqual(calf.adult_at - calf.born_at, FP.tier_growth_h[0] * HOUR / f.speed, places=6)
+
+    def test_production_integral_across_peak(self):
+        """產奶的區間積分 = 每小時產量的數值積分，跨過最壯那一刻、換過地板都一樣。"""
+        f, p = self.f, self.p
+        cow = add_cow(f, 0, adult_h=20)
+        f.use_floor(3, T0)
+        t0, t1 = T0 + 30 * HOUR, T0 + 140 * HOUR  # 年紀 50 → 最壯 72 → 之後 ×0.75
+        n = 20000
+        dt = (t1 - t0) / n
+        num = sum(cow_milk_rate(FP, cow, t0 + (k + 0.5) * dt) for k in range(n)) * dt / HOUR
+        self.assertAlmostEqual(cow_milk_between(FP, cow, t0, t1), num, places=3)
+        f.use_floor(2, T0 + 60 * HOUR)  # 最壯之前換成青草地
+        t0 = T0 + 60 * HOUR
+        num = sum(cow_milk_rate(FP, cow, t0 + (k + 0.5) * dt) for k in range(n)) * dt / HOUR
+        self.assertAlmostEqual(cow_milk_between(FP, cow, t0, t0 + n * dt), num, places=3)
+
+    def test_save_and_listing(self):
+        f, p = self.f, self.p
+        sm = StudMarket(DEFAULT)
+        bull = add_cow(f, 2, bull=True, adult_h=p + 5)
+        lst = sm.list_bull(f, "p1", bull, T0)
+        f.use_floor(3, T0 + HOUR)
+        sm.follow_owner("p1", f)
+        self.assertTrue(sm.fee(lst, T0 + 2 * HOUR)[2])  # 過了最壯：借種費照最壯算
+        d = json.loads(json.dumps(f.to_dict()))
+        self.assertEqual((d["speed"] if "speed" in d else 1.0, d["late_speed"]), (1.0, 0.75))
+        g = Farm.from_dict(DEFAULT, d)
+        c = g.cow_by_id(bull.cid)
+        self.assertEqual(c.adult_age_h(T0 + 9 * HOUR), bull.adult_age_h(T0 + 9 * HOUR))
 
 
 class TestMilkLots(unittest.TestCase):

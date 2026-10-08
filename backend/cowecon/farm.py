@@ -231,6 +231,8 @@ class Cow:
         "listed",
         "origin",
         "speed",
+        "late_speed",
+        "peak_h",
         "vt",
         "grown",
         "fed",
@@ -253,6 +255,7 @@ class Cow:
         adult_at: Optional[float] = None,
         origin: str = "",
         speed: float = 1.0,
+        late_speed: float = 1.0,
     ):
         self.cid = cid
         self.g = g
@@ -260,10 +263,13 @@ class Cow:
         self.born_at = born_at
         self.tier = tier_of(g)
         self.ctype = cow_type(g)
-        # 年紀走多快（v0.3 的地板：×0.75／1.25／1.5；1.0 = 泥土地）。所有年齡曲線（長大、最壯、產奶耕田的全速期、變老、
-        # 肉質）都用「年紀小時」= 現實的遊戲小時 × speed。speed 不存在牛身上的存檔，由牧場（Farm.speed）設。
+        # 年紀走多快（v0.3 的地板，ceo 2026-10-08 改成分兩段）。所有年齡曲線（長大、最壯、產奶耕田的全速期、變老、肉質）
+        # 都用「年紀小時」。長到最壯之前（小牛、成年到 peak_h）每個現實的遊戲小時走 speed 年紀小時（長快地板 1.25／1.5），
+        # 之後走 late_speed（長慢地板 0.75）。兩個都不存在牛身上的存檔，由牧場（Farm.speed、late_speed）設。
         # adult_at、born_at 是照現在的速度推算的時間；換速度時 Farm.set_speed 重新推算，年紀不會跳。
         self.speed = speed
+        self.late_speed = late_speed
+        self.peak_h = fp.peak_age_h[self.ctype]
         self.adult_at = adult_at if adult_at is not None else born_at + fp.tier_growth_h[self.tier] * HOUR / speed
         self.ready_at = self.adult_at  # v0.1 的配種冷卻；v0.2 沒有冷卻，固定 = 成年時間（相容保留）
         self.bred = False
@@ -289,8 +295,11 @@ class Cow:
         return now >= self.adult_at
 
     def adult_age_h(self, now: float) -> float:
-        """成年後的年紀小時（現實的遊戲小時 × speed）。"""
-        return (now - self.adult_at) / HOUR * self.speed
+        """成年後的年紀小時（小牛是負的）：長到最壯（peak_h）之前每個現實的遊戲小時走 speed，之後走 late_speed。"""
+        a = (now - self.adult_at) / HOUR * self.speed
+        if self.late_speed == self.speed or a <= self.peak_h:
+            return a
+        return self.peak_h + (a - self.peak_h) / self.speed * self.late_speed
 
     def is_busy(self) -> bool:
         """在田裡或上架借種中：不能出貨、配種。"""
@@ -385,15 +394,27 @@ def cow_milk_rate(fp: FarmParams, cow: Cow, now: float) -> float:
     return fp.milk_per_h[cow.ctype] * milk_frac(fp, cow.adult_age_h(now))
 
 
+def _work_hours(fp: FarmParams, cow: Cow, t0: float, t1: float) -> float:
+    """t0 到 t1 之間的「壯年產量小時」= ∫ milk_frac(年紀) d(現實小時)（產奶、耕田共用）。
+
+    年紀小時的積分 ÷ 速度：每個現實小時的產量照年紀曲線，年紀走得快只是全速期比較短。長到最壯前後速度不同時，在最壯那一刻
+    切兩段（t0–t1 之間牧場的速度不變，Farm 保證）。"""
+    s = cow.speed
+    a0 = max(0.0, (t0 - cow.adult_at) / HOUR * s) if s == cow.late_speed else max(0.0, cow.adult_age_h(t0))
+    a1 = (t1 - cow.adult_at) / HOUR * s if s == cow.late_speed else cow.adult_age_h(t1)
+    if s == cow.late_speed:
+        return (_milk_frac_cum(fp, a1) - _milk_frac_cum(fp, a0)) / s
+    p = cow.peak_h
+    early = (_milk_frac_cum(fp, min(a1, p)) - _milk_frac_cum(fp, min(a0, p))) / s
+    late = (_milk_frac_cum(fp, max(a1, p)) - _milk_frac_cum(fp, max(a0, p))) / cow.late_speed
+    return early + late
+
+
 def cow_milk_between(fp: FarmParams, cow: Cow, t0: float, t1: float) -> float:
     """t0 到 t1 之間產了幾瓶。"""
     if not is_milker(cow) or t1 <= cow.adult_at or t1 <= t0:
         return 0.0
-    # 年紀小時積分 ÷ speed：每個現實小時的產量照年紀曲線，年紀走得快只是全速期比較短（t0–t1 之間速度不變，Farm 保證）
-    s = cow.speed
-    a0 = max(0.0, (t0 - cow.adult_at) / HOUR * s)
-    a1 = (t1 - cow.adult_at) / HOUR * s
-    return fp.milk_per_h[cow.ctype] * (_milk_frac_cum(fp, a1) - _milk_frac_cum(fp, a0)) / s
+    return fp.milk_per_h[cow.ctype] * _work_hours(fp, cow, t0, t1)
 
 
 # ---- 耕田 ----
@@ -407,10 +428,7 @@ def cow_rice_rate(fp: FarmParams, cow: Cow, now: float) -> float:
 def cow_rice_between(fp: FarmParams, cow: Cow, t0: float, t1: float) -> float:
     if fp.rice_per_h[cow.ctype] <= 0 or t1 <= cow.adult_at or t1 <= t0:
         return 0.0
-    s = cow.speed  # 同 cow_milk_between
-    a0 = max(0.0, (t0 - cow.adult_at) / HOUR * s)
-    a1 = (t1 - cow.adult_at) / HOUR * s
-    return fp.rice_per_h[cow.ctype] * fp.tier_mult[cow.vt] * (_milk_frac_cum(fp, a1) - _milk_frac_cum(fp, a0)) / s
+    return fp.rice_per_h[cow.ctype] * fp.tier_mult[cow.vt] * _work_hours(fp, cow, t0, t1)
 
 
 def field_cap_for(fp: FarmParams, cow: Cow) -> float:
@@ -707,6 +725,7 @@ class Farm:
         "rice_lots",
         "track",
         "speed",
+        "late_speed",
         "care",
         "care_t",
         "hazard",
@@ -741,7 +760,9 @@ class Farm:
         self.log: Optional[list] = None  # 模擬時設成 list 就會記錄每筆收支
         self.track: Optional[dict] = None  # 模擬時設成 dict 就會記錄每頭牛的產出（不存檔）
         self.stats: Optional[dict] = None  # 模擬時設成 dict 就會累計牛的時間、生病的時間（秒；不存檔）
-        self.speed = 1.0  # 牛的年紀走多快（v0.3 的地板設；1.0 = 泥土地）。全部的牛一起，換的時候用 set_speed
+        # 牛的年紀走多快（v0.3 的地板設；1.0 = 泥土地）：speed 長到最壯之前、late_speed 之後。全部的牛一起，換的時候用 set_speed
+        self.speed = 1.0
+        self.late_speed = 1.0
 
         cow = Cow(
             self._new_id(),
@@ -844,20 +865,30 @@ class Farm:
             self.bucket_t = now
         self._advance_fields(now)
 
-    def set_speed(self, speed: float, now: float) -> None:
-        """換年紀速度（v0.3 換地板，use_floor）：先結算到 now（之前那段照舊的速度），再把每頭牛的 adult_at、born_at 照新的速度
-        重新推算，年紀小時在 now 連續、之後照新的速度走。上架借種的公牛要另外叫 StudMarket.follow_owner。
-        大便的時鐘（poop_at）、吃飽冷卻是現實時間，不動。"""
-        if speed == self.speed:
+    def set_speed(self, speed: float, now: float, late_speed: Optional[float] = None) -> None:
+        """換年紀速度（v0.3 換地板，use_floor）：speed = 長到最壯之前、late_speed = 之後（None = 跟 speed 一樣）。
+        先結算到 now（之前那段照舊的速度），再把每頭牛的 adult_at、born_at 照新的速度重新推算，年紀小時在 now 連續、
+        之後照新的速度走。上架借種的公牛要另外叫 StudMarket.follow_owner。大便的時鐘（poop_at）、吃飽冷卻是現實時間，不動。"""
+        if late_speed is None:
+            late_speed = speed
+        if speed == self.speed and late_speed == self.late_speed:
             return
         self.advance(now)
         r = self.speed / speed
         for c in self.cows:
-            c.adult_at = now + (c.adult_at - now) * r
+            calf_h = (c.adult_at - c.born_at) * c.speed  # 小牛期的年紀（秒 × 速度），換速度後不變
+            a = c.adult_age_h(now)
+            if a <= c.peak_h:
+                c.adult_at = now + (c.adult_at - now) * r
+            else:  # 過了最壯：最壯那一刻照新的 late_speed 推回去，adult_at 再照新的 speed 推回去
+                peak_at = now - (a - c.peak_h) / late_speed * HOUR
+                c.adult_at = peak_at - c.peak_h / speed * HOUR
             c.ready_at = c.adult_at
-            c.born_at = now + (c.born_at - now) * r
+            c.born_at = c.adult_at - calf_h / speed
             c.speed = speed
+            c.late_speed = late_speed
         self.speed = speed
+        self.late_speed = late_speed
 
     def bucket_preview(self, now: float) -> List[float]:
         """到 now 為止奶桶裡各價值等級的牛奶（瓶），不改狀態。advance() 用同一個算法。"""
@@ -1218,7 +1249,7 @@ class Farm:
         cp = self.p.care
         if not (0 <= i < len(cp.floor_speed)) or not (self.floors >> i) & 1:
             return False
-        self.set_speed(cp.floor_speed[i], now)
+        self.set_speed(cp.floor_speed[i], now, cp.floor_late_speed[i])
         self.floor = i
         return True
 
@@ -1515,7 +1546,9 @@ class Farm:
         self.advance(now)
         self.coins -= price
         g, bull = shop_draw(fp, gi, rng)
-        cow = Cow(self._new_id(), g, bull, now, fp, origin=fp.shop_grade_names[gi], speed=self.speed)
+        cow = Cow(
+            self._new_id(), g, bull, now, fp, origin=fp.shop_grade_names[gi], speed=self.speed, late_speed=self.late_speed
+        )
         if self.care:
             self._arm(cow, rng)
         self.cows.append(cow)
@@ -1531,7 +1564,14 @@ class Farm:
         self.advance(now)
         self.coins -= price
         cow = Cow(
-            self._new_id(), shop_genotype(self.fp, type_idx, rng), bull, now, self.fp, origin="legacy", speed=self.speed
+            self._new_id(),
+            shop_genotype(self.fp, type_idx, rng),
+            bull,
+            now,
+            self.fp,
+            origin="legacy",
+            speed=self.speed,
+            late_speed=self.late_speed,
         )
         if self.care:
             self._arm(cow, rng)
@@ -1570,7 +1610,9 @@ class Farm:
 
     def _make_calf(self, sire_g: int, dam: Cow, now: float, rng: random.Random, origin: str) -> Cow:
         g = breed_genotype(sire_g, dam.g, rng)
-        calf = Cow(self._new_id(), g, rng.random() < 0.5, now, self.fp, origin=origin, speed=self.speed)
+        calf = Cow(
+            self._new_id(), g, rng.random() < 0.5, now, self.fp, origin=origin, speed=self.speed, late_speed=self.late_speed
+        )
         if self.care:
             self._arm(calf, rng)
         self.cows.append(calf)
@@ -1688,6 +1730,7 @@ class Farm:
             "first_breed_used": self.first_breed_used,
             "n_sales": self.n_sales,
             **({"speed": self.speed} if self.speed != 1.0 else {}),  # 年紀速度；1.0 不寫，存檔跟以前一樣
+            **({"late_speed": self.late_speed} if self.late_speed != 1.0 else {}),
             "care": self.care,
             "care_t": self.care_t,
             "hazard": self.hazard,
@@ -1729,8 +1772,10 @@ class Farm:
         f.first_breed_used = d["first_breed_used"]
         f.n_sales = d["n_sales"]
         f.speed = d.get("speed", 1.0)
+        f.late_speed = d.get("late_speed", 1.0)
         for c in f.cows:  # 牛的存檔不存速度，跟牧場一樣
             c.speed = f.speed
+            c.late_speed = f.late_speed
         # v0.3 照顧：舊存檔是關的
         f.care = d.get("care", False)
         f.care_t = d.get("care_t", d["bucket_t"])

@@ -400,9 +400,13 @@ class CareParams:
     )
 
     # --- 地板（第 4 節）：牛的年紀走多快（Farm.set_speed），全部的牛一起。泥土地開局就有 ---
+    # ceo 2026-10-08 照使用者原話（D35「長快的讓小牛快長大、快到最壯，長慢的讓壯年維持更久」）分兩段：
+    # floor_speed 乘「長到最壯之前」（小牛長大、成牛長到最壯），floor_late_speed 乘「過了最壯以後」（變老、產量下降、
+    # 肉質變差）。乳牛的產奶全速期在最壯之前，所以長快地板也會讓它變短：各玩法適合的地板不一樣。
     floor_ids: Tuple[str, ...] = ("dirt", "hay_bed", "meadow", "cushion")
     floor_names: Tuple[str, ...] = ("泥土地", "乾草床", "青草地", "軟墊地")
-    floor_speed: Tuple[float, ...] = (1.0, 1.25, 1.5, 0.75)
+    floor_speed: Tuple[float, ...] = (1.0, 1.25, 1.5, 1.0)
+    floor_late_speed: Tuple[float, ...] = (1.0, 1.0, 1.0, 0.75)
     floor_price: Tuple[float, ...] = (0.0, 3000.0, 12000.0, 6000.0)
 
     # --- 大便與生病（第 5 節）：沒上線也照樣累積；時間都是現實的遊戲時間，不受地板影響 ---
@@ -418,7 +422,7 @@ class CareParams:
     sick_beef_mult: float = 0.1  # 病牛出貨，牛肉價值只剩一成
 
     # --- 打掃小幫手（5.1 節）---
-    helper_price_per_day: float = 800.0
+    helper_price_per_day: float = 2000.0  # ceo 2026-10-08 從 800 漲（目標：小幫手、地板、治療等花費佔收入 5–15%）
     helper_max_days: int = 7  # 最多一次預付幾天（遊戲時間）
     helper_clean_s: float = 30 * MINUTE  # 雇用期間每 30 分鐘清掉全部大便（雇用那一刻也清一次）
 
