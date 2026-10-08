@@ -29,13 +29,19 @@ v0.1 的資料庫不相容，見「從舊資料庫升級」。
 
 ## 1. 安裝（第一次）
 
-需要 Python 3.10、podman（rootless）。套件裝在 `backend/.venv`（已被 .gitignore 排除），不裝到系統。
+需要 Python 3.10（跟 CI 一樣）、podman（rootless）。套件裝在 `backend/.venv`（已被 .gitignore 排除），不裝到系統；每個 worktree 各建一個。
+
+用 [uv](https://docs.astral.sh/uv/) 建（2026-10-08 起）：這台電腦的系統只有 Python 3.14，沒有 pip、沒有 venv 套件，也不用 sudo。uv 裝在 `~/.local/bin/uv`（官方 GitHub release 的 tar 檔，對過 sha256），Python 3.10 也由 uv 裝。
 
 ```bash
-cd backend
-python3 -m venv .venv
-.venv/bin/pip install -r requirements.txt
+~/.local/bin/uv python install 3.10   # 整台電腦一次
+# 在 worktree 的根目錄
+~/.local/bin/uv venv --python 3.10 backend/.venv
+~/.local/bin/uv pip install --python backend/.venv -r backend/requirements.txt
+~/.local/bin/uv pip install --python backend/.venv ruff==0.15.2   # 排版和 lint，跟 CI 同版
 ```
+
+研究模擬（`docs/research/economy`）只用標準函式庫，用系統的 `python3` 也能跑。
 
 ## 2. PostgreSQL
 
@@ -55,6 +61,7 @@ scripts/pg.sh destroy   # 刪除容器、資料卷與密碼檔（所有遊戲資
 - 容器：`postgres:17`，`--memory 256m`，`--network host`，只聽 `127.0.0.1:55433`（不對區網開放）。
 - 密碼：每台電腦第一次 `up` 時隨機產生，存在 `~/.config/cow-farm/pg.env`（權限 600，不進 repo）。伺服器自己會讀這個檔；也可以用環境變數 `COWFARM_PG_DSN` 指定別的資料庫。
 - 密碼只在第一次建立資料卷時設定。如果資料卷還在、密碼檔不見了，`up` 會停下來：找回 `pg.env`，或 `destroy` 重來。
+- 容器資料夾：2026-10-08 搬到新電腦後，podman 預設的 `~/.local/share/containers` 記著舊電腦的使用者（`/home/oracle`），開不起來。牛市牧場改用自己的容器資料夾，設定在 `~/.config/cow-farm/containers-storage.conf`（不動使用者原本的容器）。`pg.sh` 看到這個檔就自動帶 `CONTAINERS_STORAGE_CONF`；自己下 podman 指令時要在前面加 `CONTAINERS_STORAGE_CONF=~/.config/cow-farm/containers-storage.conf`，不然看不到 `cowfarm-pg`。
 
 ## 3. 啟動伺服器
 
@@ -173,7 +180,7 @@ systemd-run --user --scope -q -p MemoryMax=1500M -p MemorySwapMax=0 .venv/bin/py
 
 約 4 分鐘。會建立 `cowfarm_test_*` 資料庫（每次重建），不會碰到試玩用的 `cowfarm` 資料庫；沒有資料庫時，需要資料庫的測試會 skip。
 
-排版和 lint（CI 會檢查；ruff 要跟 CI 同版：`.venv/bin/pip install ruff==0.15.2`）：
+排版和 lint（CI 會檢查；ruff 要跟 CI 同版，第 1 節已經用 uv 裝了 `ruff==0.15.2`）：
 
 ```bash
 .venv/bin/ruff format .          # 行寬 120，設定在 repo 根目錄的 ruff.toml
