@@ -45,7 +45,7 @@ function hintFor(b) {
   if (!tr.length) return t('s09.howNoTrait', { use });
   return t('s09.howTraits', { use, traits: tr.map((x) => t(`trait.${x}`)).join(t('g.listSep')) });
 }
-function detailPage(ctx, k, { found = true } = {}) {
+function detailPage(ctx, k, { found = true, pairs = null } = {}) {
   const b = BREEDS[k], tier = tierOf(b);
   const stats = [];
   if (b.use === 'dairy') stats.push([t('s09.milkCow'), `14 <small>${t('g.perHourMilk')}</small>`]);
@@ -60,12 +60,35 @@ function detailPage(ctx, k, { found = true } = {}) {
     <article class="card dex-hero"><div class="hero-bg"></div>${pics}</article>
     ${found ? `<p class="dex-intro">${breedIntro(k)}</p>
     <div class="kv">${stats.map(([a, v]) => `<div class="cell"><div class="k">${a}</div><div class="v num">${v}</div></div>`).join('')}</div>
-    <article class="card"><div class="card-head"><span class="card-title pink">${icon('heart', 16)}${t('s09.howTitle')}</span></div><p class="hint" style="margin-top:6px;color:var(--ink)">${hintFor(b)}</p></article>
+    <article class="card"><div class="card-head"><span class="card-title pink">${icon('heart', 16)}${t('s09.howTitle')}</span></div><p class="hint" style="margin-top:6px;color:var(--ink)">${hintFor(b)}</p></article>${pairs ? pairTable(k, pairs) : ''}
     <p class="hint">${t('s09.firstFound', { date: t('date.mdOnly', { m: 9, d: 30 }), n: k === 'holstein' ? 3 : 1 })}</p>`
       : `<article class="card"><div class="empty"><div class="t1">${t('s09.unknownTitle')}</div><div class="t2">${t('s09.unknownBody', { use: useName(b.use), tier: tierName(tier) })}</div></div></article>`}
   </div>`;
-  return frame(ctx.dev, { tab: 'records', content });
+  return frame(ctx.dev, { tab: 'records', content, tall: !!pairs });
 }
+
+// ---------- 配種表（使用者 2026-10-08 選第 15 輪 03-B「一對一列」；v0.3 第 13.2 節） ----------
+// 每個品種列 3–4 個代表配法（伺服器的資料表定）；玩家用這一對爸媽的品種配出這個品種（長大揭曉那一刻，變成雜種牛不算），那一列就亮起來，畫出爸媽兩頭牛；
+// 還沒配出過是兩頭牛的影子、名字「？？？」。用表上沒有的配法配出來的，加在最後面（淡黃底、「表上沒有的配法」）。借種也算；商店抽的、小遊戲抓的沒有爸媽，不算。
+// pairs：[{ dad, mom, got（配出過幾次，0 是還沒）, extra（表上沒有的） }]
+const parentPic = (k, sex, lock) => cowSVG({ breed: k, sex }, { w: 50, h: 45, pad: 2, sil: lock ? 'dark' : false });
+function pairRow(p) {
+  const lock = !p.got, dn = lock ? t('g.unknownBreed') : breedName(p.dad), mn = lock ? t('g.unknownBreed') : breedName(p.mom);
+  return `<div class="bp-row${lock ? ' locked' : ''}${p.extra ? ' extra' : ''}"><span class="bp-pic">${parentPic(p.dad, 'bull', lock)}</span><span class="bp-x">×</span><span class="bp-pic">${parentPic(p.mom, 'cow', lock)}</span>
+    <div class="grow"><b><i class="sx m">♂</i>${dn}</b><b><i class="sx f">♀</i>${mn}</b><span class="hint">${lock ? t('s09.pairNone') : t('s09.pairCount', { n: p.got })}${p.extra ? t('g.sep') + t('s09.pairExtra') : ''}</span></div></div>`;
+}
+export function pairTable(k, pairs) {
+  return `<article class="card bp-table"><div class="card-head"><span class="card-title pink">${icon('heart', 16)}${t('s09.pairTitle')}</span><span class="card-sub">${t('s09.pairUnlocked', { n: pairs.filter((p) => p.got).length, total: pairs.length })}</span></div>
+    <p class="hint" style="margin-top:4px">${t('s09.pairHint', { breed: breedName(k) })}</p><div class="bp-list">${pairs.map(pairRow).join('')}</div></article>`;
+}
+// 娟珊的配種表（假資料）：代表配法 4 個、解鎖 2 個，加 1 個表上沒有的
+const JERSEY_PAIRS = [
+  { dad: 'jersey', mom: 'jersey', got: 2 },
+  { dad: 'holstein', mom: 'jersey', got: 0 },
+  { dad: 'jersey', mom: 'holstein', got: 1 },
+  { dad: 'cottonCream', mom: 'chocolate', got: 0 },
+  { dad: 'glossBlack', mom: 'jersey', got: 1, extra: true },
+];
 
 // 雜種牛的詳細：三種體型的正面並排、沒有編號、「雜種」標籤代替稀有度；數值照一般牛 × 0.6（產奶量不變，賣價乘倍數；耕田的收成乘倍數）
 function mixDetail(ctx, { found = true } = {}) {
@@ -103,13 +126,15 @@ function allSheet() {
 
 const S = [];
 const full = (id, name, render, x = {}) => S.push({ id, name, type: 'full', render, ...x });
+const part = (id, name, crop, render, x = {}) => S.push({ id, name, type: 'part', crop, render, ...x });
 full('S09-01', '列表：24 格（長頁）', (ctx) => codexPage(ctx), { tall: true });
 full('S09-02', '全部發現', (ctx) => codexPage(ctx, { found: CODEX_ORDER, mix: true, tall: false }));
-full('S09-03', '品種詳細（已發現）', (ctx) => detailPage(ctx, 'jersey'));
+full('S09-03', '品種詳細（已發現）：介紹、數值、怎麼配出來、配種表（長頁）', (ctx) => detailPage(ctx, 'jersey', { pairs: JERSEY_PAIRS }), { tall: true });
 full('S09-04', '品種詳細（還沒發現）', (ctx) => detailPage(ctx, 'goldenEar', { found: false }));
 S.push({ id: 'S09-05', name: '24 種全圖（核准外型）', type: 'sheet', viewport: { w: 1320, h: 1400 }, render: () => allSheet() });
 full('S09-06', '雜種牛的詳細（已發現）', (ctx) => mixDetail(ctx));
 full('S09-07', '雜種牛的詳細（還沒發現）', (ctx) => mixDetail(ctx, { found: false }));
+part('S09-08', '配種表：一種都還沒配出過', '.bp-table', (ctx) => detailPage(ctx, 'jersey', { pairs: JERSEY_PAIRS.filter((p) => !p.extra).map((p) => ({ ...p, got: 0 })) }), { tall: true });
 
 // ---------------- S12 排行榜 ----------------
 // 每週排行榜在台灣時間週一 00:00 重新計算（D25），畫面換成手機當地的時間（ceo 2026-10-02）。星期用全名 weekdayFull（縮寫 weekday 留給 date.mdw）。
