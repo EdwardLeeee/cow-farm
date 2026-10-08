@@ -656,9 +656,14 @@ class CssLine extends StatelessWidget {
   }
 }
 
-/// 會換行的段落，字照 Chrome 的基線畫（同一個字級的段落用）。行高跟 CSS 一樣，但 Flutter 把行高多出來（或不夠）的部分
-/// 照字型的上下比例分，Chrome 是上下各自四捨五入、再上面放 floor(一半)（[CssLine]），每一行的字都差一樣多，
-/// 例：14px、行高 22 的字 Flutter 比設計稿低 1.6。版面不動，只把畫出來的字移回 Chrome 的位置。
+/// 會換行的段落，字往上移到接近 Chrome 的基線（同一個字級的段落用）。行高跟 CSS 一樣，版面不動，只移畫出來的字。
+/// - Flutter：行高多出來（或不夠）的部分上下平分（app 的 Material 3 主題預設；test/css_text_test.dart 鎖住）。
+/// - Chrome：ascent、descent 各自四捨五入、再上面放 floor(一半)（[CssLine.metrics]；在 Chrome 用 0 高的 inline-block 量過，
+///   11 種字級／行高都一樣）。
+/// 下面的補正是**經驗值**：公式當成 Flutter 照字型上下比例分，所以字跟 Chrome 的基線差一點（14／21 高 0.22、
+/// 14／22 高 0.52、15／22 高 0.08、12／16 低 0.41）。截圖的字會落在整數的像素列上，14／21 的對話框內文（S14-03、S13-08 等）這樣剛好跟
+/// 設計稿同一列；改成剛好對齊 Chrome 的公式，S13-03、S21 會更接近，但 S14-03 從 0.52% 變 2.09%（2026-10-08 量過、
+/// ceo 決定不改）。要改的話得連段落上緣的小數、字落在哪一列像素一起算。
 class CssParagraph extends StatelessWidget {
   const CssParagraph(this.span, {super.key, required this.style, this.textAlign});
 
@@ -672,7 +677,7 @@ class CssParagraph extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = style.fontSize!;
     final (above, _) = CssLine.metrics(TextSpan(text: ' ', style: style));
-    // Flutter 的基線：有行高時照 1.16 : 0.288 分，沒有就是字型的 ascent
+    // 經驗值（見上面）：有行高時當成照 1.16 : 0.288 分，沒有就是字型的 ascent
     final h = style.height;
     final flutter = h == null ? 1.16 * size : h * size * 1.16 / (1.16 + 0.288);
     return Transform.translate(
