@@ -7,8 +7,8 @@
   "parts/sparkle：半徑 10，中心在 (0, 0)；描邊 1.6，設計稿畫小的星星時描邊不縮。"
  ],
  "generator": {
-  "design/m2/harness/assetexport.mjs": "9c806b561653815785fd4808ecba4d2c9d235dd91e84f0ae9f9be4aca06c7631",
-  "design/m2/src/cow/breeds.js": "8a1563caa470739a78b3b7d33f49d0b3043985b194f560ce0a3a7d466543ae26",
+  "design/m2/harness/assetexport.mjs": "b7521ae458423974ffeecc6e0d7877299e672b2117e468c73952258b51ec0615",
+  "design/m2/src/cow/breeds.js": "a7f37d682deea250586c15bac9eaa28a551825b28fcf7ab7766526a48d75ecf8",
   "design/m2/src/cow/calf.js": "3d773e00d3f42d69b9de1b2de366e9af4f25f46645fdcf47a5146b063d84c29b",
   "design/m2/src/cow/q.js": "161f0ebf2cffa8d8baf19f095bab63f04c6d55004155fd078942b2aae7b5fbee",
   "design/m2/src/cow/r1/cowgen.js": "1935ca123df02952bfc2c3ba4ed768a4101e009477d1258ce018eb060096db42",

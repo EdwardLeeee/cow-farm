@@ -61,9 +61,15 @@ void main() {
     _expectGeneratorUnchanged(ui, 'ui.json');
   });
 
-  test('每個組合都有圖：24 種 × 公母 × 小牛／成牛 × 側面／正面 × 朝左（＋需要的朝右）× 變體', () {
+  test('每個組合都有圖：24 種 × 公母 × 小牛／成牛 × 側面／正面 × 朝左（＋需要的朝右）× 變體；雜種牛 3 種只有成牛', () {
     final breeds = (cows['breeds'] as Map).cast<String, dynamic>();
-    expect(breeds, hasLength(24), reason: '24 種牛（企劃書 4.5）');
+    // 雜種牛（D35，#157）：照用途 mixDairy、mixDraft、mixBeef，mix: true；只畫長大的樣子，小牛照舊用 CALF_LOOK 的小牛圖
+    final mixes = [
+      for (final e in breeds.entries)
+        if ((e.value as Map)['mix'] == true) e.key,
+    ];
+    expect(mixes, unorderedEquals(['mixDairy', 'mixDraft', 'mixBeef']));
+    expect(breeds, hasLength(24 + 3), reason: '24 種牛（企劃書 4.5）加 3 種雜種牛');
     final images = (cows['images'] as Map).cast<String, dynamic>();
     var expected = 0;
     for (final breed in breeds.keys) {
@@ -72,7 +78,7 @@ void main() {
       expect(variants, anyOf(1, 4), reason: breed);
       final facings = info['right'] == true ? ['left', 'right'] : ['left'];
       for (final sex in ['cow', 'bull']) {
-        for (final age in ['calf', 'adult']) {
+        for (final age in mixes.contains(breed) ? ['adult'] : ['calf', 'adult']) {
           for (final pose in ['side', 'front']) {
             for (final facing in facings) {
               for (var v = 0; v < variants; v++) {
@@ -87,6 +93,7 @@ void main() {
     }
     expect(images.length, expected, reason: '沒有多餘的組合');
     // 研究時量到的：會變花紋的 9 種、有高光要另外畫朝右的 12 種（docs/research/2026-10-cow-rendering.md）
+    // （雜種牛是素色、不另外畫朝右，不算在裡面）
     expect(breeds.values.where((b) => ((b as Map)['seeds'] as List).length == 4), hasLength(9));
     expect(breeds.values.where((b) => (b as Map)['right'] == true), hasLength(12));
   });

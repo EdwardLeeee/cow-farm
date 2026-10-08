@@ -19,6 +19,9 @@ export const COWS = [
   { id: 8, breed: 'holstein', sex: 'bull', age: 'old', seed: 23, age_: { d: 7, h: 3 }, kg: 268, value: 2810, probs: { A: 0.262, B: 0.469, C: 0.269 }, bred: true, origin: 'C' },
   { id: 14, breed: 'jersey', sex: 'bull', age: 'adult', seed: 85, age_: { d: 1, h: 6 }, kg: 205, value: 3240, probs: { A: 0.383, B: 0.446, C: 0.171 }, origin: 'breed' },
 ];
+// 雜種牛（v0.3 第 1.1 節，第 13 輪 03-A）：小乳牛 #20 小時候沒吃到苜蓿（指定燕麥＋豆粕或苜蓿的那一組，D35 補充 3），長大變成雜種牛。
+// 只用在 S03-25（長大揭曉）和 S04-17（詳細）；不放進 COWS，牧場和清單的畫面不變。產奶量照舊，賣價、牛肉估值 × 0.6
+export const MIX_COW = { id: 20, breed: 'mixDairy', sex: 'cow', age: 'adult', age_: { h: 3, m: 20 }, milk: 14, kg: 206, value: 1466, probs: { A: 0.397, B: 0.441, C: 0.162 }, origin: 'breed', missed: ['alfalfa'] };
 export const PEN = { slots: 12, used: 10, max: 40, nextCost: 12150 };
 export const cowById = (id) => COWS.find((c) => c.id === id);
 export const breedOf = (c) => BREEDS[c.breed];

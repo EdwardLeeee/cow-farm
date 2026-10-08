@@ -15,7 +15,7 @@ const M2 = resolve(HERE, '..'), REPO = resolve(M2, '../..');
 const OUT = { cows: join(REPO, 'app/assets/cows'), ui: join(REPO, 'app/assets/ui') };
 const imp = (p) => import(pathToFileURL(join(M2, p)).href);
 
-const { BREEDS, CODEX_ORDER } = await imp('src/cow/breeds.js');
+const { BREEDS, CODEX_ORDER, MIX_LOOK } = await imp('src/cow/breeds.js');
 const { drawCow } = await imp('src/cow/render.js');
 const { calfBow, hasBow } = await imp('src/cow/calf.js');
 const { ICON_NAMES, TAB_KEYS, icon, tabIcon } = await imp('src/js/icons.js');
@@ -82,6 +82,17 @@ function cows() {
       });
     }
   }
+  // 雜種牛（v0.3 第 1.1 節；第 13 輪 03-A）：照用途三種體型，只有長大的樣子（小牛一律用 CALF_LOOK 那個品種的小牛圖）；素色沒有光澤，朝右用翻轉
+  for (const breed of Object.values(MIX_LOOK)) {
+    const seeds = [BREEDS[breed].seed];
+    breeds[breed] = { seeds, right: false, mix: true };
+    for (const sex of ['cow', 'bull']) for (const pose of ['side', 'front']) {
+      const name = `${breed}_${sex}_adult_${pose}_left_v0`;
+      const { svg, meta } = cowFile({ breed, sex, age: 'adult', pose, seed: seeds[0] }, 'left');
+      files[`svg/${name}.svg`] = svg;
+      images[name] = { ...meta, sha256: sha(svg) };
+    }
+  }
   const manifest = {
     about: [
       'cow-ui 的 design/m2/harness/assetexport.mjs 產生的，不要手改。',
@@ -89,6 +100,7 @@ function cows() {
       'face 是臉的圓（點牛的範圍）、headTop 是頭頂（泡泡的位置）、shadow 是腳底影子的橢圓（中心 y = 1）、height 是從腳底到頭頂的高。',
       '年紀只有 calf、adult：老牛用 adult 的圖。朝右只有 right 為 true 的品種有，其他品種朝右時把朝左的圖左右翻轉。',
       '變體：seeds 的長度就是變體數，app 用「牛的編號 mod 變體數」挑。',
+      '雜種牛（breeds 裡 mix 為 true）：照用途挑，乳牛 mixDairy、耕牛 mixDraft、肉牛 mixBeef；只有 adult（小牛一律用 CALF_LOOK 那個品種的小牛圖）。',
     ],
     generator: closure(['src/cow/breeds.js', 'src/cow/render.js', 'src/cow/calf.js']),
     breeds,

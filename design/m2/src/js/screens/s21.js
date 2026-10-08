@@ -6,7 +6,7 @@ import { frame, btn, icon, fmt, cowFace, toast, sheet, nameWidth } from '../kit.
 import { tabIcon } from '../icons.js';
 import { RANCH, FOUND, COWS, STUD_LOG, WAREHOUSE, RANK, compact } from '../fixtures.js';
 import { t, dateText, breedName } from '../i18n.js';
-import { CODEX_ORDER, BREEDS, tierOf } from '../../cow/breeds.js';
+import { CODEX_ORDER, BREEDS, tierOf, MIX_LOOK } from '../../cow/breeds.js';
 import { keyboard, KB_H, KB_NOTE } from './s02.js';
 
 const RENAME_PRICE = 1000; // D34：之後每次改名 1,000 幣（使用者選 01-B）
@@ -100,17 +100,20 @@ function profileCard({ face = 'holstein', name = RANCH.name } = {}) {
 const profilePage = (ctx, o = {}) => page(ctx, t('s21.title'), `${profileCard(o)}${achCard()}`, { overlays: o.overlays });
 
 // ---------- 換頭像（只能選圖鑑裡發現過的；不用錢，所以不寫價錢） ----------
-function avatarSheet({ sel = 'jersey', tapped = '' } = {}) {
-  const cells = CODEX_ORDER.map((k) => {
-    const lock = !FOUND.includes(k), on = k === sel;
+// 「其他」一排（ceo 2026-10-03，PR 2）：雜種牛（之後的特殊牛也放這排），規則跟 24 種一樣：沒發現是剪影加鎖。頭像用乳牛體型的臉
+function avatarSheet({ sel = 'jersey', tapped = '', mixFound = false } = {}) {
+  const cell = (k, lock) => {
+    const on = k === sel;
     return `<button class="av-cell${on ? ' on' : ''}${lock ? ' locked' : ''}${k === tapped ? ' tapped' : ''}" aria-label="${lock ? t('g.unknownBreed') : breedName(k)}"><span class="av-circle">${cowFace({ breed: k }, 48)}</span>${lock ? `<span class="av-lock">${icon('lock', 12)}</span>` : ''}${on ? `<span class="pick-check">${icon('ok', 20)}</span>` : ''}</button>`;
-  }).join('');
+  };
+  const cells = CODEX_ORDER.map((k) => cell(k, !FOUND.includes(k))).join('');
+  const other = `<h4 class="av-sub">${t('s09.other')}</h4><div class="av-grid other">${cell(MIX_LOOK.dairy, !mixFound)}</div>`;
   const foot = tapped
     ? `<p class="warn-text av-count">${icon('lock', 14)}<span>${t('s21.avatarLocked', { name: breedName(tapped) })}</span></p>`
     : `<p class="hint av-count">${icon('lock', 14)}<span>${t('s21.avatarCount', { n: FOUND.length, total: CODEX_ORDER.length })}</span></p>`;
   return sheet({ cls: 'av-sheet', title: t('s21.avatarTitle'), body: `
     <div class="av-preview"><span class="av-circle now">${cowFace({ breed: 'holstein' }, 48)}</span>${icon('chevron', 18)}<span class="av-circle">${cowFace({ breed: sel }, 48)}</span><div class="grow"><b>${breedName(sel)}</b><span class="hint">${t('s21.avatarFoundOnly')}</span></div></div>
-    <div class="av-grid">${cells}</div>${foot}
+    <div class="av-grid">${cells}</div>${other}${foot}
     <div class="btn-row">${btn(t('cancel'))}${btn(t('s21.avatarUse'), { kind: 'primary' })}</div>` });
 }
 

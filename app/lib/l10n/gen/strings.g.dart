@@ -105,6 +105,7 @@ const Map<String, List<String>> kPlaceholders = {
   's04.listTitle': ['cow'],
   's04.listConfirm': ['price'],
   'recallFirst': ['n'],
+  's04.mixNote': ['feeds', 'mult'],
   'cowTitle': ['id'],
   's04.recallFirstOx': ['n'],
   's08.probFailedRetry': ['n'],
@@ -139,6 +140,7 @@ const Map<String, List<String>> kPlaceholders = {
   's17.maxFields': ['n'],
   'fieldExpanded': ['n'],
   's09.allFound': ['n'],
+  's09.otherHint': ['n'],
   's09.useCount': ['n', 'use'],
   's09.howNoTrait': ['use'],
   's09.howTraits': ['traits', 'use'],
@@ -166,6 +168,8 @@ const Map<String, List<String>> kPlaceholders = {
   's16.eta': ['date'],
   'date.mdw': ['d', 'm', 'time', 'w'],
   'anim.grownUp': ['cow'],
+  'anim.mixGrown': ['feeds'],
+  'anim.mixHint': ['mult'],
   'anim.dexCount': ['n', 'total'],
   'namegen.pattern': ['first', 'second', 'third'],
   's21.badgeCount': ['n', 'total'],
@@ -225,6 +229,7 @@ const Map<String, String> _zhHant = {
   's01.failAuto': '每 {n} 秒也會自動再試一次。',
   'retry': '重試',
   's05.milkName': '{tier}牛奶',
+  's05.mixMilk': '雜種牛奶',
   's05.spoiling': '快壞了',
   's05.fresh': '新鮮度',
   's05.collectedAgo': '{ago}收',
@@ -295,6 +300,8 @@ const Map<String, String> _zhHant = {
   'breed.whiteWagyu.intro': '奶油白的毛帶著光澤，頭上一對短角。',
   'breed.starry.name': '星空牛',
   'breed.starry.intro': '深藍色的毛上有白色星星，是最難遇到的肉牛。',
+  'breed.mix.name': '雜種牛',
+  'breed.mix.intro': '灰褐色的素毛，看不出原本會是什麼品種。',
   'trait.A': '長毛',
   'trait.B': '淡色',
   'trait.C': '光澤',
@@ -357,7 +364,14 @@ const Map<String, String> _zhHant = {
   'calf.dairy': '小乳牛',
   'calf.draft': '小耕牛',
   'calf.beef': '小肉牛',
+  'feed.grass': '牧草',
+  'feed.hay': '乾草',
+  'feed.oats': '燕麥',
+  'feed.alfalfa': '苜蓿',
+  'feed.corn': '玉米',
+  'feed.soy': '豆粕',
   'stageOld': '老牛',
+  'badgeMix': '雜種',
   'badgeWorking': '工作中',
   'badgeListed': '上架中',
   'badgeBred': '已配種',
@@ -524,6 +538,7 @@ const Map<String, String> _zhHant = {
   's04.recall': '叫回來',
   's04.calfHint': '小牛長大以後才能配種、出貨。',
   's04.calfUnknown': '長大才知道是什麼品種',
+  's04.mixNote': '小時候沒吃到{feeds}；牛奶、牛肉、稻米 ×{mult}',
   's04.cantBreedYet': '還不能配種',
   'shipNotAdult': '小牛還不能出貨',
   's04.noteBred': '已配種：每頭牛一輩子只能配種一次',
@@ -629,6 +644,11 @@ const Map<String, String> _zhHant = {
   's09.found': '已發現',
   's09.allFound': '{n} 種全部發現了！圖鑑榜上會顯示你完成了。',
   's09.hint': '小牛長大、揭曉成新品種時，就會記在這裡。',
+  's09.other': '其他',
+  's09.otherHint': '不算在 {n} 種裡，也不算完成度',
+  's09.mixBodies': '3 種體型',
+  's09.mixHowTitle': '怎麼會長成雜種牛',
+  's09.mixHow': '稀有、傳說的小牛，小時候沒吃到指定的飼料，長大就會變成雜種牛。雜種牛配種時，照樣把原本的基因傳給小牛。',
   's09.useCount': '{use} {n} 種',
   's09.howDairy': '爸媽都是乳牛',
   's09.howBeef': '爸媽都是肉牛',
@@ -787,6 +807,8 @@ const Map<String, String> _zhHant = {
   'anim.thanks': '謝謝你的照顧！',
   'anim.newBreed': '發現新品種！',
   'anim.grownUp': '{cow} 長大了！',
+  'anim.mixGrown': '沒吃到{feeds}，長成了雜種牛',
+  'anim.mixHint': '牛奶、牛肉、稻米都是一般牛的 {mult} 倍。配種時，小牛照樣可能長成稀有的品種。',
   'anim.dexCount': '圖鑑 已發現 {n} / {total}',
   'news.milk_up.1': '學校午餐加訂鮮奶',
   'news.milk_up.2': '連日高溫，冰品店大量進貨',
@@ -988,6 +1010,7 @@ const Map<String, String> _en = {
   's01.failAuto': 'We\'ll also retry automatically every {n}s.',
   'retry': 'Retry',
   's05.milkName': '{tier} milk',
+  's05.mixMilk': 'Crossbreed milk',
   's05.spoiling': 'Spoiling soon',
   's05.fresh': 'Freshness',
   's05.collectedAgo': 'Collected {ago}',
@@ -1058,6 +1081,8 @@ const Map<String, String> _en = {
   'breed.whiteWagyu.intro': 'A glossy cream-white coat and a pair of short horns.',
   'breed.starry.name': 'Starry Cow',
   'breed.starry.intro': 'Deep blue fur with white stars. The hardest beef breed to find.',
+  'breed.mix.name': 'Crossbreed',
+  'breed.mix.intro': 'A plain grayish-brown coat. No telling what breed it was meant to be.',
   'trait.A': 'Long hair',
   'trait.B': 'Pale coat',
   'trait.C': 'Glossy coat',
@@ -1120,7 +1145,14 @@ const Map<String, String> _en = {
   'calf.dairy': 'Dairy calf',
   'calf.draft': 'Draft calf',
   'calf.beef': 'Beef calf',
+  'feed.grass': 'Grass',
+  'feed.hay': 'Hay',
+  'feed.oats': 'Oats',
+  'feed.alfalfa': 'Alfalfa',
+  'feed.corn': 'Corn',
+  'feed.soy': 'Soymeal',
   'stageOld': 'Senior',
+  'badgeMix': 'Mixed',
   'badgeWorking': 'Working',
   'badgeListed': 'Listed',
   'badgeBred': 'Bred',
@@ -1287,6 +1319,7 @@ const Map<String, String> _en = {
   's04.recall': 'Call back',
   's04.calfHint': 'Calves can breed or be shipped once grown up.',
   's04.calfUnknown': 'Breed revealed when grown up',
+  's04.mixNote': 'Missed {feeds} as a calf · milk, beef, rice ×{mult}',
   's04.cantBreedYet': 'Can\'t breed yet',
   'shipNotAdult': 'Can\'t ship yet',
   's04.noteBred': 'Bred: each cow can breed only once in its life',
@@ -1393,6 +1426,11 @@ const Map<String, String> _en = {
   's09.found': 'Found',
   's09.allFound': 'All {n} found! Your Collection ranking will show it\'s complete.',
   's09.hint': 'New breeds are recorded here when your calves grow up.',
+  's09.other': 'Other',
+  's09.otherHint': 'Not one of the {n}; doesn\'t count toward completion',
+  's09.mixBodies': '3 body types',
+  's09.mixHowTitle': 'How it happens',
+  's09.mixHow': 'A Rare or Legendary calf that misses its required feed grows into a crossbreed. When bred, it still passes its original genes to its calves.',
   's09.useCount': '{use} breeds: {n}',
   's09.howDairy': 'Both parents are Dairy',
   's09.howBeef': 'Both parents are Beef',
@@ -1551,6 +1589,8 @@ const Map<String, String> _en = {
   'anim.thanks': 'Thanks for taking care of me!',
   'anim.newBreed': 'New breed found!',
   'anim.grownUp': '{cow} is all grown up!',
+  'anim.mixGrown': 'Missed {feeds}, so it grew into a crossbreed',
+  'anim.mixHint': 'Milk, beef and rice sell at ×{mult} of a Common cow. Its calves can still grow into Rare breeds.',
   'anim.dexCount': 'Collection: {n} / {total} found',
   'news.milk_up.1': 'Schools order extra milk for lunch',
   'news.milk_up.2': 'Heat wave has ice cream shops stocking up',
@@ -1751,6 +1791,7 @@ const Map<String, String> _th = {
   's01.failAuto': 'ระบบจะลองใหม่ให้เองทุก {n} วินาที',
   'retry': 'ลองใหม่',
   's05.milkName': 'นม{tier}',
+  's05.mixMilk': 'นมวัวพันธุ์ผสม',
   's05.spoiling': 'ใกล้เสีย',
   's05.fresh': 'ความ⁠สด',
   's05.collectedAgo': 'เก็บ {ago}',
@@ -1821,6 +1862,8 @@ const Map<String, String> _th = {
   'breed.whiteWagyu.intro': 'ขนสีขาวครีมเป็นเงา บนหัวมีเขาสั้นหนึ่งคู่',
   'breed.starry.name': 'วัวดวงดาว',
   'breed.starry.intro': 'ขนสีน้ำเงินเข้มมีดาวสีขาว หาเจอยากที่สุดในบรรดาวัวเนื้อ',
+  'breed.mix.name': 'วัวพันธุ์ผสม',
+  'breed.mix.intro': 'ขนสีเทาน้ำตาลเรียบ ๆ ดูไม่ออกว่าเดิมจะเป็นพันธุ์อะไร',
   'trait.A': 'ขนยาว',
   'trait.B': 'สีอ่อน',
   'trait.C': 'ขนเงา',
@@ -1883,7 +1926,14 @@ const Map<String, String> _th = {
   'calf.dairy': 'ลูกวัวนม',
   'calf.draft': 'ลูกวัวงาน',
   'calf.beef': 'ลูกวัวเนื้อ',
+  'feed.grass': 'หญ้าสด',
+  'feed.hay': 'หญ้าแห้ง',
+  'feed.oats': 'ข้าวโอ๊ต',
+  'feed.alfalfa': 'อัลฟัลฟา',
+  'feed.corn': 'ข้าวโพด',
+  'feed.soy': 'กากถั่วเหลือง',
   'stageOld': 'วัยชรา',
+  'badgeMix': 'พันธุ์ผสม',
   'badgeWorking': 'ไถนาอยู่',
   'badgeListed': 'ลงประกาศอยู่',
   'badgeBred': 'ผสมพันธุ์แล้ว',
@@ -2050,6 +2100,7 @@ const Map<String, String> _th = {
   's04.recall': 'เรียกกลับ',
   's04.calfHint': 'ลูกวัวต้องโตก่อนจึงจะผสมพันธุ์หรือส่งขายได้',
   's04.calfUnknown': 'จะรู้สายพันธุ์เมื่อโตแล้ว',
+  's04.mixNote': 'ตอนเป็นลูกวัวไม่ได้กิน{feeds} · นม เนื้อ ข้าว ×{mult}',
   's04.cantBreedYet': 'ยังผสมพันธุ์ไม่ได้',
   'shipNotAdult': 'ลูกวัวยังส่งขายไม่ได้',
   's04.noteBred': 'ผสมพันธุ์แล้ว: วัวแต่ละตัวผสมพันธุ์ได้ครั้งเดียวในชีวิต',
@@ -2156,6 +2207,11 @@ const Map<String, String> _th = {
   's09.found': 'พบแล้ว',
   's09.allFound': 'พบครบทั้ง {n} สายพันธุ์แล้ว! อันดับคอลเลกชันจะแสดงว่าคุณสะสมครบ',
   's09.hint': 'เมื่อลูกวัวโตและเผยเป็นสายพันธุ์ใหม่ จะถูกบันทึกไว้ที่นี่',
+  's09.other': 'อื่น ๆ',
+  's09.otherHint': 'ไม่นับใน {n} สายพันธุ์ และไม่นับความสำเร็จ',
+  's09.mixBodies': '3 รูปร่าง',
+  's09.mixHowTitle': 'ทำไมถึงเป็นพันธุ์ผสม',
+  's09.mixHow': 'ลูกวัวหายากหรือในตำนานที่ไม่ได้กินอาหารที่กำหนดตอนเด็ก จะโตเป็นวัวพันธุ์ผสม แต่เวลาผสมพันธุ์ยังส่งยีนเดิมต่อให้ลูกได้',
   's09.useCount': '{use} {n} สายพันธุ์',
   's09.howDairy': 'พ่อแม่เป็นวัวนมทั้งคู่',
   's09.howBeef': 'พ่อแม่เป็นวัวเนื้อทั้งคู่',
@@ -2314,6 +2370,8 @@ const Map<String, String> _th = {
   'anim.thanks': 'ขอบคุณที่ดูแลนะ!',
   'anim.newBreed': 'พบสายพันธุ์ใหม่!',
   'anim.grownUp': '{cow} โตแล้ว!',
+  'anim.mixGrown': 'ไม่ได้กิน{feeds} เลยโตเป็นวัวพันธุ์ผสม',
+  'anim.mixHint': 'นม เนื้อ ข้าว ขายได้ {mult} เท่าของวัวธรรมดา ลูกที่ผสมพันธุ์ออกมายังโตเป็นพันธุ์หายากได้',
   'anim.dexCount': 'คอลเลกชัน พบแล้ว {n} / {total}',
   'news.milk_up.1': 'โรงเรียนสั่งนมสดเพิ่มสำหรับมื้อกลางวัน',
   'news.milk_up.2': 'อากาศร้อนจัดหลายวัน ร้านไอศกรีมแห่สั่งของ',
@@ -2620,6 +2678,9 @@ abstract class GeneratedStrings {
   /// `s05.milkName`：{tier}牛奶
   String s05MilkName({required Object tier}) => fill('s05.milkName', {'tier': tier});
 
+  /// `s05.mixMilk`：雜種牛奶
+  String get s05MixMilk => table['s05.mixMilk']!;
+
   /// `s05.spoiling`：快壞了
   String get s05Spoiling => table['s05.spoiling']!;
 
@@ -2830,6 +2891,12 @@ abstract class GeneratedStrings {
   /// `breed.starry.intro`：深藍色的毛上有白色星星，是最難遇到的肉牛。
   String get breedStarryIntro => table['breed.starry.intro']!;
 
+  /// `breed.mix.name`：雜種牛
+  String get breedMixName => table['breed.mix.name']!;
+
+  /// `breed.mix.intro`：灰褐色的素毛，看不出原本會是什麼品種。
+  String get breedMixIntro => table['breed.mix.intro']!;
+
   /// `trait.A`：長毛
   String get traitA => table['trait.A']!;
 
@@ -3016,8 +3083,29 @@ abstract class GeneratedStrings {
   /// `calf.beef`：小肉牛
   String get calfBeef => table['calf.beef']!;
 
+  /// `feed.grass`：牧草
+  String get feedGrass => table['feed.grass']!;
+
+  /// `feed.hay`：乾草
+  String get feedHay => table['feed.hay']!;
+
+  /// `feed.oats`：燕麥
+  String get feedOats => table['feed.oats']!;
+
+  /// `feed.alfalfa`：苜蓿
+  String get feedAlfalfa => table['feed.alfalfa']!;
+
+  /// `feed.corn`：玉米
+  String get feedCorn => table['feed.corn']!;
+
+  /// `feed.soy`：豆粕
+  String get feedSoy => table['feed.soy']!;
+
   /// `stageOld`：老牛
   String get stageOld => table['stageOld']!;
+
+  /// `badgeMix`：雜種
+  String get badgeMix => table['badgeMix']!;
 
   /// `badgeWorking`：工作中
   String get badgeWorking => table['badgeWorking']!;
@@ -3517,6 +3605,9 @@ abstract class GeneratedStrings {
   /// `s04.calfUnknown`：長大才知道是什麼品種
   String get s04CalfUnknown => table['s04.calfUnknown']!;
 
+  /// `s04.mixNote`：小時候沒吃到{feeds}；牛奶、牛肉、稻米 ×{mult}
+  String s04MixNote({required Object feeds, required Object mult}) => fill('s04.mixNote', {'feeds': feeds, 'mult': mult});
+
   /// `s04.cantBreedYet`：還不能配種
   String get s04CantBreedYet => table['s04.cantBreedYet']!;
 
@@ -3831,6 +3922,21 @@ abstract class GeneratedStrings {
 
   /// `s09.hint`：小牛長大、揭曉成新品種時，就會記在這裡。
   String get s09Hint => table['s09.hint']!;
+
+  /// `s09.other`：其他
+  String get s09Other => table['s09.other']!;
+
+  /// `s09.otherHint`：不算在 {n} 種裡，也不算完成度
+  String s09OtherHint({required Object n}) => fill('s09.otherHint', {'n': n});
+
+  /// `s09.mixBodies`：3 種體型
+  String get s09MixBodies => table['s09.mixBodies']!;
+
+  /// `s09.mixHowTitle`：怎麼會長成雜種牛
+  String get s09MixHowTitle => table['s09.mixHowTitle']!;
+
+  /// `s09.mixHow`：稀有、傳說的小牛，小時候沒吃到指定的飼料，長大就會變成雜種牛。雜種牛配種時，照樣把原本的基因傳給小牛。
+  String get s09MixHow => table['s09.mixHow']!;
 
   /// `s09.useCount`：{use} {n} 種
   String s09UseCount({required Object n, required Object use}) => fill('s09.useCount', {'n': n, 'use': use});
@@ -4305,6 +4411,12 @@ abstract class GeneratedStrings {
 
   /// `anim.grownUp`：{cow} 長大了！
   String animGrownUp({required Object cow}) => fill('anim.grownUp', {'cow': cow});
+
+  /// `anim.mixGrown`：沒吃到{feeds}，長成了雜種牛
+  String animMixGrown({required Object feeds}) => fill('anim.mixGrown', {'feeds': feeds});
+
+  /// `anim.mixHint`：牛奶、牛肉、稻米都是一般牛的 {mult} 倍。配種時，小牛照樣可能長成稀有的品種。
+  String animMixHint({required Object mult}) => fill('anim.mixHint', {'mult': mult});
 
   /// `anim.dexCount`：圖鑑 已發現 {n} / {total}
   String animDexCount({required Object n, required Object total}) => fill('anim.dexCount', {'n': n, 'total': total});
