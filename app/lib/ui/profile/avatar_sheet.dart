@@ -59,16 +59,22 @@ class AvatarSheetState extends State<AvatarSheet> {
     }
   });
 
-  /// 一組格子：[cols] 欄，最後一排不滿的留空。
-  Widget _grid({required Key key, required List<String> codes, required int cols, required String? tapped}) => Column(
+  /// 一組格子：[cols] 欄、格子之間 [gap]，最後一排不滿的留空。
+  Widget _grid({
+    required Key key,
+    required List<String> codes,
+    required int cols,
+    required double gap,
+    required String? tapped,
+  }) => Column(
     key: key,
     children: [
       for (var i = 0; i < codes.length; i += cols) ...[
-        if (i > 0) const SizedBox(height: 8),
+        if (i > 0) SizedBox(height: gap),
         Row(
           children: [
             for (var c = 0; c < cols; c++) ...[
-              if (c > 0) const SizedBox(width: 8),
+              if (c > 0) SizedBox(width: gap),
               Expanded(
                 child: AspectRatio(
                   aspectRatio: 1,
@@ -94,17 +100,19 @@ class AvatarSheetState extends State<AvatarSheet> {
   @override
   Widget build(BuildContext context) {
     final s = Strings.of(context);
+    // 320 寬（< 340）：一排一樣 6 個，間距 4、面板左右留 12（一格約 46），不放上面那一列預覽（#172）
     final narrow = MediaQuery.sizeOf(context).width < 340;
-    final cols = narrow ? 5 : 6;
+    final gap = narrow ? 4.0 : 8.0;
     final tapped = _tapped;
     return AppSheet(
       title: s.s21AvatarTitle,
       onClose: widget.onClose,
+      side: narrow ? 12 : 16,
       children: [
         if (!narrow) _Preview(current: widget.current, selected: _sel),
         if (!narrow) const SizedBox(height: 12),
-        // .av-grid：每格是正方形，格子之間 8
-        _grid(key: const Key('av-grid'), codes: kCodexOrder, cols: cols, tapped: tapped),
+        // .av-grid：每格是正方形，一排 6 個，格子之間 8（320 寬是 4）
+        _grid(key: const Key('av-grid'), codes: kCodexOrder, cols: 6, gap: gap, tapped: tapped),
         // .av-sub：「其他」（13 特粗、淡色，上 10、左右 2），下面 4 是那一排（.av-grid.other）
         Padding(
           padding: const EdgeInsets.fromLTRB(2, 10, 2, 4),
@@ -114,7 +122,7 @@ class AvatarSheetState extends State<AvatarSheet> {
             style: AppText.style(13, weight: FontWeight.w900, color: AppColors.ink2, lineHeight: 18),
           ),
         ),
-        _grid(key: const Key('av-grid-other'), codes: const [kHybrid], cols: cols, tapped: tapped),
+        _grid(key: const Key('av-grid-other'), codes: const [kHybrid], cols: 6, gap: gap, tapped: tapped),
         const SizedBox(height: 10),
         // .av-count：發現了幾種；點了鎖住的換成那種牛的提示（橘色）
         Row(

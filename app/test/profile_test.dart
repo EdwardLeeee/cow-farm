@@ -2,7 +2,7 @@
 // 點頂列的頭像打開、返回關掉、徽章的詳細、不認得的徽章不放、舊的伺服器沒有徽章、頭像跟著 profile.avatar；
 // 改名（第一次免費、之後要錢、錢不夠、名字跟現在一樣、伺服器不收）、換頭像（只能選發現過的、一樣的不送）。
 // 畫面本身在 test/pages/s21_cases.dart（S21-01～13）。
-import 'package:cowfarm/api/breeds.dart' show kHybrid;
+import 'package:cowfarm/api/breeds.dart' show kCodexOrder, kHybrid;
 import 'package:cowfarm/api/game_api.dart';
 import 'package:cowfarm/api/models.dart';
 import 'package:cowfarm/ui/kit/kit.dart';
@@ -412,13 +412,18 @@ void main() {
       expect(_faceIn(tester, find.byKey(const Key('hud-profile'))), kHybrid);
     });
 
-    testWidgets('窄於 340：沒有上面那一列、格子 5 欄', (tester) async {
+    testWidgets('窄於 340：沒有上面那一列；一排一樣 6 格、間距 4、面板左右留 12（一格 46），面板上緣在安全區裡（#172）', (tester) async {
       Screen.w320.apply(tester);
       await showAvatar(tester, AppLang.zhHant);
       expect(find.byKey(const Key('av-preview')), findsNothing);
-      final first = tester.getRect(find.byKey(const Key('av-holstein')));
-      final sixth = tester.getRect(find.byKey(const Key('av-velvetBlack')));
-      expect(sixth.left, closeTo(first.left, 0.5));
+      final first = tester.getRect(find.byKey(Key('av-${kCodexOrder[0]}')));
+      final second = tester.getRect(find.byKey(Key('av-${kCodexOrder[1]}')));
+      final seventh = tester.getRect(find.byKey(Key('av-${kCodexOrder[6]}')));
+      expect(seventh.left, closeTo(first.left, 0.5), reason: '第 7 個在第二排的第一格');
+      expect(first.left, closeTo(12, 0.5));
+      expect(second.left - first.right, closeTo(4, 0.5));
+      expect(first.width, closeTo(46, 0.5));
+      expect(tester.getRect(find.byKey(const Key('sheet'))).top, greaterThanOrEqualTo(Screen.w320.safeTop));
     });
   });
 }

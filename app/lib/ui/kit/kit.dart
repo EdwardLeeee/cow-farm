@@ -156,7 +156,12 @@ class AppCard extends StatelessWidget {
   );
 }
 
+/// 矮手機：高 600 以下（設計稿的 @media (max-height: 600px)，例 320×568）。
+bool isShortScreen(BuildContext context) => MediaQuery.sizeOf(context).height <= 600;
+
 /// .dialog 加 .backdrop：整個畫面蓋一層暗幕，對話框左右各留 20、在整個畫面的正中間（top: 50%）。
+/// 矮手機（高 600 以下，例 320×568；kit.css 的 @media (max-height: 600px)）：在安全區裡置中，上內距 14、按鈕上面 12，
+/// 才不會蓋到狀態列（#172）。
 class AppDialog extends StatelessWidget {
   const AppDialog({super.key, this.title, required this.body, this.buttons = const []});
 
@@ -167,11 +172,12 @@ class AppDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final pad = MediaQuery.paddingOf(context);
-    // 上下留一樣多（安全區比較大的那邊），對話框才會在整個畫面的正中間；太高時可以捲
+    final short = isShortScreen(context);
+    // 上下留一樣多（安全區比較大的那邊），對話框才會在整個畫面的正中間；矮手機上下各留安全區，在安全區裡置中。太高時可以捲
     final v = pad.top > pad.bottom ? pad.top : pad.bottom;
     final card = Container(
       key: const Key('dialog'),
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
+      padding: EdgeInsets.fromLTRB(16, short ? 14 : 18, 16, 16),
       decoration: BoxDecoration(
         color: AppColors.paper,
         border: Border.all(color: AppColors.ink, width: AppSizes.border),
@@ -194,7 +200,7 @@ class AppDialog extends StatelessWidget {
             style: AppText.style(14, weight: FontWeight.w700, lineHeight: 21),
             child: body,
           ),
-          if (buttons.isNotEmpty) ...[const SizedBox(height: 16), BtnRow(children: buttons)],
+          if (buttons.isNotEmpty) ...[SizedBox(height: short ? 12 : 16), BtnRow(children: buttons)],
         ],
       ),
     );
@@ -203,7 +209,10 @@ class AppDialog extends StatelessWidget {
         const Positioned.fill(child: ColoredBox(color: AppColors.backdrop)),
         Positioned.fill(
           child: Center(
-            child: SingleChildScrollView(padding: EdgeInsets.fromLTRB(20, v, 20, v), child: card),
+            child: SingleChildScrollView(
+              padding: short ? EdgeInsets.fromLTRB(20, pad.top, 20, pad.bottom) : EdgeInsets.fromLTRB(20, v, 20, v),
+              child: card,
+            ),
           ),
         ),
       ],
@@ -503,7 +512,14 @@ class RenderBtnRow extends RenderBox
 
 /// .sheet 加 .backdrop：從下面滑上來的面板（暗幕、上緣 3px 框、上面兩個圓角 26、把手、標題）。點暗幕關掉。
 class AppSheet extends StatelessWidget {
-  const AppSheet({super.key, this.title, required this.children, required this.onClose, this.maxHeight});
+  const AppSheet({
+    super.key,
+    this.title,
+    required this.children,
+    required this.onClose,
+    this.maxHeight,
+    this.side = 16,
+  });
 
   /// 標題（.sheet h2）；null 是沒有標題的面板（S21 的徽章詳細，名稱放在大圖下面）。
   final String? title;
@@ -513,6 +529,9 @@ class AppSheet extends StatelessWidget {
   /// 整個面板最高多高（含上緣的框和內距，跟 CSS 的 border-box 一樣）。有給的話，[children] 裡可以放 Flexible
   /// （例：選耕牛的清單），放不下時由它縮、自己捲。
   final double? maxHeight;
+
+  /// 左右內距（S21 換頭像在 320 寬是 12）。
+  final double side;
 
   @override
   Widget build(BuildContext context) {
@@ -532,7 +551,7 @@ class AppSheet extends StatelessWidget {
           child: Container(
             key: const Key('sheet'),
             constraints: maxHeight == null ? null : BoxConstraints(maxHeight: maxHeight!),
-            padding: EdgeInsets.fromLTRB(16, 10, 16, safe.bottom + 14),
+            padding: EdgeInsets.fromLTRB(side, 10, side, safe.bottom + 14),
             decoration: const BoxDecoration(
               color: AppColors.paper,
               border: Border(

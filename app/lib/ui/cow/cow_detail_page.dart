@@ -819,7 +819,8 @@ class _ShipConfirmDialogState extends State<ShipConfirmDialog> {
     final price = m.market?.quotes[Commodity.beef]?.price;
     final canConfirm = m.canAct && !_loading && p != null && p.canShip && p.blockers.isEmpty;
     final hint = KitText.hint();
-    // .ship-head：牛的小圖（76）、名字、約多少公斤牛肉、牛肉現價
+    // .ship-head：牛的小圖（76；矮手機 60，整張圖照比例縮，#172）、名字、約多少公斤牛肉、牛肉現價
+    final pic = isShortScreen(context) ? 60.0 : 76.0;
     final head = Container(
       key: const Key('ship-head'),
       padding: const EdgeInsets.fromLTRB(4, 4, 10, 4),
@@ -830,7 +831,7 @@ class _ShipConfirmDialogState extends State<ShipConfirmDialog> {
       ),
       child: Row(
         children: [
-          CowPicture(breed: cow.breed, bull: cow.bull, variant: cow.number, width: 76, height: 76, pad: 3),
+          CowPicture(breed: cow.breed, bull: cow.bull, variant: cow.number, width: pic, height: pic, pad: 3 * pic / 76),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
