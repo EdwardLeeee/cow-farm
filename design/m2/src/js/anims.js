@@ -219,6 +219,7 @@ const A05 = {
     root.querySelector('.hud .lv').textContent = f >= 0.5 ? 'Lv 5' : 'Lv 4';
     root.querySelector('.hud .xp i').style.width = f >= 0.5 ? '0%' : '100%';
     root.querySelector('.lv-roll .old').style.transform = `translateY(${-f * 90}px)`;
+    root.querySelector('.lv-roll .old').style.visibility = f >= 1 ? 'hidden' : ''; // 翻完就藏起來（clip-path 已經切掉看不到，但量測會把它算成超出卡片）
     root.querySelector('.lv-roll .new').style.transform = `translateY(${(1 - f) * 90}px)`;
     // 彩紙從上面落下，最後停在 S11-01 的位置和角度（top = y%、rotate(r)，跟 s10.js 的 levelUp 一樣；2026-10-08 cow-app 量到以前停得比 S11-01 低約 100）
     [...root.querySelectorAll('.confetti i')].forEach((c, i) => {

@@ -578,7 +578,8 @@
 .burst-hearts i { position: absolute; left: -11px; top: -11px; line-height: 0; opacity: 0; }
 /* A-05 等級數字往上翻：框裡放一個看不到的新數字（.size）撐出寬度和基線，「Lv」跟數字的基線對齊、兩位數也不會被切掉；
    用 clip-path 只切上下（overflow: hidden 會讓基線變成框的下緣，「Lv」掉低約 8；2026-10-08 cow-app 量到）。最後一格跟 S11-01 一樣 */
-.lv-roll { position: relative; display: inline-block; font-size: 76px; line-height: 88px; clip-path: inset(0 -24px); }
+/* 選擇器要寫 .lv-big .lv-roll：不然「Lv」那條 .lv-big span（26 px）會蓋過字級，框被撐高到 110 */
+.lv-big .lv-roll { position: relative; display: inline-block; font-size: 76px; line-height: 88px; clip-path: inset(0 -24px); }
 .lv-roll .size { visibility: hidden; }
 .lv-roll .old, .lv-roll .new { position: absolute; left: 0; right: 0; top: 0; text-align: center; }
 .lv-wrap .confetti i { position: absolute; top: -10%; }
