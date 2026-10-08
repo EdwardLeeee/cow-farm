@@ -7,7 +7,7 @@
 - C 配種收集派：看重稀有度（商店挑高等級、借稀有公牛），稀有母牛多留一陣子。
 - T 抓時機派：牛奶、稻米、牛肉都先存著，價格 ≥ 24 小時均價（或快變差）才賣。
 - L 出借公牛派：自己的公牛都上架借種（價位看稀有度，一天沒人借就降一檔），自己的母牛向別人借種。
-- Z 懶得照顧（v0.3）：照 D 經營，但每天只清一次大便、不雇小幫手、不餵飼料（量照顧的懲罰有多大）。
+- Z 懶得照顧（v0.3）：照 D 經營（地板也照樣換），但每天只清一次大便、不雇小幫手、不餵飼料（量照顧的懲罰有多大）。
 - W 大戶：壓力測試。囤貨前照 D 經營；囤貨時換成大牧場，囤 48 小時後一次倒出／分批／一直囤。
 
 v0.3 照顧（除了 Z，每種玩法都會）：每次上線先清大便、處理病牛（值得就治療，不值得就出貨）；牛群到 HELPER_MIN_COWS 頭
@@ -83,7 +83,7 @@ PROFILES: Dict[str, dict] = {
     "L": {"pref": (1.0, 1.0, 1.0), "rarity": 0.2, "milker": "decline", "fields": False, "hold": False, "lend": True,
           "care": "full", "feed": CORN, "floor": 2},
     "Z": {"pref": (1.25, 1.0, 1.0), "rarity": 0.0, "milker": "decline", "fields": False, "hold": False, "lend": False,
-          "care": "lazy", "feed": None, "floor": 0},
+          "care": "lazy", "feed": None, "floor": 2},
     "W": {"pref": (1.25, 1.0, 1.0), "rarity": 0.0, "milker": "decline", "fields": False, "hold": False, "lend": False,
           "care": "full", "feed": None, "floor": 0},
 }

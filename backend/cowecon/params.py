@@ -409,8 +409,9 @@ class CareParams:
     poop_every_s: float = 3 * HOUR  # 每頭牛（小牛也算）每 3 小時一坨
     poop_max_per_cow: int = 4  # 每頭牛最多累積幾坨，之後不再增加
     # 每頭牛每小時生病的機率 = sick_rate_per_h ×（髒的程度 − sick_dirt_free），髒的程度 = 還沒清的大便 ÷ 牛的數量。
-    # 數字等使用者決定（ceo 2026-10-03 在問），先用規格的起點。
-    sick_rate_per_h: float = 0.015
+    # 使用者 2026-10-08 選「調一半：睡一覺偶爾有病牛」：10 頭牛的牧場睡前清乾淨、不雇小幫手，睡 8 小時後大約 1/4 的機會
+    # 至少一頭病牛（規格起點 1.5% 是 2/3）；一整天不管約九成。0.4% 照這個校準（test_care 的 TestSickness 鎖住）。
+    sick_rate_per_h: float = 0.004
     sick_dirt_free: float = 0.5
     newbie_safe_s: float = 24 * HOUR  # 開牧場後多久不會生病（ceo 2026-10-03：蓋過第一個晚上）
     cure_price: float = 5000.0  # 治療一頭，馬上好（使用者選「固定很貴」）

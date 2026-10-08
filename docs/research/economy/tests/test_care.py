@@ -1,6 +1,7 @@
 """v0.3 照顧規則（docs/design/v0.3-care.md、決定 D35）：長大才揭曉與雜種牛、飼料、地板、大便與生病、治療、打掃小幫手、存檔。"""
 
 import json
+import math
 import random
 import sys
 import unittest
@@ -304,14 +305,38 @@ class TestSickness(unittest.TestCase):
         self.assertEqual(f.poop_total(T0 + CP.newbie_safe_s), 8)
 
     def test_exact_sick_time(self):
-        """24 小時後髒的程度一直是 4（每頭 4 坨）：風險率 0.015 × 3.5 = 0.0525／小時，門檻 0.105 → 第 26 小時整生病。"""
+        """24 小時後髒的程度一直是 4（每頭 4 坨）：風險率 r = sick_rate_per_h × 3.5／小時，門檻 2r → 第 26 小時整生病。"""
         f = farm()
         a, b = f.cows
-        a.thr, b.thr = 0.105, 10.0
+        r = CP.sick_rate_per_h * (4 - CP.sick_dirt_free)
+        a.thr, b.thr = 2 * r, 10.0
         f.advance(T0 + 30 * HOUR)
         self.assertAlmostEqual(a.sick_since, T0 + 26 * HOUR, delta=1e-3)
         self.assertIsNone(b.sick_since)
-        self.assertAlmostEqual(f.hazard, 0.0525 * 6)
+        self.assertAlmostEqual(f.hazard, r * 6)
+
+    def test_overnight_target(self):
+        """使用者 2026-10-08「睡一覺偶爾有病牛」：10 頭成牛、睡前清乾淨、不清不雇小幫手，睡 8 小時後至少一頭病牛的機會
+        約 1/4（20–30%）；一整天不管約九成（80% 以上）。每頭牛的大便時鐘相位隨機，取 200 次平均。"""
+
+        def p_any(hours, trials=200):
+            rng = random.Random(1)
+            tot = 0.0
+            for _ in range(trials):
+                f = farm()
+                t = T0 + 3 * DAY
+                f.cows = []
+                for i in range(10):
+                    c = Cow(i + 10, genes(0), False, T0, FP, adult_at=T0)
+                    c.poop_at = T0 - rng.uniform(0, CP.poop_every_s)
+                    f.cows.append(c)
+                f.care_t = t
+                _, h, _ = f._care_sim(t + hours * HOUR)
+                tot += 1 - math.exp(-10 * (h - f.hazard))
+            return tot / trials
+
+        self.assertTrue(0.20 <= p_any(8) <= 0.30)
+        self.assertGreaterEqual(p_any(24), 0.80)
 
     def test_independent_of_settle_steps(self):
         def run(step):
@@ -383,7 +408,7 @@ class TestSickness(unittest.TestCase):
         self.assertEqual(f.coins, 0)
         self.assertIsNone(bull.sick_since)
         self.assertEqual(bull.h0, f.hazard)
-        self.assertAlmostEqual(bull.thr, -__import__("math").log(1 - random.Random(1).random()))
+        self.assertAlmostEqual(bull.thr, -math.log(1 - random.Random(1).random()))
         self.assertFalse(f.cure(healthy, t, random.Random(1)))
 
     def test_new_cows_get_thresholds_from_the_rng_after_genes(self):
@@ -393,7 +418,7 @@ class TestSickness(unittest.TestCase):
         from cowecon.farm import shop_genotype
 
         shop_genotype(FP, 0, ref), shop_genotype(FP, 1, ref)
-        self.assertEqual([c.thr for c in f.cows], [-__import__("math").log(1 - ref.random()) for _ in range(2)])
+        self.assertEqual([c.thr for c in f.cows], [-math.log(1 - ref.random()) for _ in range(2)])
         off = Farm(DEFAULT, T0, random.Random(4))
         self.assertEqual([c.g for c in off.cows], [c.g for c in f.cows])  # 開關不影響基因
 
