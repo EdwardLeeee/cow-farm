@@ -118,7 +118,7 @@ export function statusChips(c) {
 // 牛舍清單的一列
 export function cowListRow(c) {
   const b = BREEDS[c.breed], tier = tierOf(b), sep = t('g.sep');
-  const chips = [useChip(b.use), `<span class="use">${sexText(c.sex)}</span>`, tierChip(tier), ...statusChips(c)];
+  const chips = [useChip(b.use), `<span class="use">${sexText(c.sex)}</span>`, ...(c.age === 'calf' ? [] : [tierChip(tier)]), ...statusChips(c)];
   let meta;
   if (c.age === 'calf') meta = t('growUp', { v: dur(c.grow_) });
   else if (c.field != null) meta = t('s03.metaField', { n: c.field + 1, rate: c.rice });
@@ -156,7 +156,7 @@ part('S03-05', '奶桶是 0：收奶鈕停用', '.bucket-card', (ctx) => ranchPa
 // 下面那一行：產奶的母乳牛寫產奶，小牛寫長大還要，其他寫體重
 export function popHtml(c) {
   const b = BREEDS[c.breed], tier = tierOf(b);
-  const chips = [useChip(b.use), `<span class="use">${sexName(c.sex)}</span>`, tierChip(tier), ...statusChips(c)];
+  const chips = [useChip(b.use), `<span class="use">${sexName(c.sex)}</span>`, ...(c.age === 'calf' ? [] : [tierChip(tier)]), ...statusChips(c)];
   const meta = c.age === 'calf' ? t('growUp', { v: dur(c.grow_) }) : b.use === 'dairy' && c.sex === 'cow' ? t('s03.popMilk', { tier: tierName(tier), n: c.milk }) : t('weight', { v: c.kg });
   return `<div class="name">${cowName(c)}</div><div class="chips" style="margin-top:4px">${chips.join('')}</div><div class="meta">${meta}</div>${btn(t('s03.popDetail'), { small: true, block: true, kind: 'primary' })}`;
 }

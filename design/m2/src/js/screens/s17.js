@@ -3,7 +3,7 @@ import { frame, btn, icon, fmt, bar, cowSVG, sheet, toast, tierChip, badge, BREE
 import { FIELDS, FIELD_UP, cowById, WAREHOUSE, sum, RANCH } from '../fixtures.js';
 import { drawCow } from '../../cow/render.js';
 import { tierOf } from '../../cow/breeds.js';
-import { t, tb, dur, cowName } from '../i18n.js';
+import { t, tb, dur, cowName, calfName } from '../i18n.js';
 
 const L = '#4B3326';
 // 田地場景：每塊田一格水田，稻子依長滿的比例長高，長滿變金黃；有牛的田，牛站在田前面
@@ -88,7 +88,7 @@ full('S17-03', '選一頭耕牛下田', (ctx) => fieldsPage(ctx, {
     <button class="card ox-opt on">${cowSVG({ breed: 'milkTea', sex: 'bull', seed: 101 }, { w: 56, h: 56, pad: 2 })}<div class="grow"><b>${cowName('milkTea', 18)}</b><div class="chips">${tierChip(1)}<span class="hint">${t('fieldRate', { v: 14.3 })}</span></div></div><span class="pick-check static">${icon('ok', 24)}</span></button>
     <button class="card ox-opt off" disabled>${cowSVG({ breed: 'yellow', sex: 'bull', seed: 17 }, { w: 56, h: 56, pad: 2 })}<div class="grow"><b>${cowName('yellow', 2)}</b><div class="chips">${badge('working', t('s17.inField', { n: 1 }))}</div></div></button>
     <button class="card ox-opt off" disabled>${cowSVG({ breed: 'highland', sex: 'cow' }, { w: 56, h: 56, pad: 2 })}<div class="grow"><b>${cowName('highland', 9)}</b><div class="chips">${badge('working', t('s17.inField', { n: 3 }))}</div></div></button>
-    <button class="card ox-opt off" disabled>${cowSVG({ breed: 'yellow', age: 'calf', seed: 105 }, { w: 56, h: 56, pad: 2 })}<div class="grow"><b>${cowName('yellow', 19)}</b><div class="chips">${badge('calf', t('stageCalf'))}<span class="hint">${t('g.growsIn', { time: dur({ h: 1 }) })}</span></div></div></button></div>
+    <button class="card ox-opt off" disabled>${cowSVG({ breed: 'yellow', age: 'calf', seed: 105 }, { w: 56, h: 56, pad: 2 })}<div class="grow"><b>${calfName('draft', 19)}</b><div class="chips">${badge('calf', t('stageCalf'))}<span class="hint">${t('g.growsIn', { time: dur({ h: 1 }) })}</span></div></div></button></div>
     <div class="btn-row" style="margin-top:14px">${btn(t('cancel'))}${btn(t('g.assign'), { kind: 'green', ic: 'sprout' })}</div>` }),
 }));
 part('S17-04', '沒有能下田的耕牛', '.sheet', (ctx) => fieldsPage(ctx, { overlays: sheet({ title: t('pickOx', { n: 2 }), body: `<div class="empty">${cowSVG({ breed: 'yellow', sex: 'bull', seed: 33 }, { w: 90, h: 90, sil: true })}<div class="t1">${t('noOx')}</div><div class="t2">${tb('s17.noOxHint')}</div></div>${btn(t('g.gotIt'), { block: true })}` }) }));

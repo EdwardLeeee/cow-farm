@@ -1,7 +1,7 @@
 // G 全 app 共用元件
 import { frame, hud, tabbar, TABS, btn, badge, tierChip, useChip, toast, icon, cowSVG, bar, fmt } from '../kit.js';
 import { RANCH, LONG_NAMES, MARKET } from '../fixtures.js';
-import { t, dur, cowName, breedName, sexName, tierName, useName } from '../i18n.js';
+import { t, dur, cowName, calfName, breedName, sexName, tierName, useName } from '../i18n.js';
 import { vsText } from './s06.js';
 import { ranchPage } from './s03.js';
 
@@ -37,9 +37,9 @@ part('G-07', '牛的標籤：用途、稀有度、狀態', '#crop', (ctx) => she
   <div class="g-line"><span class="g-k" data-note>狀態</span>${badge('calf', t('stageCalf'))}${badge('old', t('stageOld'))}${badge('working', t('badgeWorking'))}${badge('listed', t('badgeListed'))}${badge('bred', t('badgeBred'))}</div></div>`));
 
 part('G-08', '小牛長大倒數卡（配種、借種共用）', '#crop', (ctx) => sheet(ctx, `<div class="card calf-card">
-  <div class="calf-pic">${cowSVG({ breed: 'strawberry', age: 'calf', seed: 91 }, { w: 84, h: 84, pose: 'front' })}</div>
-  <div class="grow"><div class="row" style="gap:6px"><b style="font-size:16px">${t('g.newCalf', { cow: cowName('strawberry', 16) })}</b></div><div class="chips" style="margin:4px 0">${tierChip(3)}${badge('calf', t('stageCalf'))}</div>
-  <div class="hint">${t('growUp', { v: `<b class="num">${dur({ h: 7, m: 42 })}</b>` })}</div>${bar(4, { color: 'yellow' })}</div></div>`));
+  <div class="calf-pic">${cowSVG({ breed: 'holstein', sex: 'cow', age: 'calf', seed: 91 }, { w: 84, h: 84, pose: 'front' })}</div>
+  <div class="grow"><div class="row" style="gap:6px"><b style="font-size:16px">${t('g.newCalf', { cow: calfName('dairy', 16) })}</b></div><div class="chips" style="margin:4px 0">${useChip('dairy')}<span class="use">${sexName('cow')}</span>${badge('calf', t('stageCalf'))}</div>
+  <div class="hint">${t('growUp', { v: `<b class="num">${dur({ h: 2, m: 42 })}</b>` })}</div>${bar(10, { color: 'yellow' })}</div></div>`));
 
 part('G-09', '下拉重新整理', '#crop', (ctx) => sheet(ctx, `<div class="g-pull"><div class="pull-ind"><span class="spinner"></span>${t('g.refreshing')}</div>
   <div class="card" style="opacity:.9"><div class="row" style="gap:8px">${cowSVG({ breed: 'chocolate', sex: 'bull', seed: 75 }, { w: 56, h: 56 })}<div><b>${t('g.breedSex', { breed: breedName('chocolate'), sex: sexName('bull') })}</b><div class="hint">${tierName(2)}${t('g.sep')}${t('costCoins', { v: fmt(2000) })}</div></div></div></div></div>`));
@@ -81,7 +81,7 @@ pstate('G-12', '按下：小按鈕、圓形鈕、膠囊、分頁、篩選、數�
 
 const prow = (c) => { const m = MARKET.milk; return `<div class="price-rows"><button class="price-row ${c}"><span class="pr-ic">${icon('milk', 26)}</span><span class="pr-name">${m.name}</span><span class="pr-right"><span class="pr-price"><b class="num">${m.price}</b><small>${t('priceUnit', { unit: m.unit })}</small></span>${vsText(m)}</span></button></div>`; };
 const oxOpt = (c, { on = false, off = false } = {}) => `<button class="card ox-opt${on ? ' on' : ''}${off ? ' off' : ''} ${c}"${off ? ' disabled' : ''}>${cowSVG({ breed: off ? 'yellow' : 'milkTea', sex: 'bull', seed: off ? 17 : 101 }, { w: 56, h: 56, pad: 2 })}<div class="grow"><b>${off ? cowName('yellow', 2) : cowName('milkTea', 18)}</b><div class="chips">${off ? badge('working', t('s17.inField', { n: 1 })) : `${tierChip(1)}<span class="hint">${t('fieldRate', { v: 14.3 })}</span>`}</div></div></button>`;
-const pick = (c, off = false) => `<button class="pick${off ? ' off' : ''} ${c}"${off ? ' disabled' : ''}><span class="pick-pic">${cowSVG({ breed: 'jersey', seed: 7, age: off ? 'calf' : 'adult' }, { w: 84, h: 76, pad: 3 })}</span><span class="pick-name">${cowName('jersey', 7)}</span><span class="pick-meta">${off ? badge('calf', t('stageCalf')) : tierChip(1)}</span></button>`;
+const pick = (c, off = false) => `<button class="pick${off ? ' off' : ''} ${c}"${off ? ' disabled' : ''}><span class="pick-pic">${cowSVG(off ? { breed: 'holstein', sex: 'cow', seed: 7, age: 'calf' } : { breed: 'jersey', seed: 7 }, { w: 84, h: 76, pad: 3 })}</span><span class="pick-name">${off ? calfName('dairy', 7) : cowName('jersey', 7)}</span><span class="pick-meta">${off ? badge('calf', t('stageCalf')) : tierChip(1)}</span></button>`;
 const dex = (c) => `<div class="press-dex"><button class="dex-cell ${c}"><span class="dex-pic">${cowSVG({ breed: 'jersey' }, { w: 74, h: 64, pad: 3 })}</span><span class="dex-name">${breedName('jersey')}</span>${tierChip(1)}</button></div>`;
 pstate('G-13', '按下：清單列、可點的卡片、關閉鈕', (ctx) => pressSheet(ctx, [
   pkind('市場的商品列', '不會停用', four((c) => prow(c), null, true)),

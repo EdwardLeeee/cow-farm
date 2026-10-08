@@ -770,6 +770,9 @@ def test_stud_borrow_pays_owner_and_calf_goes_to_borrower(h):
         404,
         "listing_not_found",
     )
+    # 被借走的上架：預覽也回 404 listing_not_found（協定 4.3，算不出借種費和小牛機率），不是 200 加 listing_gone
+    e = err(h.get("/v1/stud/preview", b, listing_id=lst["id"], dam=dam["id"]), 404, "listing_not_found")
+    assert e["detail"] == {"listing_id": lst["id"]}
     # 主人牧場在同一個交易裡存進資料庫
     import json as _json
 
@@ -892,6 +895,8 @@ def test_stud_unlist_and_npc_listings(h):
         u["listing_id"] == lst["id"] and next(c for c in u["state"]["cows"] if c["id"] == bull["id"])["listed"] is None
     )
     err(h.post("/v1/stud/unlist", a, {"listing_id": lst["id"], "request_id": new_rid()}), 404, "listing_not_found")
+    dam = next(c for c in sa["cows"] if not c["bull"])
+    err(h.get("/v1/stud/preview", a, listing_id=lst["id"], dam=dam["id"]), 404, "listing_not_found")  # 下架後的預覽
     # 公營種牛站（電腦系統上架）：錢不給任何人，借走後會補上
     market = h.get("/v1/stud", a).json()
     npc = [x for x in market["listings"] if x["owner"]["player_id"] is None]

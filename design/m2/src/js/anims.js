@@ -1,13 +1,13 @@
 // M2 動畫 A-01～A-10：每個動畫是「底圖＋frame(t)」，t 是秒。frame 只依 t 決定畫面（可以停在任何一格截圖）。
 // 揭曉類（A-04、A-06、A-09、A-10）控制在 1.5 秒內，點一下可以跳過。減少動態（手機系統設定）時各自的替代做法寫在 reduced。
-import { frame, btn, icon, fmt, cowSVG, toast, tierChip, badge, dialog } from './kit.js';
+import { frame, btn, icon, fmt, cowSVG, toast, tierChip, badge, dialog, useChip } from './kit.js';
 import { ranchPage, dock } from './screens/s03.js';
 import { HERD, fit, ranchScene, WIDE } from './scene.js';
 import { drawCow } from '../cow/render.js';
 import { RANCH, WAREHOUSE, sum, FIELDS, cowById } from './fixtures.js';
 import { GRADE_BG } from './screens/s04.js';
 // 字串表的 t() 在這個檔叫 T()，因為 frame(root, t) 的 t 是時間
-import { t as T, dur, cowName, breedName } from './i18n.js';
+import { t as T, dur, cowName, calfName, breedName, sexName } from './i18n.js';
 // 出貨卡車（A-03）的畫法在 truck.js：素材匯出（harness/assetexport.mjs）也用同一份
 import { TK, truckBack, truckFront, A03_HERD } from './truck.js';
 
@@ -172,13 +172,14 @@ function revealLayer(ctx, pageHTML, inner) {
 
 // ---------- A-04 小牛出生 ----------
 const A04 = {
-  id: 'A-04', name: '小牛出生（揭曉）', dur: 1.5, where: 'S08 配種、S18 借種',
-  keys: [[0, '配種成功，出現蓋著布的草窩'], [0.35, '布動來動去'], [0.6, '布飛走，露出小牛的剪影'], [0.9, '剪影變成彩色小牛'], [1.2, '跳出名字和稀有度'], [1.5, '結束，接著顯示小牛倒數卡']],
-  reduced: '不播動畫：直接顯示小牛、名字和稀有度（淡入 0.2 秒），再顯示小牛倒數卡。',
+  // v0.3（第 13 輪 02-A）：出生時還不知道品種，只看得出用途和公母；品種長大才揭曉（A-13）
+  id: 'A-04', name: '小牛出生', dur: 1.5, where: 'S08 配種、S18 借種',
+  keys: [[0, '配種成功，出現蓋著布的草窩'], [0.35, '布動來動去'], [0.6, '布飛走，露出小牛的剪影'], [0.9, '剪影變成彩色小牛（照用途的一般品種畫，母的有蝴蝶結）'], [1.2, '跳出名字（小乳牛 #16）、用途和公母'], [1.5, '結束，接著顯示小牛倒數卡']],
+  reduced: '不播動畫：直接顯示小牛、名字、用途和公母（淡入 0.2 秒），再顯示小牛倒數卡。',
   base: (ctx) => revealLayer(ctx, frame(ctx.dev, { tab: 'breed', content: '<div></div>' }), `
-    <div class="nest"><div class="calf-sil">${cowSVG({ breed: 'jersey', age: 'calf', seed: 91 }, { w: 170, h: 150, sil: 'dark' })}</div><div class="calf-col">${cowSVG({ breed: 'jersey', age: 'calf', seed: 91 }, { w: 170, h: 150 })}</div>
+    <div class="nest"><div class="calf-sil">${cowSVG({ breed: 'holstein', sex: 'cow', age: 'calf', seed: 91 }, { w: 170, h: 150, sil: 'dark' })}</div><div class="calf-col">${cowSVG({ breed: 'holstein', sex: 'cow', age: 'calf', seed: 91 }, { w: 170, h: 150 })}</div>
       <div class="hay"></div><div class="cloth">${icon('heart', 34)}</div></div>
-    <div class="reveal-name"><b>${cowName('jersey', 16)}</b><div class="chips">${tierChip(1)}${badge('calf', T('stageCalf'))}</div></div>
+    <div class="reveal-name"><b>${calfName('dairy', 16)}</b><div class="chips">${useChip('dairy')}<span class="use">${sexName('cow')}</span>${badge('calf', T('stageCalf'))}</div></div>
     <div class="burst-hearts">${[0, 1, 2, 3, 4, 5].map(() => `<i>${icon('heart', 22)}</i>`).join('')}</div>${skipHint(true)}`),
   frame(root, t) {
     const cloth = root.querySelector('.cloth'), sil = root.querySelector('.calf-sil'), col = root.querySelector('.calf-col'), nm = root.querySelector('.reveal-name');
@@ -229,13 +230,14 @@ const A05 = {
 
 // ---------- A-06 發現新品種 ----------
 const A06 = {
-  id: 'A-06', name: '發現新品種（揭曉）', dur: 1.5, where: '小牛出生（A-04）之後',
+  // v0.3（第 13 輪 02-A）：長大揭曉（A-13）那一刻才算發現，卡片上是長大的樣子
+  id: 'A-06', name: '發現新品種（揭曉）', dur: 1.5, where: '小牛長大揭曉（A-13）之後',
   keys: [[0, '「發現新品種！」卡片，先是剪影'], [0.4, '卡片翻面'], [0.75, '翻過來是彩色的新品種'], [1.1, '圖鑑數字 +1'], [1.5, '停住']],
   reduced: '不翻面：直接顯示彩色的品種卡和「已發現 11 / 24」（淡入 0.2 秒）。',
   base: (ctx) => revealLayer(ctx, frame(ctx.dev, { tab: 'breed', content: '<div></div>' }), `
     <div class="disc-title">${T('anim.newBreed')}</div>
-    <div class="disc-card"><div class="disc-face back">${cowSVG({ breed: 'chocolate', age: 'calf', seed: 93 }, { w: 150, h: 140, sil: 'dark' })}<b>？？？</b></div>
-      <div class="disc-face front">${cowSVG({ breed: 'chocolate', age: 'calf', seed: 93 }, { w: 150, h: 140 })}<b>${breedName('chocolate')}</b><div class="chips">${tierChip(2)}</div></div></div>
+    <div class="disc-card"><div class="disc-face back">${cowSVG({ breed: 'chocolate', seed: 93 }, { w: 150, h: 140, sil: 'dark' })}<b>？？？</b></div>
+      <div class="disc-face front">${cowSVG({ breed: 'chocolate', seed: 93 }, { w: 150, h: 140 })}<b>${breedName('chocolate')}</b><div class="chips">${tierChip(2)}</div></div></div>
     <div class="disc-count">${icon('book', 22)}${T('anim.dexCount', { n: '<b class="num"><span class="c-old">10</span><span class="c-new">11</span></b>', total: 24 })}</div>
     <div class="sparkles">${[0, 1, 2, 3, 4].map(() => `<i>${icon('sparkle', 24)}</i>`).join('')}</div>${skipHint(true)}`),
   frame(root, t) {
@@ -251,6 +253,42 @@ const A06 = {
     root.querySelector('.disc-count').style.transform = `scale(${1 + 0.12 * Math.sin(Math.PI * c)})`;
     [...root.querySelectorAll('.sparkles i')].forEach((s, i) => {
       const k = seg(t, 0.8 + i * 0.05, 1.4);
+      s.style.opacity = k > 0 && k < 1 ? Math.sin(Math.PI * k) : 0;
+      s.style.transform = `translate(${[-120, 120, -90, 100, 0][i]}px, ${[-110, -80, 40, 60, -150][i]}px) scale(${0.5 + k})`;
+    });
+  },
+};
+
+// ---------- A-13 小牛長大（揭曉品種；v0.3，第 13 輪 02-A） ----------
+// 在牧場頁播：小牛（照用途的一般品種畫）發光、白光一閃，變成長大的樣子；名字換成品種名、跳出稀有度。第一次長出這個品種，接著 A-06
+const A13 = {
+  id: 'A-13', name: '小牛長大（揭曉品種）', dur: 1.6, where: 'S03 牧場（小牛長大的那一刻；不在 app 裡的話，下次打開牧場頁時一頭一頭播）',
+  keys: [[0, '牧場頁變暗，中間是長大前的小牛（小乳牛 #16）'], [0.3, '小牛發光、一閃一閃'], [0.65, '白光一閃，變成長大的樣子'], [1.0, '名字換成品種名（娟珊 #16），跳出稀有度'], [1.6, '停住；第一次長出這個品種，接著 A-06 發現新品種']],
+  reduced: '不播動畫：直接顯示長大的牛、品種名和稀有度（淡入 0.2 秒）；第一次長出這個品種，接著顯示「發現新品種」卡。',
+  base: (ctx) => revealLayer(ctx, ranchPage(ctx), `
+    <div class="disc-title gs-title">${T('anim.grownUp', { cow: calfName('dairy', 16) })}</div>
+    <div class="grow-stage"><div class="gs-glow"></div><div class="gs-calf">${cowSVG({ breed: 'holstein', sex: 'cow', age: 'calf', seed: 91 }, { w: 170, h: 150 })}</div><div class="gs-adult">${cowSVG({ breed: 'jersey', sex: 'cow', seed: 91 }, { w: 200, h: 176 })}</div><div class="gs-flash"></div></div>
+    <div class="reveal-name gs-name"><div class="gs-old"><b>${calfName('dairy', 16)}</b></div><div class="gs-new"><b>${cowName('jersey', 16)}</b><div class="chips">${useChip('dairy')}<span class="use">${sexName('cow')}</span>${tierChip(1)}</div></div></div>
+    <div class="sparkles">${[0, 1, 2, 3, 4].map(() => `<i>${icon('sparkle', 24)}</i>`).join('')}</div>${skipHint(true)}`),
+  frame(root, t) {
+    const q = (s) => root.querySelector(s);
+    q('.gs-title').style.opacity = seg(t, 0, 0.15);
+    const glow = seg(t, 0.15, 0.65), pulse = 0.5 + 0.5 * Math.sin(glow * Math.PI * 5);
+    q('.gs-glow').style.opacity = t < 0.15 ? 0 : t < 0.65 ? 0.35 + 0.5 * pulse * glow : 1 - seg(t, 0.85, 1.1);
+    q('.gs-glow').style.transform = `translate(-50%, -50%) scale(${0.7 + 0.5 * glow})`;
+    const fl = seg(t, 0.55, 0.7), fo = seg(t, 0.75, 1.0);
+    q('.gs-flash').style.opacity = t < 0.75 ? fl : 1 - fo;
+    q('.gs-flash').style.transform = `translate(-50%, -50%) scale(${0.3 + 1.1 * outCubic(fl)})`;
+    const swapped = t >= 0.7;
+    q('.gs-calf').style.opacity = swapped ? 0 : 1;
+    q('.gs-calf').style.transform = `translateX(-50%) translateY(${-Math.abs(Math.sin(t * 18)) * 6 * seg(t, 0.15, 0.3) * (1 - seg(t, 0.55, 0.7))}px)`;
+    q('.gs-adult').style.opacity = swapped ? 1 : 0;
+    q('.gs-adult').style.transform = `translateX(-50%) scale(${0.8 + 0.2 * outBack(seg(t, 0.7, 1.0))})`;
+    const nk = seg(t, 1.0, 1.25);
+    q('.gs-old').style.opacity = 1 - seg(t, 0.95, 1.05); q('.gs-old').style.visibility = t >= 1.05 ? 'hidden' : 'visible';
+    q('.gs-new').style.opacity = nk; q('.gs-new').style.transform = `scale(${0.7 + 0.3 * outBack(nk)})`;
+    [...root.querySelectorAll('.sparkles i')].forEach((s, i) => {
+      const k = seg(t, 0.75 + i * 0.05, 1.4);
       s.style.opacity = k > 0 && k < 1 ? Math.sin(Math.PI * k) : 0;
       s.style.transform = `translate(${[-120, 120, -90, 100, 0][i]}px, ${[-110, -80, 40, 60, -150][i]}px) scale(${0.5 + k})`;
     });
@@ -318,13 +356,14 @@ const A08 = {
 // ---------- A-09 商店抽牛開獎 ----------
 const A09 = {
   id: 'A-09', name: '商店抽牛開獎（揭曉）', dur: 1.5, where: 'S19 商店抽牛',
-  keys: [[0, '按下「A 級」：出現金色禮盒'], [0.3, '禮盒搖晃、發光'], [0.55, '蓋子彈開，光線放射'], [0.85, '小牛從盒子裡升起（剪影 → 彩色）'], [1.15, '跳出名字與稀有度'], [1.5, '接著顯示抽到的結果（S19-05）']],
+  // v0.3（ceo 2026-10-03 定）：抽到的也是小牛、長大才揭曉品種（A-13）：只看得出用途和公母
+  keys: [[0, '按下「A 級」：出現金色禮盒'], [0.3, '禮盒搖晃、發光'], [0.55, '蓋子彈開，光線放射'], [0.85, '小牛從盒子裡升起（剪影 → 彩色；照用途的一般品種畫）'], [1.15, '跳出名字（小耕牛 #17）、用途和公母'], [1.5, '接著顯示抽到的結果（S19-05）']],
   reduced: '不播動畫：直接顯示抽到的結果（S19-05）。',
   base: (ctx) => revealLayer(ctx, frame(ctx.dev, { tab: 'shop', content: '<div></div>' }), `
     <div class="rays"></div>
-    <div class="gbox"><div class="gb-calf sil">${cowSVG({ breed: 'highland', age: 'calf', seed: 97 }, { w: 150, h: 130, sil: 'dark' })}</div><div class="gb-calf col">${cowSVG({ breed: 'highland', age: 'calf', seed: 97 }, { w: 150, h: 130 })}</div>
+    <div class="gbox"><div class="gb-calf sil">${cowSVG({ breed: 'yellow', sex: 'cow', age: 'calf', seed: 97 }, { w: 150, h: 130, sil: 'dark' })}</div><div class="gb-calf col">${cowSVG({ breed: 'yellow', sex: 'cow', age: 'calf', seed: 97 }, { w: 150, h: 130 })}</div>
       <div class="gb-body"><span class="gb-grade">A</span></div><div class="gb-lid"></div></div>
-    <div class="reveal-name"><b>${cowName('highland', 17)}</b><div class="chips">${tierChip(1)}${badge('calf', T('stageCalf'))}</div></div>${skipHint(true)}`),
+    <div class="reveal-name"><b>${calfName('draft', 17)}</b><div class="chips">${useChip('draft')}<span class="use">${sexName('cow')}</span>${badge('calf', T('stageCalf'))}</div></div>${skipHint(true)}`),
   frame(root, t) {
     const box = root.querySelector('.gbox'), lid = root.querySelector('.gb-lid'), rays = root.querySelector('.rays');
     const shake = t < 0.5 ? Math.sin(t * 46) * 8 * seg(t, 0.05, 0.3) : 0;
@@ -436,4 +475,4 @@ const A12 = {
   },
 };
 
-export const ANIMS = [A01, A02, A03, A04, A05, A06, A07, A08, A09, A10, A11, A12];
+export const ANIMS = [A01, A02, A03, A04, A05, A06, A07, A08, A09, A10, A11, A12, A13];

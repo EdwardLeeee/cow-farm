@@ -972,3 +972,16 @@
 /* 斷線時的登入鈕（S13-21；cow-app #127，ceo 2026-10-03）：兩顆一起變淡、不能按，官方的顏色和字都不改；下面寫要連上網路 */
 .sso-area.off .sso { opacity: 0.4; }
 .sso-off { text-align: center; }
+/* ---------- A-13 小牛長大（揭曉品種；v0.3，第 13 輪 02-A） ---------- */
+.grow-stage { position: relative; width: 240px; height: 210px; }
+.gs-glow { position: absolute; left: 50%; top: 58%; width: 210px; height: 210px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 244, 180, 0.95) 0, rgba(255, 226, 122, 0.55) 45%, rgba(255, 226, 122, 0) 70%); opacity: 0; }
+.gs-calf, .gs-adult { position: absolute; left: 50%; bottom: 8px; line-height: 0; transform: translateX(-50%); transform-origin: 50% 100%; }
+.gs-adult { opacity: 0; }
+.gs-flash { position: absolute; left: 50%; top: 55%; width: 250px; height: 250px; border-radius: 50%; background: radial-gradient(circle, #FFFFFF 0, #FFFFFF 42%, rgba(255, 255, 255, 0) 70%); opacity: 0; }
+.reveal-name.gs-name { opacity: 1; position: relative; min-width: 190px; min-height: 68px; justify-content: flex-start; }
+.gs-old, .gs-new { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.gs-new { position: absolute; left: 0; right: 0; top: 8px; opacity: 0; }
+/* S19-05 抽到的結果：這個等級公開的稀有度機率（v0.3：抽到的也是小牛、長大才揭曉） */
+.draw-odds { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 8px; }
+.draw-odds .do-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 8px; }
+.draw-odds .do-cell { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; }

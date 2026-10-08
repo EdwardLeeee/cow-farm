@@ -7,8 +7,9 @@
   "變體：seeds 的長度就是變體數，app 用「牛的編號 mod 變體數」挑。"
  ],
  "generator": {
-  "design/m2/harness/assetexport.mjs": "57cfbc5f63bf1df2f9f492e9d1edd0cd54b89d3295a3146afe2202eff92ea9a3",
+  "design/m2/harness/assetexport.mjs": "9c806b561653815785fd4808ecba4d2c9d235dd91e84f0ae9f9be4aca06c7631",
   "design/m2/src/cow/breeds.js": "8a1563caa470739a78b3b7d33f49d0b3043985b194f560ce0a3a7d466543ae26",
+  "design/m2/src/cow/calf.js": "3d773e00d3f42d69b9de1b2de366e9af4f25f46645fdcf47a5146b063d84c29b",
   "design/m2/src/cow/q.js": "161f0ebf2cffa8d8baf19f095bab63f04c6d55004155fd078942b2aae7b5fbee",
   "design/m2/src/cow/r1/cowgen.js": "1935ca123df02952bfc2c3ba4ed768a4101e009477d1258ce018eb060096db42",
   "design/m2/src/cow/r11.js": "6320eccb9408e09ad5ee4a983d2c30e1a9341461d08bad9b2665994b4147b06e",
@@ -190,9 +191,9 @@
  "images": {
   "holstein_cow_calf_side_left_v0": {
    "w": 65.79,
-   "h": 52.61,
+   "h": 57.38,
    "x0": -35.65,
-   "y0": -48.61,
+   "y0": -53.38,
    "height": 44.61,
    "face": {
     "cx": -12.5,
@@ -208,13 +209,13 @@
     "rx": 21.61,
     "ry": 3.49
    },
-   "sha256": "41b33c54a3ef8c1c9cc43bc7face248baf0a74408dded3f860ec9903d59bfb4d"
+   "sha256": "f67a226a5a7d9521c47005a45dfe60b36130e4e8ab6f9f328a339e5bbbe9b21d"
   },
   "holstein_cow_calf_side_left_v1": {
    "w": 65.79,
-   "h": 52.61,
+   "h": 57.38,
    "x0": -35.65,
-   "y0": -48.61,
+   "y0": -53.38,
    "height": 44.61,
    "face": {
     "cx": -12.5,
@@ -230,13 +231,13 @@
     "rx": 21.61,
     "ry": 3.49
    },
-   "sha256": "38d9e71014cd5a521a7ffb8b9907284e14519da1df18bed45ecd956da2a4095a"
+   "sha256": "9c04b555c8de7e93536065c6bd50fe32d9162656e0da804d613aa941dc333057"
   },
   "holstein_cow_calf_side_left_v2": {
    "w": 65.79,
-   "h": 52.61,
+   "h": 57.38,
    "x0": -35.65,
-   "y0": -48.61,
+   "y0": -53.38,
    "height": 44.61,
    "face": {
     "cx": -12.5,
@@ -252,13 +253,13 @@
     "rx": 21.61,
     "ry": 3.49
    },
-   "sha256": "105171d08c1cb33492d0a099e1cf00b6787f6e93eb291c2affcc79c860300b49"
+   "sha256": "82cf94e5ec6e053c7f935ed91c2c99071c2698d40694abd2e0020afde7b0ef77"
   },
   "holstein_cow_calf_side_left_v3": {
    "w": 65.79,
-   "h": 52.61,
+   "h": 57.38,
    "x0": -35.65,
-   "y0": -48.61,
+   "y0": -53.38,
    "height": 44.61,
    "face": {
     "cx": -12.5,
@@ -274,13 +275,13 @@
     "rx": 21.61,
     "ry": 3.49
    },
-   "sha256": "fd14913777d258734a1afe8da71dc7246668ece3cf94cb829b53f28cfce266e5"
+   "sha256": "8244e40832b5060187f3c691316fefa08a0b1601265115b9b3d97a6ba1a8014a"
   },
   "holstein_cow_calf_front_left_v0": {
    "w": 52.6,
-   "h": 63.14,
+   "h": 67.75,
    "x0": -26.3,
-   "y0": -59.14,
+   "y0": -63.75,
    "height": 55.14,
    "face": {
     "cx": 0,
@@ -296,13 +297,13 @@
     "rx": 19.67,
     "ry": 3.82
    },
-   "sha256": "0d0b66344dde4324a8213a6caa8744e4c65ba2175c69ecec5d99de18ee16599c"
+   "sha256": "a58b31a92f52a116f303eb2425219beb93722f35a40fd80211de141cce5fd4c1"
   },
   "holstein_cow_calf_front_left_v1": {
    "w": 52.6,
-   "h": 63.14,
+   "h": 67.75,
    "x0": -26.3,
-   "y0": -59.14,
+   "y0": -63.75,
    "height": 55.14,
    "face": {
     "cx": 0,
@@ -318,13 +319,13 @@
     "rx": 19.67,
     "ry": 3.82
    },
-   "sha256": "93a35525a71fb3bee7c56b21da3cc3bdd85d5f9547232b4e98bbe9ae8e0f495a"
+   "sha256": "16a84bf45ee345515a916963e6ccb87f66dc82022421dd07d004b80d9c9a681f"
   },
   "holstein_cow_calf_front_left_v2": {
    "w": 52.6,
-   "h": 63.14,
+   "h": 67.75,
    "x0": -26.3,
-   "y0": -59.14,
+   "y0": -63.75,
    "height": 55.14,
    "face": {
     "cx": 0,
@@ -340,13 +341,13 @@
     "rx": 19.67,
     "ry": 3.82
    },
-   "sha256": "71c6e192b74dac1448a926b2262c90d54e8b69464dae992ab9164246b1034c52"
+   "sha256": "e0c64d0748731d243fea9cfcaf627c6a1f1922b4ec91116e639c188490a59299"
   },
   "holstein_cow_calf_front_left_v3": {
    "w": 52.6,
-   "h": 63.14,
+   "h": 67.75,
    "x0": -26.3,
-   "y0": -59.14,
+   "y0": -63.75,
    "height": 55.14,
    "face": {
     "cx": 0,
@@ -362,7 +363,7 @@
     "rx": 19.67,
     "ry": 3.82
    },
-   "sha256": "0f863ddff2f3f17925baa607c4e834e2b804bdc863bc83ac661daeacd80af263"
+   "sha256": "987c1a6b46903a51fff6b2092dfb6c760477871223114533fcc5d292cab09fb2"
   },
   "holstein_cow_adult_side_left_v0": {
    "w": 118.05,
@@ -894,9 +895,9 @@
   },
   "fluffyHolstein_cow_calf_side_left_v0": {
    "w": 68.41,
-   "h": 52.82,
+   "h": 57.59,
    "x0": -36.7,
-   "y0": -48.82,
+   "y0": -53.59,
    "height": 44.82,
    "face": {
     "cx": -13.55,
@@ -912,13 +913,13 @@
     "rx": 22.91,
     "ry": 3.7
    },
-   "sha256": "a4d97ff97f1c10af4ebc7d8c5c51c7bc133dd56dce042e9a762a9211c9a65fe5"
+   "sha256": "fe6a61121917a7fa97b362335f5f006af00a71b94941db60225c09b7ac2a3f8b"
   },
   "fluffyHolstein_cow_calf_side_left_v1": {
    "w": 68.41,
-   "h": 52.82,
+   "h": 57.59,
    "x0": -36.7,
-   "y0": -48.82,
+   "y0": -53.59,
    "height": 44.82,
    "face": {
     "cx": -13.55,
@@ -934,13 +935,13 @@
     "rx": 22.91,
     "ry": 3.7
    },
-   "sha256": "5ae59a9be2a5e2198762d9a28a88170aea19598562f3de3db34899ea4f310171"
+   "sha256": "67a7f8088de39203ec9413175ad5c2db4f1eff813bc9572af4b4664edd29cece"
   },
   "fluffyHolstein_cow_calf_side_left_v2": {
    "w": 68.41,
-   "h": 52.82,
+   "h": 57.59,
    "x0": -36.7,
-   "y0": -48.82,
+   "y0": -53.59,
    "height": 44.82,
    "face": {
     "cx": -13.55,
@@ -956,13 +957,13 @@
     "rx": 22.91,
     "ry": 3.7
    },
-   "sha256": "f4c8776925fc38d8bed7c3b05ec731bd40643082b12220e99dd221ea8efbdb47"
+   "sha256": "a495e7985b298c582b35cac7cd0079cf8dcfab1922ac4bd70cbcee80ffc8a2d2"
   },
   "fluffyHolstein_cow_calf_side_left_v3": {
    "w": 68.41,
-   "h": 52.82,
+   "h": 57.59,
    "x0": -36.7,
-   "y0": -48.82,
+   "y0": -53.59,
    "height": 44.82,
    "face": {
     "cx": -13.55,
@@ -978,13 +979,13 @@
     "rx": 22.91,
     "ry": 3.7
    },
-   "sha256": "1bbd2e37c7e90006c2b23c231ed3d700ce6a89dbe69d51be1caab8ddd1bea500"
+   "sha256": "60fdbae031c5356cefa6b1502a66ae3d03f1748f125b0ea6e028a30c03e42336"
   },
   "fluffyHolstein_cow_calf_front_left_v0": {
    "w": 52.6,
-   "h": 63.14,
+   "h": 67.75,
    "x0": -26.3,
-   "y0": -59.14,
+   "y0": -63.75,
    "height": 55.14,
    "face": {
     "cx": 0,
@@ -1000,13 +1001,13 @@
     "rx": 21.25,
     "ry": 3.82
    },
-   "sha256": "0e815757d87a89764bcbcd9b8370397d612c19207b8a39c2913d77751098bfec"
+   "sha256": "b39deb0213b778e05f4804793a72b7ffb45bb4545974f0e56005439c7bac9c0b"
   },
   "fluffyHolstein_cow_calf_front_left_v1": {
    "w": 52.6,
-   "h": 63.14,
+   "h": 67.75,
    "x0": -26.3,
-   "y0": -59.14,
+   "y0": -63.75,
    "height": 55.14,
    "face": {
     "cx": 0,
@@ -1022,13 +1023,13 @@
     "rx": 21.25,
     "ry": 3.82
    },
-   "sha256": "015bb8032dc7105a928b614f2750e3e9153f001115dd0dbab12f1f6ca557828b"
+   "sha256": "f92e4653bae2ee0a5c59cbe074c1c8052dce61edcbd9a3839bd04dcc9f2dca0e"
   },
   "fluffyHolstein_cow_calf_front_left_v2": {
    "w": 52.6,
-   "h": 63.14,
+   "h": 67.75,
    "x0": -26.3,
-   "y0": -59.14,
+   "y0": -63.75,
    "height": 55.14,
    "face": {
     "cx": 0,
@@ -1044,13 +1045,13 @@
     "rx": 21.25,
     "ry": 3.82
    },
-   "sha256": "b8eadf7184bd70e2716a54d010a2bbb3e2613927e04208939bfe268b02f4f73b"
+   "sha256": "d05d83198cb60ed8ea60c2d1363bab18d160d45e3b0d50faf9195d6d23016898"
   },
   "fluffyHolstein_cow_calf_front_left_v3": {
    "w": 52.6,
-   "h": 63.14,
+   "h": 67.75,
    "x0": -26.3,
-   "y0": -59.14,
+   "y0": -63.75,
    "height": 55.14,
    "face": {
     "cx": 0,
@@ -1066,7 +1067,7 @@
     "rx": 21.25,
     "ry": 3.82
    },
-   "sha256": "3f84fca505af1d68e18817473cf3446d541a137f16d260d5db1c6095941a7730"
+   "sha256": "e9817a546ee3c66b4c4d8d5cc0ab175b6d2a9524359fbe8142bb6b6b7c1a4600"
   },
   "fluffyHolstein_cow_adult_side_left_v0": {
    "w": 123.32,
@@ -1598,9 +1599,9 @@
   },
   "jersey_cow_calf_side_left_v0": {
    "w": 60.86,
-   "h": 47.63,
+   "h": 52.68,
    "x0": -33.33,
-   "y0": -43.63,
+   "y0": -48.68,
    "height": 39.63,
    "face": {
     "cx": -11.16,
@@ -1616,13 +1617,13 @@
     "rx": 19.45,
     "ry": 3.14
    },
-   "sha256": "75ce911de404b4ef963083e1ed4dcf01e0a20d9f977f989785d9e3a2bc9ca758"
+   "sha256": "bfbfe15d7770173d5b619395220315923e6f3668ae0597c79c2a1f6246a9a94e"
   },
   "jersey_cow_calf_front_left_v0": {
    "w": 50.32,
-   "h": 57.7,
+   "h": 62.91,
    "x0": -25.16,
-   "y0": -53.7,
+   "y0": -58.91,
    "height": 49.7,
    "face": {
     "cx": 0,
@@ -1638,7 +1639,7 @@
     "rx": 17.71,
     "ry": 3.44
    },
-   "sha256": "af80fda4e6a939edf852a221897a40a2d115a5fdc4b1ce35ece8ae8834dba5ff"
+   "sha256": "bf3562bf9ad5527b6b38623d39992131aafcd64326c9d679528c00b6eb62e97a"
   },
   "jersey_cow_adult_side_left_v0": {
    "w": 108.34,
@@ -1774,9 +1775,9 @@
   },
   "glossBlack_cow_calf_side_left_v0": {
    "w": 65.79,
-   "h": 52.61,
+   "h": 57.38,
    "x0": -35.65,
-   "y0": -48.61,
+   "y0": -53.38,
    "height": 44.61,
    "face": {
     "cx": -12.5,
@@ -1792,13 +1793,13 @@
     "rx": 21.61,
     "ry": 3.49
    },
-   "sha256": "1ce2d8fb24c9f47ee2844e724ad68959d8a370b144b869b7e82b70629b7b22cd"
+   "sha256": "41b9478aee1eaacf8388a12b0e7b96d651ccb670e7616cb992f4db66a152b845"
   },
   "glossBlack_cow_calf_side_left_v1": {
    "w": 65.79,
-   "h": 52.61,
+   "h": 57.38,
    "x0": -35.65,
-   "y0": -48.61,
+   "y0": -53.38,
    "height": 44.61,
    "face": {
     "cx": -12.5,
@@ -1814,13 +1815,13 @@
     "rx": 21.61,
     "ry": 3.49
    },
-   "sha256": "141f53fe5386fba7222a97b835d3a49dd5d9bdf392792dda1291cdd37b6e6e95"
+   "sha256": "9f0f3ef39b33abf64bddb1bb42b4ff1a66c114060b7597b0ab2d8e578770cf1e"
   },
   "glossBlack_cow_calf_side_left_v2": {
    "w": 65.79,
-   "h": 52.61,
+   "h": 57.38,
    "x0": -35.65,
-   "y0": -48.61,
+   "y0": -53.38,
    "height": 44.61,
    "face": {
     "cx": -12.5,
@@ -1836,13 +1837,13 @@
     "rx": 21.61,
     "ry": 3.49
    },
-   "sha256": "4243303dada815c098f4e9a4f116e507f93688a5f2e24c0b57b11d1e8f54f810"
+   "sha256": "4199219b47084baf960f828fa3efd75164ee8bb74727958cd75404c5f0371d37"
   },
   "glossBlack_cow_calf_side_left_v3": {
    "w": 65.79,
-   "h": 52.61,
+   "h": 57.38,
    "x0": -35.65,
-   "y0": -48.61,
+   "y0": -53.38,
    "height": 44.61,
    "face": {
     "cx": -12.5,
@@ -1858,13 +1859,13 @@
     "rx": 21.61,
     "ry": 3.49
    },
-   "sha256": "e0a5cb4c0d49eb6aaaecee07606590f8c053ed99c96132e4c4da92d3bc031653"
+   "sha256": "2c9dc48cda1a5694e93554dfd37d00885734475e8ba814f8e0336f391d98ca3b"
   },
   "glossBlack_cow_calf_side_right_v0": {
    "w": 65.79,
-   "h": 52.61,
+   "h": 57.38,
    "x0": -30.14,
-   "y0": -48.61,
+   "y0": -53.38,
    "height": 44.61,
    "face": {
     "cx": 12.5,
@@ -1880,13 +1881,13 @@
     "rx": 21.61,
     "ry": 3.49
    },
-   "sha256": "56570ada4d03cbd39c5cd8c5c29f06cef7730e1e1cf4435577bd47d0225e5e5e"
+   "sha256": "a6c1cae8b82010fa9af6c5be9fef004f2750172c7b87be96dec10a3d411f8ee2"
   },
   "glossBlack_cow_calf_side_right_v1": {
    "w": 65.79,
-   "h": 52.61,
+   "h": 57.38,
    "x0": -30.14,
-   "y0": -48.61,
+   "y0": -53.38,
    "height": 44.61,
    "face": {
     "cx": 12.5,
@@ -1902,13 +1903,13 @@
     "rx": 21.61,
     "ry": 3.49
    },
-   "sha256": "30a73a192586ab9db79b5cacf02492b8d13a32ce1afc33190aa63c27ba0278bc"
+   "sha256": "100883c2432a62b6e9a1a3f58eeae7985acf38d4a9868b83dae01981404e3401"
   },
   "glossBlack_cow_calf_side_right_v2": {
    "w": 65.79,
-   "h": 52.61,
+   "h": 57.38,
    "x0": -30.14,
-   "y0": -48.61,
+   "y0": -53.38,
    "height": 44.61,
    "face": {
     "cx": 12.5,
@@ -1924,13 +1925,13 @@
     "rx": 21.61,
     "ry": 3.49
    },
-   "sha256": "5c1aca0cf8a21670684dc9f61c10840f70d87df4155332f364dad48261071b6a"
+   "sha256": "a63fd2a060412d84cd7700e469644263e21b1417a250f764d2f32f87ba5a6cae"
   },
   "glossBlack_cow_calf_side_right_v3": {
    "w": 65.79,
-   "h": 52.61,
+   "h": 57.38,
    "x0": -30.14,
-   "y0": -48.61,
+   "y0": -53.38,
    "height": 44.61,
    "face": {
     "cx": 12.5,
@@ -1946,13 +1947,13 @@
     "rx": 21.61,
     "ry": 3.49
    },
-   "sha256": "c4c9ba5b779f626ab6fa9e0ea5ff6eab82d991798d3091fff876ef638e5ee4d9"
+   "sha256": "0fc639d39f13f84d0531b89285514e33078a13dfd1a12224b5aa7f5869d4b5b1"
   },
   "glossBlack_cow_calf_front_left_v0": {
    "w": 52.6,
-   "h": 63.14,
+   "h": 67.75,
    "x0": -26.3,
-   "y0": -59.14,
+   "y0": -63.75,
    "height": 55.14,
    "face": {
     "cx": 0,
@@ -1968,13 +1969,13 @@
     "rx": 19.67,
     "ry": 3.82
    },
-   "sha256": "4a26af3bff82e48bfc7fffac93c66e3ae604c39fc2de99d0260c8583ee4e3a35"
+   "sha256": "35dd8696505225865ee5b1fb860fb6d93fb76500f4e05ebff0ccc645d9b9428e"
   },
   "glossBlack_cow_calf_front_left_v1": {
    "w": 52.6,
-   "h": 63.14,
+   "h": 67.75,
    "x0": -26.3,
-   "y0": -59.14,
+   "y0": -63.75,
    "height": 55.14,
    "face": {
     "cx": 0,
@@ -1990,13 +1991,13 @@
     "rx": 19.67,
     "ry": 3.82
    },
-   "sha256": "1b8fb42a36df408e20a7434e1ca8734aefe0db2508b1cce33b549bf88c20c291"
+   "sha256": "2a0cbd027450c75fab2bedd9a0b46bf55e0be8af4954d7b8132fcd0268d9653e"
   },
   "glossBlack_cow_calf_front_left_v2": {
    "w": 52.6,
-   "h": 63.14,
+   "h": 67.75,
    "x0": -26.3,
-   "y0": -59.14,
+   "y0": -63.75,
    "height": 55.14,
    "face": {
     "cx": 0,
@@ -2012,13 +2013,13 @@
     "rx": 19.67,
     "ry": 3.82
    },
-   "sha256": "a499f90f29e23781969044d466b24cb5e7a98f598ff73f20ea345621db6be4e7"
+   "sha256": "49d4d46572d31fbb9b8f2dff397572117d6f53f8060bce372166b7ee49d9a40b"
   },
   "glossBlack_cow_calf_front_left_v3": {
    "w": 52.6,
-   "h": 63.14,
+   "h": 67.75,
    "x0": -26.3,
-   "y0": -59.14,
+   "y0": -63.75,
    "height": 55.14,
    "face": {
     "cx": 0,
@@ -2034,13 +2035,13 @@
     "rx": 19.67,
     "ry": 3.82
    },
-   "sha256": "3717c0e7715acf18620473a005ffe261195ddcc565e27a0837f95eff7c4ed5a7"
+   "sha256": "23cb570c00ad3abfd9790402570667375ac7f56111c60563e4c4396cfd059dff"
   },
   "glossBlack_cow_calf_front_right_v0": {
    "w": 52.6,
-   "h": 63.14,
+   "h": 67.75,
    "x0": -26.3,
-   "y0": -59.14,
+   "y0": -63.75,
    "height": 55.14,
    "face": {
     "cx": 0,
@@ -2056,13 +2057,13 @@
     "rx": 19.67,
     "ry": 3.82
    },
-   "sha256": "398ad0b991e0174ff465a5ba22ac7eee7df3eebf8c25eedec64b23a9cedce0a8"
+   "sha256": "a34acb12955c73c8cd54b270bf49343856dee2cd007237605ad1a6b29ee6cd93"
   },
   "glossBlack_cow_calf_front_right_v1": {
    "w": 52.6,
-   "h": 63.14,
+   "h": 67.75,
    "x0": -26.3,
-   "y0": -59.14,
+   "y0": -63.75,
    "height": 55.14,
    "face": {
     "cx": 0,
@@ -2078,13 +2079,13 @@
     "rx": 19.67,
     "ry": 3.82
    },
-   "sha256": "e3b65dce60aeac317e002a2984e0602911f1f0ed4905eb7870bafb7406d4822c"
+   "sha256": "6c4b9cea9f354edc6ad407098dfaf736130a366ebfc388a75ee27ee62c1bdc40"
   },
   "glossBlack_cow_calf_front_right_v2": {
    "w": 52.6,
-   "h": 63.14,
+   "h": 67.75,
    "x0": -26.3,
-   "y0": -59.14,
+   "y0": -63.75,
    "height": 55.14,
    "face": {
     "cx": 0,
@@ -2100,13 +2101,13 @@
     "rx": 19.67,
     "ry": 3.82
    },
-   "sha256": "e00bfe0e5bbd5414d129209bb2262d562dfeca905f8c57353340c3e365580326"
+   "sha256": "78e3a3e74ca200c14406c87f725cd4947960de0f94f229eb6230dff85a39317e"
   },
   "glossBlack_cow_calf_front_right_v3": {
    "w": 52.6,
-   "h": 63.14,
+   "h": 67.75,
    "x0": -26.3,
-   "y0": -59.14,
+   "y0": -63.75,
    "height": 55.14,
    "face": {
     "cx": 0,
@@ -2122,7 +2123,7 @@
     "rx": 19.67,
     "ry": 3.82
    },
-   "sha256": "5d36b2f47072c9cd846228cf729c9b57de8708092da29c885ddb61e7a516377d"
+   "sha256": "a953e5f1eb480cd71ec003a9adf28285029e6d2613f7879acaaa45dd178be7e6"
   },
   "glossBlack_cow_adult_side_left_v0": {
    "w": 118.05,
@@ -3182,9 +3183,9 @@
   },
   "cottonCream_cow_calf_side_left_v0": {
    "w": 63.21,
-   "h": 47.81,
+   "h": 52.87,
    "x0": -34.27,
-   "y0": -43.81,
+   "y0": -48.87,
    "height": 39.81,
    "face": {
     "cx": -12.1,
@@ -3200,13 +3201,13 @@
     "rx": 20.62,
     "ry": 3.33
    },
-   "sha256": "07782f438f286c4dbfd4f23d4af4818c2fd6ccb657823e6f0a1e41d7d980ac89"
+   "sha256": "17fbf3ea6cfae41f7f8c92576a7b9c19cd32edec06ec57e4f52eb2c7d56ff31b"
   },
   "cottonCream_cow_calf_front_left_v0": {
    "w": 50.32,
-   "h": 57.7,
+   "h": 62.91,
    "x0": -25.16,
-   "y0": -53.7,
+   "y0": -58.91,
    "height": 49.7,
    "face": {
     "cx": 0,
@@ -3222,7 +3223,7 @@
     "rx": 19.12,
     "ry": 3.44
    },
-   "sha256": "2b0b5624be37c41cef38497660051b2725927c8132b313d4726d4d885fba472c"
+   "sha256": "5ad3eebf96cfa9e0432cd8af5088a0afcd183cccaf22cdeb66b3ed8ca7dd181a"
   },
   "cottonCream_cow_adult_side_left_v0": {
    "w": 113.08,
@@ -3358,9 +3359,9 @@
   },
   "velvetBlack_cow_calf_side_left_v0": {
    "w": 68.41,
-   "h": 52.82,
+   "h": 57.59,
    "x0": -36.7,
-   "y0": -48.82,
+   "y0": -53.59,
    "height": 44.82,
    "face": {
     "cx": -13.55,
@@ -3376,13 +3377,13 @@
     "rx": 22.91,
     "ry": 3.7
    },
-   "sha256": "153be3de8a2046b39b07220375e5a6c7b650738ee893256e013fa3ed9d716f1c"
+   "sha256": "e0a6e6d21865d932facc2f73e395b21fd04b11ce75fc47a877d6921e7a7085f2"
   },
   "velvetBlack_cow_calf_side_right_v0": {
    "w": 68.41,
-   "h": 52.82,
+   "h": 57.59,
    "x0": -31.71,
-   "y0": -48.82,
+   "y0": -53.59,
    "height": 44.82,
    "face": {
     "cx": 13.55,
@@ -3398,13 +3399,13 @@
     "rx": 22.91,
     "ry": 3.7
    },
-   "sha256": "fd4d0da5e2fcf1e2fdfaceb1d7ff4f1605e369e5e8b9c77e2d46edc2fdd6052d"
+   "sha256": "1dbe65df5d085c9c58e995da28ccc58dbe6ae8c1e18c3c5de9035b59ba390132"
   },
   "velvetBlack_cow_calf_front_left_v0": {
    "w": 52.6,
-   "h": 63.14,
+   "h": 67.75,
    "x0": -26.3,
-   "y0": -59.14,
+   "y0": -63.75,
    "height": 55.14,
    "face": {
     "cx": 0,
@@ -3420,13 +3421,13 @@
     "rx": 21.25,
     "ry": 3.82
    },
-   "sha256": "86e604a952e0ec0acd632d96e09e5c211a72d22dd5675c9abd9b639ac28d8ea7"
+   "sha256": "a42bf243e595d7d7d0d4bcc41cdf4b23c6a629b3bd5bb5250ac4bed772c1993d"
   },
   "velvetBlack_cow_calf_front_right_v0": {
    "w": 52.6,
-   "h": 63.14,
+   "h": 67.75,
    "x0": -26.3,
-   "y0": -59.14,
+   "y0": -63.75,
    "height": 55.14,
    "face": {
     "cx": 0,
@@ -3442,7 +3443,7 @@
     "rx": 21.25,
     "ry": 3.82
    },
-   "sha256": "324df7ae28dc5952d0fc4b503015ad4f39776ac35662c4742c0b8c8be8b60c93"
+   "sha256": "669670d24bfb4f3c41b28d6d63d84a09acafbee8e68d005d14a8e57b3f68d663"
   },
   "velvetBlack_cow_adult_side_left_v0": {
    "w": 123.32,
@@ -3728,7 +3729,7 @@
     "rx": 19.45,
     "ry": 3.14
    },
-   "sha256": "26b1df8d75e0792e372a867706df5fd89d3c685afc0d889ce3bd3c11db899ff6"
+   "sha256": "e55d1edfcc1598434ca8d3a752792650539f87121717f12d59c009b3194698b4"
   },
   "chocolate_cow_calf_side_left_v1": {
    "w": 60.86,
@@ -3750,7 +3751,7 @@
     "rx": 19.45,
     "ry": 3.14
    },
-   "sha256": "f5ce66840edce3b6ad1eb57411d4238deeef91d2b133a63a25ea0a9b4d29d7f7"
+   "sha256": "c67fc7e9e776e4da7b4e6d59fe0d28e6107477041f1c8f471bd43cc04464bcf4"
   },
   "chocolate_cow_calf_side_left_v2": {
    "w": 60.86,
@@ -3772,7 +3773,7 @@
     "rx": 19.45,
     "ry": 3.14
    },
-   "sha256": "df84c148a0124cfc0757ac958d0ed50f15a835b855e779052f90e631901b2483"
+   "sha256": "17b7fe94ec8b0e62b999724283d8b4be13b1258878193c911b9628f5ede20e10"
   },
   "chocolate_cow_calf_side_left_v3": {
    "w": 60.86,
@@ -3794,7 +3795,7 @@
     "rx": 19.45,
     "ry": 3.14
    },
-   "sha256": "88bae739ecad7958e1fdf7b6efaa87a76c64f8d57b0efc49797261450d50db12"
+   "sha256": "fa680dc65f07e370a79e1fabc9e72a82b2263a5a0efa5f45e8d292297c2c28bd"
   },
   "chocolate_cow_calf_side_right_v0": {
    "w": 60.86,
@@ -3816,7 +3817,7 @@
     "rx": 19.45,
     "ry": 3.14
    },
-   "sha256": "d7aabfa9638012b732d72520aefe9374fbfee5fdf7f3a99fcaa08c03bfd82dc1"
+   "sha256": "59802afb3d3cb2582031354fcc383a345fb631b6cb934336db01a7a46707ab10"
   },
   "chocolate_cow_calf_side_right_v1": {
    "w": 60.86,
@@ -3838,7 +3839,7 @@
     "rx": 19.45,
     "ry": 3.14
    },
-   "sha256": "bf3142ecfc6b82dd478a367be2506d40ff94e6e39426571e0da47273168e7d07"
+   "sha256": "134ab40a732e44bec7dc3aa38a76ab3afa04ded21366ecce25f7999f1e608f98"
   },
   "chocolate_cow_calf_side_right_v2": {
    "w": 60.86,
@@ -3860,7 +3861,7 @@
     "rx": 19.45,
     "ry": 3.14
    },
-   "sha256": "8640b7517a8ef0d9e164ac43c3a603ccd143e8ffabba596598cf8d42b675a534"
+   "sha256": "dbd534687f129987ff1ea626dd509a0555b72ac35e95decb8cadcac39c04c8a4"
   },
   "chocolate_cow_calf_side_right_v3": {
    "w": 60.86,
@@ -3882,7 +3883,7 @@
     "rx": 19.45,
     "ry": 3.14
    },
-   "sha256": "46a394da7eba2075320dc9946386f4699d9b23442f51e42d37e335c0bd126beb"
+   "sha256": "f2c2b1af17fcc37194cd74e1279522344c24ea1fc10e551044a1a53fda8ede99"
   },
   "chocolate_cow_calf_front_left_v0": {
    "w": 50.32,
@@ -3904,7 +3905,7 @@
     "rx": 17.71,
     "ry": 3.44
    },
-   "sha256": "a2865ab23e90dba5a1fbb42c34f74e23b12646b92fa25d64487b38f3e4fb2467"
+   "sha256": "5f477e808c78d6b2e0bea4e1129ab76f90fc7c80b5bb18e0c40a6defe4eaadb5"
   },
   "chocolate_cow_calf_front_left_v1": {
    "w": 50.32,
@@ -3926,7 +3927,7 @@
     "rx": 17.71,
     "ry": 3.44
    },
-   "sha256": "f38c1706cff5cefb099ec708362f6ed7b9dba6e1ce88bfc9fa62fc75871a92d7"
+   "sha256": "7c6f80f24c18ebc97d186386b5c96abeced699bc2f2f8a63450b583c53e2b140"
   },
   "chocolate_cow_calf_front_left_v2": {
    "w": 50.32,
@@ -3948,7 +3949,7 @@
     "rx": 17.71,
     "ry": 3.44
    },
-   "sha256": "9e676dc411c7a8e07f40f101b8af1088a2f8df27bbdf12eae64c0e67440abac2"
+   "sha256": "a19920c73659a4d3968b8a946328243ee29f7d8a96001bd51c3dffcc2fb92baa"
   },
   "chocolate_cow_calf_front_left_v3": {
    "w": 50.32,
@@ -3970,7 +3971,7 @@
     "rx": 17.71,
     "ry": 3.44
    },
-   "sha256": "db4820e5440f6cc5b6883cc5fff802ebf0816bae6aa22ce3370d1bd5c070df8d"
+   "sha256": "0af9ec19eb24c0c6f517d135ef06a09c4f45c16391f53d2925c4a667d98d7624"
   },
   "chocolate_cow_calf_front_right_v0": {
    "w": 50.32,
@@ -3992,7 +3993,7 @@
     "rx": 17.71,
     "ry": 3.44
    },
-   "sha256": "d2f0ff96c58f53c3b3f73cfb464f753c9c05ecfe83197aaccb280c7841a0ac99"
+   "sha256": "072d8815eea18555d5592705be9606b9dd5f1ccf9e5b8ec4b44e3943a5f1a4e5"
   },
   "chocolate_cow_calf_front_right_v1": {
    "w": 50.32,
@@ -4014,7 +4015,7 @@
     "rx": 17.71,
     "ry": 3.44
    },
-   "sha256": "64a5c3b84fe0cbdfe2e14c4d263afb4cf332d89d3ac3f181391d810ae431ed42"
+   "sha256": "7926a5bfa8500cfbbcd438e6950c9ce83ca0fb15cfc1514e8df6d0d983f73ecf"
   },
   "chocolate_cow_calf_front_right_v2": {
    "w": 50.32,
@@ -4036,7 +4037,7 @@
     "rx": 17.71,
     "ry": 3.44
    },
-   "sha256": "0cfd4737862e4e3848ca5eee9ad4e4e6e685bfac65e0d6ed02029663a21bf31b"
+   "sha256": "aad36897c05a505dd4c24fc2473f468238085fde3bd4a2875daf410c8bdaa7e5"
   },
   "chocolate_cow_calf_front_right_v3": {
    "w": 50.32,
@@ -4058,7 +4059,7 @@
     "rx": 17.71,
     "ry": 3.44
    },
-   "sha256": "9fd665712f133852f029dc09330a1a68c01b35bda260ca0bb13e3c40e290dd00"
+   "sha256": "ef4237e8b887c59499bdc8df011c3d600ebf2862cf49eacb2b6a4e9e8d2ad56a"
   },
   "chocolate_cow_adult_side_left_v0": {
    "w": 108.34,
@@ -5136,7 +5137,7 @@
     "rx": 19.45,
     "ry": 3.14
    },
-   "sha256": "1f4fe36cc874011ee38b90a4b4cca836d070817e8026fdfeae4493c816ad7a1b"
+   "sha256": "c17e69aab8d9f43858fedc7d9c6aaecb36f6a6a46cdd242bc8ee91c1a4c04ceb"
   },
   "strawberry_cow_calf_side_left_v1": {
    "w": 60.86,
@@ -5158,7 +5159,7 @@
     "rx": 19.45,
     "ry": 3.14
    },
-   "sha256": "c62ceb3111e72b022df5036f6ddc8c77d388a876b922776672aedb3c64d6312e"
+   "sha256": "e82732578c46eb7b4398a138ce6b2f41ea1abd9dc964c085f5f0a9d4224a083a"
   },
   "strawberry_cow_calf_side_left_v2": {
    "w": 60.86,
@@ -5180,7 +5181,7 @@
     "rx": 19.45,
     "ry": 3.14
    },
-   "sha256": "9e5cf3f1bfa20f59db15100e8f2b5d55ab3c4f679203556e4ddd90f37f24fad2"
+   "sha256": "e098f6114d918fe683e4e66a028edc53817d3c5c4c2264c45298b75930f14aa0"
   },
   "strawberry_cow_calf_side_left_v3": {
    "w": 60.86,
@@ -5202,7 +5203,7 @@
     "rx": 19.45,
     "ry": 3.14
    },
-   "sha256": "1355a0611aad3931b1ddc671f8da931e2afec57fa27af5818390ca3e60dc90f2"
+   "sha256": "088164116d928443fb1a3a0c867165712aaa58b45fc6536f1892609cb64cd46b"
   },
   "strawberry_cow_calf_front_left_v0": {
    "w": 50.32,
@@ -5224,7 +5225,7 @@
     "rx": 17.71,
     "ry": 3.44
    },
-   "sha256": "ea847893509b62e849004ab1f304da69a86b854ef093309881b78b2b8ac98530"
+   "sha256": "9a865133ffb003f9ccd08cbd28259013810ecba4770c63610f2766ef55c26020"
   },
   "strawberry_cow_calf_front_left_v1": {
    "w": 50.32,
@@ -5246,7 +5247,7 @@
     "rx": 17.71,
     "ry": 3.44
    },
-   "sha256": "527357e837c03ba25ca95bf38ebb8f90b469c949f3fad19639066cb4653d17b4"
+   "sha256": "3e8790fe0fa6df1c9b411083f10d26d92f459ee9b5db8ad40e18637b0aab34ac"
   },
   "strawberry_cow_calf_front_left_v2": {
    "w": 50.32,
@@ -5268,7 +5269,7 @@
     "rx": 17.71,
     "ry": 3.44
    },
-   "sha256": "00a0bb0b9ba7390f8f201c7d131418c08e4de4be535d5735f1715939e520abea"
+   "sha256": "b9b12175b0d0573f7003bca343cbbaaab8824a52c2031e82906177371cea8a59"
   },
   "strawberry_cow_calf_front_left_v3": {
    "w": 50.32,
@@ -5290,7 +5291,7 @@
     "rx": 17.71,
     "ry": 3.44
    },
-   "sha256": "49ff2e2fc8d8a65015db1cc791d8cf76a79fa93b9a85f32c2d89441e60eef2f3"
+   "sha256": "661c168a9d8f5d3e08e4bff88f1a1a45e4ee83ac2fb03e471b35e27250451d79"
   },
   "strawberry_cow_adult_side_left_v0": {
    "w": 108.34,
@@ -5822,9 +5823,9 @@
   },
   "yellow_cow_calf_side_left_v0": {
    "w": 68.2,
-   "h": 55.36,
+   "h": 60.27,
    "x0": -36.55,
-   "y0": -51.36,
+   "y0": -56.27,
    "height": 47.36,
    "face": {
     "cx": -12.89,
@@ -5840,13 +5841,13 @@
     "rx": 22.28,
     "ry": 3.87
    },
-   "sha256": "041ffc90a0426bd477ff56363f2d35ffb5c37abc6da518ed9d8795d762e8cc50"
+   "sha256": "02516291ff2428a07af2132ac66bc00649d87676ab81eb707b60be2dc332cbe3"
   },
   "yellow_cow_calf_front_left_v0": {
    "w": 53.84,
-   "h": 62.04,
+   "h": 66.79,
    "x0": -26.92,
-   "y0": -58.04,
+   "y0": -62.79,
    "height": 54.04,
    "face": {
     "cx": 0,
@@ -5862,7 +5863,7 @@
     "rx": 22.36,
     "ry": 3.61
    },
-   "sha256": "ca70d7b00492f69fad94c174190be3bff69315a9eb214eceff42795d6da83862"
+   "sha256": "c0b5e2650d2a97b797191d060d20409dfed2fe711b2e51895d338106ea4a1498"
   },
   "yellow_cow_adult_side_left_v0": {
    "w": 122.51,
@@ -5998,9 +5999,9 @@
   },
   "highland_cow_calf_side_left_v0": {
    "w": 70.94,
-   "h": 55.92,
+   "h": 60.84,
    "x0": -37.63,
-   "y0": -51.92,
+   "y0": -56.84,
    "height": 47.92,
    "face": {
     "cx": -13.97,
@@ -6016,13 +6017,13 @@
     "rx": 23.62,
     "ry": 4.11
    },
-   "sha256": "b1c1e56aa4a6340886b14d83e8bb9853aaec81956f9be02cfbd80a9a98fbf40a"
+   "sha256": "981dbb727aecc2c54cc88f8f43951ae1188ead035705d6d1b0e78b35d93dbb7b"
   },
   "highland_cow_calf_front_left_v0": {
    "w": 56,
-   "h": 62.04,
+   "h": 66.79,
    "x0": -28.63,
-   "y0": -58.04,
+   "y0": -62.79,
    "height": 54.04,
    "face": {
     "cx": 0,
@@ -6038,7 +6039,7 @@
     "rx": 24.15,
     "ry": 3.61
    },
-   "sha256": "22a425ce8451ddc48aa733eb40b37db8e92bef8f47a6b1b44f43c316c139711b"
+   "sha256": "9deabc193eb61974082fa51ce33c43349f7f0252265668f0e851599df2cde8c2"
   },
   "highland_cow_adult_side_left_v0": {
    "w": 133.47,
@@ -6174,9 +6175,9 @@
   },
   "milkTea_cow_calf_side_left_v0": {
    "w": 63.06,
-   "h": 50.08,
+   "h": 55.29,
    "x0": -34.17,
-   "y0": -46.08,
+   "y0": -51.29,
    "height": 42.08,
    "face": {
     "cx": -11.51,
@@ -6192,13 +6193,13 @@
     "rx": 20.05,
     "ry": 3.49
    },
-   "sha256": "0267f24f80c91763fd1196b742dbe867b6a9cd2ddbefb7c5823bbc5833def9ab"
+   "sha256": "5068e265028be593e455a79a32e1e1ee0c59770eb2f9b2f3d49930f4b24287fd"
   },
   "milkTea_cow_calf_front_left_v0": {
    "w": 51.48,
-   "h": 56.71,
+   "h": 62.08,
    "x0": -25.74,
-   "y0": -52.71,
+   "y0": -58.08,
    "height": 48.71,
    "face": {
     "cx": 0,
@@ -6214,7 +6215,7 @@
     "rx": 20.12,
     "ry": 3.25
    },
-   "sha256": "f24d423b0afe323024a5ac454cf865e8fd6e05295e30dc6f4335f817a80bce89"
+   "sha256": "2dca809b58396adb245b43a870496a5eae1e99bf10bb9b4563bb29bb597126e2"
   },
   "milkTea_cow_adult_side_left_v0": {
    "w": 112.4,
@@ -6350,9 +6351,9 @@
   },
   "buffalo_cow_calf_side_left_v0": {
    "w": 68.2,
-   "h": 55.36,
+   "h": 60.27,
    "x0": -36.55,
-   "y0": -51.36,
+   "y0": -56.27,
    "height": 47.36,
    "face": {
     "cx": -12.89,
@@ -6368,13 +6369,13 @@
     "rx": 22.28,
     "ry": 3.87
    },
-   "sha256": "f38245f3434f855daabd8cb19e2a3de3226d5f2f8db6e8b3a1172b394089e8a0"
+   "sha256": "13fd6130ce7c2428838108716794f2e49034ce8e156717083085c73173dd4b17"
   },
   "buffalo_cow_calf_side_right_v0": {
    "w": 68.2,
-   "h": 55.36,
+   "h": 60.27,
    "x0": -31.65,
-   "y0": -51.36,
+   "y0": -56.27,
    "height": 47.36,
    "face": {
     "cx": 12.89,
@@ -6390,13 +6391,13 @@
     "rx": 22.28,
     "ry": 3.87
    },
-   "sha256": "52cd2474991ef82e81603ae5073b5b8717e7b57fe922230349a2b0d4f324ce48"
+   "sha256": "3ab916aeccf322265779981b668a3edc2aa75cc615470af5524969d3a4561368"
   },
   "buffalo_cow_calf_front_left_v0": {
    "w": 53.84,
-   "h": 62.04,
+   "h": 66.79,
    "x0": -26.92,
-   "y0": -58.04,
+   "y0": -62.79,
    "height": 54.04,
    "face": {
     "cx": 0,
@@ -6412,13 +6413,13 @@
     "rx": 22.36,
     "ry": 3.61
    },
-   "sha256": "40dc787ab6f6fbb137aed12577efd1165cf1bc601c556e40c305e7ce3d7930b3"
+   "sha256": "e3231f7ab51951025da6ad747706decaba5665c6b9044206e53a8aadccf3a4ed"
   },
   "buffalo_cow_calf_front_right_v0": {
    "w": 53.84,
-   "h": 62.04,
+   "h": 66.79,
    "x0": -26.92,
-   "y0": -58.04,
+   "y0": -62.79,
    "height": 54.04,
    "face": {
     "cx": 0,
@@ -6434,7 +6435,7 @@
     "rx": 22.36,
     "ry": 3.61
    },
-   "sha256": "2a2207c435f05799f939e3d126bbf220124304e4f032b74a8037e4a1987c027c"
+   "sha256": "4c35600c5fdfcce605a129495d5c98029139633b4ff9f29c7103ded4baa02088"
   },
   "buffalo_cow_adult_side_left_v0": {
    "w": 134.97,
@@ -6702,9 +6703,9 @@
   },
   "cottonCandy_cow_calf_side_left_v0": {
    "w": 65.52,
-   "h": 50.59,
+   "h": 55.8,
    "x0": -35.14,
-   "y0": -46.59,
+   "y0": -51.8,
    "height": 42.59,
    "face": {
     "cx": -12.48,
@@ -6720,13 +6721,13 @@
     "rx": 21.25,
     "ry": 3.7
    },
-   "sha256": "e75434c03ecda954a51acf7f49d3ebe76288d749a4f6e88da41dd002e52eca67"
+   "sha256": "6cb47aa881b5eb752cdd3c7b20b033e1b905ce3d569c24ac9264344154c47a32"
   },
   "cottonCandy_cow_calf_front_left_v0": {
    "w": 51.9,
-   "h": 56.71,
+   "h": 62.08,
    "x0": -26.16,
-   "y0": -52.71,
+   "y0": -58.08,
    "height": 48.71,
    "face": {
     "cx": 0,
@@ -6742,7 +6743,7 @@
     "rx": 21.73,
     "ry": 3.25
    },
-   "sha256": "813909e995b7040b383adf4c52fe782625f2b97e5bbf34bee2f33809699ed368"
+   "sha256": "1cd6dbce56e13e13aad634f4f562c24a4ae36a7280a4169459e7a29f757e53de"
   },
   "cottonCandy_cow_adult_side_left_v0": {
    "w": 121.83,
@@ -6878,9 +6879,9 @@
   },
   "shaggyBuffalo_cow_calf_side_left_v0": {
    "w": 70.94,
-   "h": 55.92,
+   "h": 60.84,
    "x0": -37.63,
-   "y0": -51.92,
+   "y0": -56.84,
    "height": 47.92,
    "face": {
     "cx": -13.97,
@@ -6896,13 +6897,13 @@
     "rx": 23.62,
     "ry": 4.11
    },
-   "sha256": "361ee0e29b41286ad8f3fe707628440ff9de1129e380d02af2d337b1f79ea0f0"
+   "sha256": "92d830d6cc40ac3326b106eafe0bf830daa972b5fe8eb9ada114036faec416f7"
   },
   "shaggyBuffalo_cow_calf_side_right_v0": {
    "w": 70.94,
-   "h": 55.92,
+   "h": 60.84,
    "x0": -33.31,
-   "y0": -51.92,
+   "y0": -56.84,
    "height": 47.92,
    "face": {
     "cx": 13.97,
@@ -6918,13 +6919,13 @@
     "rx": 23.62,
     "ry": 4.11
    },
-   "sha256": "4e162988fcbefdeef8484ea4fb58d2c956317cd71dfa17cca58539f5c17e23d4"
+   "sha256": "7436707b3fe9d498c7718bfca533db8bda291c373d873eb57cd1a2afdcb6dd09"
   },
   "shaggyBuffalo_cow_calf_front_left_v0": {
    "w": 56,
-   "h": 62.04,
+   "h": 66.79,
    "x0": -28.63,
-   "y0": -58.04,
+   "y0": -62.79,
    "height": 54.04,
    "face": {
     "cx": 0,
@@ -6940,13 +6941,13 @@
     "rx": 24.15,
     "ry": 3.61
    },
-   "sha256": "0c5a04576695129a696465d668e8492e5bcb297a3883a582331821f5a1b04fa1"
+   "sha256": "0ae02f53adf5ac988c10882af012663bc9058cd12147db9e7bd83aef73e7be92"
   },
   "shaggyBuffalo_cow_calf_front_right_v0": {
    "w": 56,
-   "h": 62.04,
+   "h": 66.79,
    "x0": -27.37,
-   "y0": -58.04,
+   "y0": -62.79,
    "height": 54.04,
    "face": {
     "cx": 0,
@@ -6962,7 +6963,7 @@
     "rx": 24.15,
     "ry": 3.61
    },
-   "sha256": "c2b95f7f033c1cfb71c61a9dadd8d0e9afb0acca421c42ea7ab61c7ef8585348"
+   "sha256": "c25e6b9dd00c744393e93cfb5ff95a2de09381c9b9dc72a07bec42861163dea2"
   },
   "shaggyBuffalo_cow_adult_side_left_v0": {
    "w": 140.47,
@@ -7230,9 +7231,9 @@
   },
   "honey_cow_calf_side_left_v0": {
    "w": 63.06,
-   "h": 50.08,
+   "h": 55.29,
    "x0": -34.17,
-   "y0": -46.08,
+   "y0": -51.29,
    "height": 42.08,
    "face": {
     "cx": -11.51,
@@ -7248,13 +7249,13 @@
     "rx": 20.05,
     "ry": 3.49
    },
-   "sha256": "79ddc525c267e26b8c9f4b9862dd569548e0ea8056be2c6e33152f63c7b17d7e"
+   "sha256": "93a89de9da1f00fee0fa04c468b4b973db41864efe6c223b4cce9d008978f25d"
   },
   "honey_cow_calf_side_right_v0": {
    "w": 63.06,
-   "h": 50.08,
+   "h": 55.29,
    "x0": -28.89,
-   "y0": -46.08,
+   "y0": -51.29,
    "height": 42.08,
    "face": {
     "cx": 11.51,
@@ -7270,13 +7271,13 @@
     "rx": 20.05,
     "ry": 3.49
    },
-   "sha256": "39bea0e6f2ec0075e325eef8fffca313b4d690531e49f6dae74191dec994372b"
+   "sha256": "2c70950edb590c8a3f28e12e34fe8c45ed20df246832167394514de8293888df"
   },
   "honey_cow_calf_front_left_v0": {
    "w": 51.48,
-   "h": 56.71,
+   "h": 62.08,
    "x0": -25.74,
-   "y0": -52.71,
+   "y0": -58.08,
    "height": 48.71,
    "face": {
     "cx": 0,
@@ -7292,13 +7293,13 @@
     "rx": 20.12,
     "ry": 3.25
    },
-   "sha256": "c84ad5f40c4060891422c4a2283d8b181e6d45af047ea6c5b36478a5e8620c87"
+   "sha256": "1e7c89cd8d5f5a80f6f21942011f4b6cb0d3c73e0d3031c664abd895bfb6d8a9"
   },
   "honey_cow_calf_front_right_v0": {
    "w": 51.48,
-   "h": 56.71,
+   "h": 62.08,
    "x0": -25.74,
-   "y0": -52.71,
+   "y0": -58.08,
    "height": 48.71,
    "face": {
     "cx": 0,
@@ -7314,7 +7315,7 @@
     "rx": 20.12,
     "ry": 3.25
    },
-   "sha256": "c238d3738c9fc16ce942d4f3d4310bf59f823be0c1feeaab4f115e77036e2378"
+   "sha256": "ea40cc27c6ea05131cd3aa7b8d4d807739ad005583fc0243c624ce06dc21f73f"
   },
   "honey_cow_adult_side_left_v0": {
    "w": 123.31,
@@ -7600,7 +7601,7 @@
     "rx": 20.05,
     "ry": 3.49
    },
-   "sha256": "ab6d8e1f117d68e7d87be2ecc69dbe4fa15bb01d2bf580c8f423e41d8e71db49"
+   "sha256": "462a81826cb4aa922cf86be689486d23846dc7f14fe5bf8e17de8eaba41a60d7"
   },
   "goldenEar_cow_calf_side_right_v0": {
    "w": 63.06,
@@ -7622,7 +7623,7 @@
     "rx": 20.05,
     "ry": 3.49
    },
-   "sha256": "928a73cee04f8eb2f3507a7018cd5e131776d41bb283c03d89b7b607c99b61d0"
+   "sha256": "f8efc1b553ac3e0d4d722ac476637018489bb156952ea5b0c18d41237ac7398f"
   },
   "goldenEar_cow_calf_front_left_v0": {
    "w": 51.48,
@@ -7644,7 +7645,7 @@
     "rx": 20.12,
     "ry": 3.25
    },
-   "sha256": "8d9d35da25fd3dc7882c90e02802a918bfcadb69ef8cb12e6212bb5ce703ec4f"
+   "sha256": "d22538282e1e09b4f6215f6ef5a7a59ac3a17fb03e25a940079ca20bcc33ddd6"
   },
   "goldenEar_cow_calf_front_right_v0": {
    "w": 51.48,
@@ -7666,7 +7667,7 @@
     "rx": 20.12,
     "ry": 3.25
    },
-   "sha256": "14225e018386969917de612b3bad2efa1272a397f40f1361a9a63f1cfb715256"
+   "sha256": "6f3d39e19e141aa9ac6e91632e80a3e90c84e06b74118bced05a2b4c71bc2e6c"
   },
   "goldenEar_cow_adult_side_left_v0": {
    "w": 123.31,
@@ -7934,9 +7935,9 @@
   },
   "angus_cow_calf_side_left_v0": {
    "w": 73.95,
-   "h": 58.44,
+   "h": 64.5,
    "x0": -38.95,
-   "y0": -54.44,
+   "y0": -60.5,
    "height": 50.44,
    "face": {
     "cx": -14.43,
@@ -7952,13 +7953,13 @@
     "rx": 24.51,
     "ry": 4.49
    },
-   "sha256": "6abad6b17a0a545b4860515a8bfa90321c7d12a99d607acf8ee13d1501923887"
+   "sha256": "44d2054dabbe3c1533e26713366b3da464da4d987b36d2f00dac739a30c0d4cd"
   },
   "angus_cow_calf_side_right_v0": {
    "w": 73.95,
-   "h": 58.44,
+   "h": 64.5,
    "x0": -35,
-   "y0": -54.44,
+   "y0": -60.5,
    "height": 50.44,
    "face": {
     "cx": 14.43,
@@ -7974,13 +7975,13 @@
     "rx": 24.51,
     "ry": 4.49
    },
-   "sha256": "f188646e8b46d5a25820d617a8fa1e56874ac6161aab49de2e099c1a7eb70bf8"
+   "sha256": "a914ca093ae7b35cc9b6de58b1e9ed104ad32444a2d48634491b6b93a4055e8a"
   },
   "angus_cow_calf_front_left_v0": {
    "w": 62.82,
-   "h": 61.7,
+   "h": 68.8,
    "x0": -32.04,
-   "y0": -57.7,
+   "y0": -64.8,
    "height": 53.7,
    "face": {
     "cx": 0,
@@ -7996,13 +7997,13 @@
     "rx": 26.83,
     "ry": 3.68
    },
-   "sha256": "103430dbba6e01f5736d6698220d0e5fdb346993bdf27c7921809fc4d79ecee0"
+   "sha256": "3f10d018edbda8221d24cf50110b7d8f3a5f43023221d4da282b4e98e55ee25a"
   },
   "angus_cow_calf_front_right_v0": {
    "w": 62.82,
-   "h": 61.7,
+   "h": 68.8,
    "x0": -30.78,
-   "y0": -57.7,
+   "y0": -64.8,
    "height": 53.7,
    "face": {
     "cx": 0,
@@ -8018,7 +8019,7 @@
     "rx": 26.83,
     "ry": 3.68
    },
-   "sha256": "f3cbf57cb9bcb47fc4d3e8fae8b8b650f6a6547053973760dfbe5b61196daad6"
+   "sha256": "7a8d71753b5049329f8488d46af773e16012f1bd3defd813eeced19b4a5059ba"
   },
   "angus_cow_adult_side_left_v0": {
    "w": 133.61,
@@ -8286,9 +8287,9 @@
   },
   "galloway_cow_calf_side_left_v0": {
    "w": 77,
-   "h": 59.67,
+   "h": 65.73,
    "x0": -40.14,
-   "y0": -55.67,
+   "y0": -61.73,
    "height": 51.67,
    "face": {
     "cx": -15.62,
@@ -8304,13 +8305,13 @@
     "rx": 25.98,
     "ry": 4.76
    },
-   "sha256": "8ad599caf08c9f4dbd63dda6b839daa52e8d13a1eacfb6918aff7487afe4ccd6"
+   "sha256": "2e8c1d11434362243d8e1cee8cd334566f112c08a00741821c8b7fe09c43c02b"
   },
   "galloway_cow_calf_side_left_v1": {
    "w": 77,
-   "h": 59.67,
+   "h": 65.73,
    "x0": -40.14,
-   "y0": -55.67,
+   "y0": -61.73,
    "height": 51.67,
    "face": {
     "cx": -15.62,
@@ -8326,13 +8327,13 @@
     "rx": 25.98,
     "ry": 4.76
    },
-   "sha256": "fd5959786cf77736d33d0d48c7c7f760acd38524e9817e05fc78f92c2d76c14c"
+   "sha256": "bc486c841d22e734f2fda15888b728d161c0aa0afb64424f4cefbce2ea4a7009"
   },
   "galloway_cow_calf_side_left_v2": {
    "w": 77,
-   "h": 59.67,
+   "h": 65.73,
    "x0": -40.14,
-   "y0": -55.67,
+   "y0": -61.73,
    "height": 51.67,
    "face": {
     "cx": -15.62,
@@ -8348,13 +8349,13 @@
     "rx": 25.98,
     "ry": 4.76
    },
-   "sha256": "1e1aafe425409149f346eaaaee72e50f113d3d03b6e5a3cd792912c269065297"
+   "sha256": "b25f7354911d0361e556a8196052b3dbf8398a388e03b9ef76af9f58caf32a6c"
   },
   "galloway_cow_calf_side_left_v3": {
    "w": 77,
-   "h": 59.67,
+   "h": 65.73,
    "x0": -40.14,
-   "y0": -55.67,
+   "y0": -61.73,
    "height": 51.67,
    "face": {
     "cx": -15.62,
@@ -8370,13 +8371,13 @@
     "rx": 25.98,
     "ry": 4.76
    },
-   "sha256": "bd48cea34f1372eda5a4cb3bf945ca8010f87371896e97cf0902649c8416d2a2"
+   "sha256": "b1df69e7c0efd23134726f95f360549fd77c101e0269140d7b385ab4060d7216"
   },
   "galloway_cow_calf_front_left_v0": {
    "w": 67.1,
-   "h": 61.7,
+   "h": 68.8,
    "x0": -34.18,
-   "y0": -57.7,
+   "y0": -64.8,
    "height": 53.7,
    "face": {
     "cx": 0,
@@ -8392,13 +8393,13 @@
     "rx": 28.98,
     "ry": 3.68
    },
-   "sha256": "a8688f114fa187f42bff0f7fcec088779ac401f3a5b748001850446bce171f1e"
+   "sha256": "a5c205dba24a80a29ea3f5b3fa33494be6b0d830650a01b3e9ff69968b0585f9"
   },
   "galloway_cow_calf_front_left_v1": {
    "w": 67.1,
-   "h": 61.7,
+   "h": 68.8,
    "x0": -34.18,
-   "y0": -57.7,
+   "y0": -64.8,
    "height": 53.7,
    "face": {
     "cx": 0,
@@ -8414,13 +8415,13 @@
     "rx": 28.98,
     "ry": 3.68
    },
-   "sha256": "90e9116514397b0463ce14d10620d61dd7bff23f2904db199c9432a72f8ea797"
+   "sha256": "47093160e40c293eafc6d44efd653d901054afe70a3320c8f330417af42705db"
   },
   "galloway_cow_calf_front_left_v2": {
    "w": 67.1,
-   "h": 61.7,
+   "h": 68.8,
    "x0": -34.18,
-   "y0": -57.7,
+   "y0": -64.8,
    "height": 53.7,
    "face": {
     "cx": 0,
@@ -8436,13 +8437,13 @@
     "rx": 28.98,
     "ry": 3.68
    },
-   "sha256": "347eb168fd0bfe3c3a8f8fb40493a41752730b7c3e64422643f586942573e899"
+   "sha256": "0a87a52115a02d8f25944c99835a811e38a8d80ea9007ae63fd33f8ecae517cf"
   },
   "galloway_cow_calf_front_left_v3": {
    "w": 67.1,
-   "h": 61.7,
+   "h": 68.8,
    "x0": -34.18,
-   "y0": -57.7,
+   "y0": -64.8,
    "height": 53.7,
    "face": {
     "cx": 0,
@@ -8458,7 +8459,7 @@
     "rx": 28.98,
     "ry": 3.68
    },
-   "sha256": "86bfc7a8070d08f4a6490511a91406246d849aba625e68d5edaa1dc863ad6621"
+   "sha256": "53d930c6add8270f290aa3ff22de73073fade7da84e6522aa64f3e61e83b72c7"
   },
   "galloway_cow_adult_side_left_v0": {
    "w": 139.72,
@@ -8990,9 +8991,9 @@
   },
   "charolais_cow_calf_side_left_v0": {
    "w": 68.27,
-   "h": 53.07,
+   "h": 59.11,
    "x0": -36.37,
-   "y0": -49.07,
+   "y0": -55.11,
    "height": 45.07,
    "face": {
     "cx": -12.89,
@@ -9008,13 +9009,13 @@
     "rx": 22.06,
     "ry": 4.04
    },
-   "sha256": "ac47c86160b35e0e60f32ad0beedb0852928933343a8d7b86cccc21cc99019cf"
+   "sha256": "77a764bf819ff725d4b64bc324d5f22a232e0f266c3420869d1e558a457884c9"
   },
   "charolais_cow_calf_front_left_v0": {
    "w": 57.33,
-   "h": 56.3,
+   "h": 63.95,
    "x0": -29.23,
-   "y0": -52.3,
+   "y0": -59.95,
    "height": 48.3,
    "face": {
     "cx": 0,
@@ -9030,7 +9031,7 @@
     "rx": 24.15,
     "ry": 3.31
    },
-   "sha256": "03291eb3763912c5e784e5109044da03bf173c95d35e996caeab19e139f5e828"
+   "sha256": "488b3be10124e79a1b5570f8b54cecefed745054548d17ab03465a24f98cb3c7"
   },
   "charolais_cow_adult_side_left_v0": {
    "w": 122.45,
@@ -9166,9 +9167,9 @@
   },
   "wagyu_cow_calf_side_left_v0": {
    "w": 73.95,
-   "h": 59.34,
+   "h": 64.5,
    "x0": -38.95,
-   "y0": -55.34,
+   "y0": -60.5,
    "height": 51.34,
    "face": {
     "cx": -14.43,
@@ -9184,13 +9185,13 @@
     "rx": 24.51,
     "ry": 4.49
    },
-   "sha256": "7b585631ec29447d745813bac5429b531c1d5c8e2c20e27f433fc55f7df52e25"
+   "sha256": "bb3e38ffa1fde6194cb76c6f29cb70cfa89d8fcdea9e160fabf95f120d48aefb"
   },
   "wagyu_cow_calf_side_right_v0": {
    "w": 73.95,
-   "h": 59.34,
+   "h": 64.5,
    "x0": -35,
-   "y0": -55.34,
+   "y0": -60.5,
    "height": 51.34,
    "face": {
     "cx": 14.43,
@@ -9206,13 +9207,13 @@
     "rx": 24.51,
     "ry": 4.49
    },
-   "sha256": "7fabe542a23e92d3b4a2f72476c18753d2a906a01f65052c71d5b009a845a1b2"
+   "sha256": "a93fad38ca6a8b95c77f15f7e0859526f20dbe74e27f0e17108c0677f33a94a3"
   },
   "wagyu_cow_calf_front_left_v0": {
    "w": 62.82,
-   "h": 63.81,
+   "h": 68.8,
    "x0": -32.04,
-   "y0": -59.81,
+   "y0": -64.8,
    "height": 55.81,
    "face": {
     "cx": 0,
@@ -9228,13 +9229,13 @@
     "rx": 26.83,
     "ry": 3.68
    },
-   "sha256": "c574f6a4ff88bab183da0dc58021ce280a6d8d0f2218c13e719a4466f44ee38d"
+   "sha256": "47f4465ac891106b6e6d4b804eee2b77f7de6f8743fcc3681a2be56aa0a5df18"
   },
   "wagyu_cow_calf_front_right_v0": {
    "w": 62.82,
-   "h": 63.81,
+   "h": 68.8,
    "x0": -30.78,
-   "y0": -59.81,
+   "y0": -64.8,
    "height": 55.81,
    "face": {
     "cx": 0,
@@ -9250,7 +9251,7 @@
     "rx": 26.83,
     "ry": 3.68
    },
-   "sha256": "d8f91165c4ddd33b368729c5974936be6314c7924d8103b1ca87e407ea2775cb"
+   "sha256": "dbfa3a005c622d0fa8b567a8208c7752fd42e34479d13d5131c2855ac3322fd0"
   },
   "wagyu_cow_adult_side_left_v0": {
    "w": 133.61,
@@ -9518,9 +9519,9 @@
   },
   "whiteFleece_cow_calf_side_left_v0": {
    "w": 71.01,
-   "h": 54.17,
+   "h": 60.22,
    "x0": -37.44,
-   "y0": -50.17,
+   "y0": -56.22,
    "height": 46.17,
    "face": {
     "cx": -13.96,
@@ -9536,13 +9537,13 @@
     "rx": 23.38,
     "ry": 4.29
    },
-   "sha256": "d9ec79f76d40e0f8563416d1a61a68f72672d6718add38f332f1bb7f4228e386"
+   "sha256": "ec9fb7cfc59108d9cbc02ff0e8ef9f26eea8f661bd5bf9e46fc9c1645c32cc57"
   },
   "whiteFleece_cow_calf_side_left_v1": {
    "w": 71.01,
-   "h": 54.17,
+   "h": 60.22,
    "x0": -37.44,
-   "y0": -50.17,
+   "y0": -56.22,
    "height": 46.17,
    "face": {
     "cx": -13.96,
@@ -9558,13 +9559,13 @@
     "rx": 23.38,
     "ry": 4.29
    },
-   "sha256": "6b3dc5867e263728d67807a7a92f64b50f762cc826194657cff794fe87447a6c"
+   "sha256": "28cc8f80fce2e62f33a9951256d227d9da37425b97d166e377636119e3b1bc70"
   },
   "whiteFleece_cow_calf_side_left_v2": {
    "w": 71.01,
-   "h": 54.17,
+   "h": 60.22,
    "x0": -37.44,
-   "y0": -50.17,
+   "y0": -56.22,
    "height": 46.17,
    "face": {
     "cx": -13.96,
@@ -9580,13 +9581,13 @@
     "rx": 23.38,
     "ry": 4.29
    },
-   "sha256": "d8c7590106b8b3f54a7934ba2f7228c681459e915b987b0d2c6902fa0bca7e93"
+   "sha256": "622eb7ef1ddcb8965d3827c108984a3e6e2cb94075bdaf355a799b10ea668a19"
   },
   "whiteFleece_cow_calf_side_left_v3": {
    "w": 71.01,
-   "h": 54.17,
+   "h": 60.22,
    "x0": -37.44,
-   "y0": -50.17,
+   "y0": -56.22,
    "height": 46.17,
    "face": {
     "cx": -13.96,
@@ -9602,13 +9603,13 @@
     "rx": 23.38,
     "ry": 4.29
    },
-   "sha256": "42d709e49e639bd4d6955885ae6a20f1161636dd678d1545b88ab3ed1b681dcb"
+   "sha256": "613b4bc5715b1fb559a2f6ecbfac6089f3a38bbc11adca1ba7f1726cfbe0eacd"
   },
   "whiteFleece_cow_calf_front_left_v0": {
    "w": 61.19,
-   "h": 56.3,
+   "h": 63.95,
    "x0": -31.16,
-   "y0": -52.3,
+   "y0": -59.95,
    "height": 48.3,
    "face": {
     "cx": 0,
@@ -9624,13 +9625,13 @@
     "rx": 26.08,
     "ry": 3.31
    },
-   "sha256": "3b7c16fe484e9f2ff03012139d6e539d5d13386a31ade5c5398a21ba6890a9ab"
+   "sha256": "f294c0d8668449d971e3870f92038cb4fe4adff20d68ef4d1e1ccc4b8a391161"
   },
   "whiteFleece_cow_calf_front_left_v1": {
    "w": 61.19,
-   "h": 56.3,
+   "h": 63.95,
    "x0": -31.16,
-   "y0": -52.3,
+   "y0": -59.95,
    "height": 48.3,
    "face": {
     "cx": 0,
@@ -9646,13 +9647,13 @@
     "rx": 26.08,
     "ry": 3.31
    },
-   "sha256": "39f7ea97582fdd00ee9bb364b1d3a81bb9854edfa9965958b77611f22dd7206e"
+   "sha256": "765db0fe733fa2d9e53af0c8efa6aa4781ab2828da98420c4ee33c4a777ebcb6"
   },
   "whiteFleece_cow_calf_front_left_v2": {
    "w": 61.19,
-   "h": 56.3,
+   "h": 63.95,
    "x0": -31.16,
-   "y0": -52.3,
+   "y0": -59.95,
    "height": 48.3,
    "face": {
     "cx": 0,
@@ -9668,13 +9669,13 @@
     "rx": 26.08,
     "ry": 3.31
    },
-   "sha256": "b15ab9241bc00c33edf0b5e66ec3397f6c99612b223ec8c1ba23af59004f460e"
+   "sha256": "1e37f077df57ad3f9b5f1853f624c03c24ea14e8c3f2d94735601387014c133c"
   },
   "whiteFleece_cow_calf_front_left_v3": {
    "w": 61.19,
-   "h": 56.3,
+   "h": 63.95,
    "x0": -31.16,
-   "y0": -52.3,
+   "y0": -59.95,
    "height": 48.3,
    "face": {
     "cx": 0,
@@ -9690,7 +9691,7 @@
     "rx": 26.08,
     "ry": 3.31
    },
-   "sha256": "cc982daf124f3767ceec2661234824cd3740a335ac8e68ff2795fc7d04b89cfb"
+   "sha256": "9f85103ae5ba29c5147463fc95891ab5c5c1495b7c1ea780d59c4ce26141819b"
   },
   "whiteFleece_cow_adult_side_left_v0": {
    "w": 127.95,
@@ -10222,9 +10223,9 @@
   },
   "fluffyWagyu_cow_calf_side_left_v0": {
    "w": 77,
-   "h": 60.57,
+   "h": 65.73,
    "x0": -40.14,
-   "y0": -56.57,
+   "y0": -61.73,
    "height": 52.57,
    "face": {
     "cx": -15.62,
@@ -10240,13 +10241,13 @@
     "rx": 25.98,
     "ry": 4.76
    },
-   "sha256": "5d65b974fb2bc378dfc1538b4f7eb5bf4bb4a81e876b7e4be5e9b172b7da4015"
+   "sha256": "f56047c43344e63b6c35df0c487869781f229c81c05ad3dec73bac30b459f1ed"
   },
   "fluffyWagyu_cow_calf_side_left_v1": {
    "w": 77,
-   "h": 60.57,
+   "h": 65.73,
    "x0": -40.14,
-   "y0": -56.57,
+   "y0": -61.73,
    "height": 52.57,
    "face": {
     "cx": -15.62,
@@ -10262,13 +10263,13 @@
     "rx": 25.98,
     "ry": 4.76
    },
-   "sha256": "bad09090fe724f44b95299734a5ce62d9591c77da5090ea3ad8c197fdeeca040"
+   "sha256": "d5e55943582d455906777fd972f60854b121d28881313e70231de64730559575"
   },
   "fluffyWagyu_cow_calf_side_left_v2": {
    "w": 77,
-   "h": 60.57,
+   "h": 65.73,
    "x0": -40.14,
-   "y0": -56.57,
+   "y0": -61.73,
    "height": 52.57,
    "face": {
     "cx": -15.62,
@@ -10284,13 +10285,13 @@
     "rx": 25.98,
     "ry": 4.76
    },
-   "sha256": "1ce34a7ba003319769223651613ed249b16c56899548e55559802f89e5b7cef5"
+   "sha256": "04252f024a924e12d0e560491625a821d78c2100bbfd45493cbbaa3853ca2557"
   },
   "fluffyWagyu_cow_calf_side_left_v3": {
    "w": 77,
-   "h": 60.57,
+   "h": 65.73,
    "x0": -40.14,
-   "y0": -56.57,
+   "y0": -61.73,
    "height": 52.57,
    "face": {
     "cx": -15.62,
@@ -10306,13 +10307,13 @@
     "rx": 25.98,
     "ry": 4.76
    },
-   "sha256": "ba1f4f67eed9e3d0fc1f6f1fdf72167f1d1ed8976b5c240f48796ed466df9365"
+   "sha256": "a7b76a072fc933c02d531bd573d9293eb2275f770e408f023732918c93588f5d"
   },
   "fluffyWagyu_cow_calf_side_right_v0": {
    "w": 77,
-   "h": 60.57,
+   "h": 65.73,
    "x0": -36.86,
-   "y0": -56.57,
+   "y0": -61.73,
    "height": 52.57,
    "face": {
     "cx": 15.62,
@@ -10328,13 +10329,13 @@
     "rx": 25.98,
     "ry": 4.76
    },
-   "sha256": "5ea3e50c89a41cc531fddde6b66dbfb88961e5ada87b0c620fe69f42ba9afb79"
+   "sha256": "8c0fd9d528e7e60675baa82c80819aa4733eb3d1b07ca338d45405c298c7ad21"
   },
   "fluffyWagyu_cow_calf_side_right_v1": {
    "w": 77,
-   "h": 60.57,
+   "h": 65.73,
    "x0": -36.86,
-   "y0": -56.57,
+   "y0": -61.73,
    "height": 52.57,
    "face": {
     "cx": 15.62,
@@ -10350,13 +10351,13 @@
     "rx": 25.98,
     "ry": 4.76
    },
-   "sha256": "a2cc5cec3a152fe9d3677c17ef5565872ca80fc4a7648b33050dd0d9df32ac47"
+   "sha256": "3c368b42fecc0198c53e9f0e6432d04c0c90ab3f7b85d8a69304cbc861d6aadd"
   },
   "fluffyWagyu_cow_calf_side_right_v2": {
    "w": 77,
-   "h": 60.57,
+   "h": 65.73,
    "x0": -36.86,
-   "y0": -56.57,
+   "y0": -61.73,
    "height": 52.57,
    "face": {
     "cx": 15.62,
@@ -10372,13 +10373,13 @@
     "rx": 25.98,
     "ry": 4.76
    },
-   "sha256": "da0a840649be4bc816d95b7b9fad084d94479b59471de54ee4fc54843624e443"
+   "sha256": "b947ee48f5637c42b5fa8d035848c6d1669e080114d1976397a8cdad4760c8b9"
   },
   "fluffyWagyu_cow_calf_side_right_v3": {
    "w": 77,
-   "h": 60.57,
+   "h": 65.73,
    "x0": -36.86,
-   "y0": -56.57,
+   "y0": -61.73,
    "height": 52.57,
    "face": {
     "cx": 15.62,
@@ -10394,13 +10395,13 @@
     "rx": 25.98,
     "ry": 4.76
    },
-   "sha256": "f2e98da71a0312fb9a8ee0e0b4473c33592e4639956010a83428c0dbf6f256e2"
+   "sha256": "34e68cb90554ece5f70fdba6a25d916d0a8d0c7ac4a1090564ffa0ad04d27162"
   },
   "fluffyWagyu_cow_calf_front_left_v0": {
    "w": 67.1,
-   "h": 63.81,
+   "h": 68.8,
    "x0": -34.18,
-   "y0": -59.81,
+   "y0": -64.8,
    "height": 55.81,
    "face": {
     "cx": 0,
@@ -10416,13 +10417,13 @@
     "rx": 28.98,
     "ry": 3.68
    },
-   "sha256": "a4d49fe0dedec5e142ba87283f9e7bc39194ed065e92619375d8994e1eb09dba"
+   "sha256": "6f381ee0a1abf5db961f3523739c34aed32ccaa6ec856d00f0e7568af4503beb"
   },
   "fluffyWagyu_cow_calf_front_left_v1": {
    "w": 67.1,
-   "h": 63.81,
+   "h": 68.8,
    "x0": -34.18,
-   "y0": -59.81,
+   "y0": -64.8,
    "height": 55.81,
    "face": {
     "cx": 0,
@@ -10438,13 +10439,13 @@
     "rx": 28.98,
     "ry": 3.68
    },
-   "sha256": "b004efb72d9fd248e0756091b83686d8422899bf8c67c52ca6894ef220630405"
+   "sha256": "94ef9081ec36be4d65c2176f16bd4f36ce6362c203c51080bec1dc485194872e"
   },
   "fluffyWagyu_cow_calf_front_left_v2": {
    "w": 67.1,
-   "h": 63.81,
+   "h": 68.8,
    "x0": -34.18,
-   "y0": -59.81,
+   "y0": -64.8,
    "height": 55.81,
    "face": {
     "cx": 0,
@@ -10460,13 +10461,13 @@
     "rx": 28.98,
     "ry": 3.68
    },
-   "sha256": "d8ee5f072234d6530b4c8e008c924c0e19d9fb9c2607bc7b28d9bebd80b1a592"
+   "sha256": "d3747a29f3ca75f211ee5bb832b2b1ce5aa4d54bd1662734fc04511176a3ba65"
   },
   "fluffyWagyu_cow_calf_front_left_v3": {
    "w": 67.1,
-   "h": 63.81,
+   "h": 68.8,
    "x0": -34.18,
-   "y0": -59.81,
+   "y0": -64.8,
    "height": 55.81,
    "face": {
     "cx": 0,
@@ -10482,13 +10483,13 @@
     "rx": 28.98,
     "ry": 3.68
    },
-   "sha256": "cf16b9ad20979e159ef72749b1c89c006093aaccba438dd8a5d4ab89980632fa"
+   "sha256": "f757f5a3d4fc2a50cfdce17e4876da5a5df2aa105d05802164d30ffe7f392230"
   },
   "fluffyWagyu_cow_calf_front_right_v0": {
    "w": 67.1,
-   "h": 63.81,
+   "h": 68.8,
    "x0": -32.92,
-   "y0": -59.81,
+   "y0": -64.8,
    "height": 55.81,
    "face": {
     "cx": 0,
@@ -10504,13 +10505,13 @@
     "rx": 28.98,
     "ry": 3.68
    },
-   "sha256": "0322cdbcdbbb355d8dff8767b138620255f70fc845f18739d952ed109519ab6e"
+   "sha256": "d74b8ececde092a4b534e0ac33fc0ee9bf2fc3dc31d6ef52f55f582f0b23e18f"
   },
   "fluffyWagyu_cow_calf_front_right_v1": {
    "w": 67.1,
-   "h": 63.81,
+   "h": 68.8,
    "x0": -32.92,
-   "y0": -59.81,
+   "y0": -64.8,
    "height": 55.81,
    "face": {
     "cx": 0,
@@ -10526,13 +10527,13 @@
     "rx": 28.98,
     "ry": 3.68
    },
-   "sha256": "59844b4ca3b6ccdc2dd3eb27771a853374bdd36e6f2b18bb273a18dadcf82953"
+   "sha256": "8ea51748613ddfd0474ce1944990aa40ac619980143627627b8ba2760870b8b3"
   },
   "fluffyWagyu_cow_calf_front_right_v2": {
    "w": 67.1,
-   "h": 63.81,
+   "h": 68.8,
    "x0": -32.92,
-   "y0": -59.81,
+   "y0": -64.8,
    "height": 55.81,
    "face": {
     "cx": 0,
@@ -10548,13 +10549,13 @@
     "rx": 28.98,
     "ry": 3.68
    },
-   "sha256": "fcb15ae8d642edba8e5dab6cad2b4538507510a4d1ce4e713fd3f619dee48a17"
+   "sha256": "1ccae99a68e9d7c054903fbc028c0b91dd8048f1c2ab19d928174010791c485f"
   },
   "fluffyWagyu_cow_calf_front_right_v3": {
    "w": 67.1,
-   "h": 63.81,
+   "h": 68.8,
    "x0": -32.92,
-   "y0": -59.81,
+   "y0": -64.8,
    "height": 55.81,
    "face": {
     "cx": 0,
@@ -10570,7 +10571,7 @@
     "rx": 28.98,
     "ry": 3.68
    },
-   "sha256": "396861ffcc365b9f16e58ff5926fd0c130bd77741e27e6db372e417bb3c6669c"
+   "sha256": "105f2c58cc1a117d9a0804124cbe9ef71a06422b2c76d8a6086dc54130820adf"
   },
   "fluffyWagyu_cow_adult_side_left_v0": {
    "w": 139.72,
@@ -11630,9 +11631,9 @@
   },
   "whiteWagyu_cow_calf_side_left_v0": {
    "w": 68.27,
-   "h": 53.64,
+   "h": 59.11,
    "x0": -36.37,
-   "y0": -49.64,
+   "y0": -55.11,
    "height": 45.64,
    "face": {
     "cx": -12.89,
@@ -11648,13 +11649,13 @@
     "rx": 22.06,
     "ry": 4.04
    },
-   "sha256": "4a676d07df97046d1660d1480c89d70a2fb3ddad43f4b4d4ba4fcd6b28daf48b"
+   "sha256": "4fa4bfcddecb7a3a29ab397fdc001b37f845d5dea13f7dd31d02ba8907a989f9"
   },
   "whiteWagyu_cow_calf_side_right_v0": {
    "w": 68.27,
-   "h": 53.64,
+   "h": 59.11,
    "x0": -31.9,
-   "y0": -49.64,
+   "y0": -55.11,
    "height": 45.64,
    "face": {
     "cx": 12.89,
@@ -11670,13 +11671,13 @@
     "rx": 22.06,
     "ry": 4.04
    },
-   "sha256": "c10aaa2cd344087bcc589b4719198644a1981d5ee5db9682c9bafb0b7ca7f9d1"
+   "sha256": "86b44d29d573d18ca080258c7f31567f7de8c9a95e4197cab124feb3c1d02b5e"
   },
   "whiteWagyu_cow_calf_front_left_v0": {
    "w": 57.33,
-   "h": 58.31,
+   "h": 63.95,
    "x0": -29.23,
-   "y0": -54.31,
+   "y0": -59.95,
    "height": 50.31,
    "face": {
     "cx": 0,
@@ -11692,13 +11693,13 @@
     "rx": 24.15,
     "ry": 3.31
    },
-   "sha256": "879694731b285c624e40c7d342c81757971e678789882cf37d818289692338d2"
+   "sha256": "1c9177e362dfce466d3fee919752268d90f260b2d57c5cd8e6c9088d43f8f90b"
   },
   "whiteWagyu_cow_calf_front_right_v0": {
    "w": 57.33,
-   "h": 58.31,
+   "h": 63.95,
    "x0": -28.1,
-   "y0": -54.31,
+   "y0": -59.95,
    "height": 50.31,
    "face": {
     "cx": 0,
@@ -11714,7 +11715,7 @@
     "rx": 24.15,
     "ry": 3.31
    },
-   "sha256": "7ef7e70201b3c401a1ee19bd696b23f1351b1a46d53c6a0ce260fcad1d7f0eaf"
+   "sha256": "048b5bf08439a2accffd0bce1ccd759c097ac90783ad3623d5cf9f492984cd86"
   },
   "whiteWagyu_cow_adult_side_left_v0": {
    "w": 122.45,
@@ -11982,9 +11983,9 @@
   },
   "starry_cow_calf_side_left_v0": {
    "w": 68.27,
-   "h": 53.64,
+   "h": 59.11,
    "x0": -36.37,
-   "y0": -49.64,
+   "y0": -55.11,
    "height": 45.64,
    "face": {
     "cx": -12.89,
@@ -12000,13 +12001,13 @@
     "rx": 22.06,
     "ry": 4.04
    },
-   "sha256": "c258a608e1d4b347255fcbe38a7bba9bbc5a1e953da2a25008776680c232ba26"
+   "sha256": "b0613a878ed4e8b9dd4fd0725aca62cae6cf894728460ebfa1015c5d2d3eafcb"
   },
   "starry_cow_calf_side_left_v1": {
    "w": 68.27,
-   "h": 53.64,
+   "h": 59.11,
    "x0": -36.37,
-   "y0": -49.64,
+   "y0": -55.11,
    "height": 45.64,
    "face": {
     "cx": -12.89,
@@ -12022,13 +12023,13 @@
     "rx": 22.06,
     "ry": 4.04
    },
-   "sha256": "fae272aa7ad4b99c8bbd575ddcfdb0023db649318667337497d24d81b3ced7e7"
+   "sha256": "fe59b97955c53e14c83088d77afa5017db905b5b95b37f98f9fa02aa4b82dd06"
   },
   "starry_cow_calf_side_left_v2": {
    "w": 68.27,
-   "h": 53.64,
+   "h": 59.11,
    "x0": -36.37,
-   "y0": -49.64,
+   "y0": -55.11,
    "height": 45.64,
    "face": {
     "cx": -12.89,
@@ -12044,13 +12045,13 @@
     "rx": 22.06,
     "ry": 4.04
    },
-   "sha256": "5fa2210e59b44790a535fb4f8b6067ae0c07db7bf7e9c2eb9b8c5889c830fc23"
+   "sha256": "21bae36f1001f8d7e16e937a8ae44257eb98d496c75f5cc851c4ff775f006057"
   },
   "starry_cow_calf_side_left_v3": {
    "w": 68.27,
-   "h": 53.64,
+   "h": 59.11,
    "x0": -36.37,
-   "y0": -49.64,
+   "y0": -55.11,
    "height": 45.64,
    "face": {
     "cx": -12.89,
@@ -12066,13 +12067,13 @@
     "rx": 22.06,
     "ry": 4.04
    },
-   "sha256": "84bf1534328ac7558e89bac4bb4aac8e8508fde93d727b1e199452c9183acf02"
+   "sha256": "c829789b4b852ee2f6f4c67f4e8334e68b669502163195d1d1b7ea68856cace3"
   },
   "starry_cow_calf_side_right_v0": {
    "w": 68.27,
-   "h": 53.64,
+   "h": 59.11,
    "x0": -31.9,
-   "y0": -49.64,
+   "y0": -55.11,
    "height": 45.64,
    "face": {
     "cx": 12.89,
@@ -12088,13 +12089,13 @@
     "rx": 22.06,
     "ry": 4.04
    },
-   "sha256": "8609224bc8a41fb76d14646f591ce14a984aa6f3ef4b8d50ef518eb18af4748f"
+   "sha256": "61f009c3fd10db20be2288d7c1055a673aba27525e063356415efaa36ba8db94"
   },
   "starry_cow_calf_side_right_v1": {
    "w": 68.27,
-   "h": 53.64,
+   "h": 59.11,
    "x0": -31.9,
-   "y0": -49.64,
+   "y0": -55.11,
    "height": 45.64,
    "face": {
     "cx": 12.89,
@@ -12110,13 +12111,13 @@
     "rx": 22.06,
     "ry": 4.04
    },
-   "sha256": "fdfb5743a21dacad7d8ad69af9dc76b85e365cd73691e3721f49eb8a958e6311"
+   "sha256": "e2ee4f62df6555f63dfac453170b7076009ffcc21a2790e2b1baeaf60c6606bf"
   },
   "starry_cow_calf_side_right_v2": {
    "w": 68.27,
-   "h": 53.64,
+   "h": 59.11,
    "x0": -31.9,
-   "y0": -49.64,
+   "y0": -55.11,
    "height": 45.64,
    "face": {
     "cx": 12.89,
@@ -12132,13 +12133,13 @@
     "rx": 22.06,
     "ry": 4.04
    },
-   "sha256": "0708ccccd02893c75b5e068896061187de223960c8ca4b49f6d5a5477db62e2a"
+   "sha256": "bebdb0351022384befe861405126fdcb4d66a00315a3d88b6c77919955e18eaa"
   },
   "starry_cow_calf_side_right_v3": {
    "w": 68.27,
-   "h": 53.64,
+   "h": 59.11,
    "x0": -31.9,
-   "y0": -49.64,
+   "y0": -55.11,
    "height": 45.64,
    "face": {
     "cx": 12.89,
@@ -12154,13 +12155,13 @@
     "rx": 22.06,
     "ry": 4.04
    },
-   "sha256": "d4ef3385b2b67c9114407876e5be63a8c42a81bb7870cde766c65a6cf4591dcc"
+   "sha256": "771144f318858a9401595331ab0b1a69765db5830e6dc3cd04122a2d70ef2e95"
   },
   "starry_cow_calf_front_left_v0": {
    "w": 57.33,
-   "h": 58.31,
+   "h": 63.95,
    "x0": -29.23,
-   "y0": -54.31,
+   "y0": -59.95,
    "height": 50.31,
    "face": {
     "cx": 0,
@@ -12176,13 +12177,13 @@
     "rx": 24.15,
     "ry": 3.31
    },
-   "sha256": "751017c7d10e5a20fbb0dd06dd5bdd346f970cf6e594d3644d8347bcfed6cf6e"
+   "sha256": "a26b3ff859ff8a63cb7e1c806db6ccc86cff06ccb4ac4ec106ee0d2cd5f7d77c"
   },
   "starry_cow_calf_front_left_v1": {
    "w": 57.33,
-   "h": 58.31,
+   "h": 63.95,
    "x0": -29.23,
-   "y0": -54.31,
+   "y0": -59.95,
    "height": 50.31,
    "face": {
     "cx": 0,
@@ -12198,13 +12199,13 @@
     "rx": 24.15,
     "ry": 3.31
    },
-   "sha256": "84c79aa089ede16fe31e76b2051ea4bf0f4b8518a3975f14f546555221fa646c"
+   "sha256": "fbb951e3b0213b111c422d657ad5eab38c495ddbbd44da5584bd139bcddb8f82"
   },
   "starry_cow_calf_front_left_v2": {
    "w": 57.33,
-   "h": 58.31,
+   "h": 63.95,
    "x0": -29.23,
-   "y0": -54.31,
+   "y0": -59.95,
    "height": 50.31,
    "face": {
     "cx": 0,
@@ -12220,13 +12221,13 @@
     "rx": 24.15,
     "ry": 3.31
    },
-   "sha256": "02a5e0c9c4a9d84245fa44881157bb2def19e1269d3f1299b6795b9b6777d1e6"
+   "sha256": "5fc9432e14865005e80139cad9ea192af7aa0338c7b10f729d8ecc868cbf5798"
   },
   "starry_cow_calf_front_left_v3": {
    "w": 57.33,
-   "h": 58.31,
+   "h": 63.95,
    "x0": -29.23,
-   "y0": -54.31,
+   "y0": -59.95,
    "height": 50.31,
    "face": {
     "cx": 0,
@@ -12242,13 +12243,13 @@
     "rx": 24.15,
     "ry": 3.31
    },
-   "sha256": "7498303ed884d19fd20c0d9cb0cb6383f9201343594b23ce5e7d0acd4c29a597"
+   "sha256": "fea04912d829f3393ddf256a383543db4dd79b604408f4dadb02882270ee9701"
   },
   "starry_cow_calf_front_right_v0": {
    "w": 57.33,
-   "h": 58.31,
+   "h": 63.95,
    "x0": -28.1,
-   "y0": -54.31,
+   "y0": -59.95,
    "height": 50.31,
    "face": {
     "cx": 0,
@@ -12264,13 +12265,13 @@
     "rx": 24.15,
     "ry": 3.31
    },
-   "sha256": "c577878b0fc6e0a6ac8f8b62235482ce1f33c402281ba9c66dc52f4a34d28faf"
+   "sha256": "99b23bbf9152e8bbcd5f0d873cc6ba416a9608c30e480b99f241a0eacfeee763"
   },
   "starry_cow_calf_front_right_v1": {
    "w": 57.33,
-   "h": 58.31,
+   "h": 63.95,
    "x0": -28.1,
-   "y0": -54.31,
+   "y0": -59.95,
    "height": 50.31,
    "face": {
     "cx": 0,
@@ -12286,13 +12287,13 @@
     "rx": 24.15,
     "ry": 3.31
    },
-   "sha256": "61f4d10291bae2f0f4a8494c95ae65fcd94800946c1c31ea694bc09c256ed5e1"
+   "sha256": "4b8f77eaa89c6f1390ada56a71ee875a0f6f26c019723ae33700cfb24ba0261d"
   },
   "starry_cow_calf_front_right_v2": {
    "w": 57.33,
-   "h": 58.31,
+   "h": 63.95,
    "x0": -28.1,
-   "y0": -54.31,
+   "y0": -59.95,
    "height": 50.31,
    "face": {
     "cx": 0,
@@ -12308,13 +12309,13 @@
     "rx": 24.15,
     "ry": 3.31
    },
-   "sha256": "bb08e13f578c3058155aaf58a84cdad2c523ef0076c9abf61aa81f0dbeef97d6"
+   "sha256": "c7dea40e40e19a94400caed51020b962f0b6975d59c6ba8e1e5d9e1b466075ea"
   },
   "starry_cow_calf_front_right_v3": {
    "w": 57.33,
-   "h": 58.31,
+   "h": 63.95,
    "x0": -28.1,
-   "y0": -54.31,
+   "y0": -59.95,
    "height": 50.31,
    "face": {
     "cx": 0,
@@ -12330,7 +12331,7 @@
     "rx": 24.15,
     "ry": 3.31
    },
-   "sha256": "05b5e9d67ea788db06ea97f1d1945ab6b2e1d153d0fc5490b3334c89fc0ea461"
+   "sha256": "ab14ea0af65549da2c23585af6476eda3b805c779f27b5eb3ff7413ca6d30eaa"
   },
   "starry_cow_adult_side_left_v0": {
    "w": 122.45,

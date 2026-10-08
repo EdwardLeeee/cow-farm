@@ -1,7 +1,7 @@
 // M2 假資料：數字照企劃書第 5 節與協定（牛奶 12 幣／瓶、牛肉 12 幣／公斤、稻米 5 幣／公斤；ceo 2026-10-01）。
 // 牧場名只用詞庫 backend/server/data/ranch_words.json 的詞；別人的牧場名加「#編號」。時間一律是真實時間。
 import { BREEDS, tierOf } from '../cow/breeds.js';
-import { t, LANG, cowName as nameOf } from './i18n.js';
+import { t, LANG, cowName as nameOf, calfName } from './i18n.js';
 
 export const RANCH = { name: '晨光河畔牧場', tag: '#1234', level: 4, earned: 5120, levelAt: 3500, nextAt: 7500, coins: 12480 };
 export const xpPct = (r = RANCH) => Math.round(((r.earned - r.levelAt) / (r.nextAt - r.levelAt)) * 100);
@@ -11,7 +11,7 @@ export const COWS = [
   { id: 3, breed: 'holstein', sex: 'cow', age: 'adult', age_: { d: 2, h: 5 }, milk: 14, kg: 212, value: 2514, probs: { A: 0.397, B: 0.441, C: 0.162 }, origin: 'start' },
   { id: 7, breed: 'jersey', sex: 'cow', age: 'adult', age_: { d: 1, h: 20 }, milk: 14, kg: 196, value: 3102, probs: { A: 0.402, B: 0.437, C: 0.161 }, origin: 'B' },
   { id: 12, breed: 'strawberry', sex: 'cow', age: 'adult', age_: { d: 1, h: 2 }, milk: 14, kg: 174, value: 5520, probs: { A: 0.487, B: 0.402, C: 0.111 }, origin: 'breed' },
-  { id: 15, breed: 'holstein', sex: 'cow', age: 'calf', seed: 31, age_: { m: 18 }, grow_: { m: 42 }, origin: 'breed' },
+  { id: 15, breed: 'holstein', sex: 'cow', age: 'calf', seed: 31, age_: { h: 2, m: 18 }, grow_: { m: 42 }, origin: 'breed' },
   { id: 2, breed: 'yellow', sex: 'bull', age: 'adult', age_: { d: 3, h: 1 }, kg: 431, value: 5108, probs: { A: 0.416, B: 0.428, C: 0.156 }, rice: 11, field: 0, origin: 'start' },
   { id: 9, breed: 'highland', sex: 'cow', age: 'adult', age_: { d: 2, h: 9 }, kg: 377, value: 5832, probs: { A: 0.401, B: 0.439, C: 0.16 }, rice: 14.3, field: 2, origin: 'A' },
   { id: 5, breed: 'angus', sex: 'bull', age: 'adult', age_: { d: 2, h: 14 }, kg: 790, value: 9420, probs: { A: 0.448, B: 0.414, C: 0.138 }, listed: 870, origin: 'C' },
@@ -24,7 +24,7 @@ export const cowById = (id) => COWS.find((c) => c.id === id);
 export const breedOf = (c) => BREEDS[c.breed];
 export const useOf = (c) => BREEDS[c.breed].use;
 export const tierOfCow = (c) => tierOf(BREEDS[c.breed]);
-export const cowName = (c) => nameOf(c.breed, c.id);
+export const cowName = (c) => (c.age === 'calf' ? calfName(BREEDS[c.breed].use, c.id) : nameOf(c.breed, c.id));
 
 export const BUCKET = { qty: 36.4, cap: 42, perHour: 42, level: 1 };
 export const WAREHOUSE = {
@@ -130,6 +130,9 @@ export const SHOP = [
   { grade: 'C', price: 900, tier: [97.0, 2.9, 0.03, 0.0001] },
 ];
 export const SHOP_TYPE = [45, 27.5, 27.5];
+// 小牛長大要幾小時：v0.3 所有小牛一樣（ceo 2026-10-03 定；數字等模擬，約 2–4 小時，設計稿的例子用 3 小時；開局送的小牛照舊很快長大）。
+// 以前照稀有度 1／2／4／8 小時，會讓玩家從倒數猜出稀有度
+export const CALF_GROW_H = 3;
 
 // 借種市場。借種費由系統算（D26，數字暫定）：公牛現在的體重 × 每公斤價格（一般 1.1、優良 2.75、稀有 6.6、傳說 16.5），四捨五入到 10 幣
 export const STUD_RATE = [1.1, 2.75, 6.6, 16.5];
