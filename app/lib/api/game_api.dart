@@ -78,6 +78,15 @@ abstract class GameApi {
   Future<Map<String, dynamic>> fieldHarvest();
   Future<Map<String, dynamic>> fieldExpand();
 
+  /// 改牧場名（S21，協定 2.5 節 `POST /v1/ranch/rename` `{name}`）：第一次免費，之後扣 `economy.rename_price`。
+  /// 名字照 D23 由伺服器檢查（不收時回 invalid_name），錢不夠回 not_enough_coins（need、have）。
+  /// 回應之後照常重新讀 state（牧場名、`profile.renames`、金幣）。
+  Future<Map<String, dynamic>> renameRanch(String name);
+
+  /// 換頭像（S21，協定 2.5 節 `POST /v1/ranch/avatar` `{breed}`）：[breed] 是品種代號，只能選圖鑑發現過的
+  /// （沒發現回 409 avatar_locked）。
+  Future<Map<String, dynamic>> setAvatar(String breed);
+
   Future<StudMarket> stud();
   Future<BreedPreview> studPreview(Object listingId, Object dam);
 

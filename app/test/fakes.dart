@@ -423,6 +423,39 @@ class FakeGameApi implements GameApi {
     return {'harvested': 33.0};
   }
 
+  /// 改名、換頭像（S21，協定 2.5 節）失敗時丟的錯；沒設就成功，照伺服器的樣子改 [stateJson]
+  /// （牧場名、profile.renames、金幣；頭像），回應的欄位照協定（rename：name、cost、coins；avatar：avatar）。
+  Exception? renameError;
+  Exception? avatarError;
+
+  @override
+  Future<Map<String, dynamic>> renameRanch(String name) async {
+    calls.add('rename:$name');
+    if (renameError != null) throw renameError!;
+    final profile = ((stateJson['profile'] as Map?) ?? const {}).cast<String, dynamic>();
+    final renames = (profile['renames'] as num?)?.toInt() ?? 0;
+    final price = renames == 0 ? 0 : ((stateJson['economy'] as Map?)?['rename_price'] as num? ?? 1000);
+    stateJson = {
+      ...stateJson,
+      'ranch_name': name,
+      'coins': (stateJson['coins'] as num) - price,
+      'profile': {...profile, 'renames': renames + 1},
+    };
+    return {'name': name, 'cost': price, 'coins': stateJson['coins']};
+  }
+
+  @override
+  Future<Map<String, dynamic>> setAvatar(String breed) async {
+    calls.add('avatar:$breed');
+    if (avatarError != null) throw avatarError!;
+    final profile = ((stateJson['profile'] as Map?) ?? const {}).cast<String, dynamic>();
+    stateJson = {
+      ...stateJson,
+      'profile': {...profile, 'avatar': breed},
+    };
+    return {'avatar': breed};
+  }
+
   @override
   Future<Map<String, dynamic>> fieldExpand() async {
     calls.add('field-expand');
