@@ -87,7 +87,7 @@ full('S04-07', '耕牛在田裡工作', (ctx) => detailPage(ctx, { ...cowById(9)
   buttons: `${btn(t('s04.recall'), { ic: 'hand', block: true })}<div class="btn-row" style="margin-top:12px">${breedBtn(true)}${shipBtn(true)}</div>`,
 }));
 // 小牛（第 15 輪 01-C 集點卡）：#15 要吃燕麥、豆粕，吃過燕麥（1 / 2）
-full('S04-08', '小牛：長大倒數、飼料集點卡', (ctx) => detailPage(ctx, CALF_DEMO[15], { buttons: `<p class="hint" style="text-align:center">${t('s04.calfHint')}</p><div class="btn-row" style="margin-top:8px">${breedBtn(true, t('s04.cantBreedYet'))}${btn(t('shipNotAdult'), { kind: 'danger', disabled: true })}</div>` }));
+full('S04-08', '小牛：長大倒數、飼料集點卡（長頁）', (ctx) => detailPage(ctx, CALF_DEMO[15], { buttons: `<p class="hint" style="text-align:center">${t('s04.calfHint')}</p><div class="btn-row" style="margin-top:8px">${breedBtn(true, t('s04.cantBreedYet'))}${btn(t('shipNotAdult'), { kind: 'danger', disabled: true })}</div>` }), { tall: true });
 full('S04-09', '已配種（一輩子一次）', (ctx) => detailPage(ctx, { ...cowById(7), bred: true }, {
   note: t('s04.noteBred'),
   buttons: `<div class="btn-row">${breedBtn(true, t('s04.alreadyBred'))}${shipBtn(false)}</div>`,
