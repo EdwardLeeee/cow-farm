@@ -1,7 +1,8 @@
 // 動畫逐格截圖：A-11 牛在牧場走動（設計稿的 8 頭牛，一輪 4 秒）、A-07 轉身（點 #12 草莓牛轉正面，0.5 秒）、
 // A-03 出貨卡車（照設計稿：載走荷斯坦，後面站著荷斯坦公牛、荷斯坦小牛、娟珊，3.6 秒）、
 // A-11 牛舍滿 40 頭一起走（場景左半、往右滑到底的右半，各一輪 4 秒；其他 32 個位置的走法，ceo 2026-10-03）、
-// A-01 收奶（按下「收奶」以後 1.4 秒：奶桶 36.4 瓶全部進倉庫，130 → 166 瓶）。
+// A-01 收奶（按下「收奶」以後 1.4 秒：奶桶 36.4 瓶全部進倉庫，130 → 166 瓶）、
+// A-02 成交（賣 130 瓶牛奶、1,924 幣：12,480 → 14,404；賣出面板捲到最上面，跟設計稿一樣）。
 // 390 寬、每點 2 像素（跟設計稿的動畫一樣只出 390），寫到 SHOTS_DIR/anim/<動畫 ID>/<第幾格>.png。
 // 只在本機拍，CI 不跑（沒給 SHOTS 就整個跳過）。在 app/ 底下：
 //   flutter test --dart-define=SHOTS=1 --dart-define=SHOTS_DIR=build/shots/<PR 編號> test/pages/anim_shots_test.dart
@@ -18,8 +19,11 @@ import 'package:cowfarm/ui/ship/truck_scene.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../fakes.dart';
 import 'page_case.dart';
 import 's03_cases.dart';
+import 's05_cases.dart' show milkLot;
+import 's06_cases.dart';
 
 final _shots = const String.fromEnvironment('SHOTS').isNotEmpty;
 const _dir = String.fromEnvironment('SHOTS_DIR', defaultValue: 'build/shots/local');
@@ -131,6 +135,25 @@ void main() {
     for (var i = 0; i <= 30; i++) {
       if (i > 0) await tester.pump(_frame);
       await _save(tester, 'A-01', i);
+    }
+  });
+
+  testWidgets('A-02 成交：按下「確認賣出 130 瓶」以後 1.4 秒', (tester) async {
+    Screen.w390.apply(tester, dpr: 2);
+    final api = MarketApi(answers: designAnswers)
+      ..afterSell = marketState(milk: [milkLot(16, 0, 1.0, 1)], coins: 14404);
+    final (m, _, _) = await loadedModel(api: api);
+    m.selectMarket(Commodity.milk);
+    m.selectTab(AppTab.market);
+    await _ranch(tester, model: m);
+    await tester.pump();
+    await slideTo(tester, 130, 146);
+    await scrollToSell(tester);
+    await tester.tap(find.byKey(const Key('sell-confirm')));
+    await tester.pump();
+    for (var i = 0; i <= 30; i++) {
+      if (i > 0) await tester.pump(_frame);
+      await _save(tester, 'A-02', i);
     }
   });
 

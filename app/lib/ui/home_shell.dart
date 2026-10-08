@@ -38,6 +38,10 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
+
+  /// 動畫中頂列要暫時顯示的東西（A-02、A-05；kit/frame.dart 的 HudFxScope）。
+  final _hudFx = HudFxNotifier();
+  final _hudChipKey = GlobalKey();
   StreamSubscription<GameNotice>? _sub;
 
   /// S15-02「已重新連線，資料更新了」正在顯示（2.5 秒）。
@@ -71,6 +75,7 @@ class _HomeShellState extends State<HomeShell> {
   void dispose() {
     _sub?.cancel();
     _reconnectedTimer?.cancel();
+    _hudFx.dispose();
     super.dispose();
   }
 
@@ -159,31 +164,35 @@ class _HomeShellState extends State<HomeShell> {
           m.closePenList();
         }
       },
-      child: ScaffoldMessenger(
-        key: _messengerKey,
-        child: Scaffold(
-          resizeToAvoidBottomInset: false,
-          body: Stack(
-            children: [
-              Positioned.fill(child: page),
-              // S15-04：照設計稿 .long-off 的位置，在「連線中…」膠囊下面（頂列下 56），不蓋到它
-              if (m.maintenance == null && m.state != null)
-                Positioned(left: 12, right: 12, top: safe.top + FrameSizes.hud + 56, child: const LongOfflineCard()),
-              // S15-02：.toast 的位置（分頁列上面 14）
-              if (_reconnected)
-                Positioned(
-                  left: 16,
-                  right: 16,
-                  bottom: safe.bottom + FrameSizes.tab + 14,
-                  child: Center(
-                    child: ToastPill(
-                      Strings.of(context).s15Reconnected,
-                      kind: ToastKind.ok,
-                      key: const Key('reconnected'),
+      child: HudFxScope(
+        notifier: _hudFx,
+        chipKey: _hudChipKey,
+        child: ScaffoldMessenger(
+          key: _messengerKey,
+          child: Scaffold(
+            resizeToAvoidBottomInset: false,
+            body: Stack(
+              children: [
+                Positioned.fill(child: page),
+                // S15-04：照設計稿 .long-off 的位置，在「連線中…」膠囊下面（頂列下 56），不蓋到它
+                if (m.maintenance == null && m.state != null)
+                  Positioned(left: 12, right: 12, top: safe.top + FrameSizes.hud + 56, child: const LongOfflineCard()),
+                // S15-02：.toast 的位置（分頁列上面 14）
+                if (_reconnected)
+                  Positioned(
+                    left: 16,
+                    right: 16,
+                    bottom: safe.bottom + FrameSizes.tab + 14,
+                    child: Center(
+                      child: ToastPill(
+                        Strings.of(context).s15Reconnected,
+                        kind: ToastKind.ok,
+                        key: const Key('reconnected'),
+                      ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

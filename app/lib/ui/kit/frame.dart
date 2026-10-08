@@ -172,6 +172,60 @@ class HudData {
   final String avatar;
 }
 
+/// 動畫中頂列要暫時顯示的東西（設計稿 anims.js）：A-02 成交時金幣往上跳、金幣膠囊放大一下；A-05 升級時等級和經驗條
+/// 在卡片的數字翻過去那一刻才換。null 的照伺服器的。
+class HudFx {
+  const HudFx({this.coins, this.pulse = 0, this.level, this.xp});
+
+  final double? coins;
+
+  /// 0–1：金幣膠囊放大 1 + 0.08 × pulse。
+  final double pulse;
+  final int? level;
+  final double? xp;
+
+  /// 只換金幣那一份、只換等級那一份：兩個動畫可能一起播（賣出時剛好升級），各寫各的。
+  HudFx withCoins(double? coins, {double pulse = 0}) => HudFx(coins: coins, pulse: pulse, level: level, xp: xp);
+  HudFx withLevel(int? level, {double? xp}) => HudFx(coins: coins, pulse: pulse, level: level, xp: xp);
+
+  bool get isEmpty => coins == null && level == null && xp == null;
+}
+
+/// [HudFxScope] 的值（HomeShell 建、HomeShell 丟）。
+class HudFxNotifier extends ValueNotifier<HudFx?> {
+  HudFxNotifier() : super(null);
+
+  bool _disposed = false;
+
+  /// 改自己那一份；全部都沒了就是 null（頂列照伺服器的數字）。頁面在動畫播到一半被丟掉時（例：切分頁），
+  /// 下一格才清自己那一份，那時 HomeShell 可能也丟了：丟了就不管。
+  void edit(HudFx Function(HudFx fx) change) {
+    if (_disposed) return;
+    final fx = change(value ?? const HudFx());
+    value = fx.isEmpty ? null : fx;
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+}
+
+/// 整個 app 一個（HomeShell 放的）：播動畫的頁面寫 [notifier]，只有頂列聽，其他畫面不用每格重畫。
+/// [chipKey] 掛在頂列的金幣膠囊上（A-02 的金幣飛到那裡）。
+class HudFxScope extends InheritedNotifier<HudFxNotifier> {
+  const HudFxScope({super.key, required HudFxNotifier super.notifier, required this.chipKey, required super.child});
+
+  final GlobalKey chipKey;
+
+  /// 頂列用：值變了就重畫。
+  static HudFxScope? maybeOf(BuildContext context) => context.dependOnInheritedWidgetOfExactType<HudFxScope>();
+
+  /// 播動畫的頁面用（不登記依賴）。
+  static HudFxScope? read(BuildContext context) => context.getInheritedWidgetOfExactType<HudFxScope>();
+}
+
 /// 頂列（G-02）：頭像、牧場名、等級和經驗條、金幣、設定。
 /// 窄手機（寬度 < 390、< 340）照 kit.css 的兩段 @media 縮小；牧場名顯示寬度超過 12 時字縮小，再放不下用「…」截短（D23）。
 class Hud extends StatelessWidget {
@@ -198,8 +252,11 @@ class Hud extends StatelessWidget {
     final narrow = w < 390, tiny = w < 340;
     final name = d.name;
     final long = nameWidth(name) > 12;
-    final coins = d.coins;
-    final xp = d.xp;
+    final fxScope = data == null ? HudFxScope.maybeOf(context) : null;
+    final fx = fxScope?.notifier?.value;
+    final coins = fx?.coins?.round() ?? d.coins;
+    final level = fx?.level ?? d.level;
+    final xp = fx?.xp ?? d.xp;
     final avatar = tiny ? 46.0 : (narrow ? 50.0 : 56.0);
     final face = tiny ? 42.0 : (narrow ? 46.0 : 52.0);
     final coinIcon = tiny ? 30.0 : 34.0;
@@ -252,7 +309,7 @@ class Hud extends StatelessWidget {
                           border: Border.all(color: AppColors.ink, width: 2),
                           borderRadius: const BorderRadius.all(Radius.circular(8)),
                         ),
-                        child: Text(s.level(lv: d.level), style: AppText.number(12, lineHeight: 14)),
+                        child: Text(s.level(lv: level), style: AppText.number(12, lineHeight: 14)),
                       ),
                       const SizedBox(width: 5),
                       // 320 寬放不下時經驗條縮短（設計稿是超出名牌）
@@ -327,34 +384,38 @@ class Hud extends StatelessWidget {
             ),
           ),
           SizedBox(width: narrow ? 6 : 8),
-          // .coins：金幣膠囊，金幣圖示一半在外面
+          // .coins：金幣膠囊，金幣圖示一半在外面（A-02 的時候放大一下）
           Padding(
+            key: fxScope?.chipKey,
             padding: EdgeInsets.only(left: narrow ? 17 : 18),
-            child: Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.centerLeft,
-              children: [
-                Container(
-                  height: 40,
-                  padding: EdgeInsets.fromLTRB(narrow ? 20 : 24, 0, narrow ? 10 : 12, 0),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border.all(color: AppColors.ink, width: AppSizes.border),
-                    borderRadius: const BorderRadius.all(Radius.circular(20)),
-                    boxShadow: AppShadows.solid(),
+            child: Transform.scale(
+              scale: 1 + 0.08 * (fx?.pulse ?? 0),
+              child: Stack(
+                clipBehavior: Clip.none,
+                alignment: Alignment.centerLeft,
+                children: [
+                  Container(
+                    height: 40,
+                    padding: EdgeInsets.fromLTRB(narrow ? 20 : 24, 0, narrow ? 10 : 12, 0),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: AppColors.ink, width: AppSizes.border),
+                      borderRadius: const BorderRadius.all(Radius.circular(20)),
+                      boxShadow: AppShadows.solid(),
+                    ),
+                    child: Text(
+                      compact(coins, s.lang, from: narrow ? 100000 : 1000000),
+                      key: const Key('hud-coins'),
+                      style: AppText.number(tiny ? 15 : (narrow ? 17 : 18), lineHeight: tiny ? 15 : (narrow ? 17 : 18)),
+                    ),
                   ),
-                  child: Text(
-                    compact(coins, s.lang, from: narrow ? 100000 : 1000000),
-                    key: const Key('hud-coins'),
-                    style: AppText.number(tiny ? 15 : (narrow ? 17 : 18), lineHeight: tiny ? 15 : (narrow ? 17 : 18)),
+                  Positioned(
+                    left: tiny ? -16 : -19,
+                    child: AppIcon('coin', size: coinIcon),
                   ),
-                ),
-                Positioned(
-                  left: tiny ? -16 : -19,
-                  child: AppIcon('coin', size: coinIcon),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           SizedBox(width: narrow ? 6 : 8),

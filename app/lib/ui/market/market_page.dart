@@ -2,6 +2,7 @@
 // D24：沒有走勢圖；三種商品的「現在的收購價」和「比平常高或低幾 %」排成一張卡，點一列就換成那種商品的賣出面板。
 // 賣的價格一律問伺服器（POST /v1/sell/quote 試算、POST /v1/sell 賣出），手機不算帳。
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -14,9 +15,11 @@ import '../../state/settings.dart';
 import '../../theme/tokens.dart';
 import '../kit/app_icon.dart';
 import '../kit/cow_bits.dart';
+import '../kit/fly.dart';
 import '../kit/frame.dart';
 import '../kit/kit.dart';
 import '../kit/meter.dart';
+import '../kit/motion.dart';
 import '../kit/press.dart';
 import '../widgets/action_button.dart';
 import '../widgets/ticker_builder.dart';
@@ -30,22 +33,73 @@ class MarketPage extends StatefulWidget {
   State<MarketPage> createState() => _MarketPageState();
 }
 
-class _MarketPageState extends State<MarketPage> {
+class _MarketPageState extends State<MarketPage> with SingleTickerProviderStateMixin {
   ({ToastKind kind, String text})? _toast;
   Timer? _toastTimer;
+
+  /// A-02 成交（1.4 秒，設計稿 anims.js 的 A02）：金幣從「確認賣出」飛向頂列、頂列的金幣往上跳、第 1.0 秒提示淡入。
+  late final _anim = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400))
+    ..addListener(_tickCoins);
+
+  /// 賣出前的金幣、按鈕（金幣從哪裡飛）；null 是沒在播。
+  SoldFx? _sold;
+  final _layerKey = GlobalKey();
+
+  /// A-02 的減少動態版：提示淡入 0.2 秒（金幣不飛、數字直接變）。
+  bool _fadeToast = false;
+
+  /// 頂列（A-02 播的時候改金幣那一份）。
+  HudFxNotifier? _hud;
 
   @override
   void dispose() {
     _toastTimer?.cancel();
+    _anim.dispose();
+    // 播到一半離開市場（切分頁）：下一格把頂列的金幣換回伺服器的數字（這一格還在拆畫面，不能改）
+    if (_sold != null) {
+      final hud = _hud;
+      WidgetsBinding.instance.addPostFrameCallback((_) => hud?.edit((fx) => fx.withCoins(null)));
+    }
     super.dispose();
   }
 
-  void _showToast(ToastKind kind, String text) {
+  void _showToast(ToastKind kind, String text, {Duration delay = Duration.zero}) {
     _toastTimer?.cancel();
     setState(() => _toast = (kind: kind, text: text));
-    _toastTimer = Timer(const Duration(milliseconds: 2500), () {
+    _toastTimer = Timer(delay + const Duration(milliseconds: 2500), () {
       if (mounted) setState(() => _toast = null);
     });
+  }
+
+  /// 賣出成功：開著動畫時播 A-02，提示第 1.0 秒才出來；減少動態時提示淡入 0.2 秒。
+  void _onSold(SoldFx fx) {
+    final motion = AppMotion.read(context);
+    _fadeToast = !motion && AppMotion.reducedRead(context);
+    if (motion) {
+      setState(() => _sold = fx);
+      _hud = HudFxScope.read(context)?.notifier;
+      _anim.forward(from: 0).whenComplete(() {
+        _hud?.edit((fx) => fx.withCoins(null));
+        if (mounted) setState(() => _sold = null);
+      });
+    }
+    _showToast(ToastKind.ok, fx.toast, delay: motion ? const Duration(milliseconds: 1000) : Duration.zero);
+  }
+
+  /// A-02 現在播到第幾秒；沒在播是 null。
+  double? get _t => _sold == null ? null : _anim.value * 1.4;
+
+  /// 頂列的金幣：0.5–1.05 秒照 outCubic 從賣出前跳到伺服器的新數字，膠囊 0.55–1.05 秒放大一下。
+  void _tickCoins() {
+    final fx = _sold, t = _t;
+    if (fx == null || t == null) return;
+    final now = context.read<GameModel>().state?.coins.toDouble() ?? fx.coins;
+    _hud?.edit(
+      (hud) => hud.withCoins(
+        fx.coins + (now - fx.coins) * animOutCubic(animSeg(t, 0.5, 1.05)),
+        pulse: math.sin(math.pi * animSeg(t, 0.55, 1.05)),
+      ),
+    );
   }
 
   @override
@@ -54,26 +108,100 @@ class _MarketPageState extends State<MarketPage> {
     return AppFrame(
       tab: AppTab.market,
       contentPadding: EdgeInsets.zero,
-      content: TickerBuilder(builder: (context) => _MarketList(onToast: _showToast)),
+      content: TickerBuilder(
+        builder: (context) => _MarketList(onToast: _showToast, onSold: _onSold),
+      ),
       overlays: [
+        // A-02：飛的金幣（不擋點擊）
+        if (_sold != null)
+          Positioned.fill(
+            key: _layerKey,
+            child: IgnorePointer(
+              child: AnimatedBuilder(animation: _anim, builder: (context, _) => _coins()),
+            ),
+          ),
         if (_toast case final t?)
           Positioned(
             left: 16,
             right: 16,
             bottom: FrameSizes.contentBottom(safe) + 14,
             child: Center(
-              child: ToastPill(t.text, kind: t.kind, key: const Key('toast')),
+              // A-02 播的時候第 1.0–1.2 秒淡入、從下面 14 滑上來；減少動態時淡入 0.2 秒
+              child: AnimatedBuilder(
+                animation: _anim,
+                builder: (context, child) {
+                  final at = _t;
+                  if (at == null) {
+                    if (!_fadeToast) return child!;
+                    return TweenAnimationBuilder<double>(
+                      key: ObjectKey(_toast),
+                      tween: Tween(begin: 0, end: 1),
+                      duration: const Duration(milliseconds: 200),
+                      builder: (context, o, child) => Opacity(opacity: o, child: child),
+                      child: child,
+                    );
+                  }
+                  final k = animSeg(at, 1.0, 1.2);
+                  return Opacity(
+                    opacity: k,
+                    child: Transform.translate(offset: Offset(0, (1 - animOutCubic(k)) * 14), child: child),
+                  );
+                },
+                child: ToastPill(t.text, kind: t.kind, key: const Key('toast')),
+              ),
             ),
           ),
       ],
     );
   }
+
+  /// A-02 的六個金幣：從「確認賣出」的中間（左右各錯開 16）沿拋物線（高 60）飛到頂列金幣膠囊的左邊 6，
+  /// 一個晚 0.07 秒，越飛越小（1 → 0.7；設計稿 A02.frame）。
+  Widget _coins() {
+    final fx = _sold, t = _t;
+    final layer = _layerKey.currentContext?.findRenderObject() as RenderBox?;
+    final from = flyPoint(
+      layer,
+      fx?.button.currentContext?.findRenderObject() as RenderBox?,
+      (s) => s.center(Offset.zero),
+    );
+    // 金幣膠囊外面左邊留給金幣圖示的 18（窄手機 17）
+    final to = flyPoint(
+      layer,
+      HudFxScope.read(context)?.chipKey.currentContext?.findRenderObject() as RenderBox?,
+      (s) => Offset(18 + 6, s.height / 2),
+    );
+    if (t == null || from == null || to == null) return const SizedBox.shrink();
+    return FlyIcons(
+      t: t,
+      count: 6,
+      from: (i) => from + Offset((i - 2.5) * 16, 0),
+      to: to,
+      icon: const AppIcon('coin', size: 30),
+      size: 30,
+      start: 0.1,
+      dur: 0.55,
+      stagger: 0.07,
+      lift: 60,
+      scale: (k) => 1 - 0.3 * k,
+      keyPrefix: 'sell-coin',
+    );
+  }
+}
+
+/// 賣出成功（A-02）：賣出前的金幣、提示的字、「確認賣出」按鈕（金幣從這裡飛出去）。
+class SoldFx {
+  const SoldFx(this.coins, this.toast, this.button);
+  final double coins;
+  final String toast;
+  final GlobalKey button;
 }
 
 class _MarketList extends StatelessWidget {
-  const _MarketList({required this.onToast});
+  const _MarketList({required this.onToast, required this.onSold});
 
   final void Function(ToastKind kind, String text) onToast;
+  final ValueChanged<SoldFx> onSold;
 
   @override
   Widget build(BuildContext context) {
@@ -101,7 +229,7 @@ class _MarketList extends StatelessWidget {
         if (headline != null) ...[const SizedBox(height: 12), _Headline(news: headline)],
         const SizedBox(height: 12),
         // 換商品就是新的賣出面板（數量、試算重來）
-        SellCard(key: ValueKey('sell-${c.wire}'), commodity: c, onToast: onToast),
+        SellCard(key: ValueKey('sell-${c.wire}'), commodity: c, onToast: onToast, onSold: onSold),
         const SizedBox(height: 12),
         NewsCard(items: news),
       ],
@@ -389,10 +517,13 @@ class _Headline extends StatelessWidget {
 /// .sell-card：數量（¼、½、全部、滑桿）→ 拉完 0.3 秒後問伺服器試算 → 預估均價、總額 → 確認賣出。
 /// 賣的時候從最舊的一批先賣；均價比市價差太多（伺服器的 warn_big_order）就提醒分批。
 class SellCard extends StatefulWidget {
-  const SellCard({super.key, required this.commodity, required this.onToast});
+  const SellCard({super.key, required this.commodity, required this.onToast, this.onSold});
 
   final Commodity commodity;
   final void Function(ToastKind kind, String text) onToast;
+
+  /// 賣出成功（A-02）；沒給就照 [onToast] 跳提示。
+  final ValueChanged<SoldFx>? onSold;
 
   /// 拉滑桿後停多久才試算。
   static const debounce = Duration(milliseconds: 300);
@@ -413,7 +544,11 @@ class _SellCardState extends State<SellCard> {
   bool _failed = false;
   int _seq = 0;
 
-  double _inventory(GameModel m) => m.state?.warehouse.total(widget.commodity) ?? 0;
+  /// A-02 播的時候，賣出前的庫存和批數留到第 1.0 秒才換（設計稿 A02：「庫存扣掉，提示成交結果」）。
+  ({double inv, int lots})? _held;
+  Timer? _holdTimer;
+
+  double _inventory(GameModel m) => _held?.inv ?? m.state?.warehouse.total(widget.commodity) ?? 0;
 
   /// 滑桿位置 → 要賣的量。
   static double qtyAt(int pos, double inv) {
@@ -438,6 +573,7 @@ class _SellCardState extends State<SellCard> {
   @override
   void dispose() {
     _debounce?.cancel();
+    _holdTimer?.cancel();
     super.dispose();
   }
 
@@ -470,9 +606,15 @@ class _SellCardState extends State<SellCard> {
     });
   }
 
+  /// 「確認賣出」：A-02 的金幣從這裡飛出去。
+  final _confirmKey = GlobalKey();
+
   Future<void> _sell(double qty) async {
     final m = context.read<GameModel>();
     final s = Strings.of(context, listen: false);
+    final coins = m.state?.coins.toDouble() ?? 0;
+    final motion = AppMotion.read(context);
+    final before = (inv: _inventory(m), lots: m.state?.warehouse.lotsOf(widget.commodity).length ?? 0);
     final r = await m.sell(widget.commodity, qty);
     if (!mounted) return;
     final err = r.error;
@@ -482,11 +624,33 @@ class _SellCardState extends State<SellCard> {
       return;
     }
     final res = r.value!;
-    widget.onToast(
-      ToastKind.ok,
-      s.sold(qty: fmt(res.qty), unit: s.unitOf(widget.commodity), avg: priceText(res.avgPrice), total: fmt(res.total)),
+    final text = s.sold(
+      qty: fmt(res.qty),
+      unit: s.unitOf(widget.commodity),
+      avg: priceText(res.avgPrice),
+      total: fmt(res.total),
     );
-    // 賣完庫存變了：滑桿回到全部，重新試算
+    if (widget.onSold case final sold?) {
+      sold(SoldFx(coins, text, _confirmKey));
+    } else {
+      widget.onToast(ToastKind.ok, text);
+    }
+    if (motion) {
+      // A-02：庫存、數量、預估留到第 1.0 秒才換
+      setState(() => _held = before);
+      _holdTimer?.cancel();
+      _holdTimer = Timer(const Duration(milliseconds: 1000), () {
+        if (!mounted) return;
+        _held = null;
+        _afterSale(context.read<GameModel>());
+      });
+    } else {
+      _afterSale(m);
+    }
+  }
+
+  /// 賣完庫存變了：滑桿回到全部，重新試算。
+  void _afterSale(GameModel m) {
     final inv = _inventory(m);
     _pos = null;
     if (inv > 0) {
@@ -503,7 +667,7 @@ class _SellCardState extends State<SellCard> {
     final c = widget.commodity;
     final name = s.commodity(c), unit = s.unitOf(c);
     final inv = _inventory(m);
-    final lots = m.state?.warehouse.lotsOf(c).length ?? 0;
+    final lots = _held?.lots ?? m.state?.warehouse.lotsOf(c).length ?? 0;
     final steps = inv.ceil();
     final pos = (_pos ?? steps).clamp(0, steps);
     final qty = qtyAt(pos, inv);
@@ -606,13 +770,16 @@ class _SellCardState extends State<SellCard> {
             previous: _lastQuote,
             onRetry: () => _requote(pos, inv, now: true),
           ),
-          AppButton(
-            s.sellConfirm(qty: fmt(qty), unit: unit),
-            key: const Key('sell-confirm'),
-            kind: ButtonKind.primary,
-            block: true,
-            busy: m.busy && online,
-            onPressed: canSell && !m.busy ? () => _sell(qty) : null,
+          KeyedSubtree(
+            key: _confirmKey,
+            child: AppButton(
+              s.sellConfirm(qty: fmt(qty), unit: unit),
+              key: const Key('sell-confirm'),
+              kind: ButtonKind.primary,
+              block: true,
+              busy: m.busy && online,
+              onPressed: canSell && !m.busy ? () => _sell(qty) : null,
+            ),
           ),
           // 試算用的百分比（給測試、截圖看）
           SizedBox(key: Key('sell-pct-$pct'), width: 0, height: 0),
