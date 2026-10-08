@@ -1,0 +1,110 @@
+/* 第 19 輪草稿的樣式：餵食。顏色和元件沿用 M2 設計稿（design/m2/src/css） */
+
+/* ---------- 說明圖的版面（不是畫面的一部分；跟第 13 輪一樣） ---------- */
+body { background: #FFF9EF; }
+.board { padding: 28px 36px 36px; background: #FFF9EF; }
+.b-label { display: inline-block; font-size: 22px; font-weight: 900; line-height: 34px; padding: 0 14px; background: var(--yellow); border: 3px solid var(--ink); border-radius: 12px; }
+.b-title { margin-top: 12px; font-size: 26px; font-weight: 900; line-height: 34px; }
+.b-sub { margin-top: 4px; font-size: 16px; font-weight: 700; line-height: 24px; color: var(--ink-2); }
+.b-row { display: grid; gap: 30px 40px; margin-top: 22px; align-items: start; }
+.b-cell { margin: 0; }
+.b-cell figcaption { min-height: 68px; margin-bottom: 10px; font-size: 14px; font-weight: 700; line-height: 20px; color: #C2541B; }
+.b-cell figcaption b { display: block; font-size: 18px; font-weight: 900; line-height: 26px; color: var(--ink); }
+.b-cell .phone { outline: 2px solid #E2D4C2; }
+.b-cell .phone.tall { height: auto; min-height: 844px; } /* 長頁：整頁畫出來（跟 M2 的長頁狀態一樣） */
+.b-notes { margin: 24px 0 0; padding-left: 22px; font-size: 15px; font-weight: 700; line-height: 24px; color: var(--ink-2); }
+.skip-note { padding: 4px 12px; border: 2px dashed #C2541B; border-radius: 14px; font-size: 14px; font-weight: 900; line-height: 20px; color: #C2541B; text-align: center; background: rgba(255, 255, 255, 0.6); }
+.gesture { position: absolute; z-index: 40; line-height: 0; pointer-events: none; }
+.ov-row { margin-top: 26px; }
+.ov-title { font-size: 20px; font-weight: 900; line-height: 28px; }
+.ov-cells { display: flex; flex-wrap: wrap; gap: 28px; margin-top: 10px; }
+.ov-cap { min-height: 28px; font-size: 15px; line-height: 22px; }
+.ov-cap b { font-weight: 900; }
+.ov-ph { overflow: hidden; outline: 2px solid #E2D4C2; }
+.ov-pair { display: flex; gap: 14px; }
+.ov-legend { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.ov-legend .tier, .ov-legend .stars4 { transform: scale(1.2); transform-origin: left center; margin-right: 10px; }
+.ov-sp { display: flex; gap: 18px; padding: 10px 14px; background: linear-gradient(180deg, #E6F5FF 0, #F1FAE8 62%, #E3F2D3 100%); border: 2px solid #E2D4C2; border-radius: 18px; }
+.ov-sp span { display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 0; }
+.ov-sp b { font-size: 16px; line-height: 22px; }
+.gesture { position: absolute; z-index: 90; line-height: 0; pointer-events: none; }
+
+/* ---------- 名片：餵食、看詳細兩顆（01-A） ---------- */
+.cow-pop .pop-btns { display: flex; gap: 6px; margin-top: 8px; }
+.cow-pop .pop-btns .btn { flex: 1; min-width: 0; }
+.cow-pop .cool-line { display: flex; align-items: center; gap: 4px; margin: 6px 0 0; font-size: 12px; font-weight: 900; line-height: 16px; color: #3E8E2F; }
+.cool-sub { display: flex; align-items: center; justify-content: center; gap: 4px; margin: 6px 0 0; color: #3E8E2F; font-weight: 900; }
+
+/* ---------- 名片上的飼料格（02-B） ---------- */
+.cow-pop.pf { width: 232px; }
+.pf-note { margin: 4px 0 0; font-size: 12px; font-weight: 700; color: var(--ink-2); }
+.pf-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 8px 0; }
+.pf-cell { position: relative; display: flex; align-items: center; justify-content: center; gap: 4px; height: 44px; background: #FFFFFF; border: 2px solid var(--line-soft); border-radius: 12px; font-size: 14px; font-weight: 900; }
+.pf-cell.pf-want { border-color: #5DB04A; box-shadow: 0 0 0 2px #CFEFC2; }
+.pf-cell.empty { opacity: 0.4; }
+.pf-cell.picked { background: #E4F7D8; border-color: #3E8E2F; }
+.pf-tag { position: absolute; top: -9px; right: -4px; padding: 0 4px; font-style: normal; font-size: 10px; font-weight: 900; line-height: 15px; color: #FFFFFF; background: #3E8E2F; border-radius: 6px; }
+
+/* ---------- 選飼料的底部面板（02-A） ---------- */
+.feed-sheet .fs-sub, .feed-all .fs-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: -4px 0 10px; font-size: 13px; font-weight: 700; color: var(--ink-2); }
+.fs-need { display: inline-flex; align-items: center; gap: 2px; padding: 1px 8px 1px 4px; background: #FFF1DF; border: 1.5px solid #E8964A; border-radius: 10px; font-weight: 900; color: var(--ink); }
+.fs-need.done { background: #E4F7D8; border-color: #5DB04A; }
+.fs-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.fs-cell { position: relative; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 8px 4px 6px; background: #FFFFFF; border: 2px solid var(--line-soft); border-radius: 14px; }
+.fs-cell b { font-size: 14px; line-height: 19px; }
+.fs-ic { line-height: 0; }
+.fs-kg { font-size: 12px; font-weight: 900; color: #3E8E2F; }
+.fs-n { font-size: 11px; font-weight: 700; color: var(--ink-2); }
+.fs-n b { font-size: 12px; color: var(--ink); }
+.fs-buy { color: #C2541B; font-weight: 900; }
+.fs-cell.empty .fs-ic, .fs-cell.empty b, .fs-cell.empty .fs-kg { opacity: 0.4; }
+.fs-cell.picked { background: #E4F7D8; border-color: #3E8E2F; box-shadow: 0 0 0 2px #CFEFC2; }
+.fs-cell .pick-check { position: absolute; right: -6px; top: -6px; }
+.fs-tag { position: absolute; left: 6px; top: 6px; display: inline-flex; align-items: center; gap: 2px; padding: 0 5px; font-style: normal; font-size: 10px; font-weight: 900; line-height: 16px; border-radius: 7px; color: #FFFFFF; background: #E8964A; }
+.fs-tag.fs-done { background: #5DB04A; }
+.feed-sheet .btn-row, .feed-all .btn-row { margin-top: 12px; }
+.fs-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 0 4px; text-align: center; }
+.fs-empty b { font-size: 17px; }
+
+/* ---------- 吃的時候 ---------- */
+.fly-arc { position: absolute; left: 0; top: 0; z-index: 85; pointer-events: none; }
+.fly-ic { position: absolute; z-index: 86; padding: 6px; background: #FFFFFF; border: 2.5px solid var(--ink); border-radius: 50%; line-height: 0; box-shadow: 0 3px 0 var(--ink); }
+.kg-pop { position: absolute; z-index: 86; transform: translate(-50%, -100%); padding: 2px 10px; background: #FFFFFF; border: 2.5px solid var(--ink); border-radius: 12px; font-size: 16px; font-weight: 900; line-height: 22px; color: #3E8E2F; white-space: nowrap; box-shadow: 0 2px 0 var(--ink); }
+.stamp-pop { position: absolute; z-index: 86; display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px 2px 4px; background: #E4F7D8; border: 2.5px solid #3E8E2F; border-radius: 12px; transform: rotate(-8deg); font-size: 13px; color: #3E8E2F; white-space: nowrap; }
+.chew { position: absolute; z-index: 86; font-size: 13px; font-weight: 900; color: var(--ink-2); transform: rotate(-6deg); }
+
+/* ---------- 吃飽冷卻的小碗（03-B） ---------- */
+.bowl { position: absolute; z-index: 60; line-height: 0; filter: drop-shadow(0 2px 0 rgba(75, 51, 38, 0.35)); }
+
+/* ---------- 01-B：一排飼料（拖到牛身上） ---------- */
+.feed-tray { position: absolute; left: 12px; right: 12px; bottom: calc(var(--safe-bottom) + var(--tab-h) + 252px); z-index: 50; display: flex; align-items: center; gap: 4px; padding: 6px 8px; background: rgba(255, 255, 255, 0.95); border: 2.5px solid var(--ink); border-radius: 18px; box-shadow: 0 3px 0 var(--ink); }
+.ft-cell { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0; font-size: 12px; font-weight: 900; line-height: 14px; }
+.ft-cell.empty { opacity: 0.35; }
+.ft-cell.lifted { opacity: 0.35; }
+.ft-close { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #F3E6D2; }
+.drop-ring { position: absolute; z-index: 70; width: 92px; height: 92px; border: 4px dashed #FFFFFF; border-radius: 50%; box-shadow: 0 0 0 4px rgba(93, 176, 74, 0.6); }
+.drop-ring i { position: absolute; left: 50%; top: -30px; transform: translateX(-50%); padding: 2px 10px; font-style: normal; font-size: 13px; font-weight: 900; line-height: 20px; color: #FFFFFF; background: #3E8E2F; border-radius: 10px; white-space: nowrap; }
+
+/* ---------- 04：全部餵一樣的 ---------- */
+.feed-all-pill { position: absolute; left: 0; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; gap: 4px; height: 30px; padding: 0 10px 0 6px; background: var(--green); border: 2.5px solid var(--ink); border-radius: 15px; box-shadow: 0 2px 0 var(--ink); font-size: 13px; font-weight: 900; }
+.dock-head { position: relative; }
+.feed-all-fab { position: absolute; right: 14px; bottom: calc(var(--safe-bottom) + var(--tab-h) + 252px); z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 64px; height: 64px; background: var(--green); border: 3px solid var(--ink); border-radius: 50%; box-shadow: 0 4px 0 var(--ink); font-size: 11px; font-weight: 900; line-height: 13px; }
+.fa-chips { display: flex; gap: 6px; overflow: hidden; }
+.fa-chip { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0; padding: 6px 0 4px; background: #FFFFFF; border: 2px solid var(--line-soft); border-radius: 12px; font-size: 11px; font-weight: 900; line-height: 14px; }
+.fa-chip .num { color: var(--ink-2); }
+.fa-chip.picked { background: #E4F7D8; border-color: #3E8E2F; box-shadow: 0 0 0 2px #CFEFC2; }
+.fa-chip.empty { opacity: 0.4; }
+.fa-sum { margin-top: 10px; padding: 10px 12px; }
+.fa-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; font-size: 14px; font-weight: 700; line-height: 22px; }
+.fa-line b { font-size: 16px; }
+.fa-line .hint { font-size: 12px; }
+.fa-warn { margin: 6px 0 0; }
+.fa-faces { display: flex; gap: 6px; margin-top: 8px; }
+.fa-face { position: relative; line-height: 0; opacity: 0.4; }
+.fa-face.on { opacity: 1; }
+.fa-face .av-circle { width: 44px; height: 44px; }
+.fa-ok { position: absolute; right: -4px; top: -4px; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: #3E8E2F; color: #FFFFFF; border: 2px solid #FFFFFF; }
+.fa-ok svg { width: 10px; height: 10px; }
+.fa-calf { position: absolute; left: 50%; bottom: -8px; transform: translateX(-50%); padding: 0 4px; font-style: normal; font-size: 9px; font-weight: 900; line-height: 13px; color: #FFFFFF; background: #E8964A; border-radius: 5px; white-space: nowrap; }
+/* 小牛的詳細往下捲到集點卡（草稿：內容整段往上移） */
+.content.scrolled > .stack { transform: translateY(calc(-1 * var(--scroll))); }
