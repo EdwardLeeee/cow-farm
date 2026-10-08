@@ -14,7 +14,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import sim  # noqa: E402,F401  （把 backend/ 加進 sys.path；cowecon 在 backend/cowecon/）
 
 from cowecon import DEFAULT, HOUR, MINUTE, Exchange, ImpactState, with_overrides  # noqa: E402
-from cowecon.market import Market, _ramp_integral  # noqa: E402
+from cowecon.params import HEADLINES  # noqa: E402
+from cowecon.market import EventGenerator, Market, _ramp_integral  # noqa: E402
 
 T0 = 1791129600.0  # 2026-10-05 00:00 台灣時間
 
@@ -53,7 +54,7 @@ class TestPriceBounds(unittest.TestCase):
             ex.inject_event(("milk",), 1.4, T0 + (30 + k) * HOUR, 6 * HOUR)
         m = ex.markets["milk"]
         imps = [ImpactState() for _ in range(200)]
-        lo, hi = 1e9, 0.0
+        lo, hi, xlo, xhi = 1e9, 0.0, 1e9, 0.0
         t = T0
         for i in range(3 * 1440):
             t += 60
@@ -63,8 +64,12 @@ class TestPriceBounds(unittest.TestCase):
             ex.step(t, 3.0)
             r = m.price / cp.base_price
             lo, hi = min(lo, r), max(hi, r)
-        self.assertGreaterEqual(lo, cp.hard_lo - 1e-12)
-        self.assertLessEqual(hi, cp.hard_hi + 1e-12)
+            xlo, xhi = min(xlo, m.ratio_ex_news), max(xhi, m.ratio_ex_news)
+        # D33 起分層：新聞以外的部分（倒貨的賣壓在這裡）不超出硬邊界；總價格（再乘新聞）不超出 price_lo–price_hi
+        self.assertGreaterEqual(xlo, cp.hard_lo - 1e-12)
+        self.assertLessEqual(xhi, cp.hard_hi + 1e-12)
+        self.assertGreaterEqual(lo, cp.price_lo - 1e-12)
+        self.assertLessEqual(hi, cp.price_hi + 1e-12)
         self.assertLess(lo, 0.8)  # 真的有被壓下去
 
     def test_soft_band_pulls_back(self):
@@ -286,6 +291,139 @@ class TestEvents(unittest.TestCase):
         self.assertEqual(ex.upcoming(T0 + 10.1 * HOUR), [])
         self.assertEqual(ev.log_effect(T0 + 9.9 * HOUR), 0.0)
         self.assertGreater(ev.log_effect(T0 + 10.5 * HOUR), 0.0)
+
+
+class TestNewsTiers(unittest.TestCase):
+    """D33：新聞分四級（一般、大事件、超級大事件、超級黑天鵝）。"""
+
+    def test_tier_draws_match_params(self):
+        ep = DEFAULT.events
+        gen = EventGenerator(ep, random.Random(3), T0)
+        n = 40000
+        evs = [gen._draw(T0 + i) for i in range(n)]
+        spec = {t[0]: t for t in ep.tiers}
+        counts = {name: 0 for name in spec}
+        ups = {name: 0 for name in spec}
+        for ev in evs:
+            name, _p, lo, hi, _up = spec[ev.tier]
+            counts[ev.tier] += 1
+            ups[ev.tier] += ev.factor > 1.0
+            self.assertTrue(lo - 1e-12 <= abs(ev.factor - 1.0) <= hi + 1e-12, (ev.tier, ev.factor))
+            self.assertEqual(ev.rare, ev.tier != "normal")
+        total = sum(t[1] for t in ep.tiers)
+        for name, (_n, p, _lo, _hi, up_p) in spec.items():
+            q = p / total
+            sd = (n * q * (1 - q)) ** 0.5
+            self.assertLess(abs(counts[name] - n * q), 4.5 * sd + 1, (name, counts))
+            if up_p in (0.0, 1.0):  # 超級大事件只往上、黑天鵝只往下
+                self.assertEqual(ups[name], counts[name] if up_p == 1.0 else 0, name)
+            else:
+                sd_u = (counts[name] * up_p * (1 - up_p)) ** 0.5
+                self.assertLess(abs(ups[name] - counts[name] * up_p), 4.5 * sd_u + 1, name)
+        self.assertEqual({ev.factor for ev in evs if ev.tier == "super"}, {2.0})
+        self.assertEqual({round(ev.factor, 12) for ev in evs if ev.tier == "crash"}, {0.1})
+
+    def test_tier_table_does_not_shift_times_or_targets(self):
+        """每則新聞用的亂數次數跟級別無關：換一張級別表，同一個 seed 的新聞時間、作用對象、預告都一樣。"""
+        only_normal = with_overrides(DEFAULT, {"events.tiers": (("normal", 1.0, 0.05, 0.15, 0.5),)})
+        seqs = []
+        for p in (DEFAULT, only_normal):
+            ex = Exchange(p, 5, T0)
+            t = T0
+            for _ in range(10 * 24):
+                t += HOUR
+                ex.step(t, 1.0)
+            seqs.append([(e.start_at, e.targets, e.announce_at, e.half_life_s) for e in ex.event_log_history])
+        self.assertGreater(len(seqs[0]), 20)
+        self.assertEqual(seqs[0], seqs[1])
+
+    def test_no_announcements_and_special_headlines(self):
+        """D33：全部新聞都不預告（公告 = 開始）；超級大事件、黑天鵝用專屬標題（++、--）。
+        挑專屬標題不另外抽亂數：拿掉專屬標題池再跑一次，新聞的時間、對象、幅度、級別、半衰期都一樣，只有標題不同。"""
+        import cowecon.market as M
+
+        def run(headlines):
+            saved = M.HEADLINES
+            M.HEADLINES = headlines
+            try:
+                ex = Exchange(DEFAULT, 9, T0)
+                t, ups = T0, 0
+                for _ in range(20 * 24 * 4):
+                    t += 15 * MINUTE
+                    ex.step(t, 1.0)
+                    ups += len(ex.upcoming(t))
+                return ex.event_log_history, ups
+            finally:
+                M.HEADLINES = saved
+
+        evs, ups = run(M.HEADLINES)
+        plain, _ = run({k: v for k, v in M.HEADLINES.items() if not k.endswith(("++", "--"))})
+        self.assertEqual(ups, 0)
+        self.assertTrue(all(e.announce_at == e.start_at for e in evs))
+        key = lambda e: (e.start_at, e.targets, e.factor, e.tier, e.half_life_s)  # noqa: E731
+        self.assertEqual([key(e) for e in evs], [key(e) for e in plain])
+        special = [(e, p) for e, p in zip(evs, plain) if e.tier in ("super", "crash")]
+        self.assertGreater(len(special), 5)
+        for e, p in zip(evs, plain):
+            c = e.targets[0] if len(e.targets) == 1 else "all"
+            if e.tier in ("super", "crash"):
+                self.assertIn(e.headline, M.HEADLINES[c + ("++" if e.tier == "super" else "--")])
+            else:
+                self.assertEqual(e.headline, p.headline)
+
+    def test_special_headlines_spread(self):
+        """專屬標題三則都會出現、大約一樣多（用一般標題抽到的號碼加事件編號挑，沒有另外抽亂數）。"""
+        gen = EventGenerator(DEFAULT.events, random.Random(8), T0)
+        counts = {}
+        for i in range(30000):
+            ev = gen._draw(T0 + i)
+            if ev.tier == "super" and ev.targets == ("milk",):
+                counts[ev.headline] = counts.get(ev.headline, 0) + 1
+        self.assertEqual(set(counts), set(HEADLINES["milk++"]))
+        n = sum(counts.values())
+        for c in counts.values():
+            self.assertLess(abs(c - n / 3), 4.5 * (n * (1 / 3) * (2 / 3)) ** 0.5 + 1, counts)
+
+    def test_injected_events_get_tiers(self):
+        ex = Exchange(DEFAULT, 1, T0, events_enabled=False)
+        got = {f: ex.inject_event(("milk",), f, T0 + HOUR, HOUR).tier for f in (1.1, 0.88, 1.4, 0.6, 2.0, 0.1)}
+        self.assertEqual(got, {1.1: "normal", 0.88: "normal", 1.4: "big", 0.6: "big", 2.0: "super", 0.1: "crash"})
+
+    def test_deviation_halves_each_half_life(self):
+        """偏離量照半衰期減半（ceo 2026-10-03）：倍數 = 1 + d × 2^(−t/半衰期)，ramp 內 d 線性漲到全幅。
+        所以 +100% 和 −90% 的面積幾乎抵銷（+1.44、−1.30 × 半衰期），平均價格不會因為新聞偏低。"""
+        ex = Exchange(DEFAULT, 1, T0, events_enabled=False)
+        hl = 4 * HOUR
+        for f in (2.0, 0.1, 1.3, 0.7):
+            ev = ex.inject_event(("milk",), f, T0, hl)
+            peak = T0 + ev.ramp_s
+            self.assertAlmostEqual(math.exp(ev.log_effect(T0 + ev.ramp_s / 2)), 1 + (f - 1) / 2)  # ramp 一半
+            self.assertAlmostEqual(math.exp(ev.log_effect(peak)), f)
+            self.assertAlmostEqual(math.exp(ev.log_effect(peak + hl)), 1 + (f - 1) / 2)
+            self.assertAlmostEqual(math.exp(ev.log_effect(peak + 2 * hl)), 1 + (f - 1) / 4)
+            area = sum(math.exp(ev.log_effect(peak + (i + 0.5) * 60)) - 1 for i in range(int(ev.end_at - peak) // 60)) * 60
+            self.assertAlmostEqual(area / hl, (f - 1) / math.log(2), delta=0.03)  # 面積 = d × 半衰期 ÷ ln2
+
+    def test_super_and_crash_show_without_rebound(self):
+        """+100%、−90% 真的出得來，而且新聞不會把雜訊推成反方向（D33 以前軟邊界連新聞一起算：+100% 只到 1.6 倍、
+        黑天鵝被硬邊界卡在 0.45 倍，雜訊 x 被推到 +1.35，新聞退掉以後價格反而漲到 1.2 倍）。"""
+        ex = Exchange(DEFAULT, 11, T0, events_enabled=False)
+        ex.inject_event(("milk",), 2.0, T0 + 2 * HOUR, 4 * HOUR)
+        ex.inject_event(("beef",), 0.1, T0 + 2 * HOUR, 4 * HOUR)
+        milk, beef = ex.markets["milk"], ex.markets["beef"]
+        hi_milk, lo_beef, max_x = 0.0, 1e9, 0.0
+        t = T0
+        for _ in range(48 * 60):
+            t += 60
+            ex.step(t, 10.0)
+            hi_milk = max(hi_milk, milk.price / DEFAULT.milk.base_price)
+            lo_beef = min(lo_beef, beef.price / DEFAULT.beef.base_price)
+            max_x = max(max_x, abs(milk.x), abs(beef.x))
+            # 價格 = 新聞以外 × 新聞（沒碰到總價格的上下限時）
+            self.assertAlmostEqual(milk.price / DEFAULT.milk.base_price, milk.ratio_ex_news * math.exp(milk.event_log))
+        self.assertGreater(hi_milk, 1.85)
+        self.assertLess(lo_beef, 0.12)
+        self.assertLess(max_x, 0.3)  # 雜訊照自己的長期標準差走（牛奶 0.07），不被新聞推
 
 
 class TestDeterminism(unittest.TestCase):

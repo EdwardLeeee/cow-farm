@@ -353,11 +353,13 @@ def hold_sell(b: Bot, now: float) -> None:
             q = sum(l.qty for l in f.beef_lots if beef_storage_factor(fp, (now - l.t) / HOUR) < HOLD_FRESH_SELL + 0.02)
             if q > 0:
                 f.sell_beef(bk, q, now)
-    # 提前公告的利多：事件開始後 20 分鐘回來賣
-    for ev in _W["ex"].upcoming(now):
+    # 利多：D33 起新聞不預告，上線時看到已經開始的利多才知道。開始後 20 分鐘（漲到全幅之後）還沒到就排那時回來賣；
+    # 已經過了就照上面「價格夠高就賣」處理（以前看提前公告的利多，在開始前就排好）
+    for ev in _W["ex"].started(now):
         if ev.factor > 1.0 and ev.eid not in b.returns:
             b.returns.add(ev.eid)
-            _W["world"].schedule(ev.start_at + 20 * MINUTE, b.pid, "hold_return", 5 * MINUTE)
+            if ev.start_at + 20 * MINUTE > now:
+                _W["world"].schedule(ev.start_at + 20 * MINUTE, b.pid, "hold_return", 5 * MINUTE)
 
 
 def hold_return(b: Bot, world, now: float) -> None:

@@ -112,6 +112,7 @@ CREATE TABLE IF NOT EXISTS news (
     end_at double precision NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now()
 );
+ALTER TABLE news ADD COLUMN IF NOT EXISTS tier text;  -- D33 的級別；之前的新聞是 NULL（讀的時候照 rare 當 big／normal）
 CREATE TABLE IF NOT EXISTS stud_log (
     id bigserial PRIMARY KEY,
     t double precision NOT NULL,
@@ -446,12 +447,14 @@ class Store:
                     )
                 for n in news:
                     await conn.execute(
-                        "INSERT INTO news(id, headline, targets, factor, rare, announce_at, start_at, end_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT (id) DO NOTHING",
+                        "INSERT INTO news(id, headline, targets, factor, rare, tier, announce_at, start_at, end_at)"
+                        " VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (id) DO NOTHING",
                         n["id"],
                         n["headline"],
                         list(n["targets"]),
                         n["factor"],
                         n["rare"],
+                        n.get("tier"),
                         n["announce_at"],
                         n["start_at"],
                         n["end_at"],
