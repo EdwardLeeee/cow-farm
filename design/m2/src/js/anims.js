@@ -10,6 +10,7 @@ import { GRADE_BG } from './screens/s04.js';
 import { t as T, dur, cowName, calfName, breedName, sexName } from './i18n.js';
 // 出貨卡車（A-03）的畫法在 truck.js：素材匯出（harness/assetexport.mjs）也用同一份
 import { TK, truckBack, truckFront, A03_HERD } from './truck.js';
+import { POOP_SPOTS } from './poop.js';
 
 // ---------- 小工具 ----------
 const clamp = (v) => Math.max(0, Math.min(1, v));
@@ -475,4 +476,72 @@ const A12 = {
   },
 };
 
-export const ANIMS = [A01, A02, A03, A04, A05, A06, A07, A08, A09, A10, A11, A12, A13];
+// ---------- A-14、A-15 清大便（v0.3 第 5 節；第 13 輪 04-A） ----------
+// 指著的手（指尖在 (13, 2)）
+const POINTER = (s = 38) => `<svg viewBox="0 0 32 34" width="${s}" height="${Math.round(s * 34 / 32)}" aria-hidden="true"><path d="M11 4.4a2.3 2.3 0 0 1 4.6 0v9.8l1.2-.3a2.1 2.1 0 0 1 2.6 1.5l.1.5 1.1-.2a2.1 2.1 0 0 1 2.5 1.6l.1.5h.8a2.1 2.1 0 0 1 2.2 2.1v4.6c0 4.8-3.3 8.1-7.9 8.1h-1.5c-2.7 0-4.6-1.1-6.2-3.4l-4.8-6.7a2.1 2.1 0 0 1 3.1-2.8l2.1 2.3z" fill="#FFE3D2" stroke="#4B3326" stroke-width="2" stroke-linejoin="round"/><path d="M15.6 14.2v3.6M19.5 15.4v2.8M23.2 17.1v2" stroke="#4B3326" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+const POOPS_ALL = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+// 大便在手機畫面上的位置（場景座標換到畫面；頭尖往上一點，點的是大便的中間）
+const poopAt = (ctx, i) => { const [x, y] = ranchScene(ctx.dev, HERD, { wide: true }).fit.map(POOP_SPOTS[i]); return [x, y - 8]; };
+const poofHtml = (x, y, i) => `<div class="poof" data-i="${i}" style="left:${x}px;top:${y}px;opacity:0">${['16', '11', '9'].map((s) => `<i>${icon('sparkle', +s)}</i>`).join('')}</div>`;
+function poofFrame(el, k) { el.style.opacity = k > 0 && k < 1 ? Math.sin(Math.PI * k) : 0; el.style.transform = `translateY(${-10 * k}px) scale(${0.7 + 0.5 * k})`; }
+function poopFade(root, i, k) { const g = root.querySelector(`.poop[data-p="${i}"]`); if (g) g.style.opacity = 1 - k; }
+function setCount(root, n, bump) { const el = root.querySelector('.dirty .dp-n'); el.textContent = n; root.querySelector('.dirty').style.transform = `scale(${1 + 0.1 * Math.sin(Math.PI * bump)})`; }
+const A14 = {
+  id: 'A-14', name: '清大便：點一下', dur: 0.9, where: 'S03 牧場（場景裡有大便）',
+  keys: [[0, '牧場有 9 坨大便，右上角「大便 9」'], [0.25, '手指點一坨大便，冒出一圈波紋'], [0.45, '大便縮小不見，冒出小星星'], [0.6, '右上角變成「大便 8」'], [0.9, '停住']],
+  reduced: '不播動畫：點到的大便直接消失，右上角的數字直接變少（沒有波紋和星星）。',
+  base: (ctx) => {
+    const [x, y] = poopAt(ctx, 0);
+    return ranchPage(ctx, { poops: POOPS_ALL, overlays: `<div class="ripple" style="left:${x}px;top:${y}px;opacity:0"></div>${poofHtml(x, y, 0)}<div class="finger" style="left:${x - 13}px;top:${y - 2}px;opacity:0">${POINTER()}</div>` });
+  },
+  frame(root, t) {
+    const f = root.querySelector('.finger');
+    f.style.opacity = t < 0.5 ? seg(t, 0, 0.12) : 1 - seg(t, 0.5, 0.65);
+    f.style.transform = `translateY(${t < 0.25 ? 14 * (1 - seg(t, 0, 0.25)) : 6 * seg(t, 0.4, 0.6)}px) scale(${t >= 0.22 && t < 0.32 ? 0.92 : 1})`;
+    const rk = seg(t, 0.25, 0.55), rp = root.querySelector('.ripple');
+    rp.style.opacity = rk > 0 && rk < 1 ? 1 - rk : 0; rp.style.transform = `scale(${0.4 + rk})`;
+    poopFade(root, 0, seg(t, 0.3, 0.45));
+    const g = root.querySelector('.poop[data-p="0"]'); if (g) g.style.transform = '';
+    poofFrame(root.querySelector('.poof'), seg(t, 0.32, 0.72));
+    setCount(root, t >= 0.55 ? 8 : 9, seg(t, 0.55, 0.7));
+  },
+};
+// 劃過去：手指沿著一條線劃過三坨大便，經過的就清掉
+const SWIPE = [1, 3, 4];
+const A15 = {
+  id: 'A-15', name: '清大便：手指劃過去', dur: 1.2, where: 'S03 牧場（場景裡有大便）',
+  keys: [[0, '牧場有 9 坨大便'], [0.15, '手指按下，往右劃'], [0.45, '劃過的大便一坨一坨冒星星不見'], [0.85, '劃完，一共清掉 3 坨'], [1.2, '右上角「大便 6」']],
+  reduced: '不播動畫：劃過的大便直接消失，右上角的數字直接變少（不畫劃過的線和星星）。',
+  base: (ctx) => {
+    const pts = SWIPE.map((i) => [...poopAt(ctx, i), i]).sort((a, b) => a[0] - b[0]);
+    const start = [pts[0][0] - 34, pts[0][1] + 14], end = [pts[pts.length - 1][0] + 30, pts[pts.length - 1][1] - 12];
+    const path = [start, ...pts.map(([x, y]) => [x, y]), end];
+    const d = `M${path.map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join('L')}`;
+    return ranchPage(ctx, { poops: POOPS_ALL, overlays: `<svg class="swipe-trail" width="${ctx.dev.w}" height="${ctx.dev.h}" aria-hidden="true"><path class="st-glow" d="${d}" fill="none" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" stroke-linejoin="round" opacity="0"/></svg>
+      ${pts.map(([x, y, i]) => poofHtml(x, y, i)).join('')}<div class="finger" data-path='${JSON.stringify(path.map(([x, y]) => [+x.toFixed(1), +y.toFixed(1)]))}' data-order='${JSON.stringify(pts.map((p) => p[2]))}' style="opacity:0">${POINTER()}</div>` });
+  },
+  frame(root, t) {
+    const f = root.querySelector('.finger'), path = JSON.parse(f.dataset.path), order = JSON.parse(f.dataset.order);
+    const seglen = path.slice(1).map((p, i) => Math.hypot(p[0] - path[i][0], p[1] - path[i][1])), total = seglen.reduce((a, b) => a + b, 0);
+    const k = inOut(seg(t, 0.15, 0.85)), dist = k * total;
+    let acc = 0, pos = path[0];
+    for (let i = 0; i < seglen.length; i++) { if (dist <= acc + seglen[i]) { const u = (dist - acc) / seglen[i]; pos = [lerp(path[i][0], path[i + 1][0], u), lerp(path[i][1], path[i + 1][1], u)]; break; } acc += seglen[i]; pos = path[i + 1]; }
+    f.style.opacity = t < 0.85 ? seg(t, 0.05, 0.15) : 1 - seg(t, 0.85, 1.0);
+    f.style.transform = `translate(${pos[0] - 13}px, ${pos[1] - 2}px)`;
+    // 手指劃過的地方留一道白色的軌跡，劃完慢慢淡掉
+    const tr = root.querySelector('.st-glow');
+    tr.style.strokeDasharray = `${total} ${total}`; tr.style.strokeDashoffset = `${total - dist}`;
+    tr.style.opacity = t < 0.15 ? 0 : 0.75 * (1 - seg(t, 0.9, 1.15));
+    let cleared = 0;
+    order.forEach((pi, j) => {
+      // 經過這一坨的時間（照路線上的距離）
+      const at = seglen.slice(0, j + 1).reduce((a, b) => a + b, 0) / total, tk = 0.15 + 0.7 * at;
+      poopFade(root, pi, seg(t, tk, tk + 0.1));
+      poofFrame(root.querySelector(`.poof[data-i="${pi}"]`), seg(t, tk, tk + 0.35));
+      if (t >= tk + 0.05) cleared++;
+    });
+    setCount(root, 9 - cleared, seg(t, 0.85, 1.0));
+  },
+};
+
+export const ANIMS = [A01, A02, A03, A04, A05, A06, A07, A08, A09, A10, A11, A12, A13, A14, A15];

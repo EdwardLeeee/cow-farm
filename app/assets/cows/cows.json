@@ -5,16 +5,18 @@
   "face 是臉的圓（點牛的範圍）、headTop 是頭頂（泡泡的位置）、shadow 是腳底影子的橢圓（中心 y = 1）、height 是從腳底到頭頂的高。",
   "年紀只有 calf、adult：老牛用 adult 的圖。朝右只有 right 為 true 的品種有，其他品種朝右時把朝左的圖左右翻轉。",
   "變體：seeds 的長度就是變體數，app 用「牛的編號 mod 變體數」挑。",
-  "雜種牛（breeds 裡 mix 為 true）：照用途挑，乳牛 mixDairy、耕牛 mixDraft、肉牛 mixBeef；只有 adult（小牛一律用 CALF_LOOK 那個品種的小牛圖）。"
+  "雜種牛（breeds 裡 mix 為 true）：照用途挑，乳牛 mixDairy、耕牛 mixDraft、肉牛 mixBeef；只有 adult（小牛一律用 CALF_LOOK 那個品種的小牛圖）。",
+  "病牛：名字後面加 _sick，只有 front（病牛一律轉正面）；臉色發青、額頭藍線已經畫在圖裡。成年牛照品種（含雜種牛），小牛照 CALF_LOOK。頭上的溫度計泡泡用 ui 的 parts/sick_bubble 另外疊（位置見 ui.json 的 about）。"
  ],
  "generator": {
-  "design/m2/harness/assetexport.mjs": "b7521ae458423974ffeecc6e0d7877299e672b2117e468c73952258b51ec0615",
+  "design/m2/harness/assetexport.mjs": "1b8309626232977c429ff26906404e96717620b0b87905862e186c96a7df0799",
   "design/m2/src/cow/breeds.js": "a7f37d682deea250586c15bac9eaa28a551825b28fcf7ab7766526a48d75ecf8",
   "design/m2/src/cow/calf.js": "3d773e00d3f42d69b9de1b2de366e9af4f25f46645fdcf47a5146b063d84c29b",
   "design/m2/src/cow/q.js": "161f0ebf2cffa8d8baf19f095bab63f04c6d55004155fd078942b2aae7b5fbee",
   "design/m2/src/cow/r1/cowgen.js": "1935ca123df02952bfc2c3ba4ed768a4101e009477d1258ce018eb060096db42",
   "design/m2/src/cow/r11.js": "6320eccb9408e09ad5ee4a983d2c30e1a9341461d08bad9b2665994b4147b06e",
-  "design/m2/src/cow/render.js": "d4aa6d2d5424a517065cc814a5ee3bf77258bf285891beff7ca9c8ecdeacf3c8"
+  "design/m2/src/cow/render.js": "fd3363eae9b2bfe19afe8dbbfb990f576133dbcd4d14615e8a5dac05af73d55a",
+  "design/m2/src/cow/sick.js": "aa8ab60fae35ac532870d2d91923e756f2b211d40401121dca002523f22a8e66"
  },
  "breeds": {
   "holstein": {
@@ -13674,6 +13676,3746 @@
     "ry": 7.03
    },
    "sha256": "99e77b4c2b8a550fb09b25eb76d56982b664184f0def190af5570f94e0065e84"
+  },
+  "holstein_cow_adult_front_left_v0_sick": {
+   "w": 81.56,
+   "h": 103.54,
+   "x0": -41.86,
+   "y0": -99.54,
+   "height": 95.54,
+   "face": {
+    "cx": 0,
+    "cy": -65.32,
+    "r": 24.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -95.54
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 37.78,
+    "ry": 6.67
+   },
+   "sha256": "5f6231e0a74f2a2524add7beb701165a2f0fda68f951bfed75a845adc3c1b687"
+  },
+  "holstein_cow_adult_front_left_v1_sick": {
+   "w": 81.56,
+   "h": 103.54,
+   "x0": -41.86,
+   "y0": -99.54,
+   "height": 95.54,
+   "face": {
+    "cx": 0,
+    "cy": -65.32,
+    "r": 24.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -95.54
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 37.78,
+    "ry": 6.67
+   },
+   "sha256": "6f94b6743036c005424b88249a5024a5cc35b250ef3fc7d5ab0c643698a4abdb"
+  },
+  "holstein_cow_adult_front_left_v2_sick": {
+   "w": 81.56,
+   "h": 103.54,
+   "x0": -41.86,
+   "y0": -99.54,
+   "height": 95.54,
+   "face": {
+    "cx": 0,
+    "cy": -65.32,
+    "r": 24.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -95.54
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 37.78,
+    "ry": 6.67
+   },
+   "sha256": "eb14f62de7b508e20515add4854524b3d25e2c7afd3822c15148a82d5a979042"
+  },
+  "holstein_cow_adult_front_left_v3_sick": {
+   "w": 81.56,
+   "h": 103.54,
+   "x0": -41.86,
+   "y0": -99.54,
+   "height": 95.54,
+   "face": {
+    "cx": 0,
+    "cy": -65.32,
+    "r": 24.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -95.54
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 37.78,
+    "ry": 6.67
+   },
+   "sha256": "e249238d4bfe5ec86870cff5074067f4c95f5dd487e685a88e9447145ccf9976"
+  },
+  "holstein_bull_adult_front_left_v0_sick": {
+   "w": 94.38,
+   "h": 122.03,
+   "x0": -47.27,
+   "y0": -118.03,
+   "height": 114.03,
+   "face": {
+    "cx": 0,
+    "cy": -72.95,
+    "r": 30.44
+   },
+   "headTop": {
+    "x": 0,
+    "y": -114.03
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 43.04,
+    "ry": 7.3
+   },
+   "sha256": "e53504299eeb2fb61ee07a646efa5e7d5c1aace7f1ab73ba764498281e3ccb80"
+  },
+  "holstein_bull_adult_front_left_v1_sick": {
+   "w": 94.38,
+   "h": 122.03,
+   "x0": -47.27,
+   "y0": -118.03,
+   "height": 114.03,
+   "face": {
+    "cx": 0,
+    "cy": -72.95,
+    "r": 30.44
+   },
+   "headTop": {
+    "x": 0,
+    "y": -114.03
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 43.04,
+    "ry": 7.3
+   },
+   "sha256": "0898627937a4f985f94af8de43aa1984ae4f934d5997ca1c19db1f969744a477"
+  },
+  "holstein_bull_adult_front_left_v2_sick": {
+   "w": 94.38,
+   "h": 122.03,
+   "x0": -47.27,
+   "y0": -118.03,
+   "height": 114.03,
+   "face": {
+    "cx": 0,
+    "cy": -72.95,
+    "r": 30.44
+   },
+   "headTop": {
+    "x": 0,
+    "y": -114.03
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 43.04,
+    "ry": 7.3
+   },
+   "sha256": "2cb4e08e6b78765df4d92296008fd6a400e157934939c0a99a699a3ec37e3a73"
+  },
+  "holstein_bull_adult_front_left_v3_sick": {
+   "w": 94.38,
+   "h": 122.03,
+   "x0": -47.27,
+   "y0": -118.03,
+   "height": 114.03,
+   "face": {
+    "cx": 0,
+    "cy": -72.95,
+    "r": 30.44
+   },
+   "headTop": {
+    "x": 0,
+    "y": -114.03
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 43.04,
+    "ry": 7.3
+   },
+   "sha256": "3777a9c9492c3ac85aaeeaf4ea398c7c1b301af99b14a76b807158b966a9f615"
+  },
+  "fluffyHolstein_cow_adult_front_left_v0_sick": {
+   "w": 87.26,
+   "h": 103.54,
+   "x0": -44.71,
+   "y0": -99.54,
+   "height": 95.54,
+   "face": {
+    "cx": 0,
+    "cy": -65.32,
+    "r": 24.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -95.54
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 40.8,
+    "ry": 6.67
+   },
+   "sha256": "864b0ab6ace91a78428e3477d7fa38fe0d9139531b44c69c9252ff3ea21ce90c"
+  },
+  "fluffyHolstein_cow_adult_front_left_v1_sick": {
+   "w": 87.26,
+   "h": 103.54,
+   "x0": -44.71,
+   "y0": -99.54,
+   "height": 95.54,
+   "face": {
+    "cx": 0,
+    "cy": -65.32,
+    "r": 24.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -95.54
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 40.8,
+    "ry": 6.67
+   },
+   "sha256": "40e420288a367e7ba5452565daf929459a316f4cd39112a9bff181dff1f40b00"
+  },
+  "fluffyHolstein_cow_adult_front_left_v2_sick": {
+   "w": 87.26,
+   "h": 103.54,
+   "x0": -44.71,
+   "y0": -99.54,
+   "height": 95.54,
+   "face": {
+    "cx": 0,
+    "cy": -65.32,
+    "r": 24.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -95.54
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 40.8,
+    "ry": 6.67
+   },
+   "sha256": "accec8bb742a1880f72af251d1186bbb761497efe57dde347e15ba8d8475cad1"
+  },
+  "fluffyHolstein_cow_adult_front_left_v3_sick": {
+   "w": 87.26,
+   "h": 103.54,
+   "x0": -44.71,
+   "y0": -99.54,
+   "height": 95.54,
+   "face": {
+    "cx": 0,
+    "cy": -65.32,
+    "r": 24.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -95.54
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 40.8,
+    "ry": 6.67
+   },
+   "sha256": "810798000572e1d494fc45e9f8bdb8e9c549aa46098819076264676547fb40e1"
+  },
+  "fluffyHolstein_bull_adult_front_left_v0_sick": {
+   "w": 98.44,
+   "h": 122.03,
+   "x0": -50.52,
+   "y0": -118.03,
+   "height": 114.03,
+   "face": {
+    "cx": 0,
+    "cy": -72.95,
+    "r": 30.44
+   },
+   "headTop": {
+    "x": 0,
+    "y": -114.03
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 46.48,
+    "ry": 7.3
+   },
+   "sha256": "19136fcf3f565a822f1cc8dcf36e1207dea1d61680d7fc47863553c3b1c46b71"
+  },
+  "fluffyHolstein_bull_adult_front_left_v1_sick": {
+   "w": 98.44,
+   "h": 122.03,
+   "x0": -50.52,
+   "y0": -118.03,
+   "height": 114.03,
+   "face": {
+    "cx": 0,
+    "cy": -72.95,
+    "r": 30.44
+   },
+   "headTop": {
+    "x": 0,
+    "y": -114.03
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 46.48,
+    "ry": 7.3
+   },
+   "sha256": "577a214f3b847b4465abedbcab2cc76580b483c4e11805bde00e52526da4cf9b"
+  },
+  "fluffyHolstein_bull_adult_front_left_v2_sick": {
+   "w": 98.44,
+   "h": 122.03,
+   "x0": -50.52,
+   "y0": -118.03,
+   "height": 114.03,
+   "face": {
+    "cx": 0,
+    "cy": -72.95,
+    "r": 30.44
+   },
+   "headTop": {
+    "x": 0,
+    "y": -114.03
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 46.48,
+    "ry": 7.3
+   },
+   "sha256": "bf550f7e86cd45db4d62089aff8d804ae5cbb902f8aafd82e932c24885ac21e1"
+  },
+  "fluffyHolstein_bull_adult_front_left_v3_sick": {
+   "w": 98.44,
+   "h": 122.03,
+   "x0": -50.52,
+   "y0": -118.03,
+   "height": 114.03,
+   "face": {
+    "cx": 0,
+    "cy": -72.95,
+    "r": 30.44
+   },
+   "headTop": {
+    "x": 0,
+    "y": -114.03
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 46.48,
+    "ry": 7.3
+   },
+   "sha256": "1fe812ed477d6a32b6669f0a76bf41dd34d8c60065eb967d3b207c828894c76f"
+  },
+  "jersey_cow_adult_front_left_v0_sick": {
+   "w": 74.87,
+   "h": 94.38,
+   "x0": -38.07,
+   "y0": -90.38,
+   "height": 86.38,
+   "face": {
+    "cx": 0,
+    "cy": -58.76,
+    "r": 23.22
+   },
+   "headTop": {
+    "x": 0,
+    "y": -86.38
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 34,
+    "ry": 6.01
+   },
+   "sha256": "acdd82afae0dfa9b492a723baab247a101098f5fba0d1c809dbe94678fccc2fe"
+  },
+  "jersey_bull_adult_front_left_v0_sick": {
+   "w": 89.74,
+   "h": 111.3,
+   "x0": -44.87,
+   "y0": -107.3,
+   "height": 103.3,
+   "face": {
+    "cx": 0,
+    "cy": -65.63,
+    "r": 29.06
+   },
+   "headTop": {
+    "x": 0,
+    "y": -103.3
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 38.73,
+    "ry": 6.57
+   },
+   "sha256": "db158ec95bc7d2419c3d30dcd4e50fde20582fe56e9e7a83327b2ad17826fc86"
+  },
+  "glossBlack_cow_adult_front_left_v0_sick": {
+   "w": 81.56,
+   "h": 103.54,
+   "x0": -41.86,
+   "y0": -99.54,
+   "height": 95.54,
+   "face": {
+    "cx": 0,
+    "cy": -65.32,
+    "r": 24.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -95.54
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 37.78,
+    "ry": 6.67
+   },
+   "sha256": "df0f672f90e7edbdae57da3fa5d4c7279690a5d001be2560b5eebcabcf2aef23"
+  },
+  "glossBlack_cow_adult_front_left_v1_sick": {
+   "w": 81.56,
+   "h": 103.54,
+   "x0": -41.86,
+   "y0": -99.54,
+   "height": 95.54,
+   "face": {
+    "cx": 0,
+    "cy": -65.32,
+    "r": 24.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -95.54
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 37.78,
+    "ry": 6.67
+   },
+   "sha256": "cf4fd70ca6797723abb5f3c5f3a95711ec10e81b0869efcc94944e1800c80d44"
+  },
+  "glossBlack_cow_adult_front_left_v2_sick": {
+   "w": 81.56,
+   "h": 103.54,
+   "x0": -41.86,
+   "y0": -99.54,
+   "height": 95.54,
+   "face": {
+    "cx": 0,
+    "cy": -65.32,
+    "r": 24.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -95.54
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 37.78,
+    "ry": 6.67
+   },
+   "sha256": "0f216dca018edd18453d92bc1c6660ffad54be1b18b5250e5a83db18d9fe0d76"
+  },
+  "glossBlack_cow_adult_front_left_v3_sick": {
+   "w": 81.56,
+   "h": 103.54,
+   "x0": -41.86,
+   "y0": -99.54,
+   "height": 95.54,
+   "face": {
+    "cx": 0,
+    "cy": -65.32,
+    "r": 24.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -95.54
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 37.78,
+    "ry": 6.67
+   },
+   "sha256": "3530101bbf178911e67b6b9df742b1a9022646e9e941f868a7c624b94b4e282c"
+  },
+  "glossBlack_cow_adult_front_right_v0_sick": {
+   "w": 81.56,
+   "h": 103.54,
+   "x0": -39.7,
+   "y0": -99.54,
+   "height": 95.54,
+   "face": {
+    "cx": 0,
+    "cy": -65.32,
+    "r": 24.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -95.54
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 37.78,
+    "ry": 6.67
+   },
+   "sha256": "ef0c11064835ea328c3307cfdd14ede31a9473d23c53b89f932cd73e082c7ffd"
+  },
+  "glossBlack_cow_adult_front_right_v1_sick": {
+   "w": 81.56,
+   "h": 103.54,
+   "x0": -39.7,
+   "y0": -99.54,
+   "height": 95.54,
+   "face": {
+    "cx": 0,
+    "cy": -65.32,
+    "r": 24.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -95.54
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 37.78,
+    "ry": 6.67
+   },
+   "sha256": "144808494d85463b7a0a2685fec78673c2ae5bc2d90d6bedb6f1bc23b718cb28"
+  },
+  "glossBlack_cow_adult_front_right_v2_sick": {
+   "w": 81.56,
+   "h": 103.54,
+   "x0": -39.7,
+   "y0": -99.54,
+   "height": 95.54,
+   "face": {
+    "cx": 0,
+    "cy": -65.32,
+    "r": 24.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -95.54
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 37.78,
+    "ry": 6.67
+   },
+   "sha256": "4f1f59c5a1ba35370e5eeff31c107433479b56c1b7dccbebd3f235171fd67995"
+  },
+  "glossBlack_cow_adult_front_right_v3_sick": {
+   "w": 81.56,
+   "h": 103.54,
+   "x0": -39.7,
+   "y0": -99.54,
+   "height": 95.54,
+   "face": {
+    "cx": 0,
+    "cy": -65.32,
+    "r": 24.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -95.54
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 37.78,
+    "ry": 6.67
+   },
+   "sha256": "6604fd967bf6cd6a7629001b96b176f4b5741a4975627fa986b6de9e891b16bd"
+  },
+  "glossBlack_bull_adult_front_left_v0_sick": {
+   "w": 94.38,
+   "h": 122.03,
+   "x0": -47.27,
+   "y0": -118.03,
+   "height": 114.03,
+   "face": {
+    "cx": 0,
+    "cy": -72.95,
+    "r": 30.44
+   },
+   "headTop": {
+    "x": 0,
+    "y": -114.03
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 43.04,
+    "ry": 7.3
+   },
+   "sha256": "33604821a77e2e234ba0be7ceffd9733485d72ca9cbf3bd5b43433e7e29f8fe0"
+  },
+  "glossBlack_bull_adult_front_left_v1_sick": {
+   "w": 94.38,
+   "h": 122.03,
+   "x0": -47.27,
+   "y0": -118.03,
+   "height": 114.03,
+   "face": {
+    "cx": 0,
+    "cy": -72.95,
+    "r": 30.44
+   },
+   "headTop": {
+    "x": 0,
+    "y": -114.03
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 43.04,
+    "ry": 7.3
+   },
+   "sha256": "1a14a0e39f2740ea59f0b98a072a6b531fe204cce9856fbfa36874927ea7d5a8"
+  },
+  "glossBlack_bull_adult_front_left_v2_sick": {
+   "w": 94.38,
+   "h": 122.03,
+   "x0": -47.27,
+   "y0": -118.03,
+   "height": 114.03,
+   "face": {
+    "cx": 0,
+    "cy": -72.95,
+    "r": 30.44
+   },
+   "headTop": {
+    "x": 0,
+    "y": -114.03
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 43.04,
+    "ry": 7.3
+   },
+   "sha256": "62684f892d179f2eec92d0b7548951af3563311d4144bf0d3a773a10f64d78ae"
+  },
+  "glossBlack_bull_adult_front_left_v3_sick": {
+   "w": 94.38,
+   "h": 122.03,
+   "x0": -47.27,
+   "y0": -118.03,
+   "height": 114.03,
+   "face": {
+    "cx": 0,
+    "cy": -72.95,
+    "r": 30.44
+   },
+   "headTop": {
+    "x": 0,
+    "y": -114.03
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 43.04,
+    "ry": 7.3
+   },
+   "sha256": "aa86cd369beb743777e729f7e1b0773d6f0d428611beaaf5b65972a7d6415bc1"
+  },
+  "glossBlack_bull_adult_front_right_v0_sick": {
+   "w": 94.38,
+   "h": 122.03,
+   "x0": -47.11,
+   "y0": -118.03,
+   "height": 114.03,
+   "face": {
+    "cx": 0,
+    "cy": -72.95,
+    "r": 30.44
+   },
+   "headTop": {
+    "x": 0,
+    "y": -114.03
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 43.04,
+    "ry": 7.3
+   },
+   "sha256": "074c48444dd8dc07f59ee87666365e33d72890852526b50b37fb037b0424387f"
+  },
+  "glossBlack_bull_adult_front_right_v1_sick": {
+   "w": 94.38,
+   "h": 122.03,
+   "x0": -47.11,
+   "y0": -118.03,
+   "height": 114.03,
+   "face": {
+    "cx": 0,
+    "cy": -72.95,
+    "r": 30.44
+   },
+   "headTop": {
+    "x": 0,
+    "y": -114.03
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 43.04,
+    "ry": 7.3
+   },
+   "sha256": "10afa1a0f7e4e8667393eb06d784c83237b4666a63832b9e62800746e12b3039"
+  },
+  "glossBlack_bull_adult_front_right_v2_sick": {
+   "w": 94.38,
+   "h": 122.03,
+   "x0": -47.11,
+   "y0": -118.03,
+   "height": 114.03,
+   "face": {
+    "cx": 0,
+    "cy": -72.95,
+    "r": 30.44
+   },
+   "headTop": {
+    "x": 0,
+    "y": -114.03
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 43.04,
+    "ry": 7.3
+   },
+   "sha256": "812e7395999a910183fd2b741d2ba3fce56737ef0e1d34fe4db3f29e2eeabb1c"
+  },
+  "glossBlack_bull_adult_front_right_v3_sick": {
+   "w": 94.38,
+   "h": 122.03,
+   "x0": -47.11,
+   "y0": -118.03,
+   "height": 114.03,
+   "face": {
+    "cx": 0,
+    "cy": -72.95,
+    "r": 30.44
+   },
+   "headTop": {
+    "x": 0,
+    "y": -114.03
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 43.04,
+    "ry": 7.3
+   },
+   "sha256": "5a6493528cb4edd6d9aeb8575efe1f5449c837a56714c2689fd73eb6929a9b87"
+  },
+  "cottonCream_cow_adult_front_left_v0_sick": {
+   "w": 79.34,
+   "h": 94.38,
+   "x0": -40.64,
+   "y0": -90.38,
+   "height": 86.38,
+   "face": {
+    "cx": 0,
+    "cy": -58.76,
+    "r": 23.22
+   },
+   "headTop": {
+    "x": 0,
+    "y": -86.38
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 36.72,
+    "ry": 6.01
+   },
+   "sha256": "a3cd4c9f8401ac05f5f27940399b8a6fc396b50c40d227605ec21b9d56f807e3"
+  },
+  "cottonCream_bull_adult_front_left_v0_sick": {
+   "w": 90.74,
+   "h": 111.3,
+   "x0": -45.87,
+   "y0": -107.3,
+   "height": 103.3,
+   "face": {
+    "cx": 0,
+    "cy": -65.63,
+    "r": 29.06
+   },
+   "headTop": {
+    "x": 0,
+    "y": -103.3
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 41.83,
+    "ry": 6.57
+   },
+   "sha256": "99e4903f00e6f15edf7bb78170dd1fe713adcf1f7d0805eafb0889ea70d53094"
+  },
+  "velvetBlack_cow_adult_front_left_v0_sick": {
+   "w": 87.26,
+   "h": 103.54,
+   "x0": -44.71,
+   "y0": -99.54,
+   "height": 95.54,
+   "face": {
+    "cx": 0,
+    "cy": -65.32,
+    "r": 24.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -95.54
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 40.8,
+    "ry": 6.67
+   },
+   "sha256": "ca4eceb505c85dc9a045fd83ee64b68c82bf62f46334b903d3b935e0843bccd8"
+  },
+  "velvetBlack_cow_adult_front_right_v0_sick": {
+   "w": 87.26,
+   "h": 103.54,
+   "x0": -42.55,
+   "y0": -99.54,
+   "height": 95.54,
+   "face": {
+    "cx": 0,
+    "cy": -65.32,
+    "r": 24.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -95.54
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 40.8,
+    "ry": 6.67
+   },
+   "sha256": "b2675320683b4c5f49347ab9e9b106a5966dcda67e3766c1139fb02131ecbbba"
+  },
+  "velvetBlack_bull_adult_front_left_v0_sick": {
+   "w": 98.44,
+   "h": 122.03,
+   "x0": -50.52,
+   "y0": -118.03,
+   "height": 114.03,
+   "face": {
+    "cx": 0,
+    "cy": -72.95,
+    "r": 30.44
+   },
+   "headTop": {
+    "x": 0,
+    "y": -114.03
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 46.48,
+    "ry": 7.3
+   },
+   "sha256": "5864c91a0a100cb0b4a8c88d406e503c927d528cbd637f34300609b8568f6679"
+  },
+  "velvetBlack_bull_adult_front_right_v0_sick": {
+   "w": 98.44,
+   "h": 122.03,
+   "x0": -47.92,
+   "y0": -118.03,
+   "height": 114.03,
+   "face": {
+    "cx": 0,
+    "cy": -72.95,
+    "r": 30.44
+   },
+   "headTop": {
+    "x": 0,
+    "y": -114.03
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 46.48,
+    "ry": 7.3
+   },
+   "sha256": "d14885bf925352e344c65ff667c6ccb516ad3b4d0c60ac571090e3ffb8fbad69"
+  },
+  "chocolate_cow_adult_front_left_v0_sick": {
+   "w": 74.87,
+   "h": 98.11,
+   "x0": -38.07,
+   "y0": -94.11,
+   "height": 90.11,
+   "face": {
+    "cx": 0,
+    "cy": -58.76,
+    "r": 23.22
+   },
+   "headTop": {
+    "x": 0,
+    "y": -90.11
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 34,
+    "ry": 6.01
+   },
+   "sha256": "39393b4933c2ff0bd70b804f981605e02cd3be34fd8e0d67452c52ad2969e6c8"
+  },
+  "chocolate_cow_adult_front_left_v1_sick": {
+   "w": 74.87,
+   "h": 98.11,
+   "x0": -38.07,
+   "y0": -94.11,
+   "height": 90.11,
+   "face": {
+    "cx": 0,
+    "cy": -58.76,
+    "r": 23.22
+   },
+   "headTop": {
+    "x": 0,
+    "y": -90.11
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 34,
+    "ry": 6.01
+   },
+   "sha256": "4c5fcb2f53f14716abed192b20772d1de4ddf279317501d45c62698d3d0350d3"
+  },
+  "chocolate_cow_adult_front_left_v2_sick": {
+   "w": 74.87,
+   "h": 98.11,
+   "x0": -38.07,
+   "y0": -94.11,
+   "height": 90.11,
+   "face": {
+    "cx": 0,
+    "cy": -58.76,
+    "r": 23.22
+   },
+   "headTop": {
+    "x": 0,
+    "y": -90.11
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 34,
+    "ry": 6.01
+   },
+   "sha256": "4922835e34a3320da1e5ab4c8b2f5799f031af995577b373b5d0b12afff19745"
+  },
+  "chocolate_cow_adult_front_left_v3_sick": {
+   "w": 74.87,
+   "h": 98.11,
+   "x0": -38.07,
+   "y0": -94.11,
+   "height": 90.11,
+   "face": {
+    "cx": 0,
+    "cy": -58.76,
+    "r": 23.22
+   },
+   "headTop": {
+    "x": 0,
+    "y": -90.11
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 34,
+    "ry": 6.01
+   },
+   "sha256": "da43f1041cbaa91947f315134ef9dafa5ffd29409e361599977c0fdf01ac9ee9"
+  },
+  "chocolate_cow_adult_front_right_v0_sick": {
+   "w": 74.87,
+   "h": 98.11,
+   "x0": -36.8,
+   "y0": -94.11,
+   "height": 90.11,
+   "face": {
+    "cx": 0,
+    "cy": -58.76,
+    "r": 23.22
+   },
+   "headTop": {
+    "x": 0,
+    "y": -90.11
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 34,
+    "ry": 6.01
+   },
+   "sha256": "3277239fb15df5733803fa63c56313dc825a22a5fe2c79ea09053caf7e0885a7"
+  },
+  "chocolate_cow_adult_front_right_v1_sick": {
+   "w": 74.87,
+   "h": 98.11,
+   "x0": -36.8,
+   "y0": -94.11,
+   "height": 90.11,
+   "face": {
+    "cx": 0,
+    "cy": -58.76,
+    "r": 23.22
+   },
+   "headTop": {
+    "x": 0,
+    "y": -90.11
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 34,
+    "ry": 6.01
+   },
+   "sha256": "605cc0163afcdbd56305c39710b7c9c8f7604dcdae3dfacdc82264984316800f"
+  },
+  "chocolate_cow_adult_front_right_v2_sick": {
+   "w": 74.87,
+   "h": 98.11,
+   "x0": -36.8,
+   "y0": -94.11,
+   "height": 90.11,
+   "face": {
+    "cx": 0,
+    "cy": -58.76,
+    "r": 23.22
+   },
+   "headTop": {
+    "x": 0,
+    "y": -90.11
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 34,
+    "ry": 6.01
+   },
+   "sha256": "cf4eea59d4c0d380cd64b7603ad973289a82f952f485e25386a2cb1699d8e1fb"
+  },
+  "chocolate_cow_adult_front_right_v3_sick": {
+   "w": 74.87,
+   "h": 98.11,
+   "x0": -36.8,
+   "y0": -94.11,
+   "height": 90.11,
+   "face": {
+    "cx": 0,
+    "cy": -58.76,
+    "r": 23.22
+   },
+   "headTop": {
+    "x": 0,
+    "y": -90.11
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 34,
+    "ry": 6.01
+   },
+   "sha256": "f51164e915279315e5941ee7db222c4682f237ea3ef2f7d4b1a60cfac4f3faba"
+  },
+  "chocolate_bull_adult_front_left_v0_sick": {
+   "w": 89.74,
+   "h": 112.87,
+   "x0": -44.87,
+   "y0": -108.87,
+   "height": 104.87,
+   "face": {
+    "cx": 0,
+    "cy": -65.63,
+    "r": 29.06
+   },
+   "headTop": {
+    "x": 0,
+    "y": -104.87
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 38.73,
+    "ry": 6.57
+   },
+   "sha256": "6f75c8ab34a23aa4f0a76624ffdd144774902bc17f2623e3354bab9d017f25dc"
+  },
+  "chocolate_bull_adult_front_left_v1_sick": {
+   "w": 89.74,
+   "h": 112.87,
+   "x0": -44.87,
+   "y0": -108.87,
+   "height": 104.87,
+   "face": {
+    "cx": 0,
+    "cy": -65.63,
+    "r": 29.06
+   },
+   "headTop": {
+    "x": 0,
+    "y": -104.87
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 38.73,
+    "ry": 6.57
+   },
+   "sha256": "4df82df44ec82ca1d718257beb2635cbc58d40540ab76fa78735d871651f1d9b"
+  },
+  "chocolate_bull_adult_front_left_v2_sick": {
+   "w": 89.74,
+   "h": 112.87,
+   "x0": -44.87,
+   "y0": -108.87,
+   "height": 104.87,
+   "face": {
+    "cx": 0,
+    "cy": -65.63,
+    "r": 29.06
+   },
+   "headTop": {
+    "x": 0,
+    "y": -104.87
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 38.73,
+    "ry": 6.57
+   },
+   "sha256": "f371d54b72dac3883b0945c2371fd32e40823c65f3faf1af18b1c966fd01a6ab"
+  },
+  "chocolate_bull_adult_front_left_v3_sick": {
+   "w": 89.74,
+   "h": 112.87,
+   "x0": -44.87,
+   "y0": -108.87,
+   "height": 104.87,
+   "face": {
+    "cx": 0,
+    "cy": -65.63,
+    "r": 29.06
+   },
+   "headTop": {
+    "x": 0,
+    "y": -104.87
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 38.73,
+    "ry": 6.57
+   },
+   "sha256": "468b78ec27c21fe701bd4b834ed46169f400b768e2f326603e6024a6928b3c49"
+  },
+  "chocolate_bull_adult_front_right_v0_sick": {
+   "w": 89.74,
+   "h": 112.87,
+   "x0": -44.87,
+   "y0": -108.87,
+   "height": 104.87,
+   "face": {
+    "cx": 0,
+    "cy": -65.63,
+    "r": 29.06
+   },
+   "headTop": {
+    "x": 0,
+    "y": -104.87
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 38.73,
+    "ry": 6.57
+   },
+   "sha256": "0dc6629145f61a918602311346d6bbe16ddaa4e8c1c98d9c5eb7010dbca30b0a"
+  },
+  "chocolate_bull_adult_front_right_v1_sick": {
+   "w": 89.74,
+   "h": 112.87,
+   "x0": -44.87,
+   "y0": -108.87,
+   "height": 104.87,
+   "face": {
+    "cx": 0,
+    "cy": -65.63,
+    "r": 29.06
+   },
+   "headTop": {
+    "x": 0,
+    "y": -104.87
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 38.73,
+    "ry": 6.57
+   },
+   "sha256": "80a7cbdb528f87ba4d3ec997903f9059046837a97ab3dbd26247118b93fa8ae8"
+  },
+  "chocolate_bull_adult_front_right_v2_sick": {
+   "w": 89.74,
+   "h": 112.87,
+   "x0": -44.87,
+   "y0": -108.87,
+   "height": 104.87,
+   "face": {
+    "cx": 0,
+    "cy": -65.63,
+    "r": 29.06
+   },
+   "headTop": {
+    "x": 0,
+    "y": -104.87
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 38.73,
+    "ry": 6.57
+   },
+   "sha256": "c7d8df2d7468c995ce884f3a95218ea691503020d6f864b1c8b158a14d989d3f"
+  },
+  "chocolate_bull_adult_front_right_v3_sick": {
+   "w": 89.74,
+   "h": 112.87,
+   "x0": -44.87,
+   "y0": -108.87,
+   "height": 104.87,
+   "face": {
+    "cx": 0,
+    "cy": -65.63,
+    "r": 29.06
+   },
+   "headTop": {
+    "x": 0,
+    "y": -104.87
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 38.73,
+    "ry": 6.57
+   },
+   "sha256": "0cd33a0f2f9f175347143210e70c6352a8dd2cece759cba2536199c3475721e8"
+  },
+  "strawberry_cow_adult_front_left_v0_sick": {
+   "w": 74.87,
+   "h": 98.11,
+   "x0": -38.07,
+   "y0": -94.11,
+   "height": 90.11,
+   "face": {
+    "cx": 0,
+    "cy": -58.76,
+    "r": 23.22
+   },
+   "headTop": {
+    "x": 0,
+    "y": -90.11
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 34,
+    "ry": 6.01
+   },
+   "sha256": "a20f853b2c8cd275ab91d9ba76e424ce9395c9a635b699b13826e4c36db40cd1"
+  },
+  "strawberry_cow_adult_front_left_v1_sick": {
+   "w": 74.87,
+   "h": 98.11,
+   "x0": -38.07,
+   "y0": -94.11,
+   "height": 90.11,
+   "face": {
+    "cx": 0,
+    "cy": -58.76,
+    "r": 23.22
+   },
+   "headTop": {
+    "x": 0,
+    "y": -90.11
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 34,
+    "ry": 6.01
+   },
+   "sha256": "423c8eb7e0c529d69a9ef446dec7c8c71eaf541465ba4529584e707ca807cf8f"
+  },
+  "strawberry_cow_adult_front_left_v2_sick": {
+   "w": 74.87,
+   "h": 98.11,
+   "x0": -38.07,
+   "y0": -94.11,
+   "height": 90.11,
+   "face": {
+    "cx": 0,
+    "cy": -58.76,
+    "r": 23.22
+   },
+   "headTop": {
+    "x": 0,
+    "y": -90.11
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 34,
+    "ry": 6.01
+   },
+   "sha256": "e196b8417598505543ba6bb04e390719e40c8a9c2a8697a2e4b975b30dcb2ba9"
+  },
+  "strawberry_cow_adult_front_left_v3_sick": {
+   "w": 74.87,
+   "h": 98.11,
+   "x0": -38.07,
+   "y0": -94.11,
+   "height": 90.11,
+   "face": {
+    "cx": 0,
+    "cy": -58.76,
+    "r": 23.22
+   },
+   "headTop": {
+    "x": 0,
+    "y": -90.11
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 34,
+    "ry": 6.01
+   },
+   "sha256": "7a524f62e0460896b5767b39d9c2e2582ba1f5540a18de415211c3be2727bae7"
+  },
+  "strawberry_bull_adult_front_left_v0_sick": {
+   "w": 89.74,
+   "h": 112.87,
+   "x0": -44.87,
+   "y0": -108.87,
+   "height": 104.87,
+   "face": {
+    "cx": 0,
+    "cy": -65.63,
+    "r": 29.06
+   },
+   "headTop": {
+    "x": 0,
+    "y": -104.87
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 38.73,
+    "ry": 6.57
+   },
+   "sha256": "5c720cded964160f25106b8cc8151419bc1c80c72f12f0c2235cea304b371cd6"
+  },
+  "strawberry_bull_adult_front_left_v1_sick": {
+   "w": 89.74,
+   "h": 112.87,
+   "x0": -44.87,
+   "y0": -108.87,
+   "height": 104.87,
+   "face": {
+    "cx": 0,
+    "cy": -65.63,
+    "r": 29.06
+   },
+   "headTop": {
+    "x": 0,
+    "y": -104.87
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 38.73,
+    "ry": 6.57
+   },
+   "sha256": "97476fb0971a13160934f9120c692ddc63c4d0940290df5e7ab18921d9a06c1e"
+  },
+  "strawberry_bull_adult_front_left_v2_sick": {
+   "w": 89.74,
+   "h": 112.87,
+   "x0": -44.87,
+   "y0": -108.87,
+   "height": 104.87,
+   "face": {
+    "cx": 0,
+    "cy": -65.63,
+    "r": 29.06
+   },
+   "headTop": {
+    "x": 0,
+    "y": -104.87
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 38.73,
+    "ry": 6.57
+   },
+   "sha256": "dadc29ae5bd8fab3e224b686f6b6420eefc6376d3d913ef5582c1938f1c0cddd"
+  },
+  "strawberry_bull_adult_front_left_v3_sick": {
+   "w": 89.74,
+   "h": 112.87,
+   "x0": -44.87,
+   "y0": -108.87,
+   "height": 104.87,
+   "face": {
+    "cx": 0,
+    "cy": -65.63,
+    "r": 29.06
+   },
+   "headTop": {
+    "x": 0,
+    "y": -104.87
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 38.73,
+    "ry": 6.57
+   },
+   "sha256": "93c9320e9377789e00713a0bd386aee583853a0bab800edde6deb4cab58251e7"
+  },
+  "yellow_cow_adult_front_left_v0_sick": {
+   "w": 93.24,
+   "h": 101.59,
+   "x0": -47.7,
+   "y0": -97.59,
+   "height": 93.59,
+   "face": {
+    "cx": 0,
+    "cy": -62.44,
+    "r": 25.07
+   },
+   "headTop": {
+    "x": 0,
+    "y": -93.59
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 42.93,
+    "ry": 6.3
+   },
+   "sha256": "c6ac100dbe1830fea70c80485d9ecde68a6e40380af59c012fc4ea121e17e139"
+  },
+  "yellow_bull_adult_front_left_v0_sick": {
+   "w": 105.26,
+   "h": 120.19,
+   "x0": -53.93,
+   "y0": -116.19,
+   "height": 112.19,
+   "face": {
+    "cx": 0,
+    "cy": -69.84,
+    "r": 31.38
+   },
+   "headTop": {
+    "x": 0,
+    "y": -112.19
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 48.9,
+    "ry": 6.89
+   },
+   "sha256": "7e34e9784c5ed3ab8d6fcfc241acbfbcc274ba5229e55139ec1edbddc8c4c414"
+  },
+  "highland_cow_adult_front_left_v0_sick": {
+   "w": 99.9,
+   "h": 106.2,
+   "x0": -51.03,
+   "y0": -102.2,
+   "height": 98.2,
+   "face": {
+    "cx": 0,
+    "cy": -62.44,
+    "r": 25.07
+   },
+   "headTop": {
+    "x": 0,
+    "y": -98.2
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 46.36,
+    "ry": 6.3
+   },
+   "sha256": "402af7ac575952a9404436f437bf1578580975b24e84739517e6f16bb9cc729d"
+  },
+  "highland_bull_adult_front_left_v0_sick": {
+   "w": 112.82,
+   "h": 122.61,
+   "x0": -57.71,
+   "y0": -118.61,
+   "height": 114.61,
+   "face": {
+    "cx": 0,
+    "cy": -69.84,
+    "r": 31.38
+   },
+   "headTop": {
+    "x": 0,
+    "y": -114.61
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 52.82,
+    "ry": 6.89
+   },
+   "sha256": "13e781598c78006a151e425b79e08f71dccc3514589ee93cc7e1d97365fd4385"
+  },
+  "milkTea_cow_adult_front_left_v0_sick": {
+   "w": 84.72,
+   "h": 92.64,
+   "x0": -43.33,
+   "y0": -88.64,
+   "height": 84.64,
+   "face": {
+    "cx": 0,
+    "cy": -56.17,
+    "r": 23.93
+   },
+   "headTop": {
+    "x": 0,
+    "y": -84.64
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 38.63,
+    "ry": 5.67
+   },
+   "sha256": "d04ca039244272bd020645cbfe1478a3b98251648b5143815d79cc1c7cbe8078"
+  },
+  "milkTea_bull_adult_front_left_v0_sick": {
+   "w": 95.52,
+   "h": 109.66,
+   "x0": -48.93,
+   "y0": -105.66,
+   "height": 101.66,
+   "face": {
+    "cx": 0,
+    "cy": -62.83,
+    "r": 29.96
+   },
+   "headTop": {
+    "x": 0,
+    "y": -101.66
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 44.01,
+    "ry": 6.2
+   },
+   "sha256": "731b92821494110b8999beaded21061fac4a27d3847a70f06b2cdccdd6bc0dd6"
+  },
+  "buffalo_cow_adult_front_left_v0_sick": {
+   "w": 93.24,
+   "h": 104.59,
+   "x0": -47.7,
+   "y0": -100.59,
+   "height": 96.59,
+   "face": {
+    "cx": 0,
+    "cy": -62.44,
+    "r": 25.07
+   },
+   "headTop": {
+    "x": 0,
+    "y": -96.59
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 42.93,
+    "ry": 6.3
+   },
+   "sha256": "9c871b73305c487389bae5e61f18d625ea03d3bd2eda9d2b6fb1fef4ca9a876d"
+  },
+  "buffalo_cow_adult_front_right_v0_sick": {
+   "w": 93.24,
+   "h": 104.59,
+   "x0": -45.54,
+   "y0": -100.59,
+   "height": 96.59,
+   "face": {
+    "cx": 0,
+    "cy": -62.44,
+    "r": 25.07
+   },
+   "headTop": {
+    "x": 0,
+    "y": -96.59
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 42.93,
+    "ry": 6.3
+   },
+   "sha256": "f153c3916d89d8952625bad5990af2dfeb07cd3b4d47412fe123837054f6c281"
+  },
+  "buffalo_bull_adult_front_left_v0_sick": {
+   "w": 105.26,
+   "h": 120.59,
+   "x0": -53.93,
+   "y0": -116.59,
+   "height": 112.59,
+   "face": {
+    "cx": 0,
+    "cy": -69.84,
+    "r": 31.38
+   },
+   "headTop": {
+    "x": 0,
+    "y": -112.59
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 48.9,
+    "ry": 6.89
+   },
+   "sha256": "d1e86c1242338fb322f6d465297d967a68930ab90f56e33e2b1699d331b126a9"
+  },
+  "buffalo_bull_adult_front_right_v0_sick": {
+   "w": 105.26,
+   "h": 120.59,
+   "x0": -51.33,
+   "y0": -116.59,
+   "height": 112.59,
+   "face": {
+    "cx": 0,
+    "cy": -69.84,
+    "r": 31.38
+   },
+   "headTop": {
+    "x": 0,
+    "y": -112.59
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 48.9,
+    "ry": 6.89
+   },
+   "sha256": "6f14c58a97537bcd0412a5020060c1b0d6fd8e0b0028366b07f421fd0f5c3c98"
+  },
+  "cottonCandy_cow_adult_front_left_v0_sick": {
+   "w": 90.7,
+   "h": 97.04,
+   "x0": -46.32,
+   "y0": -93.04,
+   "height": 89.04,
+   "face": {
+    "cx": 0,
+    "cy": -56.17,
+    "r": 23.93
+   },
+   "headTop": {
+    "x": 0,
+    "y": -89.04
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 41.73,
+    "ry": 5.67
+   },
+   "sha256": "34483a65f6207e0ef48d9d91960191edca1bc68ab7cd391fba6c6c3ae2c1714b"
+  },
+  "cottonCandy_bull_adult_front_left_v0_sick": {
+   "w": 102.34,
+   "h": 111.98,
+   "x0": -52.34,
+   "y0": -107.98,
+   "height": 103.98,
+   "face": {
+    "cx": 0,
+    "cy": -62.83,
+    "r": 29.96
+   },
+   "headTop": {
+    "x": 0,
+    "y": -103.98
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 47.53,
+    "ry": 6.2
+   },
+   "sha256": "37b7829e1a3179964acd6d0cdb0814a2b19e3a6f68941402fed7acf1942323c0"
+  },
+  "shaggyBuffalo_cow_adult_front_left_v0_sick": {
+   "w": 99.9,
+   "h": 104.59,
+   "x0": -51.03,
+   "y0": -100.59,
+   "height": 96.59,
+   "face": {
+    "cx": 0,
+    "cy": -62.44,
+    "r": 25.07
+   },
+   "headTop": {
+    "x": 0,
+    "y": -96.59
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 46.36,
+    "ry": 6.3
+   },
+   "sha256": "6a31ac577956aafb0cc94d10b72cbb2ca26c74aeeab7f91d21d407e1e6f8db7f"
+  },
+  "shaggyBuffalo_cow_adult_front_right_v0_sick": {
+   "w": 99.9,
+   "h": 104.59,
+   "x0": -48.87,
+   "y0": -100.59,
+   "height": 96.59,
+   "face": {
+    "cx": 0,
+    "cy": -62.44,
+    "r": 25.07
+   },
+   "headTop": {
+    "x": 0,
+    "y": -96.59
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 46.36,
+    "ry": 6.3
+   },
+   "sha256": "98460607dd801a37fd1f393de068d4786a8084e4f0af3c2515caa1192664e7f4"
+  },
+  "shaggyBuffalo_bull_adult_front_left_v0_sick": {
+   "w": 112.82,
+   "h": 120.59,
+   "x0": -57.71,
+   "y0": -116.59,
+   "height": 112.59,
+   "face": {
+    "cx": 0,
+    "cy": -69.84,
+    "r": 31.38
+   },
+   "headTop": {
+    "x": 0,
+    "y": -112.59
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 52.82,
+    "ry": 6.89
+   },
+   "sha256": "5974761ec4bfbc0cd11c762356ca84727b203d5a0e3dccf5e341a995eb02c7f3"
+  },
+  "shaggyBuffalo_bull_adult_front_right_v0_sick": {
+   "w": 112.82,
+   "h": 120.59,
+   "x0": -55.11,
+   "y0": -116.59,
+   "height": 112.59,
+   "face": {
+    "cx": 0,
+    "cy": -69.84,
+    "r": 31.38
+   },
+   "headTop": {
+    "x": 0,
+    "y": -112.59
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 52.82,
+    "ry": 6.89
+   },
+   "sha256": "34ede8b4e5831720941820714febc6a587fc917c52722136fccfebd26eabee38"
+  },
+  "honey_cow_adult_front_left_v0_sick": {
+   "w": 84.72,
+   "h": 95.5,
+   "x0": -43.33,
+   "y0": -91.5,
+   "height": 87.5,
+   "face": {
+    "cx": 0,
+    "cy": -56.17,
+    "r": 23.93
+   },
+   "headTop": {
+    "x": 0,
+    "y": -87.5
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 38.63,
+    "ry": 5.67
+   },
+   "sha256": "0a56c6b8c6de3df995af4c406cfb13768f2343a9352aefddddc5b5f66deb1cfc"
+  },
+  "honey_cow_adult_front_right_v0_sick": {
+   "w": 84.72,
+   "h": 95.5,
+   "x0": -41.39,
+   "y0": -91.5,
+   "height": 87.5,
+   "face": {
+    "cx": 0,
+    "cy": -56.17,
+    "r": 23.93
+   },
+   "headTop": {
+    "x": 0,
+    "y": -87.5
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 38.63,
+    "ry": 5.67
+   },
+   "sha256": "d6b2cdf558a05267de0c8f59b0ed3cd1ebf4edd97bf59624e8669f46227229cf"
+  },
+  "honey_bull_adult_front_left_v0_sick": {
+   "w": 97.98,
+   "h": 110.05,
+   "x0": -48.99,
+   "y0": -106.05,
+   "height": 102.05,
+   "face": {
+    "cx": 0,
+    "cy": -62.83,
+    "r": 29.96
+   },
+   "headTop": {
+    "x": 0,
+    "y": -102.05
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 44.01,
+    "ry": 6.2
+   },
+   "sha256": "f95cd82fab4c48037a20d750a1de1887c262e470c1f3ef1ca68cadf9ca7a66d7"
+  },
+  "honey_bull_adult_front_right_v0_sick": {
+   "w": 97.98,
+   "h": 110.05,
+   "x0": -48.99,
+   "y0": -106.05,
+   "height": 102.05,
+   "face": {
+    "cx": 0,
+    "cy": -62.83,
+    "r": 29.96
+   },
+   "headTop": {
+    "x": 0,
+    "y": -102.05
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 44.01,
+    "ry": 6.2
+   },
+   "sha256": "b84053f95103539a2fa17ff74dbf8f76621935c4eb5b23595f44d6f8fa065e9e"
+  },
+  "goldenEar_cow_adult_front_left_v0_sick": {
+   "w": 84.72,
+   "h": 96.48,
+   "x0": -43.33,
+   "y0": -92.48,
+   "height": 88.48,
+   "face": {
+    "cx": 0,
+    "cy": -56.17,
+    "r": 23.93
+   },
+   "headTop": {
+    "x": 0,
+    "y": -88.48
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 38.63,
+    "ry": 5.67
+   },
+   "sha256": "1cee6fa2200caed6bc20cedd7e038c1a450a689fa4fcecef175704fb3b69d12f"
+  },
+  "goldenEar_cow_adult_front_right_v0_sick": {
+   "w": 84.72,
+   "h": 96.48,
+   "x0": -41.39,
+   "y0": -92.48,
+   "height": 88.48,
+   "face": {
+    "cx": 0,
+    "cy": -56.17,
+    "r": 23.93
+   },
+   "headTop": {
+    "x": 0,
+    "y": -88.48
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 38.63,
+    "ry": 5.67
+   },
+   "sha256": "5b5473f0ee3c0f1b8f4d995e072ccf2919f987bd7e6d9b769298c15d847539ee"
+  },
+  "goldenEar_bull_adult_front_left_v0_sick": {
+   "w": 97.98,
+   "h": 111.28,
+   "x0": -48.99,
+   "y0": -107.28,
+   "height": 103.28,
+   "face": {
+    "cx": 0,
+    "cy": -62.83,
+    "r": 29.96
+   },
+   "headTop": {
+    "x": 0,
+    "y": -103.28
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 44.01,
+    "ry": 6.2
+   },
+   "sha256": "73b6a31381c74ad02e9f5bd167682fbfc4c4a311bc2e08ffb83ab99ab29a2deb"
+  },
+  "goldenEar_bull_adult_front_right_v0_sick": {
+   "w": 97.98,
+   "h": 111.28,
+   "x0": -48.99,
+   "y0": -107.28,
+   "height": 103.28,
+   "face": {
+    "cx": 0,
+    "cy": -62.83,
+    "r": 29.96
+   },
+   "headTop": {
+    "x": 0,
+    "y": -103.28
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 44.01,
+    "ry": 6.2
+   },
+   "sha256": "8035a5983cff67ddf854ca482eb499854baa7b63034e5ff7c6cf2938aba628c3"
+  },
+  "angus_cow_adult_front_left_v0_sick": {
+   "w": 112.98,
+   "h": 95.28,
+   "x0": -57.57,
+   "y0": -91.28,
+   "height": 87.28,
+   "face": {
+    "cx": 0,
+    "cy": -63.93,
+    "r": 26.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -87.28
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 51.51,
+    "ry": 6.42
+   },
+   "sha256": "4b9ad6ddd2fc491ec32ef60beb5812901ac27f87fec5e15a4539569a075026f2"
+  },
+  "angus_cow_adult_front_right_v0_sick": {
+   "w": 112.98,
+   "h": 95.28,
+   "x0": -55.41,
+   "y0": -91.28,
+   "height": 87.28,
+   "face": {
+    "cx": 0,
+    "cy": -63.93,
+    "r": 26.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -87.28
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 51.51,
+    "ry": 6.42
+   },
+   "sha256": "a1c84756327fd81eb2d2dc3cee14ddd80f46ab2f704a62c9211e14dfe3cc07b0"
+  },
+  "angus_bull_adult_front_left_v0_sick": {
+   "w": 127.74,
+   "h": 108.78,
+   "x0": -65.17,
+   "y0": -104.78,
+   "height": 100.78,
+   "face": {
+    "cx": 0,
+    "cy": -71.55,
+    "r": 32.95
+   },
+   "headTop": {
+    "x": 0,
+    "y": -100.78
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 58.68,
+    "ry": 7.03
+   },
+   "sha256": "790ff07ed2dda9d0b928059dc51f7ae3f09d991d551daf94cdc632c9302b7582"
+  },
+  "angus_bull_adult_front_right_v0_sick": {
+   "w": 127.74,
+   "h": 108.78,
+   "x0": -62.57,
+   "y0": -104.78,
+   "height": 100.78,
+   "face": {
+    "cx": 0,
+    "cy": -71.55,
+    "r": 32.95
+   },
+   "headTop": {
+    "x": 0,
+    "y": -100.78
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 58.68,
+    "ry": 7.03
+   },
+   "sha256": "bb75a64bf1ee6b8a08148a028c732489b5ee91ae0cfde4b8378920e42b4cce3a"
+  },
+  "galloway_cow_adult_front_left_v0_sick": {
+   "w": 121.22,
+   "h": 95.28,
+   "x0": -61.69,
+   "y0": -91.28,
+   "height": 87.28,
+   "face": {
+    "cx": 0,
+    "cy": -63.93,
+    "r": 26.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -87.28
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 55.63,
+    "ry": 6.42
+   },
+   "sha256": "df45b4597bddfee819420bc22b13da9f963eb53b0a2a0d3580f34187070f2d84"
+  },
+  "galloway_cow_adult_front_left_v1_sick": {
+   "w": 121.22,
+   "h": 95.28,
+   "x0": -61.69,
+   "y0": -91.28,
+   "height": 87.28,
+   "face": {
+    "cx": 0,
+    "cy": -63.93,
+    "r": 26.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -87.28
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 55.63,
+    "ry": 6.42
+   },
+   "sha256": "0544c4f6b8dc48741a53009e064f9d0ee77739b9a48923675e4a24045ae27ce0"
+  },
+  "galloway_cow_adult_front_left_v2_sick": {
+   "w": 121.22,
+   "h": 95.28,
+   "x0": -61.69,
+   "y0": -91.28,
+   "height": 87.28,
+   "face": {
+    "cx": 0,
+    "cy": -63.93,
+    "r": 26.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -87.28
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 55.63,
+    "ry": 6.42
+   },
+   "sha256": "23c1b55915df117df2310f73cb51abfbd07bbbd18b8a9b482690a9c4f92408e0"
+  },
+  "galloway_cow_adult_front_left_v3_sick": {
+   "w": 121.22,
+   "h": 95.28,
+   "x0": -61.69,
+   "y0": -91.28,
+   "height": 87.28,
+   "face": {
+    "cx": 0,
+    "cy": -63.93,
+    "r": 26.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -87.28
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 55.63,
+    "ry": 6.42
+   },
+   "sha256": "3f400f44ca0391e42837baacf254dd1e0b6e2770e961f623d00f4ad6f258ddae"
+  },
+  "galloway_bull_adult_front_left_v0_sick": {
+   "w": 137.12,
+   "h": 108.78,
+   "x0": -69.86,
+   "y0": -104.78,
+   "height": 100.78,
+   "face": {
+    "cx": 0,
+    "cy": -71.55,
+    "r": 32.95
+   },
+   "headTop": {
+    "x": 0,
+    "y": -100.78
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 63.38,
+    "ry": 7.03
+   },
+   "sha256": "0c99058d95c14b2230ebdb0d2fce3731f57bdbb3dca9e074295c24e572cd5bb9"
+  },
+  "galloway_bull_adult_front_left_v1_sick": {
+   "w": 137.12,
+   "h": 108.78,
+   "x0": -69.86,
+   "y0": -104.78,
+   "height": 100.78,
+   "face": {
+    "cx": 0,
+    "cy": -71.55,
+    "r": 32.95
+   },
+   "headTop": {
+    "x": 0,
+    "y": -100.78
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 63.38,
+    "ry": 7.03
+   },
+   "sha256": "af165abaef59605e21c407bc947ee18d6222833edf6f2ba6c9d713383361aecb"
+  },
+  "galloway_bull_adult_front_left_v2_sick": {
+   "w": 137.12,
+   "h": 108.78,
+   "x0": -69.86,
+   "y0": -104.78,
+   "height": 100.78,
+   "face": {
+    "cx": 0,
+    "cy": -71.55,
+    "r": 32.95
+   },
+   "headTop": {
+    "x": 0,
+    "y": -100.78
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 63.38,
+    "ry": 7.03
+   },
+   "sha256": "3100f51e8f515d54d48e9d7630af1ebf9bf3283fcdc27651760e2940649b68ff"
+  },
+  "galloway_bull_adult_front_left_v3_sick": {
+   "w": 137.12,
+   "h": 108.78,
+   "x0": -69.86,
+   "y0": -104.78,
+   "height": 100.78,
+   "face": {
+    "cx": 0,
+    "cy": -71.55,
+    "r": 32.95
+   },
+   "headTop": {
+    "x": 0,
+    "y": -100.78
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 63.38,
+    "ry": 7.03
+   },
+   "sha256": "cc135f6545b3f2e3a6f93136eed6ebbd89106c9fb76700816c6f2d87068f93c2"
+  },
+  "charolais_cow_adult_front_left_v0_sick": {
+   "w": 102.49,
+   "h": 86.47,
+   "x0": -52.22,
+   "y0": -82.47,
+   "height": 78.47,
+   "face": {
+    "cx": 0,
+    "cy": -57.51,
+    "r": 25.13
+   },
+   "headTop": {
+    "x": 0,
+    "y": -78.47
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 46.36,
+    "ry": 5.78
+   },
+   "sha256": "a1eb3650b3045ddd8ed017d36fe5d6d8dd36ccced0e0f1046821227e84a4fa3f"
+  },
+  "charolais_bull_adult_front_left_v0_sick": {
+   "w": 115.76,
+   "h": 98.6,
+   "x0": -59.05,
+   "y0": -94.6,
+   "height": 90.6,
+   "face": {
+    "cx": 0,
+    "cy": -64.36,
+    "r": 31.46
+   },
+   "headTop": {
+    "x": 0,
+    "y": -90.6
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 52.82,
+    "ry": 6.32
+   },
+   "sha256": "d39bc85b7cc11299088b6814dd45d57ce72af0832494efaad988299698baea81"
+  },
+  "wagyu_cow_adult_front_left_v0_sick": {
+   "w": 112.98,
+   "h": 104.64,
+   "x0": -57.57,
+   "y0": -100.64,
+   "height": 96.64,
+   "face": {
+    "cx": 0,
+    "cy": -63.93,
+    "r": 26.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -96.64
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 51.51,
+    "ry": 6.42
+   },
+   "sha256": "a0ae694a52ef9f64bd70c9659ed46213dad4b7064d67878d67c7369f9a3a690a"
+  },
+  "wagyu_cow_adult_front_right_v0_sick": {
+   "w": 112.98,
+   "h": 104.64,
+   "x0": -55.41,
+   "y0": -100.64,
+   "height": 96.64,
+   "face": {
+    "cx": 0,
+    "cy": -63.93,
+    "r": 26.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -96.64
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 51.51,
+    "ry": 6.42
+   },
+   "sha256": "fa0c445052b4e507c5faeb4756d67eeb6b42e8e345236c3e1ad0b8631c1a346a"
+  },
+  "wagyu_bull_adult_front_left_v0_sick": {
+   "w": 127.74,
+   "h": 124.01,
+   "x0": -65.17,
+   "y0": -120.01,
+   "height": 116.01,
+   "face": {
+    "cx": 0,
+    "cy": -71.55,
+    "r": 32.95
+   },
+   "headTop": {
+    "x": 0,
+    "y": -116.01
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 58.68,
+    "ry": 7.03
+   },
+   "sha256": "9186543e70f8014d61d21033ad3998adb226168b07539e3f8b786ffd67da2592"
+  },
+  "wagyu_bull_adult_front_right_v0_sick": {
+   "w": 127.74,
+   "h": 124.01,
+   "x0": -62.57,
+   "y0": -120.01,
+   "height": 116.01,
+   "face": {
+    "cx": 0,
+    "cy": -71.55,
+    "r": 32.95
+   },
+   "headTop": {
+    "x": 0,
+    "y": -116.01
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 58.68,
+    "ry": 7.03
+   },
+   "sha256": "e401f095ad5b601d8834a7586fdb6d8b0dfce74256bb75738af61a122c36e4c3"
+  },
+  "whiteFleece_cow_adult_front_left_v0_sick": {
+   "w": 109.89,
+   "h": 86.47,
+   "x0": -55.92,
+   "y0": -82.47,
+   "height": 78.47,
+   "face": {
+    "cx": 0,
+    "cy": -57.51,
+    "r": 25.13
+   },
+   "headTop": {
+    "x": 0,
+    "y": -78.47
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 50.07,
+    "ry": 5.78
+   },
+   "sha256": "7972c987a7ff120fa087e62cd35311415b039a437888cb83990ad2564af96eb9"
+  },
+  "whiteFleece_cow_adult_front_left_v1_sick": {
+   "w": 109.89,
+   "h": 86.47,
+   "x0": -55.92,
+   "y0": -82.47,
+   "height": 78.47,
+   "face": {
+    "cx": 0,
+    "cy": -57.51,
+    "r": 25.13
+   },
+   "headTop": {
+    "x": 0,
+    "y": -78.47
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 50.07,
+    "ry": 5.78
+   },
+   "sha256": "9c75fc65822144ca72585365e31da29a20809dcc91de018335c1af16b9467aa3"
+  },
+  "whiteFleece_cow_adult_front_left_v2_sick": {
+   "w": 109.89,
+   "h": 86.47,
+   "x0": -55.92,
+   "y0": -82.47,
+   "height": 78.47,
+   "face": {
+    "cx": 0,
+    "cy": -57.51,
+    "r": 25.13
+   },
+   "headTop": {
+    "x": 0,
+    "y": -78.47
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 50.07,
+    "ry": 5.78
+   },
+   "sha256": "8f84a37d7a129bfd5da5970c98df94e1f498bf067e6ffa6585089996217fba12"
+  },
+  "whiteFleece_cow_adult_front_left_v3_sick": {
+   "w": 109.89,
+   "h": 86.47,
+   "x0": -55.92,
+   "y0": -82.47,
+   "height": 78.47,
+   "face": {
+    "cx": 0,
+    "cy": -57.51,
+    "r": 25.13
+   },
+   "headTop": {
+    "x": 0,
+    "y": -78.47
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 50.07,
+    "ry": 5.78
+   },
+   "sha256": "0a922871714f7f707e5bbf98dcf2374cfe5d04122d1b7bf31a75340cc0e057a9"
+  },
+  "whiteFleece_bull_adult_front_left_v0_sick": {
+   "w": 124.2,
+   "h": 98.6,
+   "x0": -63.27,
+   "y0": -94.6,
+   "height": 90.6,
+   "face": {
+    "cx": 0,
+    "cy": -64.36,
+    "r": 31.46
+   },
+   "headTop": {
+    "x": 0,
+    "y": -90.6
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 57.04,
+    "ry": 6.32
+   },
+   "sha256": "067f8b20dcfc59ada7f5137654058fb14dcf1dc830bea8e4e862ccdee4a26ad2"
+  },
+  "whiteFleece_bull_adult_front_left_v1_sick": {
+   "w": 124.2,
+   "h": 98.6,
+   "x0": -63.27,
+   "y0": -94.6,
+   "height": 90.6,
+   "face": {
+    "cx": 0,
+    "cy": -64.36,
+    "r": 31.46
+   },
+   "headTop": {
+    "x": 0,
+    "y": -90.6
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 57.04,
+    "ry": 6.32
+   },
+   "sha256": "e4cdcea88d81e9095c81208c32bb84567ad2d649d81c148696879ed631f8ee35"
+  },
+  "whiteFleece_bull_adult_front_left_v2_sick": {
+   "w": 124.2,
+   "h": 98.6,
+   "x0": -63.27,
+   "y0": -94.6,
+   "height": 90.6,
+   "face": {
+    "cx": 0,
+    "cy": -64.36,
+    "r": 31.46
+   },
+   "headTop": {
+    "x": 0,
+    "y": -90.6
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 57.04,
+    "ry": 6.32
+   },
+   "sha256": "7acddadd02df5ca5d1f3e906e547381c7960276faafe931cb29abfd471247b98"
+  },
+  "whiteFleece_bull_adult_front_left_v3_sick": {
+   "w": 124.2,
+   "h": 98.6,
+   "x0": -63.27,
+   "y0": -94.6,
+   "height": 90.6,
+   "face": {
+    "cx": 0,
+    "cy": -64.36,
+    "r": 31.46
+   },
+   "headTop": {
+    "x": 0,
+    "y": -90.6
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 57.04,
+    "ry": 6.32
+   },
+   "sha256": "31502b30529f54a398fd17ed25f986c8d292d51a475f8d04bf43bacde8e5436c"
+  },
+  "fluffyWagyu_cow_adult_front_left_v0_sick": {
+   "w": 121.22,
+   "h": 104.64,
+   "x0": -61.69,
+   "y0": -100.64,
+   "height": 96.64,
+   "face": {
+    "cx": 0,
+    "cy": -63.93,
+    "r": 26.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -96.64
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 55.63,
+    "ry": 6.42
+   },
+   "sha256": "80986c0ed475e06f3a8efdf0325e8365b40b0fdf658041032c7371fc388aff1f"
+  },
+  "fluffyWagyu_cow_adult_front_left_v1_sick": {
+   "w": 121.22,
+   "h": 104.64,
+   "x0": -61.69,
+   "y0": -100.64,
+   "height": 96.64,
+   "face": {
+    "cx": 0,
+    "cy": -63.93,
+    "r": 26.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -96.64
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 55.63,
+    "ry": 6.42
+   },
+   "sha256": "39d5c6d8284fe5ebb0dc4984cbebeb1105406d864f63501dd4b33b1b157b3cc7"
+  },
+  "fluffyWagyu_cow_adult_front_left_v2_sick": {
+   "w": 121.22,
+   "h": 104.64,
+   "x0": -61.69,
+   "y0": -100.64,
+   "height": 96.64,
+   "face": {
+    "cx": 0,
+    "cy": -63.93,
+    "r": 26.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -96.64
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 55.63,
+    "ry": 6.42
+   },
+   "sha256": "885c6b0372d89774aebe3040432d8417853d657e1392584cf374ecec68ba626a"
+  },
+  "fluffyWagyu_cow_adult_front_left_v3_sick": {
+   "w": 121.22,
+   "h": 104.64,
+   "x0": -61.69,
+   "y0": -100.64,
+   "height": 96.64,
+   "face": {
+    "cx": 0,
+    "cy": -63.93,
+    "r": 26.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -96.64
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 55.63,
+    "ry": 6.42
+   },
+   "sha256": "70204cad08d97897dc9910480e7df0b3fd22b6f0a980d5088174a7b554fb1a28"
+  },
+  "fluffyWagyu_cow_adult_front_right_v0_sick": {
+   "w": 121.22,
+   "h": 104.64,
+   "x0": -59.53,
+   "y0": -100.64,
+   "height": 96.64,
+   "face": {
+    "cx": 0,
+    "cy": -63.93,
+    "r": 26.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -96.64
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 55.63,
+    "ry": 6.42
+   },
+   "sha256": "d9053c25b6cc220d117a714f8be26a3b0c32e7431b9dea718858d5811bd59b47"
+  },
+  "fluffyWagyu_cow_adult_front_right_v1_sick": {
+   "w": 121.22,
+   "h": 104.64,
+   "x0": -59.53,
+   "y0": -100.64,
+   "height": 96.64,
+   "face": {
+    "cx": 0,
+    "cy": -63.93,
+    "r": 26.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -96.64
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 55.63,
+    "ry": 6.42
+   },
+   "sha256": "1ef2782d27bd818852def4fc83cbbb87696ed2bdebff2c815ee8020d684a45f1"
+  },
+  "fluffyWagyu_cow_adult_front_right_v2_sick": {
+   "w": 121.22,
+   "h": 104.64,
+   "x0": -59.53,
+   "y0": -100.64,
+   "height": 96.64,
+   "face": {
+    "cx": 0,
+    "cy": -63.93,
+    "r": 26.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -96.64
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 55.63,
+    "ry": 6.42
+   },
+   "sha256": "d097f97236474de054f011df2d2429e8a1ad1c9a56d028b63450e624c3eba964"
+  },
+  "fluffyWagyu_cow_adult_front_right_v3_sick": {
+   "w": 121.22,
+   "h": 104.64,
+   "x0": -59.53,
+   "y0": -100.64,
+   "height": 96.64,
+   "face": {
+    "cx": 0,
+    "cy": -63.93,
+    "r": 26.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -96.64
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 55.63,
+    "ry": 6.42
+   },
+   "sha256": "505c9117c678f66eba0dd71bf1bd0b034444e92deb1d8e1c15de46c3dc00344f"
+  },
+  "fluffyWagyu_bull_adult_front_left_v0_sick": {
+   "w": 137.12,
+   "h": 124.01,
+   "x0": -69.86,
+   "y0": -120.01,
+   "height": 116.01,
+   "face": {
+    "cx": 0,
+    "cy": -71.55,
+    "r": 32.95
+   },
+   "headTop": {
+    "x": 0,
+    "y": -116.01
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 63.38,
+    "ry": 7.03
+   },
+   "sha256": "14c7e8687b904714d14a72a8200bd5b7bce15f405bd7bb65f054d6e3ef3c3d22"
+  },
+  "fluffyWagyu_bull_adult_front_left_v1_sick": {
+   "w": 137.12,
+   "h": 124.01,
+   "x0": -69.86,
+   "y0": -120.01,
+   "height": 116.01,
+   "face": {
+    "cx": 0,
+    "cy": -71.55,
+    "r": 32.95
+   },
+   "headTop": {
+    "x": 0,
+    "y": -116.01
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 63.38,
+    "ry": 7.03
+   },
+   "sha256": "c1dcafb22e79306570a2d12b74d97d7003d1d0a7eb5f753b4388fae5facfb733"
+  },
+  "fluffyWagyu_bull_adult_front_left_v2_sick": {
+   "w": 137.12,
+   "h": 124.01,
+   "x0": -69.86,
+   "y0": -120.01,
+   "height": 116.01,
+   "face": {
+    "cx": 0,
+    "cy": -71.55,
+    "r": 32.95
+   },
+   "headTop": {
+    "x": 0,
+    "y": -116.01
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 63.38,
+    "ry": 7.03
+   },
+   "sha256": "46c5bb7d6922b279cbd4f73d34e04d3c4f15929cc3a9e7067e3072ed12ef8094"
+  },
+  "fluffyWagyu_bull_adult_front_left_v3_sick": {
+   "w": 137.12,
+   "h": 124.01,
+   "x0": -69.86,
+   "y0": -120.01,
+   "height": 116.01,
+   "face": {
+    "cx": 0,
+    "cy": -71.55,
+    "r": 32.95
+   },
+   "headTop": {
+    "x": 0,
+    "y": -116.01
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 63.38,
+    "ry": 7.03
+   },
+   "sha256": "b502c8d9817f8523de56f349f52deb7340436c3ac4b25752e6c0f6510cb7aed3"
+  },
+  "fluffyWagyu_bull_adult_front_right_v0_sick": {
+   "w": 137.12,
+   "h": 124.01,
+   "x0": -67.26,
+   "y0": -120.01,
+   "height": 116.01,
+   "face": {
+    "cx": 0,
+    "cy": -71.55,
+    "r": 32.95
+   },
+   "headTop": {
+    "x": 0,
+    "y": -116.01
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 63.38,
+    "ry": 7.03
+   },
+   "sha256": "fa0e6390282e5d0ea053390c260ae03c76038a9128da2a5441b0de48b4dc770b"
+  },
+  "fluffyWagyu_bull_adult_front_right_v1_sick": {
+   "w": 137.12,
+   "h": 124.01,
+   "x0": -67.26,
+   "y0": -120.01,
+   "height": 116.01,
+   "face": {
+    "cx": 0,
+    "cy": -71.55,
+    "r": 32.95
+   },
+   "headTop": {
+    "x": 0,
+    "y": -116.01
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 63.38,
+    "ry": 7.03
+   },
+   "sha256": "c4653a6cb807e2411632a6d55b5469ada989d066329457960feea527350684c0"
+  },
+  "fluffyWagyu_bull_adult_front_right_v2_sick": {
+   "w": 137.12,
+   "h": 124.01,
+   "x0": -67.26,
+   "y0": -120.01,
+   "height": 116.01,
+   "face": {
+    "cx": 0,
+    "cy": -71.55,
+    "r": 32.95
+   },
+   "headTop": {
+    "x": 0,
+    "y": -116.01
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 63.38,
+    "ry": 7.03
+   },
+   "sha256": "ae13baea94271fab53eb9b8d417ff5d0de052c066eeabeb67c7454c07fa9fa0e"
+  },
+  "fluffyWagyu_bull_adult_front_right_v3_sick": {
+   "w": 137.12,
+   "h": 124.01,
+   "x0": -67.26,
+   "y0": -120.01,
+   "height": 116.01,
+   "face": {
+    "cx": 0,
+    "cy": -71.55,
+    "r": 32.95
+   },
+   "headTop": {
+    "x": 0,
+    "y": -116.01
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 63.38,
+    "ry": 7.03
+   },
+   "sha256": "d6be04b88e46619ee1cce6f8ad339b63f131673ab84646847ed8fac75e32f7fa"
+  },
+  "whiteWagyu_cow_adult_front_left_v0_sick": {
+   "w": 102.49,
+   "h": 95.4,
+   "x0": -52.22,
+   "y0": -91.4,
+   "height": 87.4,
+   "face": {
+    "cx": 0,
+    "cy": -57.51,
+    "r": 25.13
+   },
+   "headTop": {
+    "x": 0,
+    "y": -87.4
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 46.36,
+    "ry": 5.78
+   },
+   "sha256": "38b02af16f0faf1f30eda6303fe6ccdf7d9d5a4bf5e6cb96cca37f5b0bfe285e"
+  },
+  "whiteWagyu_cow_adult_front_right_v0_sick": {
+   "w": 102.49,
+   "h": 95.4,
+   "x0": -50.27,
+   "y0": -91.4,
+   "height": 87.4,
+   "face": {
+    "cx": 0,
+    "cy": -57.51,
+    "r": 25.13
+   },
+   "headTop": {
+    "x": 0,
+    "y": -87.4
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 46.36,
+    "ry": 5.78
+   },
+   "sha256": "6a373eab5594ff5e57136c2b8291a08612425c8faa6df7cc47230dbd6e997d05"
+  },
+  "whiteWagyu_bull_adult_front_left_v0_sick": {
+   "w": 115.76,
+   "h": 113.14,
+   "x0": -59.05,
+   "y0": -109.14,
+   "height": 105.14,
+   "face": {
+    "cx": 0,
+    "cy": -64.36,
+    "r": 31.46
+   },
+   "headTop": {
+    "x": 0,
+    "y": -105.14
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 52.82,
+    "ry": 6.32
+   },
+   "sha256": "18189d4d44bcf5269e60f36577122cd480f1bd292b750c39a32d1c7089cbc854"
+  },
+  "whiteWagyu_bull_adult_front_right_v0_sick": {
+   "w": 115.76,
+   "h": 113.14,
+   "x0": -56.71,
+   "y0": -109.14,
+   "height": 105.14,
+   "face": {
+    "cx": 0,
+    "cy": -64.36,
+    "r": 31.46
+   },
+   "headTop": {
+    "x": 0,
+    "y": -105.14
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 52.82,
+    "ry": 6.32
+   },
+   "sha256": "b8f853edc2811731cbd0a85d4c5906d678a53782c2d87a2fc9b301d91bdc857c"
+  },
+  "starry_cow_adult_front_left_v0_sick": {
+   "w": 102.49,
+   "h": 95.4,
+   "x0": -52.22,
+   "y0": -91.4,
+   "height": 87.4,
+   "face": {
+    "cx": 0,
+    "cy": -57.51,
+    "r": 25.13
+   },
+   "headTop": {
+    "x": 0,
+    "y": -87.4
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 46.36,
+    "ry": 5.78
+   },
+   "sha256": "4f71b4d6ac6a68ac2dcf93eb2464b73d1452b74d2fd4c9464e84b24346d9b354"
+  },
+  "starry_cow_adult_front_left_v1_sick": {
+   "w": 102.49,
+   "h": 95.4,
+   "x0": -52.22,
+   "y0": -91.4,
+   "height": 87.4,
+   "face": {
+    "cx": 0,
+    "cy": -57.51,
+    "r": 25.13
+   },
+   "headTop": {
+    "x": 0,
+    "y": -87.4
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 46.36,
+    "ry": 5.78
+   },
+   "sha256": "eff42705736c2d499a740cdc1741e4a197758a7a7811470ed632bbe746ba82a2"
+  },
+  "starry_cow_adult_front_left_v2_sick": {
+   "w": 102.49,
+   "h": 95.4,
+   "x0": -52.22,
+   "y0": -91.4,
+   "height": 87.4,
+   "face": {
+    "cx": 0,
+    "cy": -57.51,
+    "r": 25.13
+   },
+   "headTop": {
+    "x": 0,
+    "y": -87.4
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 46.36,
+    "ry": 5.78
+   },
+   "sha256": "95c422181311aa808a9f28d69b1af7f28b3b2b797b5c7238b5f68643810b49f0"
+  },
+  "starry_cow_adult_front_left_v3_sick": {
+   "w": 102.49,
+   "h": 95.4,
+   "x0": -52.22,
+   "y0": -91.4,
+   "height": 87.4,
+   "face": {
+    "cx": 0,
+    "cy": -57.51,
+    "r": 25.13
+   },
+   "headTop": {
+    "x": 0,
+    "y": -87.4
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 46.36,
+    "ry": 5.78
+   },
+   "sha256": "648c5322a0316fb0d1739d14c8bd1ac79e4d1b10007984e16ceada5756e1aa91"
+  },
+  "starry_cow_adult_front_right_v0_sick": {
+   "w": 102.49,
+   "h": 95.4,
+   "x0": -50.27,
+   "y0": -91.4,
+   "height": 87.4,
+   "face": {
+    "cx": 0,
+    "cy": -57.51,
+    "r": 25.13
+   },
+   "headTop": {
+    "x": 0,
+    "y": -87.4
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 46.36,
+    "ry": 5.78
+   },
+   "sha256": "1fc92dde9f74eecc8a7e540f972555831a300209764ad9d175d4ee83f2454837"
+  },
+  "starry_cow_adult_front_right_v1_sick": {
+   "w": 102.49,
+   "h": 95.4,
+   "x0": -50.27,
+   "y0": -91.4,
+   "height": 87.4,
+   "face": {
+    "cx": 0,
+    "cy": -57.51,
+    "r": 25.13
+   },
+   "headTop": {
+    "x": 0,
+    "y": -87.4
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 46.36,
+    "ry": 5.78
+   },
+   "sha256": "80ead997ed42d49ba36c6d9c6cd99cc192633724cae1c9cffb83dc9c2fb25964"
+  },
+  "starry_cow_adult_front_right_v2_sick": {
+   "w": 102.49,
+   "h": 95.4,
+   "x0": -50.27,
+   "y0": -91.4,
+   "height": 87.4,
+   "face": {
+    "cx": 0,
+    "cy": -57.51,
+    "r": 25.13
+   },
+   "headTop": {
+    "x": 0,
+    "y": -87.4
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 46.36,
+    "ry": 5.78
+   },
+   "sha256": "9366d938b21f16261f69836ecb513de7a0479fd26bf2a6ac63cc7ff9c6780d52"
+  },
+  "starry_cow_adult_front_right_v3_sick": {
+   "w": 102.49,
+   "h": 95.4,
+   "x0": -50.27,
+   "y0": -91.4,
+   "height": 87.4,
+   "face": {
+    "cx": 0,
+    "cy": -57.51,
+    "r": 25.13
+   },
+   "headTop": {
+    "x": 0,
+    "y": -87.4
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 46.36,
+    "ry": 5.78
+   },
+   "sha256": "98ff9af5526d119e28ea484a67adf1ed4e06f69fb24e3e1e65fe8ff06c4af61a"
+  },
+  "starry_bull_adult_front_left_v0_sick": {
+   "w": 115.76,
+   "h": 113.14,
+   "x0": -59.05,
+   "y0": -109.14,
+   "height": 105.14,
+   "face": {
+    "cx": 0,
+    "cy": -64.36,
+    "r": 31.46
+   },
+   "headTop": {
+    "x": 0,
+    "y": -105.14
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 52.82,
+    "ry": 6.32
+   },
+   "sha256": "a9974ac872a54ed10d94788f8c7fda8614d521c8f7899c41c7e14caa9b09843b"
+  },
+  "starry_bull_adult_front_left_v1_sick": {
+   "w": 115.76,
+   "h": 113.14,
+   "x0": -59.05,
+   "y0": -109.14,
+   "height": 105.14,
+   "face": {
+    "cx": 0,
+    "cy": -64.36,
+    "r": 31.46
+   },
+   "headTop": {
+    "x": 0,
+    "y": -105.14
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 52.82,
+    "ry": 6.32
+   },
+   "sha256": "a0f0452163ee6b2ed09c9fb6ce8d135321285fde350fae4190f4b2e4afa3fb0c"
+  },
+  "starry_bull_adult_front_left_v2_sick": {
+   "w": 115.76,
+   "h": 113.14,
+   "x0": -59.05,
+   "y0": -109.14,
+   "height": 105.14,
+   "face": {
+    "cx": 0,
+    "cy": -64.36,
+    "r": 31.46
+   },
+   "headTop": {
+    "x": 0,
+    "y": -105.14
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 52.82,
+    "ry": 6.32
+   },
+   "sha256": "b7ac50743a9468c1836604798c2aac121e21c5bac3bebb503a4079e3d2e1f79f"
+  },
+  "starry_bull_adult_front_left_v3_sick": {
+   "w": 115.76,
+   "h": 113.14,
+   "x0": -59.05,
+   "y0": -109.14,
+   "height": 105.14,
+   "face": {
+    "cx": 0,
+    "cy": -64.36,
+    "r": 31.46
+   },
+   "headTop": {
+    "x": 0,
+    "y": -105.14
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 52.82,
+    "ry": 6.32
+   },
+   "sha256": "95d36ef9eff4344bf2b56a9905ce0fdfe0c6e3035ff4319b1c639a03e883d01b"
+  },
+  "starry_bull_adult_front_right_v0_sick": {
+   "w": 115.76,
+   "h": 113.14,
+   "x0": -56.71,
+   "y0": -109.14,
+   "height": 105.14,
+   "face": {
+    "cx": 0,
+    "cy": -64.36,
+    "r": 31.46
+   },
+   "headTop": {
+    "x": 0,
+    "y": -105.14
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 52.82,
+    "ry": 6.32
+   },
+   "sha256": "834e399792ef12b67d2228a5b26f628bfebf69542b8c9283e31bee228a54bde2"
+  },
+  "starry_bull_adult_front_right_v1_sick": {
+   "w": 115.76,
+   "h": 113.14,
+   "x0": -56.71,
+   "y0": -109.14,
+   "height": 105.14,
+   "face": {
+    "cx": 0,
+    "cy": -64.36,
+    "r": 31.46
+   },
+   "headTop": {
+    "x": 0,
+    "y": -105.14
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 52.82,
+    "ry": 6.32
+   },
+   "sha256": "bf43844f237172d97f554b3b628036f108131e10d3717679a7bb5535d15432af"
+  },
+  "starry_bull_adult_front_right_v2_sick": {
+   "w": 115.76,
+   "h": 113.14,
+   "x0": -56.71,
+   "y0": -109.14,
+   "height": 105.14,
+   "face": {
+    "cx": 0,
+    "cy": -64.36,
+    "r": 31.46
+   },
+   "headTop": {
+    "x": 0,
+    "y": -105.14
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 52.82,
+    "ry": 6.32
+   },
+   "sha256": "79739ce08cc1021aec1a6aefdec038bffb8f5717211c51966b4ec905cf555347"
+  },
+  "starry_bull_adult_front_right_v3_sick": {
+   "w": 115.76,
+   "h": 113.14,
+   "x0": -56.71,
+   "y0": -109.14,
+   "height": 105.14,
+   "face": {
+    "cx": 0,
+    "cy": -64.36,
+    "r": 31.46
+   },
+   "headTop": {
+    "x": 0,
+    "y": -105.14
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 52.82,
+    "ry": 6.32
+   },
+   "sha256": "7255cb1ace50359e2f860424ea3b0d0324b8b41a000cb0891d93c25e3309385e"
+  },
+  "mixDairy_cow_adult_front_left_v0_sick": {
+   "w": 81.56,
+   "h": 103.54,
+   "x0": -41.86,
+   "y0": -99.54,
+   "height": 95.54,
+   "face": {
+    "cx": 0,
+    "cy": -65.32,
+    "r": 24.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -95.54
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 37.78,
+    "ry": 6.67
+   },
+   "sha256": "498bc7c9da07270756c3bcda3fc646d73395da43b8564eb791d7e2d8c084b81c"
+  },
+  "mixDairy_bull_adult_front_left_v0_sick": {
+   "w": 94.38,
+   "h": 122.03,
+   "x0": -47.27,
+   "y0": -118.03,
+   "height": 114.03,
+   "face": {
+    "cx": 0,
+    "cy": -72.95,
+    "r": 30.44
+   },
+   "headTop": {
+    "x": 0,
+    "y": -114.03
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 43.04,
+    "ry": 7.3
+   },
+   "sha256": "36c87c4894588e27fd0f4c5c96195370eb21d671cd5446540713e36287baaf7c"
+  },
+  "mixDraft_cow_adult_front_left_v0_sick": {
+   "w": 93.24,
+   "h": 101.59,
+   "x0": -47.7,
+   "y0": -97.59,
+   "height": 93.59,
+   "face": {
+    "cx": 0,
+    "cy": -62.44,
+    "r": 25.07
+   },
+   "headTop": {
+    "x": 0,
+    "y": -93.59
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 42.93,
+    "ry": 6.3
+   },
+   "sha256": "234da456e0adbb12846a33855cbcf18e85b59031125107bb0f11434de5155264"
+  },
+  "mixDraft_bull_adult_front_left_v0_sick": {
+   "w": 105.26,
+   "h": 120.19,
+   "x0": -53.93,
+   "y0": -116.19,
+   "height": 112.19,
+   "face": {
+    "cx": 0,
+    "cy": -69.84,
+    "r": 31.38
+   },
+   "headTop": {
+    "x": 0,
+    "y": -112.19
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 48.9,
+    "ry": 6.89
+   },
+   "sha256": "2575fcb0e620996cbad0ec32bfa7297742aa65a97cdc3e6e6b4fc97573f421a4"
+  },
+  "mixBeef_cow_adult_front_left_v0_sick": {
+   "w": 112.98,
+   "h": 95.28,
+   "x0": -57.57,
+   "y0": -91.28,
+   "height": 87.28,
+   "face": {
+    "cx": 0,
+    "cy": -63.93,
+    "r": 26.32
+   },
+   "headTop": {
+    "x": 0,
+    "y": -87.28
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 51.51,
+    "ry": 6.42
+   },
+   "sha256": "52a0c871fd86e5265cbd7ffa7b430dc0f50db43d8125b1b9ef9ae376a15539fb"
+  },
+  "mixBeef_bull_adult_front_left_v0_sick": {
+   "w": 127.74,
+   "h": 108.78,
+   "x0": -65.17,
+   "y0": -104.78,
+   "height": 100.78,
+   "face": {
+    "cx": 0,
+    "cy": -71.55,
+    "r": 32.95
+   },
+   "headTop": {
+    "x": 0,
+    "y": -100.78
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 58.68,
+    "ry": 7.03
+   },
+   "sha256": "e461aebe27f573fc6411595936435572ba8d89a68c52a6eb33a11d58120bae1c"
+  },
+  "holstein_cow_calf_front_left_v0_sick": {
+   "w": 52.6,
+   "h": 67.75,
+   "x0": -26.3,
+   "y0": -63.75,
+   "height": 55.14,
+   "face": {
+    "cx": 0,
+    "cy": -39.1,
+    "r": 15.89
+   },
+   "headTop": {
+    "x": 0,
+    "y": -55.14
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 19.67,
+    "ry": 3.82
+   },
+   "sha256": "026b3ae698ef5feac1dd0a0918aa3e537a46e08461972e6e0666bc9cd27aeb67"
+  },
+  "holstein_cow_calf_front_left_v1_sick": {
+   "w": 52.6,
+   "h": 67.75,
+   "x0": -26.3,
+   "y0": -63.75,
+   "height": 55.14,
+   "face": {
+    "cx": 0,
+    "cy": -39.1,
+    "r": 15.89
+   },
+   "headTop": {
+    "x": 0,
+    "y": -55.14
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 19.67,
+    "ry": 3.82
+   },
+   "sha256": "091117788eacd62aa952aecb9939cc69e385ea52291abbd05131d4697a258a06"
+  },
+  "holstein_cow_calf_front_left_v2_sick": {
+   "w": 52.6,
+   "h": 67.75,
+   "x0": -26.3,
+   "y0": -63.75,
+   "height": 55.14,
+   "face": {
+    "cx": 0,
+    "cy": -39.1,
+    "r": 15.89
+   },
+   "headTop": {
+    "x": 0,
+    "y": -55.14
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 19.67,
+    "ry": 3.82
+   },
+   "sha256": "4ab7b27353d8c24720eca623d36def4b12875055c75b091999492fcd8e860194"
+  },
+  "holstein_cow_calf_front_left_v3_sick": {
+   "w": 52.6,
+   "h": 67.75,
+   "x0": -26.3,
+   "y0": -63.75,
+   "height": 55.14,
+   "face": {
+    "cx": 0,
+    "cy": -39.1,
+    "r": 15.89
+   },
+   "headTop": {
+    "x": 0,
+    "y": -55.14
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 19.67,
+    "ry": 3.82
+   },
+   "sha256": "927a2bd9393235289ae299be6aeb79ce89f17de4156a8de76cbe823782085cbc"
+  },
+  "holstein_bull_calf_front_left_v0_sick": {
+   "w": 68.04,
+   "h": 80.87,
+   "x0": -34.02,
+   "y0": -76.87,
+   "height": 72.87,
+   "face": {
+    "cx": 0,
+    "cy": -51.18,
+    "r": 21.48
+   },
+   "headTop": {
+    "x": 0,
+    "y": -72.87
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 27.11,
+    "ry": 4.97
+   },
+   "sha256": "1ae460acca30086758fa6002c347d36aacad65664f7cdad6d380bae50ed00506"
+  },
+  "holstein_bull_calf_front_left_v1_sick": {
+   "w": 68.04,
+   "h": 80.87,
+   "x0": -34.02,
+   "y0": -76.87,
+   "height": 72.87,
+   "face": {
+    "cx": 0,
+    "cy": -51.18,
+    "r": 21.48
+   },
+   "headTop": {
+    "x": 0,
+    "y": -72.87
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 27.11,
+    "ry": 4.97
+   },
+   "sha256": "8e16be2185afaca1e1a2c4d76f9fbe38680082bf5c6fed568ad466b79bc891af"
+  },
+  "holstein_bull_calf_front_left_v2_sick": {
+   "w": 68.04,
+   "h": 80.87,
+   "x0": -34.02,
+   "y0": -76.87,
+   "height": 72.87,
+   "face": {
+    "cx": 0,
+    "cy": -51.18,
+    "r": 21.48
+   },
+   "headTop": {
+    "x": 0,
+    "y": -72.87
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 27.11,
+    "ry": 4.97
+   },
+   "sha256": "4b424844bb969b4a82af647bb406741bea2e7c63fa0fa071d773d7016489e955"
+  },
+  "holstein_bull_calf_front_left_v3_sick": {
+   "w": 68.04,
+   "h": 80.87,
+   "x0": -34.02,
+   "y0": -76.87,
+   "height": 72.87,
+   "face": {
+    "cx": 0,
+    "cy": -51.18,
+    "r": 21.48
+   },
+   "headTop": {
+    "x": 0,
+    "y": -72.87
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 27.11,
+    "ry": 4.97
+   },
+   "sha256": "583a2fd2004393cb50956c98503eefa3411692969be7e312b671945650a51e64"
+  },
+  "yellow_cow_calf_front_left_v0_sick": {
+   "w": 53.84,
+   "h": 66.79,
+   "x0": -26.92,
+   "y0": -62.79,
+   "height": 54.04,
+   "face": {
+    "cx": 0,
+    "cy": -37.5,
+    "r": 16.38
+   },
+   "headTop": {
+    "x": 0,
+    "y": -54.04
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 22.36,
+    "ry": 3.61
+   },
+   "sha256": "2a9a8c0323eb5cd2e3949bbda687111f183285fe229385269232ebffe50cfa1e"
+  },
+  "yellow_bull_calf_front_left_v0_sick": {
+   "w": 70.3,
+   "h": 79.47,
+   "x0": -35.45,
+   "y0": -75.47,
+   "height": 71.47,
+   "face": {
+    "cx": 0,
+    "cy": -49.11,
+    "r": 22.14
+   },
+   "headTop": {
+    "x": 0,
+    "y": -71.47
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 30.81,
+    "ry": 4.69
+   },
+   "sha256": "666c173c9493b187c339de3d6640b1bee809d1859e3aa2f086e9c82bf579020b"
+  },
+  "angus_cow_calf_front_left_v0_sick": {
+   "w": 62.82,
+   "h": 68.8,
+   "x0": -32.04,
+   "y0": -64.8,
+   "height": 53.7,
+   "face": {
+    "cx": 0,
+    "cy": -38.45,
+    "r": 17.2
+   },
+   "headTop": {
+    "x": 0,
+    "y": -53.7
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 26.83,
+    "ry": 3.68
+   },
+   "sha256": "1d56d7409419acc5054fea6c1d7d35adcbddeb4f806b3c92123cee984c8fba82"
+  },
+  "angus_cow_calf_front_right_v0_sick": {
+   "w": 62.82,
+   "h": 68.8,
+   "x0": -30.78,
+   "y0": -64.8,
+   "height": 53.7,
+   "face": {
+    "cx": 0,
+    "cy": -38.45,
+    "r": 17.2
+   },
+   "headTop": {
+    "x": 0,
+    "y": -53.7
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 26.83,
+    "ry": 3.68
+   },
+   "sha256": "63e5b4c394734c8fe75f07ed8f28f89c4644d645cc2198894620dc553023e8d4"
+  },
+  "angus_bull_calf_front_left_v0_sick": {
+   "w": 83.44,
+   "h": 78.98,
+   "x0": -42.54,
+   "y0": -74.98,
+   "height": 70.98,
+   "face": {
+    "cx": 0,
+    "cy": -50.35,
+    "r": 23.25
+   },
+   "headTop": {
+    "x": 0,
+    "y": -70.98
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 36.97,
+    "ry": 4.78
+   },
+   "sha256": "285e722f3612b366e796f914b7afca97cfa52941858878916b1373ea1856240b"
+  },
+  "angus_bull_calf_front_right_v0_sick": {
+   "w": 83.44,
+   "h": 78.98,
+   "x0": -40.9,
+   "y0": -74.98,
+   "height": 70.98,
+   "face": {
+    "cx": 0,
+    "cy": -50.35,
+    "r": 23.25
+   },
+   "headTop": {
+    "x": 0,
+    "y": -70.98
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 36.97,
+    "ry": 4.78
+   },
+   "sha256": "5c4685eb47a241564403708898d18f547d3bcf6ab20f286a442c3f5722470f21"
   }
  }
 }

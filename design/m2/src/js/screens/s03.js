@@ -1,7 +1,8 @@
 // S03 牧場主畫面
-import { frame, btn, bar, toast, badge, tierChip, useChip, sexText, cowRow, icon, fmt, cowSVG, BREEDS } from '../kit.js';
+import { frame, btn, bar, toast, badge, tierChip, useChip, sexText, cowRow, icon, fmt, cowSVG, sickBadge, BREEDS } from '../kit.js';
+import { poopsSvg } from '../poop.js';
 import { ranchScene, HERD, WIDE } from '../scene.js';
-import { RANCH, COWS, PEN, BUCKET, WAREHOUSE, MARKET, NEWS, sum, cowName, compact, vsBase, newsTag, newsText, MIX_COW } from '../fixtures.js';
+import { RANCH, COWS, PEN, BUCKET, WAREHOUSE, MARKET, NEWS, sum, cowName, compact, vsBase, newsTag, newsText, MIX_COW, TREAT_PRICE, sickOf } from '../fixtures.js';
 import { t, tb, dur, useName, sexName, tierName, calfName, feedList } from '../i18n.js';
 import { tierOf, MIX_MULT } from '../../cow/breeds.js';
 import { TIER_CLS, tierTag, pctText, newsIcons } from './s06.js';
@@ -79,10 +80,17 @@ export function dock(o = {}) {
 }
 
 // o.pan：場景往右捲了多少（0–390）；o.collapsed：奶桶、倉庫、行情收起來；o.swipeHint：第一次打開牧場時的滑動提示
+// 右上角的大便數（v0.3 第 5 節；第 13 輪 04-A）：有大便才出現；髒的程度（大便 ÷ 牛的數量）超過 0.5 就會生病，變紅
+export function dirtyPill(n, cows = PEN.used) {
+  const bad = n / cows > 0.5;
+  return `<div class="dirty${bad ? ' bad' : ''}">${icon('poop', 22)}<span>${t('s03.poop')} <b class="num dp-n">${n}</b></span>${bad ? `<span class="dirty-warn">${icon('warn', 16)}<span class="dw-t">${t('s03.poopDanger')}</span></span>` : ''}</div>`;
+}
+// o.poops：場景裡有哪幾坨大便（poop.js 的 POOP_SPOTS 的編號）
 export function ranchPage(ctx, o = {}) {
   const dev = ctx.dev;
   const herd = o.herd || HERD;
-  const sc = ranchScene(dev, herd, { wide: true, pan: o.pan || 0 });
+  const poops = o.poops || [];
+  const sc = ranchScene(dev, herd, { wide: true, pan: o.pan || 0, extra: poops.length ? poopsSvg(poops) : '' });
   let over = '';
   if (o.bubble) {
     const a = sc.anchors[o.bubble];
@@ -90,15 +98,17 @@ export function ranchPage(ctx, o = {}) {
   }
   if (o.pop) {
     const a = sc.anchors[o.pop.id];
-    const left = Math.max(12, Math.min(dev.w - 220, a.head[0] - 43));
+    // 名片寬 208（病牛的名片 236，S03-29）：左右都留 12，擋在畫面裡
+    const pw = o.pop.cls === 'sick' ? 236 : 208;
+    const left = Math.max(12, Math.min(dev.w - 12 - pw, a.head[0] - 43));
     // data-foot：牛腳的位置；上面放不下時名片放到牛的下面（kit.js 的 placeCowPop）
-    over += `<div class="cow-pop" data-foot="${a.foot[1]}" data-hx="${a.head[0]}"${o.pop.noflip ? ' data-noflip' : ''} style="left:${left}px;top:${a.head[1] - 14}px;transform:translateY(-100%)">${o.pop.html}</div>`;
+    over += `<div class="cow-pop${o.pop.cls ? ` ${o.pop.cls}` : ''}" data-foot="${a.foot[1]}" data-hx="${a.head[0]}"${o.pop.noflip ? ' data-noflip' : ''} style="left:${left}px;top:${a.head[1] - 14}px;transform:translateY(-100%)">${o.pop.html}</div>`;
   }
   const pen = o.pen || PEN;
   const body = `
     <div class="ticker"><span class="ticker-icon">${icon('news', 20)}</span><span class="ticker-text" data-marquee>${newsTag(NEWS[0])}${newsText(NEWS[0])}</span></div>
     <button class="pen-pill${pen.used >= pen.slots ? ' full' : ''}">${icon('barn', 22)}${t('cowsTitle')}<span class="num">${pen.used} / ${pen.slots}</span>${icon('chevron', 16)}</button>
-    ${o.center || ''}
+    ${o.center || ''}${poops.length ? dirtyPill(o.poopCount ?? poops.length) : ''}
     ${o.swipeHint ? `<div class="swipe-hint"><span class="sh-arrow">${icon('back', 18)}</span>${icon('hand', 24)}<span>${t('s03.swipeHint')}</span><span class="sh-arrow r">${icon('chevron', 18)}</span></div>` : ''}
     ${dock({ ...(o.dock || {}), pan: o.pan || 0, collapsed: !!o.collapsed })}`;
   return frame(dev, { tab: 'ranch', scene: sc.svg, body, hud: o.hud || {}, overlays: over + (o.overlays || ''), offline: o.offline });
@@ -112,6 +122,7 @@ export function statusChips(c) {
   if (c.field != null) out.push(badge('working', t('badgeWorking')));
   if (c.listed) out.push(badge('listed', t('badgeListed')));
   if (c.bred) out.push(badge('bred', t('badgeBred')));
+  if (c.sick) out.push(sickBadge());
   return out;
 }
 
@@ -120,7 +131,8 @@ export function cowListRow(c) {
   const b = BREEDS[c.breed], tier = tierOf(b), sep = t('g.sep');
   const chips = [useChip(b.use), `<span class="use">${sexText(c.sex)}</span>`, ...(c.age === 'calf' ? [] : [tierChip(tier)]), ...statusChips(c)];
   let meta;
-  if (c.age === 'calf') meta = t('growUp', { v: dur(c.grow_) });
+  if (c.sick) meta = t('s03.sickNoMilk'); // 病牛（v0.3 第 5 節）
+  else if (c.age === 'calf') meta = t('growUp', { v: dur(c.grow_) });
   else if (c.field != null) meta = t('s03.metaField', { n: c.field + 1, rate: c.rice });
   else if (c.listed) meta = t('s03.metaListed', { price: fmt(c.listed) });
   else if (b.use === 'dairy' && c.sex === 'cow') meta = t('milkRate', { v: c.milk }) + sep + t('weight', { v: c.kg });
@@ -157,6 +169,8 @@ part('S03-05', '奶桶是 0：收奶鈕停用', '.bucket-card', (ctx) => ranchPa
 export function popHtml(c) {
   const b = BREEDS[c.breed], tier = tierOf(b);
   const chips = [useChip(b.use), `<span class="use">${sexName(c.sex)}</span>`, ...(c.age === 'calf' ? [] : [tierChip(tier)]), ...statusChips(c)];
+  // 病牛（v0.3 第 5 節）：不產奶、不能配種上架、出貨只剩一成；按鈕換成治療（第 13 輪 04-A）
+  if (c.sick) return `<div class="name">${cowName(c)}</div><div class="chips" style="margin-top:4px">${chips.join('')}</div><div class="meta wrap">${t('s03.sickNoMilk')}</div><div class="meta wrap">${t('s03.sickShip')}</div>${btn(t('treat', { price: fmt(TREAT_PRICE) }), { small: true, block: true, kind: 'primary', ic: 'coin' })}`;
   const meta = c.age === 'calf' ? t('growUp', { v: dur(c.grow_) }) : b.use === 'dairy' && c.sex === 'cow' ? t('s03.popMilk', { tier: tierName(tier), n: c.milk }) : t('weight', { v: c.kg });
   return `<div class="name">${cowName(c)}</div><div class="chips" style="margin-top:4px">${chips.join('')}</div><div class="meta">${meta}</div>${btn(t('s03.popDetail'), { small: true, block: true, kind: 'primary' })}`;
 }
@@ -259,6 +273,19 @@ function mixGrown(ctx) {
   return ranchPage(ctx).replace('<div class="overlays">', `<div class="overlays"><div class="backdrop"></div><div class="reveal">${inner}</div>`);
 }
 full('S03-25', '小牛長大揭曉：變成雜種牛（A-13 的結尾）', (ctx) => mixGrown(ctx));
+// ---------- 大便、病牛（v0.3 第 5 節；使用者 2026-10-03 選第 13 輪 04-A 霜淇淋捲、臉色發青） ----------
+// 每頭牛每 3 小時一坨（最多 4 坨），沒上線也會累積；髒的程度超過 0.5 就可能生病。清大便：點一下（A-14）或劃過去（A-15）
+const POOPS_ALL = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+const SICK3 = sickOf(COWS.find((c) => c.id === 3));
+// 病牛一律轉正面看玩家（不產奶，所以也不冒奶桶的泡泡）
+export const SICK_HERD = HERD.map((h) => (h.id === 3 ? { ...h, pose: 'front', sick: true, milk: false } : h));
+full('S03-26', '牧場有大便：右上角出現大便數', (ctx) => ranchPage(ctx, { poops: [0, 1, 2, 3] }));
+full('S03-27', '太髒了：大便數變紅「會生病」', (ctx) => ranchPage(ctx, { poops: POOPS_ALL }));
+full('S03-28', '有病牛：轉正面、臉色發青、頭上溫度計', (ctx) => ranchPage(ctx, { poops: POOPS_ALL, herd: SICK_HERD }));
+full('S03-29', '點病牛：名片寫「生病了」、按鈕換成治療', (ctx) => ranchPage(ctx, { poops: POOPS_ALL, herd: SICK_HERD, pop: { id: 3, html: popHtml(SICK3), cls: 'sick' } }));
+part('S03-30', '牛舍清單：病牛那一列', '#crop', (ctx) => frame(ctx.dev, {
+  tab: 'ranch', content: `<div id="crop" class="list" style="padding:4px 0 8px">${cowListRow(SICK3)}${cowListRow(COWS.find((c) => c.id === 7))}</div>`,
+}));
 part('S03-10', '耕牛在田裡：清單顯示「工作中」、場景裡看不到', '#crop', (ctx) => frame(ctx.dev, {
   tab: 'ranch', content: `<div id="crop" class="list" style="padding:4px 0 8px">${COWS.filter((c) => c.field != null).map(cowListRow).join('')}</div>`,
 }));

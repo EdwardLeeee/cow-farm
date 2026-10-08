@@ -6,6 +6,7 @@ import { drawCow } from '../cow/render.js';
 import { rng } from '../cow/r1/cowgen.js';
 import { BREEDS } from '../cow/breeds.js';
 import { calfBow, hasBow } from '../cow/calf.js';
+import { sickLines, sickBubble } from '../cow/sick.js';
 
 const L = '#4B3326';
 const SW = 390, SH = 844;
@@ -145,11 +146,11 @@ export function ranchScene(dev, herd = HERD, { extra = '', wide = false, pan = 0
   const sorted = [...herd].sort((a, b) => a.depth - b.depth || a.y - b.y);
   sorted.forEach((c, i) => {
     const s = SCALE[c.depth] * SCENE_SCALE;
-    const cow = drawCow({ breed: c.breed, sex: c.sex, age: c.age, seed: c.seed, pose: c.pose || 'side' }, { x: c.x, y: c.y, scale: s, facing: c.facing, id: `rs${i}` });
+    const cow = drawCow({ breed: c.breed, sex: c.sex, age: c.age, seed: c.seed, pose: c.pose || 'side', sick: c.sick }, { x: c.x, y: c.y, scale: s, facing: c.facing, id: `rs${i}` });
     const [hx, hy] = cow.headTop;
     const spk = BREEDS[c.breed].legend ? sparkle(hx + 24 * s, hy + 8, 5.5 * s) + sparkle(hx - 22 * s, hy + 16, 3.6 * s) : '';
     // 母小牛頭上的蝴蝶結（第 13 輪 02-A）
-    const bow = hasBow(c) ? calfBow(cow, c.pose || 'side', c.facing).svg : '';
+    const bow = (hasBow(c) ? calfBow(cow, c.pose || 'side', c.facing).svg : '') + (c.sick && c.pose === 'front' ? sickLines(cow) + sickBubble(cow).svg : ''); // 病牛（v0.3 第 5 節）一律轉正面
     o.push(`<g class="herd-cow" data-cow="${c.id}" data-x="${c.x}" data-y="${c.y}" data-facing="${c.facing}" data-pose="${c.pose || 'side'}" data-calf="${c.age === 'calf' ? 1 : 0}"><ellipse cx="${cow.shadow.cx}" cy="${c.y + 1}" rx="${cow.shadow.rx}" ry="${cow.shadow.ry}" fill="#86CC70"/><g class="cow-body">${cow.svg}${bow}${spk}</g></g>`);
     anchors[c.id] = { head: F.map([hx, hy]), face: F.map([cow.face.cx, cow.face.cy]), faceR: cow.face.r * F.k, foot: F.map([c.x, c.y]), scale: s * F.k };
   });

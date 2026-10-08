@@ -61,7 +61,7 @@ void main() {
     _expectGeneratorUnchanged(ui, 'ui.json');
   });
 
-  test('每個組合都有圖：24 種 × 公母 × 小牛／成牛 × 側面／正面 × 朝左（＋需要的朝右）× 變體；雜種牛 3 種只有成牛', () {
+  test('每個組合都有圖：24 種 × 公母 × 小牛／成牛 × 側面／正面 × 朝左（＋需要的朝右）× 變體；雜種牛 3 種只有成牛；病牛只有正面', () {
     final breeds = (cows['breeds'] as Map).cast<String, dynamic>();
     // 雜種牛（D35，#157）：照用途 mixDairy、mixDraft、mixBeef，mix: true；只畫長大的樣子，小牛照舊用 CALF_LOOK 的小牛圖
     final mixes = [
@@ -71,6 +71,9 @@ void main() {
     expect(mixes, unorderedEquals(['mixDairy', 'mixDraft', 'mixBeef']));
     expect(breeds, hasLength(24 + 3), reason: '24 種牛（企劃書 4.5）加 3 種雜種牛');
     final images = (cows['images'] as Map).cast<String, dynamic>();
+    // 病牛（D35，#160）：正面的圖多一張 _sick（臉色發青、額頭藍線）。成牛每一種都有（含雜種牛）；小牛一律畫 CALF_LOOK 那個
+    // 品種的小牛（design/m2/src/cow/calf.js：乳牛荷斯坦、耕牛台灣黃牛、肉牛安格斯），所以只有這三種有生病的小牛
+    const calfLook = {'holstein', 'yellow', 'angus'};
     var expected = 0;
     for (final breed in breeds.keys) {
       final info = (breeds[breed] as Map).cast<String, dynamic>();
@@ -85,6 +88,10 @@ void main() {
                 final name = '${breed}_${sex}_${age}_${pose}_${facing}_v$v';
                 expect(images.containsKey(name), isTrue, reason: name);
                 expected++;
+                if (pose == 'front' && (age == 'adult' || calfLook.contains(breed))) {
+                  expect(images.containsKey('${name}_sick'), isTrue, reason: '${name}_sick');
+                  expected++;
+                }
               }
             }
           }
