@@ -1,5 +1,5 @@
 // S08 配種（自己的公牛 × 自己的母牛）與 S18 借種市場。每頭牛一輩子只能配種一次（公母都一樣，借出去也算）。
-import { frame, btn, seg, badge, tierChip, useChip, icon, fmt, cowSVG, toast, dialog, calfLook, BREEDS } from '../kit.js';
+import { frame, btn, seg, badge, tierChip, rarityChip, useChip, icon, fmt, cowSVG, toast, dialog, calfLook, BREEDS } from '../kit.js';
 import { COWS, cowById, STUD, STUD_INCOME, STUD_LOG, FOUND, RANCH, studFee, LONG_NAMES, CALF_GROW_H } from '../fixtures.js';
 import { tierOf } from '../../cow/breeds.js';
 import { CALF_LOOK } from '../../cow/calf.js';
@@ -22,7 +22,7 @@ function pickCard(c, { on = false, reason = '' } = {}) {
     ${on ? `<span class="pick-check">${icon('ok', 22)}</span>` : ''}
     <span class="pick-pic">${cowSVG(calfLook(c), { w: 84, h: 76, pad: 3 })}</span>
     <span class="pick-name">${c.age === 'calf' ? t(`calf.${b.use}`) : breedName(c.breed)}<span class="pid"> #${c.id}</span></span>
-    <span class="pick-meta">${reason ? badge(reason, t(REASON[reason])) : tierChip(tierOf(b))}</span>
+    <span class="pick-meta">${reason ? badge(reason, t(REASON[reason])) : rarityChip(b)}</span>
   </button>`;
 }
 const BULLS = () => [[cowById(14), ''], [cowById(5), 'listed'], [cowById(8), 'bred'], [cowById(2), 'working']];

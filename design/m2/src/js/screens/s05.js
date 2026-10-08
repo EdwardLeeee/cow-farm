@@ -1,5 +1,5 @@
 // S05 倉庫（批次、新鮮度）。容量只算牛奶；牛肉、稻米目前不佔容量（企劃書 4.3）。賣出從最舊的一批先賣。
-import { frame, btn, bar, icon, fmt, tierChip, badge, empty, cowSVG } from '../kit.js';
+import { frame, btn, bar, icon, fmt, tierChip, mixStar, badge, empty, cowSVG } from '../kit.js';
 import { WAREHOUSE, sum } from '../fixtures.js';
 import { ranchPage } from './s03.js';
 import { GRADE_BG } from './s04.js';
@@ -8,7 +8,7 @@ import { MIX_MULT } from '../../cow/breeds.js';
 
 const MULT = [1.0, 1.3, 1.7, 2.5];
 // 雜種牛的批次（v0.3 第 1.1 節；協定 milk_lots／beef_lots 的 hybrid，ceo 2026-10-03）：不放稀有度，改「雜種」標籤；倍數讀 economy.hybrid_mult
-const lotChip = (l) => (l.hybrid ? badge('mix', t('badgeMix')) : tierChip(l.tier));
+const lotChip = (l) => (l.hybrid ? mixStar() : tierChip(l.tier));
 const freshIcon = (v) => (v < 0.3 ? 'leafBad' : v < 0.7 ? 'leafOld' : 'leaf');
 
 export function milkLot(l) {

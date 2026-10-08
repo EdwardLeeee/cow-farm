@@ -19,6 +19,7 @@
  "tier1": "Uncommon",
  "tier2": "Rare",
  "tier3": "Legendary",
+ "tier4": "Special",
  "days": "{d}d",
  "hours": "{h}h",
  "minutes": "{m}m",

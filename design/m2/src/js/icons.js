@@ -68,6 +68,10 @@ const I = {
   medal: (s = 18) => `<svg viewBox="0 0 20 20" width="${s}" height="${s}"><path d="M6 1.8h3l1 4.4H7zM14 1.8h-3l-1 4.4h3z" fill="#A9DBFF" stroke="${L}" stroke-width="1.5" stroke-linejoin="round"/><circle cx="10" cy="12.2" r="6" fill="#FFD45E" stroke="${L}" stroke-width="1.8"/></svg>`,
   // v0.3 第 5 節（第 13 輪 04-A）：溫度計（病牛的標籤、頭上的泡泡）、大便（霜淇淋捲；牧場場景裡的大便也是這張）
   thermo: (s = 16) => `<svg viewBox="0 0 20 20" width="${s}" height="${s}">${THERMO_INNER}</svg>`,
+  // 雜種牛的稀有度：1 顆灰星（使用者 2026-10-08；一般的稀有度用上面的 star，一般 1、優良 2、稀有 3、傳說 4 顆）
+  // 特殊牛的稀有度：5 顆彩虹星（使用者 2026-10-08 選第 16 輪 02-B）。一顆一個顏色（紅、橙、黃、綠、藍），排在一起就是彩虹；
+  // 小的時候漸層會糊成一個顏色，所以不用漸層。外面先描一圈白（像貼紙），在淡彩虹的底上才分得開
+  starGray: (s = 11) => `<svg viewBox="0 0 20 20" width="${s}" height="${s}"><path d="M10 1.8l2.5 5.2 5.6.7-4.1 3.9 1 5.6L10 14.5l-5 2.7 1-5.6-4.1-3.9 5.6-.7z" fill="#D3C9BE" stroke="#8A7E72" stroke-width="1.8" stroke-linejoin="round"/></svg>`,
   poop: (s = 22) => `<svg viewBox="-12 -19 24 22" width="${s}" height="${Math.round(s * 22 / 24)}">${poopG(0, 0, 20)}</svg>`,
 };
 
@@ -80,6 +84,10 @@ const TAB = {
   shop: (on) => `<svg viewBox="0 0 34 34" width="28" height="28"><path d="M6.5 12h21l-1.6 15.4a2.2 2.2 0 0 1-2.2 2H10.3a2.2 2.2 0 0 1-2.2-2z" fill="${on ? '#FFD45E' : '#FFEAB0'}" stroke="${L}" stroke-width="2.3" stroke-linejoin="round"/><path d="M12 14.5V9.8a5 5 0 0 1 10 0v4.7" fill="none" stroke="${L}" stroke-width="2.3" stroke-linecap="round"/><path d="M17 17.6l1.3 2.7 3 .4-2.2 2 .6 2.9-2.7-1.4-2.7 1.4.6-2.9-2.2-2 3-.4z" fill="#FFFFFF" stroke="${L}" stroke-width="1.5" stroke-linejoin="round"/></svg>`,
   records: (on) => `<svg viewBox="0 0 34 34" width="28" height="28"><path d="M6 6.5A2.5 2.5 0 0 1 8.5 4H27v22H8.5A2.5 2.5 0 0 0 6 28.5z" fill="${on ? '#9FD2FF' : '#D5EBFF'}" stroke="${L}" stroke-width="2.3" stroke-linejoin="round"/><path d="M6 28.5A2.5 2.5 0 0 1 8.5 26H27v4H8.5A2.5 2.5 0 0 1 6 28.5z" fill="#FFFFFF" stroke="${L}" stroke-width="2.3" stroke-linejoin="round"/><path d="M13 10.5c2-1.6 5-1.2 5.6 1 .6 2.4-2 3.4-3.8 2.8-1.8-.6-3.2-2.4-1.8-3.8zM20 16.5c1.5-.8 3.4 0 3.2 1.6-.2 1.5-2.2 1.9-3.2 1-1-.8-.9-2.1 0-2.6z" fill="${L}"/></svg>`,
 };
+
+// 彩虹星 starRainbow1～5（tierChip(4) 照順序用）
+export const RAINBOW = ['#FF6B7A', '#FF9F43', '#FFD23F', '#4CC97A', '#4C9BFF'];
+RAINBOW.forEach((c, k) => { I[`starRainbow${k + 1}`] = (s = 11) => `<svg viewBox="0 0 20 20" width="${s}" height="${s}"><path d="M10 1.8l2.5 5.2 5.6.7-4.1 3.9 1 5.6L10 14.5l-5 2.7 1-5.6-4.1-3.9 5.6-.7z" fill="none" stroke="#FFFFFF" stroke-width="3.6" stroke-linejoin="round"/><path d="M10 1.8l2.5 5.2 5.6.7-4.1 3.9 1 5.6L10 14.5l-5 2.7 1-5.6-4.1-3.9 5.6-.7z" fill="${c}" stroke="${L}" stroke-width="1.8" stroke-linejoin="round"/></svg>`; });
 
 // 圖示的名字（素材匯出用）
 export const ICON_NAMES = Object.keys(I), TAB_KEYS = Object.keys(TAB);

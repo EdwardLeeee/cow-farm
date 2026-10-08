@@ -457,6 +457,7 @@
 .pg-k { font-size: 12px; font-weight: 900; color: var(--ink-2); line-height: 20px; white-space: nowrap; }
 .pg-v { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 13px; font-weight: 700; line-height: 20px; }
 .pg-v span { white-space: nowrap; }
+.pg-v .pg-star { display: inline-flex; align-items: center; gap: 4px; } /* 稀有度那一行：星星＋機率 */
 .pg-v .num { font-size: 14px; }
 .draw-pic { display: flex; justify-content: center; background: linear-gradient(180deg, #E4F6FF 0 62%, #CDEFB4 62%); border: 2px solid var(--line-soft); border-radius: 18px; }
 .draw-name { text-align: center; font-size: 20px; font-weight: 900; margin: 8px 0 4px; }

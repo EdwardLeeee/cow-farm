@@ -206,6 +206,7 @@ const Map<String, String> _zhHant = {
   'tier1': '優良',
   'tier2': '稀有',
   'tier3': '傳說',
+  'tier4': '特殊',
   'days': '{d} 天',
   'hours': '{h} 小時',
   'minutes': '{m} 分',
@@ -1000,6 +1001,7 @@ const Map<String, String> _en = {
   'tier1': 'Uncommon',
   'tier2': 'Rare',
   'tier3': 'Legendary',
+  'tier4': 'Special',
   'days': '{d}d',
   'hours': '{h}h',
   'minutes': '{m}m',
@@ -1794,6 +1796,7 @@ const Map<String, String> _th = {
   'tier1': 'พิเศษ',
   'tier2': 'หายาก',
   'tier3': 'ตำนาน',
+  'tier4': 'พิเศษสุด',
   'days': '{d} วัน',
   'hours': '{h} ชม.',
   'minutes': '{m} นาที',
@@ -2637,6 +2640,9 @@ abstract class GeneratedStrings {
 
   /// `tier3`：傳說
   String get tier3 => table['tier3']!;
+
+  /// `tier4`：特殊
+  String get tier4 => table['tier4']!;
 
   /// `days`：{d} 天
   String days({required Object d}) => fill('days', {'d': d});

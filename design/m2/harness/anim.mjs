@@ -7,6 +7,7 @@ import { mkdir, writeFile, rm } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { startServer } from './server.mjs';
+import { launchBrowser } from './browser.mjs';
 import { measure, glossaryTerms } from './capture.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -27,7 +28,7 @@ const REDUCED = {
 async function run(filter) {
   await mkdir(OUT, { recursive: true });
   const srv = await startServer(ROOT);
-  const browser = await chromium.launch();
+  const browser = await launchBrowser();
   try {
     const lp = await (await browser.newContext()).newPage();
     await lp.goto(`${srv.base}/src/index.html?list=1`);

@@ -149,6 +149,17 @@
 
 ## 重新出圖
 
+新電腦第一次出圖之前（2026-10-08 換電腦時整理）：
+
+- **字型**：要有 Noto Sans CJK 的 Regular、Bold、Black、Medium（設計稿大量用字重 900，靠 Black）。Ubuntu 預設只有 Regular、Bold。
+  - 有 sudo：`sudo apt install fonts-noto-cjk-extra`。
+  - 沒有 sudo：從 Google 官方的 noto-cjk 下載 `Sans/OTC/NotoSansCJK-Black.ttc`、`NotoSansCJK-Medium.ttc`，放到 `~/.local/share/fonts/noto-cjk/`，再 `fc-cache -f`。
+  - `harness/browser.mjs` 開瀏覽器前會檢查，少了 Black 就停下來，不會拍出別的字重。
+- **反鋸齒**：`harness/fonts.conf` 把字改成灰階反鋸齒，`browser.mjs` 只對出圖的瀏覽器套用，不改桌面。Ubuntu 26.04 預設開彩色次像素（`10-sub-pixel-rgb.conf`），字的邊緣會有藍、橘色。
+- **瀏覽器**：`npx playwright install chromium`（裝在 `~/.cache/ms-playwright`，不用 sudo）。
+- **numpy**（compose.py 用）：`sudo apt install python3-numpy`。沒有 pip 也沒有 sudo 時，從 PyPI 下載 numpy 的 wheel 解壓到一個資料夾，跑 compose 時加 `PYTHONPATH=<那個資料夾>`。
+- **驗證**：換電腦後挑幾個沒改過的狀態重拍，跟舊電腦的 `raw/` 逐點比。2026-10-08 比了 9 張：7 張完全一樣；2 張只有狀態列的 Wi-Fi、電池圖示邊緣差 2–5/255，是瀏覽器版本的小差異，看不出來。
+
 ```bash
 cd design/m2
 PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 npm ci

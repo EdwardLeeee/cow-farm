@@ -11,6 +11,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { startServer } from './server.mjs';
+import { launchBrowser } from './browser.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const LANG = process.argv[4] || 'zh-Hant';
@@ -289,7 +290,7 @@ async function run(filter, widths) {
   await mkdir(RAW, { recursive: true });
   const terms = LANG === 'th' ? glossaryTerms() : [];
   const srv = await startServer(ROOT);
-  const browser = await chromium.launch();
+  const browser = await launchBrowser();
   const summary = [];
   try {
     const lp = await (await browser.newContext()).newPage();

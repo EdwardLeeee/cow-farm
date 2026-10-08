@@ -1,5 +1,5 @@
 // G 全 app 共用元件
-import { frame, hud, tabbar, TABS, btn, badge, tierChip, useChip, toast, icon, cowSVG, bar, fmt } from '../kit.js';
+import { frame, hud, tabbar, TABS, btn, badge, tierChip, mixStar, useChip, toast, icon, cowSVG, bar, fmt } from '../kit.js';
 import { RANCH, LONG_NAMES, MARKET } from '../fixtures.js';
 import { t, dur, cowName, calfName, breedName, sexName, tierName, useName } from '../i18n.js';
 import { vsText } from './s06.js';
@@ -33,7 +33,7 @@ part('G-06', '處理中：按下的按鈕轉圈，其他按鈕停用', '#crop', 
 
 part('G-07', '牛的標籤：用途、稀有度、狀態', '#crop', (ctx) => sheet(ctx, `<div class="card g-badges">
   <div class="g-line"><span class="g-k" data-note>用途</span>${useChip('dairy')}${useChip('draft')}${useChip('beef')}<span class="use">${sexName('bull')}</span><span class="use">${sexName('cow')}</span></div>
-  <div class="g-line"><span class="g-k" data-note>稀有度</span>${tierChip(0)}${tierChip(1)}${tierChip(2)}${tierChip(3)}</div>
+  <div class="g-line"><span class="g-k" data-note>稀有度</span>${tierChip(0)}${tierChip(1)}${tierChip(2)}${tierChip(3)}${tierChip(4)}${mixStar()}</div>
   <div class="g-line"><span class="g-k" data-note>狀態</span>${badge('calf', t('stageCalf'))}${badge('old', t('stageOld'))}${badge('working', t('badgeWorking'))}${badge('listed', t('badgeListed'))}${badge('bred', t('badgeBred'))}</div></div>`));
 
 part('G-08', '小牛長大倒數卡（配種、借種共用）', '#crop', (ctx) => sheet(ctx, `<div class="card calf-card">

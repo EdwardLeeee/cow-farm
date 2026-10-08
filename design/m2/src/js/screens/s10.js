@@ -13,7 +13,7 @@ function gradeCard(g, { disabled = false, reason = '', loading = false, failed =
       : `<div class="prob-grid">
         <div class="pg-k">${t('probType')}</div><div class="pg-v">${['dairy', 'draft', 'beef'].map((u, i) => `<span>${useName(u)} <b class="num">${SHOP_TYPE[i]}%</b></span>`).join('')}</div>
         <div class="pg-k">${t('probSex')}</div><div class="pg-v"><span>${sexName('bull')} <b class="num">50%</b></span><span>${sexName('cow')} <b class="num">50%</b></span></div>
-        <div class="pg-k">${t('probTier')}</div><div class="pg-v">${g.tier.map((v, i) => `<span>${tierName(i)} <b class="num">${p1(v)}</b></span>`).join('')}</div></div>`;
+        <div class="pg-k">${t('probTier')}</div><div class="pg-v">${g.tier.map((v, i) => `<span class="pg-star">${tierChip(i)}<b class="num">${p1(v)}</b></span>`).join('')}</div></div>`;
   return `<article class="card grade-card">
     <div class="gc-top"><span class="gc-badge" style="background:${GC[g.grade]}">${g.grade}</span><div class="grow"><b class="gc-title">${t('g.grade', { g: g.grade })}</b><div class="hint">${t(`s19.desc${g.grade}`)}</div></div>
       ${btn(t('costCoins', { v: fmt(g.price) }), { kind: 'primary', small: true, ic: 'coin', disabled: disabled || loading || failed })}</div>

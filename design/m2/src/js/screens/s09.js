@@ -1,5 +1,5 @@
 // S09 圖鑑（24 格）與 S12 排行榜（紀錄分頁）
-import { frame, btn, seg, icon, fmt, cowSVG, bar, tierChip, useChip, badge, BREEDS } from '../kit.js';
+import { frame, btn, seg, icon, fmt, cowSVG, bar, tierChip, mixStar, useChip, badge, BREEDS } from '../kit.js';
 import { FOUND, RANK, RANCH, compactBig, LONG_NAMES } from '../fixtures.js';
 import { CODEX_ORDER, NEW_IN_M2, TIER_NAME, TRAIT_NAME, USE_NAME, tierOf, MIX_LOOK, MIX_MULT } from '../../cow/breeds.js';
 import { t, LANG, breedName, breedIntro, useName, tierName } from '../i18n.js';
@@ -19,7 +19,7 @@ function cell(k, found) {
 function mixTile(found) {
   return `<button class="dex-cell dex-mix-tile${found ? '' : ' unknown'}">
     <span class="dm-pics">${USES.map(([u]) => cowSVG({ breed: MIX_LOOK[u] }, { w: 70, h: 62, pad: 2, sil: found ? false : 'dark' })).join('')}</span>
-    <span class="dm-text"><span class="dex-name">${found ? breedName(MIX_LOOK.dairy) : t('g.unknownBreed')}</span><span class="hint">${t('s09.mixBodies')}</span></span></button>`;
+    <span class="dm-text"><span class="dex-name">${found ? breedName(MIX_LOOK.dairy) : t('g.unknownBreed')}</span>${mixStar()}<span class="hint">${t('s09.mixBodies')}</span></span></button>`;
 }
 function codexPage(ctx, { found = FOUND, mix = false, tall = true } = {}) {
   const n = found.length;
@@ -76,7 +76,7 @@ function mixDetail(ctx, { found = true } = {}) {
     [t('s09.mult'), `×${MIX_MULT.toFixed(1)}`],
   ];
   const content = `<div class="stack">
-    <div class="page-head"><button class="icon-btn" aria-label="${t('back')}">${icon('back', 22)}</button><div class="grow"><h1>${found ? breedName(MIX_LOOK.dairy) : t('g.unknownBreed')}</h1><div class="chips" style="margin-top:3px">${badge('mix', t('badgeMix'))}${found ? '' : badge('lock', t('s09.notFoundYet'))}</div></div></div>
+    <div class="page-head"><button class="icon-btn" aria-label="${t('back')}">${icon('back', 22)}</button><div class="grow"><h1>${found ? breedName(MIX_LOOK.dairy) : t('g.unknownBreed')}</h1><div class="chips" style="margin-top:3px">${mixStar()}${badge('mix', t('badgeMix'))}${found ? '' : badge('lock', t('s09.notFoundYet'))}</div></div></div>
     <article class="card dex-hero"><div class="hero-bg"></div>${pics}</article>
     ${found ? `<p class="dex-intro">${breedIntro(MIX_LOOK.dairy)}</p>
     <div class="kv">${stats.map(([a, v]) => `<div class="cell"><div class="k">${a}</div><div class="v num">${v}</div></div>`).join('')}</div>
