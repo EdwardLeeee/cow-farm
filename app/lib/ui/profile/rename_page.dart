@@ -18,7 +18,7 @@ import '../kit/app_icon.dart';
 import '../kit/kit.dart';
 import '../settings/settings_page.dart' show SettingsFrame;
 import '../start/namer.dart';
-import '../widgets/action_button.dart' show actionErrorTextWith;
+import '../widgets/action_button.dart' show actionErrorKind, actionErrorTextWith;
 
 /// 改名的價錢（協定 2.3 節 `economy.rename_price`；舊的伺服器沒有時用 D34 的 1,000 幣）。
 double renamePrice(GameModel m) => m.state?.economy?.renamePrice ?? 1000;
@@ -47,7 +47,7 @@ class _RenamePageState extends State<RenamePage> {
   late String _lastText = _name.text;
   bool _filled = false;
   String? _serverError;
-  String? _toast;
+  ({ToastKind kind, String text})? _toast;
   Timer? _toastTimer;
 
   @override
@@ -85,9 +85,9 @@ class _RenamePageState extends State<RenamePage> {
     });
   }
 
-  void _showToast(String text) {
+  void _showToast(ToastKind kind, String text) {
     _toastTimer?.cancel();
-    setState(() => _toast = text);
+    setState(() => _toast = (kind: kind, text: text));
     _toastTimer = Timer(const Duration(milliseconds: 2500), () {
       if (mounted) setState(() => _toast = null);
     });
@@ -110,7 +110,7 @@ class _RenamePageState extends State<RenamePage> {
       case ApiActionError(:final error) when error.maintenance || error.unauthorized:
         break; // 整個畫面會換成 S16-01／S15-03
       case final ActionError e?:
-        _showToast(actionErrorTextWith(s, m, e));
+        _showToast(actionErrorKind(e), actionErrorTextWith(s, m, e));
       case null:
         break;
     }
@@ -145,7 +145,7 @@ class _RenamePageState extends State<RenamePage> {
             right: 16,
             bottom: mq.padding.bottom + 16,
             child: Center(
-              child: ToastPill(t, kind: ToastKind.err, key: const Key('toast')),
+              child: ToastPill(t.text, kind: t.kind, key: const Key('toast')),
             ),
           ),
       ],

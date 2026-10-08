@@ -272,8 +272,8 @@ class FakeGameApi implements GameApi {
   @override
   String? token;
 
-  /// 建立牧場時伺服器回的錯誤（例如 invalid_name）；null 就成功。
-  ApiException? sessionError;
+  /// 建立牧場時的錯誤（例如 invalid_name、連不上）；null 就成功。
+  Exception? sessionError;
 
   /// /v1/status 的 maintenance（null：沒有安排維護）。
   Maintenance? maintenance;

@@ -9,16 +9,41 @@ import 'package:cowfarm/ui/kit/kit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:cowfarm/api/game_api.dart';
+
 import 'fakes.dart';
 import 'pages/page_case.dart';
 
 final _zh = Strings.forLang(AppLang.zhHant);
 
-GameModel _fresh() =>
-    GameModel(api: FakeGameApi(), push: FakePush(), tokens: MemoryTokenStore(), now: FakeClock().call, uiTick: null);
+GameModel _fresh({FakeGameApi? api}) => GameModel(
+  api: api ?? FakeGameApi(),
+  push: FakePush(),
+  tokens: MemoryTokenStore(),
+  now: FakeClock().call,
+  uiTick: null,
+);
 
 void main() {
   setUpAll(loadAppAssets);
+
+  // 錯誤提示的圖示照 S16-03（actionErrorKind）：連不上是警告，伺服器錯誤是錯誤
+  for (final (error, kind) in [
+    (const NetworkException('timeout') as Exception, ToastKind.warn),
+    (const ApiException(500, 'internal', 'boom') as Exception, ToastKind.err),
+  ]) {
+    testWidgets('S02 開牧場失敗的提示：${kind.name}（$error）', (tester) async {
+      Screen.w430.apply(tester);
+      final api = FakeGameApi()..sessionError = error;
+      await pumpAppIn(tester, _fresh(api: api)..needsRanch = true, AppLang.zhHant);
+      await tester.enterText(find.byKey(const Key('ranch-name')), '小花牧場');
+      await tester.pump();
+      await tester.tap(find.byKey(const Key('confirm-name')));
+      await tester.pump();
+      await tester.pump();
+      expect(tester.widget<ToastPill>(find.byKey(const Key('toast'))).kind, kind);
+    });
+  }
 
   // iPhone（加到主畫面開）回報「一點輸入框就跳掉」：鍵盤一開，S02 換成鍵盤的版面，名字卡（連同輸入框）被拆掉重做，
   // 焦點掉了、鍵盤收起來，版面又換回去，只能用「幫我想一個」。名字卡要在鍵盤開關時保持同一個（ceo 2026-10-03）

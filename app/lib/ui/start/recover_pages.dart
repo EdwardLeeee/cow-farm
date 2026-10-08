@@ -105,7 +105,7 @@ class _RecoverPageState extends State<RecoverPage> {
       case RecoverStatus.error:
         final e = r.error;
         if (e is ApiActionError && e.error.maintenance) return; // 整個畫面換成維護中
-        if (e != null) _showToast(ToastKind.err, actionErrorTextWith(s, m, e));
+        if (e != null) _showToast(actionErrorKind(e), actionErrorTextWith(s, m, e));
     }
   }
 

@@ -277,6 +277,22 @@ void main() {
       expect(find.text(err), findsNothing);
     });
 
+    testWidgets('改名失敗的提示照 S16-03：連不上是警告、伺服器錯誤是錯誤', (tester) async {
+      Screen.w430.apply(tester);
+      final m = await showRename(tester, AppLang.zhHant);
+      final api = m.api as FakeGameApi;
+      api.renameError = const NetworkException('timeout');
+      await tester.tap(find.byKey(const Key('rename-confirm')));
+      await tester.pump();
+      await tester.pump();
+      expect(tester.widget<ToastPill>(find.byKey(const Key('toast'))).kind, ToastKind.warn);
+      api.renameError = const ApiException(500, 'internal', 'boom');
+      await tester.tap(find.byKey(const Key('rename-confirm')));
+      await tester.pump();
+      await tester.pump();
+      expect(tester.widget<ToastPill>(find.byKey(const Key('toast'))).kind, ToastKind.err);
+    });
+
     testWidgets('改名頁按返回（返回鈕、手機的返回）回到牧場資料', (tester) async {
       Screen.w430.apply(tester);
       final m = await showRename(tester, AppLang.zhHant);
@@ -332,6 +348,17 @@ void main() {
             .breed,
         'wagyu',
       );
+    });
+
+    testWidgets('換頭像連不上：面板留著、警告的提示（S16-03）', (tester) async {
+      Screen.w430.apply(tester);
+      final m = await showAvatar(tester, AppLang.zhHant, pick: 'jersey');
+      (m.api as FakeGameApi).avatarError = const NetworkException('timeout');
+      await tester.tap(find.byKey(const Key('av-use')));
+      await tester.pump();
+      await tester.pump();
+      expect(find.byKey(const Key('sheet')), findsOneWidget);
+      expect(tester.widget<ToastPill>(find.byKey(const Key('toast'))).kind, ToastKind.warn);
     });
 
     testWidgets('伺服器說還沒發現（avatar_locked）：面板留著，下面寫那種牛還沒發現', (tester) async {

@@ -21,7 +21,7 @@ import '../kit/kit.dart';
 import '../kit/meter.dart';
 import '../kit/press.dart';
 import '../settings/settings_page.dart' show SettingsFrame, ranchMeta;
-import '../widgets/action_button.dart' show actionErrorTextWith;
+import '../widgets/action_button.dart' show actionErrorKind, actionErrorTextWith;
 import 'avatar_sheet.dart';
 import 'rename_page.dart';
 
@@ -119,7 +119,7 @@ class _ProfilePageState extends State<ProfilePage> {
       case ApiActionError(:final error) when error.maintenance || error.unauthorized:
         break; // 整個畫面會換成 S16-01／S15-03
       case final ActionError e:
-        _showToast(ToastKind.err, actionErrorTextWith(s, m, e));
+        _showToast(actionErrorKind(e), actionErrorTextWith(s, m, e));
     }
   }
 
