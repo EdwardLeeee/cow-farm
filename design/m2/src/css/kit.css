@@ -178,6 +178,11 @@
 .dialog h2 { margin: 0 0 8px; font-size: 20px; font-weight: 900; line-height: 26px; text-align: center; }
 .dialog .body { font-size: 14px; font-weight: 700; line-height: 21px; }
 .dialog .btn-row { margin-top: 16px; }
+/* 矮手機（高 600 以下，例 320×568）：對話框在安全區裡置中（不是整個畫面），上下內距小一點，才不會蓋到狀態列（2026-10-08，英文、泰文的病牛出貨 S07-06 原本蓋到） */
+@media (max-height: 600px) {
+  .dialog { top: calc(50% + (var(--safe-top) - var(--safe-bottom)) / 2); padding-top: 14px; }
+  .dialog .btn-row { margin-top: 12px; }
+}
 .sheet {
   position: absolute; left: 0; right: 0; bottom: 0; z-index: 80; background: var(--paper); border-top: 3px solid var(--ink);
   border-radius: 26px 26px 0 0; padding: 10px 16px calc(var(--safe-bottom) + 14px);
