@@ -78,7 +78,9 @@ void main() {
     expect(find.descendant(of: find.byKey(const Key('storage-mini')), matching: find.text('166')), findsOneWidget);
     expect(find.text(zh.collected(v: '36.4')), findsOneWidget);
     expect(_toastOpacity(tester), lessThan(1), reason: '淡入中');
-    await tester.pump(const Duration(milliseconds: 250));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(_toastOpacity(tester), inExclusiveRange(0.3, 0.7), reason: '第 0.1 秒淡入一半（手機的減少動態不會再把 0.2 秒縮短）');
+    await tester.pump(const Duration(milliseconds: 150));
     expect(_toastOpacity(tester), 1);
   });
 }

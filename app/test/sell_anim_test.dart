@@ -101,7 +101,9 @@ void main() {
     expect(_hudCoins(tester), '14,404');
     expect(find.text(sold), findsOneWidget);
     expect(_toastOpacity(tester), lessThan(1));
-    await tester.pump(const Duration(milliseconds: 250));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(_toastOpacity(tester), inExclusiveRange(0.3, 0.7), reason: '第 0.1 秒淡入一半（手機的減少動態不會再把 0.2 秒縮短）');
+    await tester.pump(const Duration(milliseconds: 150));
     expect(_toastOpacity(tester), 1);
   });
 }

@@ -133,13 +133,7 @@ class _MarketPageState extends State<MarketPage> with SingleTickerProviderStateM
                   final at = _t;
                   if (at == null) {
                     if (!_fadeToast) return child!;
-                    return TweenAnimationBuilder<double>(
-                      key: ObjectKey(_toast),
-                      tween: Tween(begin: 0, end: 1),
-                      duration: const Duration(milliseconds: 200),
-                      builder: (context, o, child) => Opacity(opacity: o, child: child),
-                      child: child,
-                    );
+                    return FadeIn(key: ObjectKey(_toast), child: child!);
                   }
                   final k = animSeg(at, 1.0, 1.2);
                   return Opacity(

@@ -362,13 +362,7 @@ class _RanchPageState extends State<RanchPage> with SingleTickerProviderStateMix
                   final t = _fxT;
                   if (t == null) {
                     if (!_fadeToast) return child!;
-                    return TweenAnimationBuilder<double>(
-                      key: ObjectKey(_toast),
-                      tween: Tween(begin: 0, end: 1),
-                      duration: const Duration(milliseconds: 200),
-                      builder: (context, o, child) => Opacity(opacity: o, child: child),
-                      child: child,
-                    );
+                    return FadeIn(key: ObjectKey(_toast), child: child!);
                   }
                   final k = _seg(t, 1.0, 1.2);
                   return Opacity(

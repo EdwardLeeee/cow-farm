@@ -23,6 +23,7 @@ Future<(GameModel, Future<void> Function())> _ranchWithMotion(WidgetTester teste
     'level_progress': {'earned': 7400, 'level_at': 3500, 'next_at': 7500},
   };
   await m.refreshState();
+  m.dismissLevelUp(); // 準備的時候從 Lv3 調到 Lv4 也算升級：不要
   final settings = settingsFor(AppLang.zhHant, swipeHintSeen);
   await settings.load();
   if (reduced) {
@@ -131,15 +132,22 @@ void main() {
     final (_, levelUp) = await _ranchWithMotion(tester, reduced: true);
     await levelUp();
     await tester.pump(const Duration(milliseconds: 50));
-    final fade = find.ancestor(of: find.byKey(const Key('level-card')), matching: find.byType(Opacity));
-    expect(tester.widget<Opacity>(fade.last).opacity, inExclusiveRange(0, 1));
+    // 整個慶祝（暗幕、彩紙、卡片）一起淡入：最外面那一層 Opacity
+    final fade = find.descendant(of: find.byKey(const Key('level-up')), matching: find.byType(Opacity)).first;
+    expect(tester.widget<Opacity>(fade).opacity, closeTo(0.25, 0.01), reason: '0.2 秒淡入，第 0.05 秒四分之一');
     expect(_hudLv(5), findsOneWidget);
     expect(_cardScale(tester), 1);
     expect(_numberY(tester, '5'), 0);
-    expect(find.descendant(of: find.byKey(const Key('level-card')), matching: find.text('4')), findsNothing);
+    final four = find.descendant(of: find.byKey(const Key('level-card')), matching: find.text('4'));
+    expect(
+      tester.widget<Visibility>(find.ancestor(of: four, matching: find.byType(Visibility)).first).visible,
+      isFalse,
+    );
+    expect(find.bySemanticsLabel('5'), findsOneWidget, reason: '螢幕閱讀器只唸 5');
+    expect(find.bySemanticsLabel('4'), findsNothing);
     expect(_confetti, findsNWidgets(26));
     await tester.pump(const Duration(milliseconds: 200));
-    expect(tester.widget<Opacity>(fade.last).opacity, 1);
+    expect(tester.widget<Opacity>(fade).opacity, 1);
   });
 
   testWidgets('兩位數（Lv 9 → 10）：捲動框放寬，「10」整個看得到', (tester) async {
@@ -147,6 +155,7 @@ void main() {
     final (m, api, _) = await loadedModel();
     api.stateJson = {...api.stateJson, 'level': 9};
     await m.refreshState();
+    m.dismissLevelUp();
     final settings = settingsFor(AppLang.zhHant, swipeHintSeen);
     await settings.load();
     await tester.pumpWidget(

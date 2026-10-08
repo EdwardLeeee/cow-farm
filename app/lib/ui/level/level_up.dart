@@ -57,8 +57,6 @@ class _LevelUpOverlayState extends State<LevelUpOverlay> with SingleTickerProvid
       _anim.forward();
     } else if (AppMotion.reducedRead(context)) {
       _play = _Play.reduced;
-      _anim.duration = const Duration(milliseconds: 200);
-      _anim.forward();
     } else {
       _play = _Play.still;
     }
@@ -92,11 +90,7 @@ class _LevelUpOverlayState extends State<LevelUpOverlay> with SingleTickerProvid
       key: const Key('level-up'),
       child: switch (_play) {
         _Play.anim => AnimatedBuilder(animation: _anim, builder: (context, _) => _layer(s, _anim.value * _dur)),
-        _Play.reduced => AnimatedBuilder(
-          animation: _anim,
-          builder: (context, child) => Opacity(opacity: _anim.value, child: child),
-          child: _layer(s, _dur),
-        ),
+        _Play.reduced => FadeIn(child: _layer(s, _dur)),
         _ => _layer(s, null),
       },
     );
@@ -208,13 +202,19 @@ class _LvRoll extends StatelessWidget {
             child: Stack(
               alignment: Alignment.topCenter,
               children: [
-                Transform.translate(
-                  offset: Offset(0, -f * 90),
-                  child: Text('$from', style: style),
+                _shown(
+                  f < 1,
+                  Transform.translate(
+                    offset: Offset(0, -f * 90),
+                    child: Text('$from', style: style),
+                  ),
                 ),
-                Transform.translate(
-                  offset: Offset(0, (1 - f) * 90),
-                  child: Text('$to', key: const Key('level-up-lv'), style: style),
+                _shown(
+                  f > 0,
+                  Transform.translate(
+                    offset: Offset(0, (1 - f) * 90),
+                    child: Text('$to', key: const Key('level-up-lv'), style: style),
+                  ),
                 ),
               ],
             ),
@@ -224,6 +224,10 @@ class _LvRoll extends StatelessWidget {
     );
   }
 }
+
+/// 捲到框外的數字不畫、螢幕閱讀器也不唸，但還是佔位置（框的寬度照兩個數字比較寬的那個，捲的時候不會變）。
+Widget _shown(bool visible, Widget child) =>
+    Visibility(visible: visible, maintainSize: true, maintainAnimation: true, maintainState: true, child: child);
 
 /// 基線在自己的底（給 Row 的基線對齊用）。
 class _BaselineAtBottom extends SingleChildRenderObjectWidget {
