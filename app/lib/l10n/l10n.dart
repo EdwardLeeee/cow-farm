@@ -77,7 +77,8 @@ class Strings extends GeneratedStrings {
   }
 
   /// 品種名（協定的 breed 代號，跟 design/m2/src/cow/breeds.js 一樣）。
-  String breedName(String breed) => byKey('breed.$breed.name');
+  /// 雜種牛（[kHybrid]）是「雜種牛」（breed.mix.name）。
+  String breedName(String breed) => byKey(breed == 'hybrid' ? 'breed.mix.name' : 'breed.$breed.name');
 
   /// 品種的一句話介紹（圖鑑）。
   String breedIntro(String breed) => byKey('breed.$breed.intro');

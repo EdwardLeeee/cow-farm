@@ -2,6 +2,10 @@
 // 稀有度 = 位元數。代號跟 design/m2/src/cow/breeds.js 的 key 一樣；test/breeds_test.dart 讀 breeds.js 比對。
 import 'models.dart';
 
+/// 雜種牛的品種代號（D35；圖鑑的第 25 格、頭像）：`state.codex` 的品種、`profile.avatar`、換頭像送的 `breed`。
+/// 不算在 24 種的完成度裡。協定 C1（ceo 2026-10-08 核准 cow-back 的提案），cow-back 寫進 protocol.md。
+const kHybrid = 'hybrid';
+
 /// 品種代號，依特徵組合（0–7）排。
 const kBreedsByType = <CowType, List<String>>{
   CowType.dairy: [

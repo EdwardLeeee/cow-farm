@@ -175,6 +175,9 @@ final s21Cases = [
       expect(find.byKey(const Key('av-preview')), findsOneWidget);
       expect(find.text(_zh.breedName('jersey')), findsOneWidget);
       expect(find.text(_zh.s21AvatarCount(n: 10, total: 24)), findsOneWidget);
+      // 24 種下面「其他」一排：雜種牛（還沒發現，剪影加鎖）
+      expect(find.text(_zh.s09Other), findsOneWidget);
+      expect(find.byKey(const Key('av-hybrid')), findsOneWidget);
       // 6 欄：第 7 格在第二列的第一格
       final first = tester.getRect(find.byKey(const Key('av-holstein')));
       final seventh = tester.getRect(find.byKey(const Key('av-chocolate')));

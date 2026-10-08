@@ -2,6 +2,7 @@
 // 點頂列的頭像打開、返回關掉、徽章的詳細、不認得的徽章不放、舊的伺服器沒有徽章、頭像跟著 profile.avatar；
 // 改名（第一次免費、之後要錢、錢不夠、名字跟現在一樣、伺服器不收）、換頭像（只能選發現過的、一樣的不送）。
 // 畫面本身在 test/pages/s21_cases.dart（S21-01～13）。
+import 'package:cowfarm/api/breeds.dart' show kHybrid;
 import 'package:cowfarm/api/game_api.dart';
 import 'package:cowfarm/api/models.dart';
 import 'package:cowfarm/ui/kit/kit.dart';
@@ -342,6 +343,46 @@ void main() {
       await tester.pump();
       expect(find.byKey(const Key('sheet')), findsOneWidget);
       expect(find.text(_zh.s21AvatarLocked(name: _zh.breedName('jersey'))), findsOneWidget);
+    });
+
+    testWidgets('「其他」一排放雜種牛：圖鑑還沒發現是剪影加鎖，點了寫「還沒發現「雜種牛」」；不算在 n / 24 種', (tester) async {
+      Screen.w430.apply(tester);
+      await showAvatar(tester, AppLang.zhHant);
+      expect(find.text(_zh.s09Other), findsOneWidget);
+      final hybrid = find.byKey(const Key('av-hybrid'));
+      expect(hybrid, findsOneWidget);
+      expect(
+        tester.getRect(hybrid).top,
+        greaterThan(tester.getRect(find.byKey(const Key('av-starry'))).bottom),
+        reason: '在 24 種下面',
+      );
+      expect(find.text(_zh.s21AvatarCount(n: 10, total: 24)), findsOneWidget);
+      await tester.tap(hybrid);
+      await tester.pump();
+      expect(find.text(_zh.s21AvatarLocked(name: _zh.byKey('breed.mix.name'))), findsOneWidget);
+    });
+
+    testWidgets('圖鑑發現了雜種牛（codex 的 hybrid）：可以選，送 breed: hybrid；頂列畫雜種牛的臉', (tester) async {
+      Screen.w430.apply(tester);
+      final state = profileState();
+      state['codex'] = [
+        ...(state['codex'] as List),
+        {'breed': kHybrid, 'found_at': t0},
+      ];
+      final m = await showProfile(tester, AppLang.zhHant, state: state);
+      await tester.tap(find.byKey(const Key('prof-av')));
+      await tester.pump();
+      expect(find.text(_zh.s21AvatarCount(n: 10, total: 24)), findsOneWidget, reason: '雜種牛不算在 24 種裡');
+      await tester.tap(find.byKey(const Key('av-hybrid')));
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(find.text(_zh.byKey('breed.mix.name')), findsOneWidget, reason: '上面那一列寫雜種牛');
+      await tester.tap(find.byKey(const Key('av-use')));
+      await tester.pump();
+      await tester.pump();
+      expect((m.api as FakeGameApi).calls, contains('avatar:$kHybrid'));
+      await tester.tap(find.byKey(const Key('btn-back')));
+      await tester.pump();
+      expect(_faceIn(tester, find.byKey(const Key('hud-profile'))), kHybrid);
     });
 
     testWidgets('窄於 340：沒有上面那一列、格子 5 欄', (tester) async {
