@@ -324,7 +324,7 @@ export const badge = (kind, text) => `<span class="badge ${kind}">${text}</span>
 export const sickBadge = () => badge('sick', `${icon('thermo', 13)}${t('badgeSick')}`);
 // 稀有度（使用者 2026-10-08 選第 15 輪 02-A「只有星星」；稀有度是 1–5 星的通用等級）：一般 1、優良 2、稀有 3、傳說 4 顆星，底色照原本的稀有度顏色。
 // 名字不寫在標籤上（念給讀螢幕的人聽：aria-label）。特殊牛 5 顆彩虹星（tierChip(4)）
-export const tierChip = (n) => `<span class="tier tier-${n} stars" aria-label="${tierName(n)}">${icon(n === 4 ? 'starRainbow' : 'star', 11).repeat(n + 1)}</span>`;
+export const tierChip = (n) => `<span class="tier tier-${n} stars" aria-label="${tierName(n)}">${n === 4 ? [1, 2, 3, 4, 5].map((k) => icon(`starRainbow${k}`, 11)).join('') : icon('star', 11).repeat(n + 1)}</span>`;
 // n = 4：特殊牛 5 顆彩虹星（第 16 輪 02-B；特殊牛等小遊戲的 PR 收進來，這裡先定好樣子）
 // 雜種牛：一律 1 顆灰星（使用者 2026-10-08）。放在稀有度的位置；詳細頁、揭曉卡旁邊照舊寫「雜種」
 export const mixStar = () => `<span class="tier stars mix-star" aria-label="${t('badgeMix')}">${icon('starGray', 11)}</span>`;
