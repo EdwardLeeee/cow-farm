@@ -1547,7 +1547,14 @@ class Farm:
         self.coins -= price
         g, bull = shop_draw(fp, gi, rng)
         cow = Cow(
-            self._new_id(), g, bull, now, fp, origin=fp.shop_grade_names[gi], speed=self.speed, late_speed=self.late_speed
+            self._new_id(),
+            g,
+            bull,
+            now,
+            fp,
+            origin=fp.shop_grade_names[gi],
+            speed=self.speed,
+            late_speed=self.late_speed,
         )
         if self.care:
             self._arm(cow, rng)
@@ -1611,7 +1618,14 @@ class Farm:
     def _make_calf(self, sire_g: int, dam: Cow, now: float, rng: random.Random, origin: str) -> Cow:
         g = breed_genotype(sire_g, dam.g, rng)
         calf = Cow(
-            self._new_id(), g, rng.random() < 0.5, now, self.fp, origin=origin, speed=self.speed, late_speed=self.late_speed
+            self._new_id(),
+            g,
+            rng.random() < 0.5,
+            now,
+            self.fp,
+            origin=origin,
+            speed=self.speed,
+            late_speed=self.late_speed,
         )
         if self.care:
             self._arm(calf, rng)

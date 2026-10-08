@@ -496,7 +496,7 @@ class TestFloorPhases(unittest.TestCase):
 
     def test_production_integral_across_peak(self):
         """產奶的區間積分 = 每小時產量的數值積分，跨過最壯那一刻、換過地板都一樣。"""
-        f, p = self.f, self.p
+        f = self.f
         cow = add_cow(f, 0, adult_h=20)
         f.use_floor(3, T0)
         t0, t1 = T0 + 30 * HOUR, T0 + 140 * HOUR  # 年紀 50 → 最壯 72 → 之後 ×0.75
