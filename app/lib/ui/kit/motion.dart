@@ -1,6 +1,8 @@
 // app 的動畫開不開：牧場的牛走動、轉身（A-11、A-07），出貨卡車（A-03）。
 import 'package:flutter/widgets.dart';
 
+import '../../theme/tokens.dart';
+
 /// app 的動畫開著（main.dart 打開）。沒有包這個的時候（測試）關著：牛站在原位、出貨不播卡車，跟靜態的設計稿一樣。
 /// 手機設定了「減少動態」也一樣關著（設計稿每個動畫的減少動態版）。
 class AppMotion extends InheritedWidget {
@@ -58,5 +60,23 @@ class _FadeInState extends State<FadeIn> with SingleTickerProviderStateMixin {
     animation: _fade,
     builder: (context, child) => Opacity(opacity: _fade.value, child: child),
     child: widget.child,
+  );
+}
+
+/// 「點一下跳過」（設計稿的 .skip-hint）：揭曉類的動畫（A-03 出貨卡車、A-10 評級揭曉）放在分頁列上方 22。
+class SkipHint extends StatelessWidget {
+  const SkipHint(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+    decoration: const BoxDecoration(color: Color(0x8C2E1D14), borderRadius: BorderRadius.all(Radius.circular(14))),
+    child: Text(
+      text,
+      softWrap: false,
+      style: AppText.style(13, weight: FontWeight.w700, color: const Color(0xFFFFFFFF)),
+    ),
   );
 }

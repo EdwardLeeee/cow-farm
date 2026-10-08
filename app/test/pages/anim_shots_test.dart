@@ -14,6 +14,7 @@ import 'package:cowfarm/api/models.dart';
 import 'package:cowfarm/app.dart';
 import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
+import 'package:cowfarm/ui/cow/cow_detail_page.dart';
 import 'package:cowfarm/ui/kit/motion.dart';
 import 'package:cowfarm/ui/ranch/scene.dart';
 import 'package:cowfarm/ui/ship/truck_scene.dart';
@@ -200,6 +201,27 @@ void main() {
         await tester.pump(_frame);
         await _save(tester, 'A-12', i++);
       }
+    }
+  });
+
+  // A-10 出貨評級揭曉：荷斯坦 #3 評到 A（212 公斤、約 2,968 幣），結果頁直接出現（卡車和淡入另外拍）
+  testWidgets('A-10 出貨評級揭曉：評級 A（1.5 秒）', (tester) async {
+    await _ranch(tester);
+    tester
+        .state<NavigatorState>(find.byType(Navigator).first)
+        .push(
+          PageRouteBuilder<void>(
+            transitionDuration: Duration.zero,
+            pageBuilder: (context, _, _) => ShipResultPage(
+              cow: Cow.fromJson(designCow(3, 'holstein')),
+              result: const ShipResult(grade: 'A', beefQty: 212, valueEstimate: 2968),
+            ),
+          ),
+        );
+    await tester.pump();
+    for (var i = 0; i <= 30; i++) {
+      if (i > 0) await tester.pump(_frame);
+      await _save(tester, 'A-10', i);
     }
   });
 }

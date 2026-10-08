@@ -13,6 +13,7 @@ import '../../theme/tokens.dart';
 import '../kit/app_icon.dart';
 import '../kit/cow_art.dart';
 import '../kit/frame.dart';
+import '../kit/motion.dart';
 import '../ranch/herd.dart';
 import '../ranch/scene.dart';
 import 'truck.dart';
@@ -150,7 +151,7 @@ class _TruckSceneState extends State<TruckScene> with SingleTickerProviderStateM
                     left: 0,
                     right: 0,
                     bottom: safe.bottom + FrameSizes.tab + 22,
-                    child: Center(child: _SkipHint(s.animSkip)),
+                    child: Center(child: SkipHint(s.animSkip)),
                   ),
                   if (f.flash > 0)
                     Positioned.fill(
@@ -510,24 +511,6 @@ class _Say extends StatelessWidget {
           child: Text(text, softWrap: false, style: AppText.style(16, weight: FontWeight.w900, lineHeight: 22)),
         ),
       ),
-    ),
-  );
-}
-
-/// 「點一下跳過」（.skip-hint）。
-class _SkipHint extends StatelessWidget {
-  const _SkipHint(this.text);
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
-    decoration: const BoxDecoration(color: Color(0x8C2E1D14), borderRadius: BorderRadius.all(Radius.circular(14))),
-    child: Text(
-      text,
-      softWrap: false,
-      style: AppText.style(13, weight: FontWeight.w700, color: Colors.white),
     ),
   );
 }
