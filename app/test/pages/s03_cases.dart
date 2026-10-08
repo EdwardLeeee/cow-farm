@@ -151,6 +151,34 @@ Map<String, dynamic> ranchState({
   };
 }
 
+/// 收奶：奶桶的 36.4 瓶全部進倉庫（設計稿：倉庫 130 → 166 瓶）。
+class CollectApi extends FakeGameApi {
+  CollectApi() : super(state: ranchState(), market: ranchMarket());
+
+  @override
+  Future<Map<String, dynamic>> collect() async {
+    calls.add('collect');
+    final bucket = Map<String, dynamic>.of(stateJson['bucket'] as Map<String, dynamic>);
+    final got = (bucket['qty'] as num).toDouble();
+    final wh = Map<String, dynamic>.of(stateJson['warehouse'] as Map<String, dynamic>);
+    final total = (wh['milk_total'] as num) + got;
+    stateJson = {
+      ...stateJson,
+      'bucket': {...bucket, 'qty': 0},
+      'warehouse': {
+        ...wh,
+        'milk_total': total,
+        'used': total,
+        'milk_lots': [
+          ...(wh['milk_lots'] as List),
+          {'qty': got, 'tier': 0, 'freshness': 1.0},
+        ],
+      },
+    };
+    return {'collected': got};
+  }
+}
+
 /// 設計稿的收購價（牛奶 13.4、牛肉 11.2、稻米 5.35，基本價 12、12、5）和第一則新聞「學校午餐加訂鮮奶」。
 Map<String, dynamic> ranchMarket({
   double milk = 13.4,

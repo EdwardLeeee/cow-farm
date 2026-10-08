@@ -1,6 +1,7 @@
 // 動畫逐格截圖：A-11 牛在牧場走動（設計稿的 8 頭牛，一輪 4 秒）、A-07 轉身（點 #12 草莓牛轉正面，0.5 秒）、
 // A-03 出貨卡車（照設計稿：載走荷斯坦，後面站著荷斯坦公牛、荷斯坦小牛、娟珊，3.6 秒）、
-// A-11 牛舍滿 40 頭一起走（場景左半、往右滑到底的右半，各一輪 4 秒；其他 32 個位置的走法，ceo 2026-10-03）。
+// A-11 牛舍滿 40 頭一起走（場景左半、往右滑到底的右半，各一輪 4 秒；其他 32 個位置的走法，ceo 2026-10-03）、
+// A-01 收奶（按下「收奶」以後 1.4 秒：奶桶 36.4 瓶全部進倉庫，130 → 166 瓶）。
 // 390 寬、每點 2 像素（跟設計稿的動畫一樣只出 390），寫到 SHOTS_DIR/anim/<動畫 ID>/<第幾格>.png。
 // 只在本機拍，CI 不跑（沒給 SHOTS 就整個跳過）。在 app/ 底下：
 //   flutter test --dart-define=SHOTS=1 --dart-define=SHOTS_DIR=build/shots/<PR 編號> test/pages/anim_shots_test.dart
@@ -119,6 +120,19 @@ void main() {
       }
     });
   }
+
+  testWidgets('A-01 收奶：按下「收奶」以後 1.4 秒', (tester) async {
+    await _ranch(
+      tester,
+      model: await ranchModel(api: CollectApi(), state: ranchState()),
+    );
+    await tester.tap(find.byKey(const Key('collect')));
+    await tester.pump();
+    for (var i = 0; i <= 30; i++) {
+      if (i > 0) await tester.pump(_frame);
+      await _save(tester, 'A-01', i);
+    }
+  });
 
   testWidgets('A-07 轉身：點 #12 草莓牛，側面 → 正面（0.5 秒）', (tester) async {
     await _ranch(tester);

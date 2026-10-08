@@ -24,9 +24,24 @@ class DockData {
     required this.warehouse,
     required this.quotes,
     required this.upIsRed,
-  });
+    double? rateBucket,
+    this.milkShown,
+    this.draining = false,
+  }) : rateBucket = rateBucket ?? bucket;
 
   final double bucket;
+
+  /// 「幾分鐘後滿」用的奶桶量（A-01 收奶的動畫：水位往下降時還寫原本的，降完才換）。
+  final double rateBucket;
+
+  /// 倉庫卡上的牛奶（A-01：收奶的動畫中從原本的往上跳）；null 是照倉庫的。
+  final double? milkShown;
+
+  /// A-01 水位往下降中：奶桶的瓶數固定寫一位小數（31.0），快到 0 寫 0（設計稿 A01.frame）。
+  final bool draining;
+
+  /// 奶桶卡上的瓶數。
+  String get bucketText => draining ? (bucket < 0.05 ? '0' : bucket.toStringAsFixed(1)) : oneDecimal(bucket);
   final double bucketCap;
   final double perHour; // 遊戲時間每小時
   final double timeScale;
@@ -47,7 +62,13 @@ class Dock extends StatelessWidget {
     required this.onToggle,
     required this.collect,
     this.onStorage,
+    this.pailKey,
+    this.milkKey,
   });
+
+  /// 奶桶圖示、倉庫卡的牛奶那一行：A-01 收奶的奶瓶從哪裡飛到哪裡。
+  final Key? pailKey;
+  final Key? milkKey;
 
   final DockData data;
   final bool collapsed;
@@ -110,9 +131,9 @@ class Dock extends StatelessWidget {
           ),
         ),
         if (collapsed)
-          _BucketSlim(data: data, collect: collect)
+          _BucketSlim(data: data, collect: collect, pailKey: pailKey)
         else ...[
-          _BucketCard(data: data, collect: collect),
+          _BucketCard(data: data, collect: collect, pailKey: pailKey),
           const SizedBox(height: 8),
           // .dock-row：倉庫、收購價兩張小卡（S05-01 只拍這一塊）
           IntrinsicHeight(
@@ -121,7 +142,7 @@ class Dock extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
-                  child: _StorageMini(data: data, onTap: onStorage),
+                  child: _StorageMini(data: data, onTap: onStorage, milkKey: milkKey),
                 ),
                 const SizedBox(width: 8),
                 Expanded(child: _MarketMini(data: data)),
@@ -210,10 +231,11 @@ class _TogglePill extends StatelessWidget {
 
 /// .bucket-card：奶桶圖示（水位）、「奶桶」、百分比、進度條、「36.4 / 42 瓶」、多久滿、收奶鈕。
 class _BucketCard extends StatelessWidget {
-  const _BucketCard({required this.data, required this.collect});
+  const _BucketCard({required this.data, required this.collect, this.pailKey});
 
   final DockData data;
   final Widget collect;
+  final Key? pailKey;
 
   @override
   Widget build(BuildContext context) {
@@ -227,7 +249,7 @@ class _BucketCard extends StatelessWidget {
         children: [
           Transform.translate(
             offset: const Offset(-2, 0),
-            child: PailLevel(pct: data.pct.toDouble(), size: 44),
+            child: PailLevel(key: pailKey, pct: data.pct.toDouble(), size: 44),
           ),
           const SizedBox(width: 8 - 4),
           Expanded(
@@ -257,7 +279,7 @@ class _BucketCard extends StatelessWidget {
                         children: fillSpans(
                           s.s03BucketCount(amount: '\u0000'),
                           AppText.number(13, lineHeight: 16),
-                          '${oneDecimal(data.bucket)} / ${fmt(data.bucketCap)}',
+                          '${data.bucketText} / ${fmt(data.bucketCap)}',
                         ),
                       ),
                       softWrap: false,
@@ -290,7 +312,7 @@ class _BucketCard extends StatelessWidget {
 
   /// 還要多久滿：遊戲時間換成現實時間，進位到分鐘（設計稿 untilFull）。
   String _untilFull(Strings s) {
-    final gameHours = (data.bucketCap - data.bucket) / data.perHour;
+    final gameHours = (data.bucketCap - data.rateBucket) / data.perHour;
     final minutes = (gameHours * 60 / (data.timeScale > 0 ? data.timeScale : 1)).ceil();
     if (minutes < 1) return s.duration(m: 1);
     return s.duration(h: minutes ~/ 60, m: minutes % 60);
@@ -299,10 +321,11 @@ class _BucketCard extends StatelessWidget {
 
 /// .bucket-slim：收起來的那一條（S03-11、S03-12）。
 class _BucketSlim extends StatelessWidget {
-  const _BucketSlim({required this.data, required this.collect});
+  const _BucketSlim({required this.data, required this.collect, this.pailKey});
 
   final DockData data;
   final Widget collect;
+  final Key? pailKey;
 
   @override
   Widget build(BuildContext context) {
@@ -314,7 +337,7 @@ class _BucketSlim extends StatelessWidget {
       decoration: _card(full ? const Color(0xFFFFF1EE) : AppColors.paper),
       child: Row(
         children: [
-          PailLevel(pct: data.pct.toDouble(), size: 34),
+          PailLevel(key: pailKey, pct: data.pct.toDouble(), size: 34),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -348,16 +371,17 @@ class _BucketSlim extends StatelessWidget {
 
 /// .card.mini.storage：倉庫的牛奶（用了幾 %、最舊一批的新鮮度）、牛肉、稻米。
 class _StorageMini extends StatelessWidget {
-  const _StorageMini({required this.data, this.onTap});
+  const _StorageMini({required this.data, this.onTap, this.milkKey});
 
   final DockData data;
   final VoidCallback? onTap;
+  final Key? milkKey;
 
   @override
   Widget build(BuildContext context) {
     final s = Strings.of(context);
     final w = data.warehouse;
-    final milk = w.milkTotal, cap = w.capacity;
+    final milk = data.milkShown ?? w.milkTotal, cap = w.capacity;
     final whFull = cap > 0 && milk >= cap;
     final fresh = w.worstFreshness;
     return _Mini(
@@ -378,6 +402,7 @@ class _StorageMini extends StatelessWidget {
             ),
       lines: [
         _MiniLine(
+          key: milkKey,
           icon: 'milk',
           name: s.milk,
           value: compact(milk, s.lang),
@@ -496,7 +521,7 @@ class _Mini extends StatelessWidget {
 
 /// .mini-line：圖示、名稱、數字、單位，右邊一個小欄位。窄手機字小一號，再窄就不放圖示（screens.css 的 @media）。
 class _MiniLine extends StatelessWidget {
-  const _MiniLine({required this.icon, required this.name, required this.value, this.unit, this.right});
+  const _MiniLine({super.key, required this.icon, required this.name, required this.value, this.unit, this.right});
 
   final String icon;
   final String name;
