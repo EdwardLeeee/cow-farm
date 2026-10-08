@@ -1,0 +1,250 @@
+/* 第 15 輪草稿的樣式：小牛卡片、稀有度星星、配種表、特殊牛、抓牛小遊戲。顏色和元件沿用 M2 設計稿（design/m2/src/css） */
+
+/* ---------- 說明圖的版面（不是畫面的一部分；跟第 13 輪一樣） ---------- */
+body { background: #FFF9EF; }
+.board { padding: 28px 36px 36px; background: #FFF9EF; }
+.b-label { display: inline-block; font-size: 22px; font-weight: 900; line-height: 34px; padding: 0 14px; background: var(--yellow); border: 3px solid var(--ink); border-radius: 12px; }
+.b-title { margin-top: 12px; font-size: 26px; font-weight: 900; line-height: 34px; }
+.b-sub { margin-top: 4px; font-size: 16px; font-weight: 700; line-height: 24px; color: var(--ink-2); }
+.b-row { display: grid; gap: 30px 40px; margin-top: 22px; align-items: start; }
+.b-cell { margin: 0; }
+.b-cell figcaption { min-height: 68px; margin-bottom: 10px; font-size: 14px; font-weight: 700; line-height: 20px; color: #C2541B; }
+.b-cell figcaption b { display: block; font-size: 18px; font-weight: 900; line-height: 26px; color: var(--ink); }
+.b-cell .phone { outline: 2px solid #E2D4C2; }
+.b-cell .phone.tall { height: auto; min-height: 844px; } /* 長頁：整頁畫出來（跟 M2 的長頁狀態一樣） */
+.b-notes { margin: 24px 0 0; padding-left: 22px; font-size: 15px; font-weight: 700; line-height: 24px; color: var(--ink-2); }
+.skip-note { padding: 4px 12px; border: 2px dashed #C2541B; border-radius: 14px; font-size: 14px; font-weight: 900; line-height: 20px; color: #C2541B; text-align: center; background: rgba(255, 255, 255, 0.6); }
+
+/* 排排站（不是手機畫面） */
+.lineup { display: grid; gap: 14px; margin-top: 18px; padding: 18px; background: linear-gradient(180deg, #E6F5FF 0, #F1FAE8 62%, #E3F2D3 100%); border: 3px solid var(--ink); border-radius: 22px; }
+.lu-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 6px 12px; background: rgba(255, 255, 255, 0.72); border: 2px solid #E2D4C2; border-radius: 16px; }
+.lu-cell svg { display: block; }
+.lu-cell b { font-size: 16px; font-weight: 900; line-height: 22px; }
+.lu-cell > span { font-size: 13px; font-weight: 700; line-height: 18px; color: var(--ink-2); text-align: center; }
+.lu-head { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 10px; font-size: 18px; font-weight: 900; }
+.lu-head small { font-size: 14px; font-weight: 700; color: var(--ink-2); }
+.lu-pics { display: flex; align-items: flex-end; gap: 6px; line-height: 0; }
+.lu-pics.small { gap: 10px; }
+.lu-small { display: flex; align-items: center; gap: 8px; }
+.feeds6 { grid-template-columns: repeat(6, 1fr); }
+.lu-cell.sp b { display: inline-flex; align-items: center; gap: 8px; }
+
+/* ---------- 01 小牛卡片 ---------- */
+.feed-ic { display: inline-block; flex: none; line-height: 0; vertical-align: middle; }
+.need-card .card-head { margin-bottom: 6px; }
+.tr-done { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; font-weight: 900; color: #3E8E2F; white-space: nowrap; }
+.tr-todo { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; font-weight: 900; color: #C2541B; white-space: nowrap; }
+.tr-note { margin-top: 8px; }
+.any-line { display: flex; align-items: center; gap: 6px; margin-top: 2px; font-size: 16px; font-weight: 900; color: #3E8E2F; }
+.any-line .hint { font-weight: 700; }
+/* A 飼料格 */
+.feed-slots { display: grid; gap: 10px; margin-top: 4px; }
+.feed-slots.n1 { grid-template-columns: 1fr; }
+.feed-slots.n2 { grid-template-columns: 1fr 1fr; }
+.fs { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; background: #FFFFFF; border: 2.5px solid var(--ink); border-radius: 16px; }
+.fs b { font-size: 16px; line-height: 22px; }
+.fs.done { background: #EAF8E0; }
+.fs.todo { background: #FFF4E5; border-color: #E8964A; }
+.fs .fs-mark { position: absolute; right: -6px; top: -6px; line-height: 0; }
+/* B 打勾清單 */
+.ck-row { display: flex; align-items: center; gap: 8px; min-height: 44px; border-top: 2px dashed var(--line-soft); }
+.ck-row:first-of-type { border-top: 0; }
+.ck-row b { font-size: 16px; }
+.ck-box { flex: none; width: 26px; height: 26px; display: grid; place-items: center; border: 2.5px solid #E8964A; border-radius: 8px; background: #FFFFFF; line-height: 0; }
+.ck-row.done .ck-box { border-color: var(--ink); background: #CFEFC4; }
+.ck-row.done b { color: var(--ink-2); }
+/* C 集點卡 */
+.stamp-card { background: #FFF8E6; border-style: dashed; }
+.sc-head { display: flex; align-items: center; justify-content: space-between; }
+.sc-head b { font-size: 16px; }
+.sc-count { font-size: 18px; font-weight: 900; }
+.stamps { display: flex; justify-content: center; gap: 22px; margin-top: 8px; }
+.stamp { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.stamp b { font-size: 15px; }
+.st-ring { position: relative; width: 70px; height: 70px; display: grid; place-items: center; border: 3px dashed #D9B98C; border-radius: 50%; background: #FFFFFF; line-height: 0; }
+.stamp:not(.done) .feed-ic { opacity: 0.45; }
+.stamp.done .st-ring { border: 3px solid var(--ink); background: #FFFDF6; }
+.st-ink { position: absolute; right: -14px; bottom: -8px; width: 38px; height: 38px; display: grid; place-items: center; border: 3px solid #E0483E; border-radius: 50%; color: #E0483E; font-style: normal; font-size: 12px; font-weight: 900; line-height: 1; transform: rotate(-14deg); background: #FFF1EE; }
+/* D 放在大圖上 */
+.calf-hero.with-feeds { padding-right: 112px; }
+.hf { position: absolute; right: 10px; top: 12px; bottom: 34px; width: 98px; display: flex; flex-direction: column; justify-content: center; align-items: stretch; gap: 6px; }
+.hf-t { font-size: 12px; font-weight: 900; line-height: 16px; color: var(--ink-2); text-align: center; }
+.hf-i { position: relative; display: flex; align-items: center; gap: 4px; padding: 4px 6px; background: #FFF4E5; border: 2.5px solid #E8964A; border-radius: 14px; }
+.hf-i b { font-size: 14px; }
+.hf-i.done { background: #EAF8E0; border-color: var(--ink); }
+.hf-i i { position: absolute; right: -7px; top: -7px; line-height: 0; }
+.hf-i.mini { padding: 3px; border-radius: 10px; }
+.hf.any { justify-content: center; }
+.hf-any { display: inline-flex; align-items: center; gap: 3px; padding: 6px 8px; background: #EAF8E0; border: 2px solid var(--line-soft); border-radius: 12px; font-size: 13px; font-weight: 900; color: #3E8E2F; line-height: 18px; }
+.hf-any.mini { padding: 3px 6px; font-size: 12px; }
+.row-feeds { display: flex; align-items: center; gap: 8px; }
+/* 牛舍清單 */
+.fl-any { color: #3E8E2F; font-weight: 900; }
+.fl-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.fl-chip { display: inline-flex; align-items: center; gap: 2px; height: 26px; padding: 0 7px 0 3px; background: #FFF4E5; border: 2px solid #E8964A; border-radius: 13px; font-size: 13px; font-weight: 900; white-space: nowrap; }
+.fl-chip.done { background: #EAF8E0; border-color: var(--line-soft); }
+.fl-text { display: flex; flex-wrap: wrap; gap: 2px; }
+.fl-stamps { display: flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 13px; }
+.mini-stamp { width: 28px; height: 28px; display: grid; place-items: center; border: 2px dashed #D9B98C; border-radius: 50%; background: #FFFFFF; line-height: 0; }
+.mini-stamp:not(.done) .feed-ic { opacity: 0.45; }
+.mini-stamp.done { border: 2.5px solid #E0483E; background: #FFF1EE; }
+/* 牧場：小牛頭上的泡泡 */
+.want { position: absolute; z-index: 20; transform: translate(-50%, -100%); display: flex; align-items: center; gap: 3px; padding: 2px 9px 2px 4px; background: #FFFFFF; border: 2.5px solid var(--ink); border-radius: 15px; box-shadow: 0 3px 0 var(--ink); font-size: 13px; font-weight: 900; line-height: 22px; white-space: nowrap; margin-top: -10px; }
+.want::after { content: ""; position: absolute; left: 50%; bottom: -9px; width: 12px; height: 12px; margin-left: -6px; background: #FFFFFF; border-right: 2.5px solid var(--ink); border-bottom: 2.5px solid var(--ink); transform: rotate(45deg); }
+.want.think { padding: 3px; border-radius: 50%; }
+.want.think::after { width: 9px; height: 9px; border-radius: 50%; transform: none; bottom: -14px; margin-left: -2px; border: 2.5px solid var(--ink); }
+.want.stampy { background: #FFF8E6; }
+.want.round { padding: 4px; border-radius: 50%; background: #FFF4E5; border-color: #E8964A; box-shadow: 0 3px 0 #E8964A; }
+.want.round::after { background: #FFF4E5; border-color: #E8964A; }
+/* 快長大的提醒卡 */
+.grow-alert { position: absolute; left: 12px; right: 12px; top: calc(var(--safe-top) + var(--hud-h) + 56px); z-index: 60; display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 12px; background: #FFF6D6; }
+.grow-alert .ga-pic { flex: none; width: 56px; height: 56px; border-radius: 16px; background: #E4F4DA; border: 2px solid var(--ink); overflow: hidden; display: grid; place-items: end center; line-height: 0; }
+.grow-alert b { font-size: 15px; line-height: 20px; }
+.grow-alert p { font-size: 13px; font-weight: 700; line-height: 19px; color: var(--ink-2); margin-top: 2px; }
+.grow-alert .bn-close { position: absolute; right: 2px; top: 2px; }
+.grow-alert .btn { flex: none; margin-top: 18px; }
+.ga-feed { display: inline-flex; align-items: center; gap: 1px; margin-left: 4px; color: var(--ink); font-weight: 900; vertical-align: middle; }
+
+/* ---------- 02 稀有度星星 ---------- */
+.tier.stars { gap: 1px; padding: 0 6px; }
+.tier.stars .st { display: block; }
+.tier.stars .st-t { margin-left: 3px; }
+.stars4 { display: inline-flex; align-items: center; gap: 0; height: 22px; line-height: 0; }
+.dex-cell .tier.stars { height: 20px; padding: 0 4px; }
+.dex-cell .tier.stars .st-t { font-size: 11px; }
+.pg-star { display: inline-flex; align-items: center; gap: 4px; }
+.pg-star .tier { height: 20px; }
+.legend { grid-template-columns: repeat(6, 1fr); }
+.legend .big { color: var(--ink); display: flex; align-items: center; justify-content: center; height: 44px; transform: scale(1.5); }
+/* 特殊牛的記號（提案）：金色膠囊＋寶石 */
+.sp-mark { display: inline-flex; align-items: center; gap: 2px; height: 22px; padding: 0 8px 0 4px; border: 2px solid var(--ink); border-radius: 11px; background: linear-gradient(180deg, #FFE98F, #FFC13B); font-size: 12px; font-weight: 900; line-height: 18px; white-space: nowrap; color: var(--ink); }
+.sp-mark.small { height: 20px; padding: 0 6px 0 3px; font-size: 11px; }
+.sp-mark .gem { display: block; }
+
+/* ---------- 03 配種表 ---------- */
+.bp-list.A { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.bp-card { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px 8px; background: #FFFFFF; border: 2.5px solid var(--ink); border-radius: 16px; }
+.bp-card.locked { background: #F1EBE3; border-color: #B8A89A; }
+.bp-card.extra { background: #FFF6D6; }
+.bp-pics { display: flex; align-items: flex-end; gap: 0; line-height: 0; }
+.bp-x { align-self: center; font-size: 16px; font-weight: 900; line-height: 20px; color: var(--ink-2); padding: 0 1px; }
+.bp-names { display: flex; flex-direction: column; align-items: center; font-size: 12px; font-weight: 900; line-height: 17px; }
+.bp-names span { display: inline-flex; align-items: center; gap: 2px; }
+.locked .bp-names, .locked b { color: var(--ink-3); }
+.bp-n { font-size: 12px; font-weight: 700; line-height: 16px; color: var(--ink-2); }
+.bp-new { position: absolute; left: 50%; top: -11px; transform: translateX(-50%); padding: 0 6px; background: var(--yellow); border: 2px solid var(--ink); border-radius: 9px; font-size: 11px; font-weight: 900; line-height: 16px; white-space: nowrap; }
+.bp-card.extra { margin-top: 6px; }
+.sx { font-style: normal; font-weight: 900; }
+.sx.m { color: #3B82C4; }
+.sx.f { color: #E0567E; }
+.bp-list.B { display: flex; flex-direction: column; gap: 0; margin-top: 6px; }
+.bp-row { display: flex; align-items: center; gap: 2px; padding: 6px 0; border-top: 2px dashed var(--line-soft); }
+.bp-row:first-child { border-top: 0; }
+.bp-row.extra { background: #FFF6D6; border-radius: 12px; border-top: 0; padding: 6px 4px; margin-top: 4px; }
+.bp-row .bp-pic { line-height: 0; }
+.bp-row .grow { display: flex; flex-direction: column; margin-left: 6px; min-width: 0; }
+.bp-row b { display: inline-flex; align-items: center; gap: 2px; font-size: 14px; line-height: 19px; }
+
+/* ---------- 04 特殊牛 ---------- */
+.sp-hero .hero-bg { background: radial-gradient(circle at 50% 60%, #FFF6C8 0, #FFE9A0 45%, #CDEBFF 100%); }
+
+/* ---------- 05 抓牛小遊戲 ---------- */
+.g-top { position: absolute; left: 12px; right: 12px; top: calc(var(--safe-top) + 8px); z-index: 30; display: flex; align-items: center; gap: 10px; padding: 6px 12px 6px 6px; background: rgba(255, 255, 255, 0.92); border: 3px solid var(--ink); border-radius: 22px; box-shadow: 0 3px 0 var(--ink); }
+.g-title { flex: 1; display: flex; flex-direction: column; }
+.g-title b { font-size: 17px; line-height: 22px; }
+.g-title span { font-size: 12px; font-weight: 700; line-height: 16px; color: var(--ink-2); }
+.g-time { display: inline-flex; align-items: center; gap: 4px; font-size: 18px; font-weight: 900; }
+.g-meter { position: absolute; left: 24px; right: 24px; top: calc(var(--safe-top) + 74px); z-index: 30; }
+.g-hint { position: absolute; left: 50%; top: calc(var(--safe-top) + 128px); transform: translateX(-50%); z-index: 30; padding: 6px 14px; background: rgba(46, 29, 20, 0.72); border-radius: 16px; color: #FFFFFF; font-size: 14px; font-weight: 900; line-height: 20px; white-space: nowrap; }
+.g-rings { position: absolute; right: 14px; top: calc(var(--safe-top) + 84px); z-index: 30; display: flex; gap: 4px; padding: 4px 8px; background: rgba(255, 255, 255, 0.9); border: 2.5px solid var(--ink); border-radius: 16px; line-height: 0; }
+.g-rings svg.used { opacity: 0.25; }
+.gesture { position: absolute; z-index: 40; line-height: 0; pointer-events: none; }
+.g-start { width: min(320px, calc(100% - 40px)); display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 14px 16px 16px; }
+.gs-pic { line-height: 0; padding: 4px; background: #E9F6FF; border-radius: 14px; }
+.gs-name { font-size: 22px; line-height: 28px; }
+.g-start ul { margin: 0; padding-left: 20px; font-size: 14px; font-weight: 700; line-height: 21px; align-self: stretch; }
+.g-start .hint { align-self: stretch; text-align: center; }
+.g-start .btn { margin-top: 4px; }
+.catch-card { width: min(300px, calc(100% - 40px)); display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 16px 16px; }
+.catch-card svg { display: block; }
+.cc-name { font-size: 20px; line-height: 26px; }
+.cc-perf { text-align: center; font-size: 15px; font-weight: 900; line-height: 21px; }
+.cc-perf .hint { font-weight: 700; }
+.sp-banner { position: absolute; left: 50%; top: calc(var(--safe-top) + 128px); transform: translateX(-50%); z-index: 30; display: flex; align-items: center; gap: 6px; padding: 6px 14px 6px 10px; background: linear-gradient(180deg, #FFE98F, #FFC13B); border: 3px solid var(--ink); border-radius: 20px; box-shadow: 0 3px 0 var(--ink); white-space: nowrap; }
+.sp-banner b { font-size: 17px; }
+.sp-banner span { font-size: 13px; font-weight: 900; color: var(--ink-2); }
+
+/* ---------- R15-99 總覽 ---------- */
+.ov-row { margin-top: 26px; }
+.ov-title { font-size: 20px; font-weight: 900; line-height: 28px; }
+.ov-cells { display: flex; flex-wrap: wrap; gap: 28px; margin-top: 10px; }
+.ov-cap { min-height: 28px; font-size: 15px; line-height: 22px; }
+.ov-cap b { font-weight: 900; }
+.ov-ph { overflow: hidden; outline: 2px solid #E2D4C2; }
+.ov-pair { display: flex; gap: 14px; }
+.ov-legend { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.ov-legend .tier, .ov-legend .stars4 { transform: scale(1.2); transform-origin: left center; margin-right: 10px; }
+.ov-sp { display: flex; gap: 18px; padding: 10px 14px; background: linear-gradient(180deg, #E6F5FF 0, #F1FAE8 62%, #E3F2D3 100%); border: 2px solid #E2D4C2; border-radius: 18px; }
+.ov-sp span { display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 0; }
+.ov-sp b { font-size: 16px; line-height: 22px; }
+
+/* ================= 第 16 輪 ================= */
+/* 01 牛仔套索：圈的大小量尺 */
+.lz-meter { position: absolute; left: 24px; right: 24px; bottom: calc(var(--safe-bottom) + 112px); z-index: 30; padding: 6px 12px 8px; background: rgba(255, 255, 255, 0.92); border: 2.5px solid var(--ink); border-radius: 16px; }
+.lz-meter > span { display: block; font-size: 12px; font-weight: 900; line-height: 16px; color: var(--ink-2); }
+.lz-bar { position: relative; height: 14px; margin-top: 4px; border-radius: 7px; background: #F3E6D2; border: 2px solid var(--ink); }
+.lz-ok { position: absolute; left: 40%; width: 22%; top: 0; bottom: 0; background: #8CD46F; }
+.lz-bar b { position: absolute; top: -6px; width: 6px; height: 22px; margin-left: -3px; border-radius: 3px; background: var(--ink); }
+.lz-ticks { display: flex; justify-content: space-between; margin-top: 2px; font-size: 11px; font-weight: 900; color: var(--ink-2); }
+.lz-ticks em { font-style: normal; }
+.lz-ticks em:nth-child(2) { color: #3E8E2F; }
+/* 02 星星 */
+.legend7 { grid-template-columns: repeat(6, 1fr); }
+.legend7 .big { display: flex; align-items: center; justify-content: center; height: 44px; transform: scale(1.4); }
+.tier.mix-star { background: #EEE8E1; border-color: #8A7E72; }
+.tier.sp-star { gap: 1px; padding: 0 6px; }
+
+/* ================= 第 17 輪 ================= */
+/* 量尺放上面（下面是牛仔或自己的手），提示放在量尺下面 */
+.lz-meter.top { top: calc(var(--safe-top) + 80px); bottom: auto; }
+.g-hint.low { top: calc(var(--safe-top) + 150px); }
+
+/* ================= 第 18 輪：牛仔套索 4 版（只有繩索） ================= */
+/* 拉繩子的條（A 連點、C 跟著節奏拉）：放在上面，下面留給手指 */
+.pull-bar { position: absolute; left: 24px; right: 24px; top: calc(var(--safe-top) + 80px); z-index: 30; display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: rgba(255, 255, 255, 0.92); border: 2.5px solid var(--ink); border-radius: 16px; }
+.pull-bar > span { font-size: 13px; font-weight: 900; white-space: nowrap; }
+.pull-bar .pb { flex: 1; height: 16px; border-radius: 8px; background: #F3E6D2; border: 2px solid var(--ink); overflow: hidden; }
+.pull-bar .pb i { display: block; height: 100%; background: linear-gradient(180deg, #FFE27A, #FFB84A); border-right: 2px solid var(--ink); }
+.pull-bar b { font-size: 15px; min-width: 40px; text-align: right; }
+/* B 左右拉的量尺放上面 */
+.lz-meter.tug { top: calc(var(--safe-top) + 80px); bottom: auto; }
+/* 大字的提示（連點！、往左拉、拉！） */
+.big-cue { position: absolute; left: 50%; top: calc(var(--safe-top) + 170px); transform: translateX(-50%) rotate(-4deg); z-index: 30; padding: 4px 18px; background: #FFFFFF; border: 3px solid var(--ink); border-radius: 18px; box-shadow: 0 3px 0 var(--ink); font-size: 26px; font-weight: 900; line-height: 34px; color: #E0552F; white-space: nowrap; }
+.big-cue.left { transform: translateX(-50%) rotate(0deg); }
+/* 連點的波紋 */
+.ripple { position: absolute; z-index: 35; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%; border: 4px solid rgba(255, 255, 255, 0.95); }
+.ripple.r2 { width: 96px; height: 96px; margin: -48px 0 0 -48px; border-width: 3px; opacity: 0.6; }
+/* C 的節奏點：亮的時候拉 */
+.beat { position: absolute; left: 50%; top: calc(var(--safe-top) + 134px); transform: translateX(-50%); z-index: 30; display: flex; gap: 8px; padding: 5px 10px; background: rgba(46, 29, 20, 0.72); border-radius: 14px; }
+.beat i { width: 12px; height: 12px; border-radius: 50%; background: rgba(255, 255, 255, 0.35); }
+.beat i.on { background: #FFD45E; box-shadow: 0 0 0 2px #FFFFFF; }
+.drag-hint { position: absolute; z-index: 35; }
+/* 第 18 輪 GIF：上面一條標籤，下面是手機（寬 390） */
+.gif-box { display: inline-block; background: #FFF7EC; }
+.gif-label { width: 390px; padding: 6px 10px; font-size: 14px; font-weight: 900; line-height: 20px; color: var(--ink); background: #FFD45E; border-bottom: 2px solid var(--ink); white-space: nowrap; overflow: hidden; }
+.gif-box .phone { border-radius: 0; }
+.big-cue.stop { color: #6B7A8C; transform: translateX(-50%) rotate(0deg); }
+.beat i.rest { border-radius: 3px; }
+
+/* ================= 第 21 輪 ================= */
+/* 右上角：這一局還剩幾個繩圈（一局 3 個） */
+.g-rings.r21 { top: calc(var(--safe-top) + 78px); align-items: center; gap: 4px; padding: 3px 8px; line-height: 0; }
+.g-rings.r21 span { margin-right: 2px; font-size: 12px; font-weight: 900; line-height: 16px; }
+.g-rings.r21 svg.used { opacity: 0.22; }
+/* 拔河的條放在繩圈下面；大字提示再下面 */
+.pull-bar { top: calc(var(--safe-top) + 128px); }
+.big-cue.r21 { top: calc(var(--safe-top) + 186px); }
+.big-cue.r21.bad { color: #FFFFFF; background: #E5484D; }
+/* 落空、閃掉的提示（紅一點） */
+.g-hint.miss { background: rgba(194, 65, 47, 0.88); }
+.catch-card.miss .cc-name { color: #C2412F; }
