@@ -885,10 +885,9 @@ class Game:
         return {"avatar": breed}
 
     def super_event_on(self, commodity: str, now: float) -> bool:
-        """這種商品現在是不是在超級大事件裡（成就 tailwind）。D33（#115）以前的引擎沒有 tier，一律 False。"""
+        """這種商品現在是不是在超級大事件裡（成就 tailwind；D33 的新聞等級）。"""
         return any(
-            getattr(ev, "tier", None) == "super" and commodity in ev.targets and ev.start_at <= now < ev.end_at
-            for ev in self.ex.events
+            ev.tier == "super" and commodity in ev.targets and ev.start_at <= now < ev.end_at for ev in self.ex.events
         )
 
     def observe_achievements(self, p: Player, now: float) -> None:
