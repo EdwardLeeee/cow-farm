@@ -77,6 +77,20 @@ void main() {
     expect(tester.widget<Text>(find.byKey(const Key('sell-qty'))).data, '16', reason: '跟 S06-13 一樣：剩 16 瓶、全部');
   });
 
+  testWidgets('播到一半切到牧場：頂列換回伺服器的 14,404（不停在跳到一半的數字）', (tester) async {
+    Screen.w390.apply(tester);
+    final m = await showSellWithMotion(tester);
+    await tester.tap(find.byKey(const Key('sell-confirm')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 800));
+    expect(int.parse(_hudCoins(tester).replaceAll(',', '')), inExclusiveRange(12480, 14404));
+    m.selectTab(AppTab.ranch);
+    await tester.pump();
+    await tester.pump();
+    expect(_hudCoins(tester), '14,404');
+    await tester.pump(const Duration(seconds: 3));
+  });
+
   testWidgets('減少動態：金幣不飛，頂列直接是 14,404，提示淡入 0.2 秒', (tester) async {
     Screen.w390.apply(tester);
     await showSellWithMotion(tester, reduced: true);

@@ -40,7 +40,7 @@ class _HomeShellState extends State<HomeShell> {
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
 
   /// 動畫中頂列要暫時顯示的東西（A-02、A-05；kit/frame.dart 的 HudFxScope）。
-  final _hudFx = ValueNotifier<HudFx?>(null);
+  final _hudFx = HudFxNotifier();
   final _hudChipKey = GlobalKey();
   StreamSubscription<GameNotice>? _sub;
 

@@ -183,17 +183,39 @@ class HudFx {
   final double pulse;
   final int? level;
   final double? xp;
+
+  /// 只換金幣那一份、只換等級那一份：兩個動畫可能一起播（賣出時剛好升級），各寫各的。
+  HudFx withCoins(double? coins, {double pulse = 0}) => HudFx(coins: coins, pulse: pulse, level: level, xp: xp);
+  HudFx withLevel(int? level, {double? xp}) => HudFx(coins: coins, pulse: pulse, level: level, xp: xp);
+
+  bool get isEmpty => coins == null && level == null && xp == null;
+}
+
+/// [HudFxScope] 的值（HomeShell 建、HomeShell 丟）。
+class HudFxNotifier extends ValueNotifier<HudFx?> {
+  HudFxNotifier() : super(null);
+
+  bool _disposed = false;
+
+  /// 改自己那一份；全部都沒了就是 null（頂列照伺服器的數字）。頁面在動畫播到一半被丟掉時（例：切分頁），
+  /// 下一格才清自己那一份，那時 HomeShell 可能也丟了：丟了就不管。
+  void edit(HudFx Function(HudFx fx) change) {
+    if (_disposed) return;
+    final fx = change(value ?? const HudFx());
+    value = fx.isEmpty ? null : fx;
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
 }
 
 /// 整個 app 一個（HomeShell 放的）：播動畫的頁面寫 [notifier]，只有頂列聽，其他畫面不用每格重畫。
 /// [chipKey] 掛在頂列的金幣膠囊上（A-02 的金幣飛到那裡）。
-class HudFxScope extends InheritedNotifier<ValueNotifier<HudFx?>> {
-  const HudFxScope({
-    super.key,
-    required ValueNotifier<HudFx?> super.notifier,
-    required this.chipKey,
-    required super.child,
-  });
+class HudFxScope extends InheritedNotifier<HudFxNotifier> {
+  const HudFxScope({super.key, required HudFxNotifier super.notifier, required this.chipKey, required super.child});
 
   final GlobalKey chipKey;
 

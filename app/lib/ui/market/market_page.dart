@@ -48,10 +48,18 @@ class _MarketPageState extends State<MarketPage> with SingleTickerProviderStateM
   /// A-02 的減少動態版：提示淡入 0.2 秒（金幣不飛、數字直接變）。
   bool _fadeToast = false;
 
+  /// 頂列（A-02 播的時候改金幣那一份）。
+  HudFxNotifier? _hud;
+
   @override
   void dispose() {
     _toastTimer?.cancel();
     _anim.dispose();
+    // 播到一半離開市場（切分頁）：下一格把頂列的金幣換回伺服器的數字（這一格還在拆畫面，不能改）
+    if (_sold != null) {
+      final hud = _hud;
+      WidgetsBinding.instance.addPostFrameCallback((_) => hud?.edit((fx) => fx.withCoins(null)));
+    }
     super.dispose();
   }
 
@@ -69,9 +77,9 @@ class _MarketPageState extends State<MarketPage> with SingleTickerProviderStateM
     _fadeToast = !motion && AppMotion.reducedRead(context);
     if (motion) {
       setState(() => _sold = fx);
-      final hud = HudFxScope.read(context)?.notifier;
+      _hud = HudFxScope.read(context)?.notifier;
       _anim.forward(from: 0).whenComplete(() {
-        hud?.value = null;
+        _hud?.edit((fx) => fx.withCoins(null));
         if (mounted) setState(() => _sold = null);
       });
     }
@@ -86,9 +94,11 @@ class _MarketPageState extends State<MarketPage> with SingleTickerProviderStateM
     final fx = _sold, t = _t;
     if (fx == null || t == null) return;
     final now = context.read<GameModel>().state?.coins.toDouble() ?? fx.coins;
-    HudFxScope.read(context)?.notifier?.value = HudFx(
-      coins: fx.coins + (now - fx.coins) * animOutCubic(animSeg(t, 0.5, 1.05)),
-      pulse: math.sin(math.pi * animSeg(t, 0.55, 1.05)),
+    _hud?.edit(
+      (hud) => hud.withCoins(
+        fx.coins + (now - fx.coins) * animOutCubic(animSeg(t, 0.5, 1.05)),
+        pulse: math.sin(math.pi * animSeg(t, 0.55, 1.05)),
+      ),
     );
   }
 
