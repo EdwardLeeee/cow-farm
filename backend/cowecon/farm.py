@@ -732,6 +732,8 @@ class Farm:
         "feeds",
         "floor",
         "floors",
+        "rented",
+        "rent_until",
         "helper_from",
         "helper_until",
         "stats",
@@ -793,7 +795,9 @@ class Farm:
         self.hazard = 0.0  # 牧場的累積風險（每頭牛一樣）
         self.feeds = [0] * len(params.care.feed_kg)  # 倉庫裡每種飼料幾份
         self.floor = 0  # 正在用的地板（CareParams.floor_ids 的索引）
-        self.floors = 1  # 擁有的地板（位元）；泥土地開局就有
+        self.floors = 1  # 買斷的地板（位元）；泥土地開局就有
+        self.rented = 0  # 租的地板（0 = 沒有）；租到 rent_until，到期那一刻正在用的話換回泥土地
+        self.rent_until = 0.0
         self.helper_from = 0.0  # 這次雇用小幫手從什麼時候開始（每 helper_clean_s 清一次的起點）
         self.helper_until = 0.0
         if care:
@@ -854,6 +858,17 @@ class Farm:
 
     # ---- 結算：長大揭曉、大便與生病、奶桶與田地（離線也會累積，滿了就停） ----
     def advance(self, now: float) -> None:
+        """結算到 now。租的地板在這之間到期的話，先結算到到期那一刻、換回泥土地，再接著結算（跟結算幾次無關）。"""
+        if self.rented and self.rent_until <= now:
+            end, i = self.rent_until, self.rented
+            self.rented, self.rent_until = 0, 0.0
+            if self.floor == i:
+                self._advance(max(end, self.bucket_t))
+                self._switch_speed(self.p.care.floor_speed[0], self.p.care.floor_late_speed[0], end)
+                self.floor = 0
+        self._advance(now)
+
+    def _advance(self, now: float) -> None:
         self._reveal(now)
         if now > self.care_t:
             self._care_advance(now)
@@ -874,6 +889,12 @@ class Farm:
         if speed == self.speed and late_speed == self.late_speed:
             return
         self.advance(now)
+        self._switch_speed(speed, late_speed, now)
+
+    def _switch_speed(self, speed: float, late_speed: float, now: float) -> None:
+        """set_speed 的後半：已經結算到 now，重新推算每頭牛的時鐘。"""
+        if speed == self.speed and late_speed == self.late_speed:
+            return
         r = self.speed / speed
         for c in self.cows:
             calf_h = (c.adult_at - c.born_at) * c.speed  # 小牛期的年紀（秒 × 速度），換速度後不變
@@ -1043,7 +1064,7 @@ class Farm:
             t1 = max(t1, t)
             # [t, t1) 這一段的風險
             if t >= safe_end:
-                r = rate_s * (total / n - cp.sick_dirt_free)
+                r = rate_s * (total / n - cp.sick_dirt_free) * cp.floor_sick_mult[self.floor]
                 if r > 0.0:
                     H1 = H + r * (t1 - t)
                     while pi < len(pend) and pend[pi][0] <= H1:
@@ -1236,18 +1257,48 @@ class Farm:
 
     # ---- 地板（v0.3 第 4 節）----
     def buy_floor(self, i: int, now: float) -> bool:
+        """買斷（軟墊地）。長快地板只能租（rent_floor）。"""
         cp = self.p.care
-        if not (0 <= i < len(cp.floor_speed)) or (self.floors >> i) & 1 or self.coins < cp.floor_price[i]:
+        if not (0 <= i < len(cp.floor_speed)) or cp.floor_price[i] <= 0 or (self.floors >> i) & 1:
+            return False
+        if self.coins < cp.floor_price[i]:
             return False
         self.coins -= cp.floor_price[i]
         self.floors |= 1 << i
         self._record(now, "floor", -cp.floor_price[i])
         return True
 
-    def use_floor(self, i: int, now: float) -> bool:
-        """換成買過的地板（免費）。上架借種的公牛：呼叫端要再叫 StudMarket.follow_owner。"""
+    def rent_floor(self, i: int, days: int, now: float) -> bool:
+        """租長快地板 days 天（遊戲時間），接在還沒到期的後面，最多預付 floor_rent_max_days 天。
+        同時只能租一種：租約還沒到期就不能改租另一種。租了不會自動換上，要再 use_floor。"""
         cp = self.p.care
-        if not (0 <= i < len(cp.floor_speed)) or not (self.floors >> i) & 1:
+        if not (0 <= i < len(cp.floor_speed)) or cp.floor_rent_per_day[i] <= 0 or days < 1:
+            return False
+        self.advance(now)
+        if self.rented and self.rented != i:
+            return False
+        until = (self.rent_until if self.rented == i else now) + days * DAY
+        cost = cp.floor_rent_per_day[i] * days
+        if until - now > cp.floor_rent_max_days * DAY + 1e-6 or self.coins < cost:
+            return False
+        self.coins -= cost
+        self.rented, self.rent_until = i, until
+        self._record(now, "floor", -cost, float(days))
+        return True
+
+    def has_floor(self, i: int, now: float) -> bool:
+        """現在能不能鋪這種地板：泥土地、買斷的、租約還沒到期的。"""
+        if (self.floors >> i) & 1:
+            return True
+        return i == self.rented and now < self.rent_until
+
+    def use_floor(self, i: int, now: float) -> bool:
+        """換成買斷的或租著的地板（換本身免費；租約照樣算時間）。上架借種的公牛：呼叫端要再叫 StudMarket.follow_owner。"""
+        cp = self.p.care
+        if not (0 <= i < len(cp.floor_speed)):
+            return False
+        self.advance(now)
+        if not self.has_floor(i, now):
             return False
         self.set_speed(cp.floor_speed[i], now, cp.floor_late_speed[i])
         self.floor = i
@@ -1751,6 +1802,8 @@ class Farm:
             "feeds": list(self.feeds),
             "floor": self.floor,
             "floors": self.floors,
+            "rented": self.rented,
+            "rent_until": self.rent_until,
             "helper_from": self.helper_from,
             "helper_until": self.helper_until,
         }
@@ -1798,6 +1851,8 @@ class Farm:
         f.feeds = (list(d.get("feeds", [])) + [0] * nf)[:nf]
         f.floor = d.get("floor", 0)
         f.floors = d.get("floors", 1)
+        f.rented = d.get("rented", 0)
+        f.rent_until = d.get("rent_until", 0.0)
         f.helper_from = d.get("helper_from", 0.0)
         f.helper_until = d.get("helper_until", 0.0)
         f.log = None
