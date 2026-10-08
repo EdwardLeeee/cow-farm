@@ -178,6 +178,7 @@
 /* ================= S07 出貨確認 ================= */
 .ship-head { display: flex; align-items: center; gap: 8px; background: #FFFFFF; border: 2px solid var(--line-soft); border-radius: 16px; padding: 4px 10px 4px 4px; }
 .ship-name { font-size: 16px; line-height: 21px; }
+@media (max-height: 600px) { .ship-head > svg { width: 60px; height: 60px; } }
 .grade-rows { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
 .grade-row { display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 8px; background: #FFFFFF; border: 2px solid var(--line-soft); border-radius: 12px; }
 .grade-row .g-name { font-size: 14px; font-weight: 900; }
@@ -990,8 +991,9 @@
 .av-sub { margin: 10px 2px 0; font-size: 13px; font-weight: 900; line-height: 18px; color: var(--ink-2); }
 .av-grid.other { margin-top: 4px; }
 .av-sheet .btn-row { margin-top: 12px; }
-/* 320 寬：一排 6 個時一格不到 44，改 5 個；面板會比畫面高，所以拿掉上面那一列預覽（選中的格子本來就有綠框和勾） */
-@media (max-width: 339px) { .av-grid { grid-template-columns: repeat(5, 1fr); } .av-preview { display: none; } }
+/* 320 寬：一排 6 個，間距 4、面板左右留 12，一格約 46（還有 44）；24 種剛好 4 排。以前一排 5 個，加了「其他」一排以後面板 557 高、蓋到狀態列（cow-app 2026-10-08 在 app 量到）。
+   上面那一列預覽照樣拿掉（選中的格子本來就有綠框和勾） */
+@media (max-width: 339px) { .av-sheet { padding-left: 12px; padding-right: 12px; } .av-grid { grid-template-columns: repeat(6, 1fr); gap: 4px; } .av-preview { display: none; } }
 /* 改名頁（獨立一頁）：錢不夠的提示 */
 .rn-warn { display: flex; align-items: center; gap: 4px; }
 

@@ -231,6 +231,8 @@ export function measure(terms = []) {
   const unsafe = [];
   if (!tall) {
     shown.forEach((t) => { if (t.el.closest('.scene')) return; if (t.vr.bottom - t.vr.top < 1) return; if (t.vr.top < safeTop - 0.5 || t.vr.bottom > H - safeBottom + 0.5) unsafe.push(t.text); });
+    // 彈出的頁面（底部面板、對話框）整個不能蓋到狀態列：字和按鈕都在安全區裡，面板的上緣還是可能蓋到（2026-10-08 cow-app 在 S21-02 量到）
+    [...phone.querySelectorAll('.sheet, .dialog')].filter((e) => vis(e)).forEach((e) => { if (e.getBoundingClientRect().top < safeTop - 0.5) unsafe.push('彈出的頁面蓋到狀態列'); });
     [...phone.querySelectorAll('button')].filter((b) => vis(b) && !outOfView(b, b.getBoundingClientRect())).forEach((b) => { const r = visRect(b, b.getBoundingClientRect()); if (r.bottom - r.top < 1) return; if (r.top < safeTop - 0.5 || r.bottom > H - safeBottom + 0.5) unsafe.push('按鈕:' + b.textContent.trim().replace(/\s+/g, ' ').slice(0, 12)); });
   }
   // 泰文換行：每個換了行、含泰文的字，找出實際換行的位置（這個字比前一個字低半行以上），跟 Intl.Segmenter 的詞界比

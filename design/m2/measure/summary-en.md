@@ -30,7 +30,7 @@
 
 - **S03-08 一頭牛都沒有**：文字互相重疊、被蓋住或壓在圖上 14（例：Draw a cow in the Shop, ；Go to Shop／0 / 42 btlNo ；No cows in your barn yet）
 - **S03-15 大新聞提示：收購價大漲（只跳出一次）**：文字互相重疊、被蓋住或壓在圖上 1（例：BBQ season kicks off／按鈕:）
-- **S07-05 斷線：「確定出貨」停用**：文字互相重疊、被蓋住或壓在圖上 2（例：Connecting…／Holstein #3；Connecting…／~212 kg of b）
+- **S07-05 斷線：「確定出貨」停用**：文字互相重疊、被蓋住或壓在圖上 1（例：Connecting…／Holstein #3）
 
 ## 缺翻譯的 key（畫面用繁中顯示）
 
