@@ -576,8 +576,11 @@
 .cloth { position: absolute; left: 50%; bottom: 26px; width: 170px; height: 130px; display: grid; place-items: center; background: #FFD0DE; border: 3px solid var(--ink); border-radius: 50% 50% 22px 22px; box-shadow: 0 4px 0 var(--ink); transform-origin: 50% 100%; }
 .burst-hearts { position: absolute; left: 50%; top: 42%; }
 .burst-hearts i { position: absolute; left: -11px; top: -11px; line-height: 0; opacity: 0; }
-.lv-roll { position: relative; display: inline-block; width: 60px; height: 88px; overflow: hidden; vertical-align: bottom; }
-.lv-roll b { position: absolute; left: 0; right: 0; text-align: center; font-size: 76px; line-height: 88px; }
+/* A-05 等級數字往上翻：框裡放一個看不到的新數字（.size）撐出寬度和基線，「Lv」跟數字的基線對齊、兩位數也不會被切掉；
+   用 clip-path 只切上下（overflow: hidden 會讓基線變成框的下緣，「Lv」掉低約 8；2026-10-08 cow-app 量到）。最後一格跟 S11-01 一樣 */
+.lv-roll { position: relative; display: inline-block; font-size: 76px; line-height: 88px; clip-path: inset(0 -24px); }
+.lv-roll .size { visibility: hidden; }
+.lv-roll .old, .lv-roll .new { position: absolute; left: 0; right: 0; top: 0; text-align: center; }
 .lv-wrap .confetti i { position: absolute; top: -10%; }
 .disc-title { font-size: 26px; font-weight: 900; color: #FFFFFF; -webkit-text-stroke: 6px var(--ink); paint-order: stroke fill; margin-bottom: 14px; }
 .disc-card { position: relative; width: 190px; height: 230px; transform-style: preserve-3d; }
