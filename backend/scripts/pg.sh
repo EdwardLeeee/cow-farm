@@ -14,6 +14,8 @@
 # - 容器名 cowfarm-pg，資料放 named volume cowfarm-pgdata，--memory 256m（這台電腦 2026-09-30 因記憶體耗盡當機過）。
 # - --network host，PostgreSQL 只聽 127.0.0.1:55433：不經過 rootless 的轉發代理，也不對區網開放（區網只開 API 的 8787）。
 # - 密碼每台電腦產生一次，只放在 pg.env；本腳本不會把密碼印出來。
+# - 容器資料夾：~/.config/cow-farm/containers-storage.conf 存在就自動用（CONTAINERS_STORAGE_CONF；自己設了就照自己的）。
+#   2026-10-08 搬到新電腦後，預設的 ~/.local/share/containers 記著舊電腦的使用者，podman 開不起來；牛市牧場改用自己的。
 set -euo pipefail
 
 NAME="${COWFARM_PG_NAME:-cowfarm-pg}"
@@ -22,6 +24,9 @@ PORT="${COWFARM_PG_PORT:-55433}"
 IMAGE="${COWFARM_PG_IMAGE:-docker.io/library/postgres:17}"
 CONF_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/cow-farm"
 ENV_FILE="$CONF_DIR/pg.env"
+if [ -z "${CONTAINERS_STORAGE_CONF:-}" ] && [ -f "$CONF_DIR/containers-storage.conf" ]; then
+  export CONTAINERS_STORAGE_CONF="$CONF_DIR/containers-storage.conf"
+fi
 MIN_AVAILABLE_MB="${COWFARM_MIN_AVAILABLE_MB:-1000}"  # 使用者 2026-10-03：不到 1 GB 才等
 
 exists_container() { podman container exists "$NAME"; }
