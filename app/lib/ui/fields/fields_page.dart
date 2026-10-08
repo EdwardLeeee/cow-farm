@@ -2,6 +2,8 @@
 // 倉庫稻米、每小時）、收成、每塊田一張卡、開新田。空田按「派耕牛」打開選耕牛的面板（S17-03；能下田的耕牛都沒了是 S17-04）。
 // 稻米在田裡持續長，每塊田最多存這頭耕牛壯年 8 小時的量、長滿就停（企劃書 4.0）；畫面上的量照伺服器給的產量推算（協定 3.10）。
 // 時間一律寫現實時間（遊戲時間 ÷ 倍率）。
+// 收成：開著動畫時播 A-08（設計稿 anims.js 的 A08，1.3 秒）：稻穗從田裡飛進「倉庫稻米」、田裡的稻子變矮、倉庫的數字往上跳，
+// 第 0.95 秒提示淡入。減少動態：不飛、數字直接變、提示淡入 0.2 秒。
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -18,10 +20,12 @@ import '../../theme/tokens.dart';
 import '../kit/app_icon.dart';
 import '../kit/cow_art.dart';
 import '../kit/cow_bits.dart';
+import '../kit/fly.dart';
 import '../kit/frame.dart';
 import '../kit/kit.dart';
 import '../kit/kv.dart';
 import '../kit/meter.dart';
+import '../kit/motion.dart';
 import '../kit/press.dart';
 import '../widgets/action_button.dart';
 import '../widgets/ticker_builder.dart';
@@ -86,9 +90,22 @@ class FieldsPage extends StatefulWidget {
   State<FieldsPage> createState() => _FieldsPageState();
 }
 
-class _FieldsPageState extends State<FieldsPage> {
+/// A-08 收成前的樣子：每塊田的稻米（田的 index → 公斤）、倉庫的稻米、每小時的產量。
+typedef _HarvestFx = ({Map<int, double> rice, double stock, double rate});
+
+class _FieldsPageState extends State<FieldsPage> with SingleTickerProviderStateMixin {
   ({ToastKind kind, String text})? _toast;
   Timer? _toastTimer;
+
+  /// A-08 收成（1.3 秒）；[_fx] 是收成前的樣子，null 是沒在播。
+  late final _harvestAnim = AnimationController(vsync: this, duration: const Duration(milliseconds: 1300));
+  _HarvestFx? _fx;
+
+  /// A-08 的減少動態版：提示淡入 0.2 秒。
+  bool _fadeToast = false;
+
+  /// 稻穗從田地場景飛到「倉庫稻米」那一格。
+  final _layerKey = GlobalKey(), _sceneKey = GlobalKey(), _stockKey = GlobalKey();
 
   /// 選耕牛的面板開著的那塊田（index）；null 是沒開。
   int? _picking;
@@ -102,16 +119,20 @@ class _FieldsPageState extends State<FieldsPage> {
   @override
   void dispose() {
     _toastTimer?.cancel();
+    _harvestAnim.dispose();
     super.dispose();
   }
 
-  void _showToast(ToastKind kind, String text) {
+  void _showToast(ToastKind kind, String text, {Duration delay = Duration.zero}) {
     _toastTimer?.cancel();
     setState(() => _toast = (kind: kind, text: text));
-    _toastTimer = Timer(const Duration(milliseconds: 2500), () {
+    _toastTimer = Timer(delay + const Duration(milliseconds: 2500), () {
       if (mounted) setState(() => _toast = null);
     });
   }
+
+  /// A-08 現在播到第幾秒；沒在播是 null。
+  double? get _t => _fx == null ? null : _harvestAnim.value * 1.3;
 
   /// 送一個動作給伺服器：按鈕先轉圈；失敗顯示原因（維護、token 失效由外層換畫面，不提示），成功做 [ok]。
   Future<void> _act(
@@ -134,10 +155,42 @@ class _FieldsPageState extends State<FieldsPage> {
     ok?.call(s, m, r.value);
   }
 
-  void _harvest() => _act('harvest', (m) => m.fieldHarvest(), (s, m, v) {
-    final got = v?['harvested'];
-    _showToast(ToastKind.ok, s.harvested(kg: fmt(got is num ? got : 0)));
-  });
+  /// 收成：先記下收成前的樣子（A-08 從這裡開始播）；開著動畫時提示第 0.95 秒才出來，減少動態時淡入 0.2 秒。
+  void _harvest() {
+    final m = context.read<GameModel>();
+    final st = m.state!;
+    final before = (
+      rice: {for (final f in st.fields) f.index: m.fieldRiceNow(f)},
+      stock: st.rice.stock.toDouble(),
+      rate: _rate(m),
+    );
+    _act('harvest', (m) => m.fieldHarvest(), (s, m, v) {
+      final got = v?['harvested'];
+      final motion = AppMotion.read(context);
+      _fadeToast = !motion && AppMotion.reducedRead(context);
+      if (motion) {
+        setState(() => _fx = before);
+        _harvestAnim.forward(from: 0).whenComplete(() {
+          if (mounted) setState(() => _fx = null);
+        });
+      }
+      _showToast(
+        ToastKind.ok,
+        s.harvested(kg: fmt(got is num ? got : 0)),
+        delay: motion ? const Duration(milliseconds: 950) : Duration.zero,
+      );
+    });
+  }
+
+  /// 每小時的產量：長滿的田不算（設計稿 S17-01 是 11.0，收成以後 S17-09 是 25.3）。
+  static double _rate(GameModel m) {
+    var rate = 0.0;
+    for (final f in m.state!.fields) {
+      final cap = f.capacity;
+      if (!f.empty && cap != null && m.fieldRiceNow(f) < cap) rate += f.perHour;
+    }
+    return rate;
+  }
 
   void _expand() => _act('expand', (m) => m.fieldExpand(), (s, m, v) {
     _showToast(ToastKind.ok, s.fieldExpanded(n: m.state?.fields.length ?? 0));
@@ -167,16 +220,39 @@ class _FieldsPageState extends State<FieldsPage> {
     return AppFrame(
       tab: AppTab.fields,
       contentPadding: EdgeInsets.zero,
-      // 稻米一直在長：數字、進度條、場景的稻子跟著重畫
-      content: TickerBuilder(builder: (context) => _list(context, m)),
+      // 稻米一直在長：數字、進度條、場景的稻子跟著重畫（A-08 播的時候每格重畫）
+      content: TickerBuilder(
+        builder: (context) => AnimatedBuilder(animation: _harvestAnim, builder: (context, _) => _list(context, m)),
+      ),
       overlays: [
+        // A-08：飛的稻穗（不擋點擊）
+        if (_fx != null)
+          Positioned.fill(
+            key: _layerKey,
+            child: IgnorePointer(
+              child: AnimatedBuilder(animation: _harvestAnim, builder: (context, _) => _riceFly()),
+            ),
+          ),
         if (_toast case final t?)
           Positioned(
             left: 16,
             right: 16,
             bottom: FrameSizes.contentBottom(safe) + 14,
             child: Center(
-              child: ToastPill(t.text, kind: t.kind, key: const Key('toast')),
+              // A-08 播的時候第 0.95–1.15 秒淡入、從下面 14 滑上來；減少動態時淡入 0.2 秒
+              child: AnimatedBuilder(
+                animation: _harvestAnim,
+                builder: (context, child) {
+                  final t = _t;
+                  if (t == null) return _fadeToast ? FadeIn(key: ObjectKey(_toast), child: child!) : child!;
+                  final k = animSeg(t, 0.95, 1.15);
+                  return Opacity(
+                    opacity: k,
+                    child: Transform.translate(offset: Offset(0, (1 - animOutCubic(k)) * 14), child: child),
+                  );
+                },
+                child: ToastPill(t.text, kind: t.kind, key: const Key('toast')),
+              ),
             ),
           ),
         if (picking != null) Positioned.fill(child: _sheet(context, m, picking)),
@@ -193,14 +269,22 @@ class _FieldsPageState extends State<FieldsPage> {
     final count = st.fields.length;
     final oxen = oxOptions(st.cows, now);
     final noOx = !oxen.any((o) => o.$2 == null);
-    var inFields = 0.0, rate = 0.0;
+    // A-08 播的時候：田裡的稻米 0.15–0.8 秒照 inOut 從收成前的量降到 0，倉庫 0.5–1.0 秒照 outCubic 跳到伺服器的新數字，
+    // 每小時的產量停在收成前的（設計稿的分鏡沒有動它），播完照伺服器的
+    final fx = _fx, t = _t;
+    final drain = t == null ? 0.0 : animInOut(animSeg(t, 0.15, 0.8));
+    double riceOf(FieldInfo f) => fx == null ? m.fieldRiceNow(f) : (fx.rice[f.index] ?? 0) * (1 - drain);
+    final stock = fx == null || t == null
+        ? st.rice.stock
+        : (fx.stock + (st.rice.stock - fx.stock) * animOutCubic(animSeg(t, 0.5, 1.0))).round();
+    var inFields = 0.0;
+    final rate = fx?.rate ?? _rate(m);
     final plots = <FieldPlot>[];
     for (final f in st.fields) {
-      final rice = m.fieldRiceNow(f), cap = f.capacity;
-      inFields += rice;
+      final rice = riceOf(f), cap = f.capacity;
+      // 「收成全部」的按鈕照伺服器的（收成以後就是 S17-09 的樣子）
+      inFields += m.fieldRiceNow(f);
       final ox = f.cowId == null ? null : st.cowById('${f.cowId}');
-      // 每小時：長滿的田不算（設計稿 S17-01 是 11.0，收成以後 S17-09 是 25.3）
-      if (!f.empty && cap != null && rice < cap) rate += f.perHour;
       plots.add(FieldPlot(number: f.index + 1, cow: ox, ratio: cap == null || cap <= 0 ? 0 : rice / cap));
     }
     final canAct = m.canAct;
@@ -210,17 +294,20 @@ class _FieldsPageState extends State<FieldsPage> {
       padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
       children: [
         // .card.field-scene：沒有內距，場景填滿卡片裡面
-        Container(
-          key: const Key('field-scene'),
-          decoration: BoxDecoration(
-            color: AppColors.paper,
-            border: Border.all(color: AppColors.ink, width: AppSizes.border),
-            borderRadius: const BorderRadius.all(AppRadii.r18),
-            boxShadow: AppShadows.solid(4),
-          ),
-          child: ClipRRect(
-            borderRadius: const BorderRadius.all(Radius.circular(18 - AppSizes.border)),
-            child: FieldScene(plots: plots),
+        KeyedSubtree(
+          key: _sceneKey,
+          child: Container(
+            key: const Key('field-scene'),
+            decoration: BoxDecoration(
+              color: AppColors.paper,
+              border: Border.all(color: AppColors.ink, width: AppSizes.border),
+              borderRadius: const BorderRadius.all(AppRadii.r18),
+              boxShadow: AppShadows.solid(4),
+            ),
+            child: ClipRRect(
+              borderRadius: const BorderRadius.all(Radius.circular(18 - AppSizes.border)),
+              child: FieldScene(plots: plots),
+            ),
           ),
         ),
         gap(),
@@ -228,9 +315,10 @@ class _FieldsPageState extends State<FieldsPage> {
           key: const Key('field-kv'),
           columns: 3,
           valueSize: 16,
+          cellKeys: {1: _stockKey},
           cells: [
             (s.fieldsTitle, '$count', max == null ? null : s.s17OfMax(max: max)),
-            (s.s17Stock, fmt(st.rice.stock), s.gKg),
+            (s.s17Stock, fmt(stock), s.gKg),
             (s.s17PerHour, fmt(rate, 1), s.gKg),
           ],
         ),
@@ -249,7 +337,7 @@ class _FieldsPageState extends State<FieldsPage> {
           FieldCard(
             key: Key('field-${f.index}'),
             field: f,
-            rice: m.fieldRiceNow(f),
+            rice: riceOf(f),
             ox: f.cowId == null ? null : st.cowById('${f.cowId}'),
             noOx: noOx,
             capHours: fieldCapHours(st.economy, f.capacity, f.cowId == null ? null : st.cowById('${f.cowId}')),
@@ -268,6 +356,39 @@ class _FieldsPageState extends State<FieldsPage> {
           onPressed: canAct ? _expand : null,
         ),
       ],
+    );
+  }
+
+  /// A-08 的稻穗：8 支，從田地場景的左右兩邊（寬 20%、80% 輪流，高 60%）沿拋物線（高 50）飛到「倉庫稻米」那一格的中間，
+  /// 一支晚 0.06 秒、飛 0.5 秒，邊飛邊轉 90 度、中間大一點（設計稿 A08.frame）。
+  Widget _riceFly() {
+    final t = _t;
+    final layer = _layerKey.currentContext?.findRenderObject() as RenderBox?;
+    final scene = _sceneKey.currentContext?.findRenderObject() as RenderBox?;
+    final to = flyPoint(
+      layer,
+      _stockKey.currentContext?.findRenderObject() as RenderBox?,
+      (s) => s.center(Offset.zero),
+    );
+    if (t == null || to == null) return const SizedBox.shrink();
+    final from = [
+      for (final x in [0.2, 0.8]) flyPoint(layer, scene, (s) => Offset(s.width * x, s.height * 0.6)),
+    ];
+    if (from.contains(null)) return const SizedBox.shrink();
+    return FlyIcons(
+      t: t,
+      count: 8,
+      from: (i) => from[i % 2]!,
+      to: to,
+      icon: const AppIcon('rice', size: 30),
+      size: 30,
+      start: 0.12,
+      dur: 0.5,
+      stagger: 0.06,
+      lift: 50,
+      scale: (k) => 0.8 + 0.3 * math.sin(math.pi * k),
+      angle: (k) => k * 90,
+      keyPrefix: 'harvest-rice',
     );
   }
 
