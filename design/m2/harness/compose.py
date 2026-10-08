@@ -8,8 +8,14 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RAW, OUT, MEAS = os.path.join(ROOT, 'raw'), os.path.join(ROOT, 'boards'), os.path.join(ROOT, 'measure')
-FONT = '/usr/share/fonts/opentype/noto/NotoSansCJK-{}.ttc'
-def font(size, w='Bold'): return ImageFont.truetype(FONT.format(w), size, index=3)
+# 標籤的字：Noto Sans CJK（Regular、Bold、Black；index 3 是繁中）。系統的找不到就找使用者自己裝的（~/.local/share/fonts；2026-10-08 換新電腦，系統只有 Regular、Bold）
+FONT_DIRS = ['/usr/share/fonts/opentype/noto', os.path.expanduser('~/.local/share/fonts/noto-cjk'), os.path.expanduser('~/.local/share/fonts')]
+def font_path(w):
+    for d in FONT_DIRS:
+        p = os.path.join(d, f'NotoSansCJK-{w}.ttc')
+        if os.path.exists(p): return p
+    sys.exit(f'找不到 NotoSansCJK-{w}.ttc（放在 {FONT_DIRS} 其中一個）；設計稿的字重要跟以前一樣，見 README「重新出圖」')
+def font(size, w='Bold'): return ImageFont.truetype(font_path(w), size, index=3)
 INK, MUTED, BG, RED = (75, 51, 38), (138, 111, 96), (255, 249, 239), (229, 72, 77)
 NOTE = (194, 84, 27)  # 註解的字（給看圖的人，不是畫面的一部分）
 DEVNAME = {430: '430 寬（大手機，例 iPhone 14 Pro Max）', 390: '390 寬（一般手機，例 iPhone 14）'}
