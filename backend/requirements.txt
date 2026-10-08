@@ -1,5 +1,5 @@
 # cow-farm M1 伺服器（Python 3.10）。版本沿用 docs/research/tech-stack/backend 實測過的組合。
-fastapi==0.141.1
+fastapi==0.142.2
 starlette==1.7.0
 pydantic==2.13.5
 uvicorn==0.54.0
