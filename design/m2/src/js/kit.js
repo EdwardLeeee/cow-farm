@@ -327,6 +327,8 @@ export const sickBadge = () => badge('sick', `${icon('thermo', 13)}${t('badgeSic
 export const tierChip = (n) => `<span class="tier tier-${n} stars" aria-label="${tierName(n)}">${icon('star', 11).repeat(n + 1)}</span>`;
 // 雜種牛：一律 1 顆灰星（使用者 2026-10-08）。放在稀有度的位置；詳細頁、揭曉卡旁邊照舊寫「雜種」
 export const mixStar = () => `<span class="tier stars mix-star" aria-label="${t('badgeMix')}">${icon('starGray', 11)}</span>`;
+// 一頭牛（或一個品種）的稀有度標籤：雜種牛 1 顆灰星，其他照稀有度（牛舍清單、名片、田地、選牛卡都用這個）
+export const rarityChip = (b) => (b.mix ? mixStar() : tierChip(tierOf(b)));
 export function useChip(use) {
   const ic = use === 'dairy' ? icon('milk', 16) : use === 'draft' ? icon('rice', 16) : icon('beef', 16);
   return `<span class="use">${ic}${useName(use)}</span>`;

@@ -1,5 +1,5 @@
 // S03 牧場主畫面
-import { frame, btn, bar, toast, badge, tierChip, useChip, sexText, cowRow, icon, fmt, cowSVG, sickBadge, mixStar, BREEDS } from '../kit.js';
+import { frame, btn, bar, toast, badge, tierChip, useChip, sexText, cowRow, icon, fmt, cowSVG, sickBadge, mixStar, rarityChip, BREEDS } from '../kit.js';
 import { poopsSvg } from '../poop.js';
 import { ranchScene, HERD, WIDE } from '../scene.js';
 import { RANCH, COWS, PEN, BUCKET, WAREHOUSE, MARKET, NEWS, sum, cowName, compact, vsBase, newsTag, newsText, MIX_COW, TREAT_PRICE, sickOf } from '../fixtures.js';
@@ -129,7 +129,7 @@ export function statusChips(c) {
 // 牛舍清單的一列
 export function cowListRow(c) {
   const b = BREEDS[c.breed], tier = tierOf(b), sep = t('g.sep');
-  const chips = [useChip(b.use), `<span class="use">${sexText(c.sex)}</span>`, ...(c.age === 'calf' ? [] : [tierChip(tier)]), ...statusChips(c)];
+  const chips = [useChip(b.use), `<span class="use">${sexText(c.sex)}</span>`, ...(c.age === 'calf' ? [] : [rarityChip(b)]), ...statusChips(c)];
   let meta;
   if (c.sick) meta = t('s03.sickNoMilk'); // 病牛（v0.3 第 5 節）
   else if (c.age === 'calf') meta = t('growUp', { v: dur(c.grow_) });
@@ -168,7 +168,7 @@ part('S03-05', '奶桶是 0：收奶鈕停用', '.bucket-card', (ctx) => ranchPa
 // 下面那一行：產奶的母乳牛寫產奶，小牛寫長大還要，其他寫體重
 export function popHtml(c) {
   const b = BREEDS[c.breed], tier = tierOf(b);
-  const chips = [useChip(b.use), `<span class="use">${sexName(c.sex)}</span>`, ...(c.age === 'calf' ? [] : [tierChip(tier)]), ...statusChips(c)];
+  const chips = [useChip(b.use), `<span class="use">${sexName(c.sex)}</span>`, ...(c.age === 'calf' ? [] : [rarityChip(b)]), ...statusChips(c)];
   // 病牛（v0.3 第 5 節）：不產奶、不能配種上架、出貨只剩一成；按鈕換成治療（第 13 輪 04-A）
   if (c.sick) return `<div class="name">${cowName(c)}</div><div class="chips" style="margin-top:4px">${chips.join('')}</div><div class="meta wrap">${t('s03.sickNoMilk')}</div><div class="meta wrap">${t('s03.sickShip')}</div>${btn(t('treat', { price: fmt(TREAT_PRICE) }), { small: true, block: true, kind: 'primary', ic: 'coin' })}`;
   const meta = c.age === 'calf' ? t('growUp', { v: dur(c.grow_) }) : b.use === 'dairy' && c.sex === 'cow' ? t('s03.popMilk', { tier: tierName(tier), n: c.milk }) : t('weight', { v: c.kg });

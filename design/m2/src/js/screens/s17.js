@@ -1,5 +1,5 @@
 // S17 田地與耕田。照協定：稻米在田裡持續長，每塊田最多存這頭耕牛壯年 8 小時的量，長滿就停（企劃書 4.0）。
-import { frame, btn, icon, fmt, bar, cowSVG, sheet, toast, tierChip, badge, sickBadge, BREEDS } from '../kit.js';
+import { frame, btn, icon, fmt, bar, cowSVG, sheet, toast, tierChip, rarityChip, badge, sickBadge, BREEDS } from '../kit.js';
 import { FIELDS, FIELD_UP, cowById, WAREHOUSE, sum, RANCH } from '../fixtures.js';
 import { drawCow } from '../../cow/render.js';
 import { tierOf } from '../../cow/breeds.js';
@@ -55,12 +55,12 @@ function fieldCard(f, o = {}) {
   // 病牛（v0.3 第 5 節）：停止耕田（不再長稻米），標籤換成「生病了」，牛是正面、臉色發青；叫回來以後到牛的詳細治療
   if (f.sick) {
     return `<article class="card field-card sick">${head}${sickBadge()}</div>
-    <div class="fc-ox">${cowSVG({ breed: c.breed, sex: c.sex, seed: c.seed, sick: true }, { w: 52, h: 52, pad: 2 })}<div class="grow"><b>${cowName(c.breed, c.id)}</b><div class="chips">${tierChip(tierOf(b))}</div></div>${btn(t('recall'), { small: true, ic: 'hand' })}</div>
+    <div class="fc-ox">${cowSVG({ breed: c.breed, sex: c.sex, seed: c.seed, sick: true }, { w: 52, h: 52, pad: 2 })}<div class="grow"><b>${cowName(c.breed, c.id)}</b><div class="chips">${rarityChip(b)}</div></div>${btn(t('recall'), { small: true, ic: 'hand' })}</div>
     <div class="fc-bar">${bar(p, { color: 'gray' })}<span class="num">${fmt(f.rice, 1)} / ${fmt(f.cap, 1)}</span><small>${t('g.kg')}</small></div>
     <p class="warn-text">${t('s17.sickStop')}</p></article>`;
   }
   return `<article class="card field-card${full ? ' full' : ''}">${head}${full ? `<span class="badge full">${t('s17.full')}</span>` : badge('working', t('badgeWorking'))}</div>
-    <div class="fc-ox">${cowSVG({ breed: c.breed, sex: c.sex, seed: c.seed }, { w: 52, h: 52, pad: 2 })}<div class="grow"><b>${cowName(c.breed, c.id)}</b><div class="chips">${tierChip(tierOf(b))}<span class="hint">${t('fieldRate', { v: f.rate })}</span></div></div>${btn(t('recall'), { small: true, ic: 'hand' })}</div>
+    <div class="fc-ox">${cowSVG({ breed: c.breed, sex: c.sex, seed: c.seed }, { w: 52, h: 52, pad: 2 })}<div class="grow"><b>${cowName(c.breed, c.id)}</b><div class="chips">${rarityChip(b)}<span class="hint">${t('fieldRate', { v: f.rate })}</span></div></div>${btn(t('recall'), { small: true, ic: 'hand' })}</div>
     <div class="fc-bar">${bar(p, { color: full ? 'yellow' : 'green' })}<span class="num">${over ? fmt(f.rice, 1) : `${fmt(f.rice, 1)} / ${fmt(f.cap, 1)}`}</span><small>${t('g.kg')}</small></div>
     <p class="${full ? 'warn-text' : 'hint'}">${full ? t('fieldFull') : t('s17.fullIn', { time: until(f), h: 8 })}</p></article>`;
 }
