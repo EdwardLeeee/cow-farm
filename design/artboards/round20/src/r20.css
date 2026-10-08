@@ -1,0 +1,55 @@
+/* 第 20 輪草稿的樣式：打掃牛、大便掃地機。顏色和元件沿用 M2 設計稿（design/m2/src/css） */
+
+/* ---------- 說明圖的版面（不是畫面的一部分；跟第 13 輪一樣） ---------- */
+body { background: #FFF9EF; }
+.board { padding: 28px 36px 36px; background: #FFF9EF; }
+.b-label { display: inline-block; font-size: 22px; font-weight: 900; line-height: 34px; padding: 0 14px; background: var(--yellow); border: 3px solid var(--ink); border-radius: 12px; }
+.b-title { margin-top: 12px; font-size: 26px; font-weight: 900; line-height: 34px; }
+.b-sub { margin-top: 4px; font-size: 16px; font-weight: 700; line-height: 24px; color: var(--ink-2); }
+.b-row { display: grid; gap: 30px 40px; margin-top: 22px; align-items: start; }
+.b-cell { margin: 0; }
+.b-cell figcaption { min-height: 68px; margin-bottom: 10px; font-size: 14px; font-weight: 700; line-height: 20px; color: #C2541B; }
+.b-cell figcaption b { display: block; font-size: 18px; font-weight: 900; line-height: 26px; color: var(--ink); }
+.b-cell .phone { outline: 2px solid #E2D4C2; }
+.b-cell .phone.tall { height: auto; min-height: 844px; } /* 長頁：整頁畫出來（跟 M2 的長頁狀態一樣） */
+.b-notes { margin: 24px 0 0; padding-left: 22px; font-size: 15px; font-weight: 700; line-height: 24px; color: var(--ink-2); }
+.skip-note { padding: 4px 12px; border: 2px dashed #C2541B; border-radius: 14px; font-size: 14px; font-weight: 900; line-height: 20px; color: #C2541B; text-align: center; background: rgba(255, 255, 255, 0.6); }
+.gesture { position: absolute; z-index: 40; line-height: 0; pointer-events: none; }
+.ov-row { margin-top: 26px; }
+.ov-title { font-size: 20px; font-weight: 900; line-height: 28px; }
+.ov-cells { display: flex; flex-wrap: wrap; gap: 28px; margin-top: 10px; }
+.ov-cap { min-height: 28px; font-size: 15px; line-height: 22px; }
+.ov-cap b { font-weight: 900; }
+.ov-ph { overflow: hidden; outline: 2px solid #E2D4C2; }
+.ov-pair { display: flex; gap: 14px; }
+.ov-legend { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.ov-legend .tier, .ov-legend .stars4 { transform: scale(1.2); transform-origin: left center; margin-right: 10px; }
+.ov-sp { display: flex; gap: 18px; padding: 10px 14px; background: linear-gradient(180deg, #E6F5FF 0, #F1FAE8 62%, #E3F2D3 100%); border: 2px solid #E2D4C2; border-radius: 18px; }
+.ov-sp span { display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 0; }
+.ov-sp b { font-size: 16px; line-height: 22px; }
+.gif-box { display: inline-block; background: #FFF7EC; }
+.gif-label { width: 390px; padding: 6px 10px; font-size: 14px; font-weight: 900; line-height: 20px; color: var(--ink); background: #FFD45E; border-bottom: 2px solid var(--ink); white-space: nowrap; overflow: hidden; }
+.gif-box .phone { border-radius: 0; }
+.gesture { position: absolute; z-index: 90; line-height: 0; pointer-events: none; }
+
+/* 右上角「打掃中」（用 M2 大便數膠囊 .dirty 的位置和外框） */
+.dirty.cleaning { background: #E4F7D8; gap: 6px; padding-left: 4px; }
+.cl-face { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #FFFFFF; border: 2px solid var(--ink); overflow: hidden; line-height: 0; }
+.cl-face svg { flex: none; }
+.dirty.cleaning > span:not(.cl-face) { font-size: 14px; font-weight: 900; }
+.dirty.cleaning .cl-left { font-size: 12px; font-weight: 700; color: var(--ink-2); }
+
+/* 雇用面板 */
+.hire-hero { display: flex; align-items: center; gap: 12px; }
+.hh-pic { flex: none; display: grid; place-items: center; width: 124px; height: 124px; background: linear-gradient(180deg, #DDF0FF, #E8F6DA); border: 2px solid var(--line-soft); border-radius: 18px; line-height: 0; }
+.hh-pic.robot { height: 100px; }
+.hh-name { display: block; font-size: 18px; line-height: 25px; }
+.hire-hero .hint { margin: 4px 0 0; font-size: 13px; line-height: 19px; }
+.hire-rules { margin: 12px 0 0; padding-left: 20px; font-size: 13px; font-weight: 700; line-height: 20px; }
+.hire-rules.tbd b { color: #C2541B; }
+.hire-days { display: flex; gap: 8px; margin-top: 12px; }
+.hd-opt { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 0; background: #FFFFFF; border: 2px solid var(--line-soft); border-radius: 14px; }
+.hd-opt b { font-size: 16px; }
+.hd-opt span { font-size: 12px; font-weight: 700; color: var(--ink-2); }
+.hd-opt.on { background: #FFF6D6; border-color: #E7B53A; box-shadow: 0 0 0 2px #FFE7A0; }
+.hire-sheet .btn-row { margin-top: 14px; }
