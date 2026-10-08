@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from conftest import T0, Harness, new_rid
 from cowecon import DEFAULT, Cow
-from cowecon.farm import make_genotype
+from cowecon.farm import make_genotype, required_feeds
 from server import achievements as A
 from server.breeds import ALL as ALL_BREEDS
 from server.game import Game, Player, week_id, week_start
@@ -133,10 +133,17 @@ def test_rice_codex_and_legend_rules():
     codex = next(x for x in achievements_view(game, p, T0 + 5000) if x["key"] == "codex")
     assert codex["progress"] == 12
     assert [t["unlocked_at"] for t in codex["tiers"]] == [T0 + 400.0, T0 + 1100.0, None]
-    legend = Cow(99, make_genotype(2, [(1, 1), (1, 1), (1, 1)]), False, T0, FP)
+    # 傳說牛：長大揭曉、沒變雜種那一刻才算（v0.3）；變成雜種牛的不算
+    legend = Cow(p.farm._new_id(), make_genotype(2, [(1, 1), (1, 1), (1, 1)]), False, T0, FP, adult_at=T0 + 7)
+    mix = Cow(p.farm._new_id(), legend.g, True, T0, FP, adult_at=T0 + 5)
+    legend.fed = sum(1 << k for k in required_feeds(DEFAULT.care, legend.g))  # 小牛時期吃齊了指定的飼料
     assert legend.tier == 3
-    p.add_codex(legend, T0 + 7)
-    assert p.ach["legend"] == T0 + 7
+    p.farm.cows += [legend, mix]
+    game.settle(p.pid, T0 + 6)
+    assert "legend" not in p.ach and p.codex["hybrid"] == T0 + 5  # 雜種牛：圖鑑的「其他」區
+    game.settle(p.pid, T0 + 100)
+    assert p.ach["legend"] == T0 + 7 and p.ach["pureBreed"] == T0 + 7 and p.codex["starry"] == T0 + 7
+    assert p.codex_count() == 12 + 1  # 前面的 12 種＋星空牛（雜種牛不算）
 
 
 def test_week_champion_includes_income_earned_before_the_week_closes():

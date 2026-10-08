@@ -20,6 +20,7 @@ from typing import Dict, List, Optional, Sequence, Set, Tuple
 
 from cowecon import DEFAULT, EconomyParams, Exchange, Farm, StudMarket
 from cowecon.farm import (
+    HYBRID,
     OX,
     Cow,
     beef_grade_probs,
@@ -33,7 +34,9 @@ from cowecon.params import DAY, HOUR, TZ_OFFSET_S
 
 from . import achievements as A
 from .breeds import ALL as ALL_BREEDS
-from .breeds import breed_id, breed_of_genes
+from .breeds import FEED_IDS, FEED_INDEX, FLOOR_IDS, FLOOR_INDEX
+from .breeds import HYBRID as HYBRID_BREED
+from .breeds import breed_id, shown_breed
 
 CALF_BULL_PROB = 0.5  # 配種、借種生出公牛的機率（cowecon Farm.breed：rng.random() < 0.5，跟基因無關）
 TYPE_WIRE = ("dairy", "dual", "beef")  # 基因用途 0/1/2 的協定名稱；v0.2 的「耕牛」沿用 dual（見 docs/protocol.md）
@@ -41,6 +44,7 @@ TYPE_INDEX = {w: i for i, w in enumerate(TYPE_WIRE)}
 UPGRADE_KINDS = ("pen", "bucket", "warehouse", "fresh", "field")
 SELL_ALL_TOL = 1e-6  # 賣出數量和庫存差在這以內，視為全部賣出
 GOODS_NAME = {"milk": "牛奶", "beef": "牛肉", "rice": "稻米"}
+CLEAN_DAYS = 7  # 成就 clean：連續幾天沒有牛生病（遊戲天）
 
 
 class GameError(Exception):
@@ -105,6 +109,10 @@ class Player:
         "ach_n",
         "prev_week",
         "prev_week_earned",
+        "grown_ids",
+        "parents",
+        "pairs",
+        "clean_from",
     )
 
     def __init__(
@@ -134,12 +142,22 @@ class Player:
         # 上一週的週收入：新的一週第一次有收入時 week_earned 會歸零，週冠軍要看上一週的（runtime 的週結算）
         self.prev_week: Optional[int] = None
         self.prev_week_earned = 0.0
+        # v0.3 C1：長大揭曉（Game.observe_care）
+        self.grown_ids: Set[int] = set()  # 已經處理過長大揭曉的牛（只留還在牧場的）
+        self.parents: Dict[int, List] = {}  # 真人配種、借種生的小牛 → [爸爸的基因, 爸爸是雜種, 媽媽的基因, 媽媽是雜種]
+        self.pairs: Dict[
+            str, float
+        ] = {}  # 配種表（C1b）："爸爸品種,媽媽品種,小牛品種" → 第一次長大的時間（畫面上的品種）
+        self.clean_from: Optional[float] = created_at  # 成就 clean：從什麼時候起沒有牛生病（None = 現在有病牛）
 
-    def add_codex(self, cow: Cow, now: float) -> None:
-        """牛一出生（或抽到、借種生下）就算發現；記第一次的時間，之後出貨也不會消失。"""
-        self.codex.setdefault(breed_of_genes(cow.g), now)
-        if cow.tier == 3:
-            self.unlock("legend", now)  # 擁有一頭傳說牛
+    def found(self, breed: str, t: float) -> None:
+        """圖鑑：記第一次發現的時間（長大揭曉那一刻）；之後出貨也不會消失。"""
+        if breed not in self.codex or t < self.codex[breed]:
+            self.codex[breed] = t
+
+    def codex_count(self) -> int:
+        """圖鑑發現了幾種（24 種裡的；雜種牛不算，企劃 v0.3 第 1.1 節）：收藏榜、成就 codex。"""
+        return sum(1 for b in self.codex if b != HYBRID_BREED)
 
     def add_income(self, coins: float, now: float) -> None:
         self.earned += coins
@@ -152,8 +170,9 @@ class Player:
 
     # ---- 成就（S21） ----
     def unlock(self, key: str, now: float) -> None:
-        """記第一次解鎖的遊戲時間；已經解鎖的不變。"""
-        self.ach.setdefault(key, now)
+        """記第一次解鎖的遊戲時間；已經解鎖的不變（同一次結算裡更早的時間優先）。"""
+        if key not in self.ach or now < self.ach[key]:
+            self.ach[key] = now
 
     def count(self, key: str, amount: float, now: float) -> None:
         """有計數的成就加 amount，到目標就解鎖。"""
@@ -203,6 +222,10 @@ class Player:
             "ach_n": dict(sorted(self.ach_n.items())),
             "prev_week": self.prev_week,
             "prev_week_earned": self.prev_week_earned,
+            "grown_ids": sorted(self.grown_ids),
+            "parents": {str(k): v for k, v in sorted(self.parents.items())},
+            "pairs": dict(sorted(self.pairs.items())),
+            "clean_from": self.clean_from,
         }
 
     @classmethod
@@ -236,6 +259,11 @@ class Player:
         p.ach_n = dict(state.get("ach_n", {}))
         p.prev_week = state.get("prev_week")
         p.prev_week_earned = state.get("prev_week_earned", 0.0)
+        # v0.3 C1（存檔格式 5；更舊的世界在載入前就被拒絕）
+        p.grown_ids = set(state.get("grown_ids", ()))
+        p.parents = {int(k): list(v) for k, v in state.get("parents", {}).items()}
+        p.pairs = dict(state.get("pairs", {}))
+        p.clean_from = state.get("clean_from", created_at)
         return p
 
     def copy(self) -> "Player":
@@ -342,12 +370,11 @@ class Game:
         if pid in self.players:
             raise ValueError(f"player {pid} 已存在")
         self.next_pid = max(self.next_pid, pid + 1)
-        # v0.3 照顧規則（大便、生病、變雜種）：PR A 先只給電腦玩家，真人到 C1（按鈕和協定都好了）才開
-        farm = Farm(self.params, now, rng if rng is not None else random.Random(f"{self.seed}:new:{pid}"), care=is_bot)
+        # v0.3 照顧規則（大便、生病、變雜種）：C1 起全部牧場都開（存檔格式 5）
+        farm = Farm(self.params, now, rng if rng is not None else random.Random(f"{self.seed}:new:{pid}"), care=True)
         p = Player(pid, name, is_bot, now, farm, token_hash)
-        for c in farm.cows:
-            p.add_codex(c, now)
         self.players[pid] = p
+        self.settle(pid, now)  # 開局的成牛這一刻長大：圖鑑發現（小公牛長大時再發現）
         return p
 
     def add_player(self, p: Player) -> None:
@@ -528,8 +555,7 @@ class Game:
         cow = f.buy_shop(gi, now, self._rng(p, rng))
         if cow is None:
             raise GameError("rejected", "現在不能買牛", 409)
-        p.add_codex(cow, now)
-        return cow
+        return cow  # 抽到的是小牛：長大揭曉時才算發現（observe_care）
 
     def shop_info(self) -> List[dict]:
         fp = self.params.farm
@@ -576,6 +602,8 @@ class Game:
             out.append({"code": "cow_in_field", "message": "在田裡工作，先叫回來", "cow_id": c.cid})
         if c.listed is not None:
             out.append({"code": "cow_listed", "message": "正在借種市場上架，先下架", "cow_id": c.cid})
+        if p.farm.is_sick(c, now):
+            out.append({"code": "cow_sick", "message": "生病了，先治療", "cow_id": c.cid})
         return out
 
     def _breed_pair(self, p: Player, sire_id, dam_id, now: float) -> Tuple[Cow, Cow, List[dict]]:
@@ -634,7 +662,7 @@ class Game:
         calf = p.farm.breed(sire, dam, now, self._rng(p, rng))
         if calf is None:
             raise GameError("rejected", "現在不能配種", 409)
-        p.add_codex(calf, now)
+        self._note_parents(p, calf, sire.g, sire.hybrid, dam)
         p.unlock("newLife", now)  # 第一次配種生出小牛
         return {"calf": calf, "sire": sire, "dam": dam}
 
@@ -663,6 +691,7 @@ class Game:
         if not c.is_adult(now):
             raise GameError("cow_not_adult", "小牛還沒長大，不能下田", 409, {"cow_id": c.cid, "until": c.adult_at})
         self._check_free(c, "下田")
+        self._check_healthy(p, c, now)
         i = self._field_index(p, field)
         if not p.farm.assign_field(c, i, now):
             raise GameError("rejected", "現在不能下田", 409)
@@ -709,6 +738,7 @@ class Game:
         if c.bred:
             raise GameError("already_bred", "這頭公牛這輩子已經配過種", 409, {"cow_id": c.cid})
         self._check_free(c, "上架")
+        self._check_healthy(p, c, now)
         lst = self.stud.list_bull(p.farm, pid, c, now)
         if lst is None:
             raise GameError("rejected", "現在不能上架", 409)
@@ -746,6 +776,8 @@ class Game:
             bull = owner.farm.cow_by_id(lst.cow_id) if owner else None
             if bull is None or bull.bred or bull.listed != lst.lid:
                 out.append({"code": "listing_gone", "message": "這頭公牛已經不能借了"})
+            elif owner.farm.is_sick(bull, now):
+                out.append({"code": "bull_sick", "message": "這頭公牛生病了，主人治好以前不能借"})
         return out
 
     def stud_preview(self, pid: int, lid, dam_id, now: float) -> dict:
@@ -800,12 +832,12 @@ class Game:
             raise GameError(b["code"], b["message"], status, detail or None)
         owner = self.players.get(lst.owner) if lst.owner is not None else None
         if owner is not None:
-            self._touch(owner.pid)
+            self._touch(owner.pid)  # 主人的牧場不先結算：借種不會讓揭曉、生病的紀錄漏掉，主人下次動作時照樣記到
         calf = self.stud.borrow(lst.lid, p.farm, pid, dam, now, self._rng(p, rng), owner.farm if owner else None)
         if calf is None:  # 上面已經檢查過，理論上不會發生
             raise GameError("rejected", "現在不能借種", 409)
         self.stud_dirty = True
-        p.add_codex(calf, now)
+        self._note_parents(p, calf, lst.g, lst.vt == HYBRID, dam)
         p.unlock("newLife", now)
         p.unlock("borrow", now)  # 第一次借到別人的公牛（公營種牛站的也算）
         if owner is not None:
@@ -822,6 +854,7 @@ class Game:
                 "price": price,
                 "cow_id": lst.cow_id,
                 "g": lst.g,
+                "hybrid": lst.vt == HYBRID,
                 "t": now,
                 "calf_id": calf.cid,
                 "calf_g": calf.g,
@@ -862,65 +895,279 @@ class Game:
             raise GameError("rejected", "現在不能升級", 409)
         return {"kind": kind, "cost": int(round(cost))}
 
-    # ---- 照顧（v0.3）：PR A 給電腦玩家用；HTTP 端點、錯誤碼在 C1 ----
+    # ---- 照顧（v0.3；協定 2.6 節）----
     def settle(self, pid: int, now: float) -> None:
-        """結算到 now（長大揭曉、大便、生病、奶桶、田地）。"""
-        self.player(pid).farm.advance(now)
+        """結算到 now（長大揭曉、大便、生病、奶桶、田地），再記長大揭曉和生病的結果（observe_care）。
+        執行期在每個動作之前叫：動作本身就不會再有新的揭曉、生病（同一個 now），出貨、治療之前的事件都記得到。"""
+        p = self.player(pid)
+        p.farm.advance(now)
+        self.observe_care(p, now)
+
+    def preview(self, p: Player, now: float) -> Player:
+        """GET /v1/state 用：結算到 now 的複本（本身不改、不存檔）。結算跟幾時做無關，所以複本跟下一個動作
+        會存的一樣：揭曉的品種、圖鑑的時間（= 長大的時間）、成就、大便、病牛都對得上。"""
+        q = p.copy()
+        q.farm.advance(now)
+        self.observe_care(q, now)
+        return q
+
+    def observe_care(self, p: Player, now: float) -> None:
+        """牧場結算以後叫（只讀牧場、改 Player）：
+        - 長大揭曉：圖鑑（found_at = 長大的時間）、成就 legend、pureBreed、配種表（C1b）。
+        - 成就 clean：連續 CLEAN_DAYS 天沒有牛生病（時間照生病、治好的那一刻精確算）。"""
+        f = p.farm
+        new = sorted((c for c in f.cows if c.grown and c.cid not in p.grown_ids), key=lambda c: (c.adult_at, c.cid))
+        for c in new:
+            t = c.adult_at
+            child = shown_breed(c.g, c.hybrid)
+            p.found(child, t)
+            if not c.hybrid:
+                if c.tier == 3:
+                    p.unlock("legend", t)  # 擁有一頭傳說牛（長大、沒變雜種）
+                if c.tier >= 2 and c.origin != "start":
+                    p.unlock("pureBreed", t)  # 照品種的飼料養大一頭稀有以上的小牛
+            par = p.parents.pop(c.cid, None)
+            if par is not None and not c.hybrid:  # 變成雜種牛不算（企劃 13.2）
+                key = ",".join((shown_breed(par[0], par[1]), shown_breed(par[2], par[3]), child))
+                if key not in p.pairs or t < p.pairs[key]:
+                    p.pairs[key] = t
+        p.grown_ids = {c.cid for c in f.cows if c.grown}
+        live = {c.cid for c in f.cows}
+        if any(cid not in live for cid in p.parents):  # 理論上小牛不會在長大前離開；保險起見不留孤兒
+            p.parents = {k: v for k, v in p.parents.items() if k in live}
+        sick = [c.sick_since for c in f.cows if c.sick_since is not None]
+        if p.clean_from is not None:
+            first = min(sick) if sick else now
+            if first - p.clean_from >= CLEAN_DAYS * DAY:
+                p.unlock("clean", p.clean_from + CLEAN_DAYS * DAY)
+            if sick:
+                p.clean_from = None
+        elif not sick:
+            p.clean_from = now  # 最後一頭病牛剛治好（或出貨）
+
+    def _note_parents(self, p: Player, calf: Cow, sire_g: int, sire_hybrid: bool, dam: Cow) -> None:
+        """真人配種、借種生的小牛：記爸媽，長大揭曉時寫進配種表（電腦假玩家不記）。"""
+        if not p.is_bot:
+            p.parents[calf.cid] = [sire_g, sire_hybrid, dam.g, dam.hybrid]
+
+    def _check_healthy(self, p: Player, c: Cow, now: float) -> None:
+        if p.farm.is_sick(c, now):
+            raise GameError("cow_sick", "這頭牛生病了，先治療", 409, {"cow_id": c.cid})
+
+    @staticmethod
+    def _feed_index(feed) -> int:
+        if not isinstance(feed, str) or feed not in FEED_INDEX:
+            raise GameError("bad_request", "feed 要是飼料代號（協定 1.6 節）", 400, {"fields": ["feed"]})
+        return FEED_INDEX[feed]
+
+    @staticmethod
+    def _floor_index(floor) -> int:
+        if not isinstance(floor, str) or floor not in FLOOR_INDEX:
+            raise GameError("bad_request", "floor 要是地板代號（協定 1.6 節）", 400, {"fields": ["floor"]})
+        return FLOOR_INDEX[floor]
+
+    @staticmethod
+    def _int_arg(v, field: str, lo: int = 1) -> int:
+        if isinstance(v, bool) or not isinstance(v, int) or v < lo:
+            raise GameError("bad_request", f"{field} 要是 ≥ {lo} 的整數", 400, {"fields": [field]})
+        return v
+
+    @staticmethod
+    def _coins(f: Farm, cost: float) -> None:
+        if f.coins < cost:
+            raise GameError(
+                "not_enough_coins", "金幣不夠", 409, {"need": int(round(cost)), "have": int(round(f.coins))}
+            )
+
+    def feed_status(self, p: Player, c: Cow, now: float) -> Optional[str]:
+        """這頭牛現在能不能吃（不看倉庫有沒有）：None 可以；full 吃飽冷卻中、listed 上架借種中、
+        past_peak 過了最壯、bonus_max 加成滿了（cows[].feed_block）。"""
+        f = p.farm
+        cp = f.p.care
+        if now < c.fed_until:
+            return "full"
+        if c.listed is not None:
+            return "listed"
+        if c.is_adult(now):
+            if c.adult_age_h(now) >= f.fp.peak_age_h[c.ctype]:
+                return "past_peak"
+            if c.bonus >= cp.bonus_max_kg:
+                return "bonus_max"
+        return None
+
+    @classmethod
+    def parse_piles(cls, piles) -> Optional[Dict[int, int]]:
+        """POST /v1/clean 的 piles：[{"cow_id", "n"}] → {牛的編號: 清幾坨}（同一頭牛出現幾次就加起來）；None = 全部清。"""
+        if piles is None:
+            return None
+        bad = GameError("bad_request", "piles 要是 [{cow_id, n}] 的陣列（n 是 ≥ 1 的整數）", 400, {"fields": ["piles"]})
+        if not isinstance(piles, list):
+            raise bad
+        out: Dict[int, int] = {}
+        for x in piles:
+            if not isinstance(x, dict):
+                raise bad
+            cid, n = x.get("cow_id"), x.get("n")
+            for v in (cid, n):
+                if isinstance(v, bool) or not isinstance(v, int):
+                    raise bad
+            if n < 1:
+                raise bad
+            out[cid] = out.get(cid, 0) + n
+        return out
 
     def clean(self, pid: int, now: float, piles: Optional[Dict[int, int]] = None) -> dict:
-        return {"cleaned": self.player(pid).farm.clean(now, piles)}
+        """清大便：piles = {牛的編號: 清幾坨}（app 劃過去清掉的）；None = 全部。"""
+        p = self.player(pid)
+        if piles is not None:
+            for cid in piles:
+                self._cow(p, cid)
+        n = p.farm.clean(now, piles)
+        return {"cleaned": n, "poop": sum(c.poop for c in p.farm.cows)}
 
     def cure(self, pid: int, cow_id, now: float, rng: Optional[random.Random] = None) -> dict:
         p = self.player(pid)
+        f = p.farm
         c = self._cow(p, cow_id)
-        if not p.farm.cure(c, now, self._rng(p, rng)):
+        f.advance(now)
+        if c.sick_since is None:
+            raise GameError("cow_not_sick", "這頭牛沒有生病", 409, {"cow_id": c.cid})
+        cost = f.p.care.cure_price
+        self._coins(f, cost)
+        if not f.cure(c, now, self._rng(p, rng)):
             raise GameError("rejected", "現在不能治療", 409, {"cow_id": c.cid})
-        return {"cow_id": c.cid}
+        p.unlock("healer", now)  # 治好一頭病牛
+        return {"cow_id": c.cid, "cost": int(round(cost))}
 
-    def buy_feed(self, pid: int, kind: int, n: int, now: float) -> dict:
-        if not self.player(pid).farm.buy_feed(kind, n, now):
+    def buy_feed(self, pid: int, kind, n, now: float) -> dict:
+        """用固定價買飼料（params 的 feed_price；飼料市場在 C2）。kind：飼料代號或索引（電腦假玩家用索引）。"""
+        p = self.player(pid)
+        f = p.farm
+        cp = f.p.care
+        k = kind if isinstance(kind, int) and not isinstance(kind, bool) else self._feed_index(kind)
+        n = self._int_arg(n, "qty")
+        if f.feeds[k] + n > cp.feed_cap:
+            raise GameError(
+                "feed_cap", "倉庫放不下這麼多飼料", 409, {"feed": FEED_IDS[k], "cap": cp.feed_cap, "have": f.feeds[k]}
+            )
+        cost = cp.feed_price[k] * n
+        self._coins(f, cost)
+        if not f.buy_feed(k, n, now):
             raise GameError("rejected", "現在不能買飼料", 409)
-        return {"kind": kind, "n": n}
+        return {"feed": FEED_IDS[k], "kind": k, "n": n, "cost": int(round(cost))}
 
-    def feed(self, pid: int, cow_id, kind: int, now: float) -> dict:
+    def _feed_check(self, p: Player, c: Cow, k: int, now: float) -> None:
+        f = p.farm
+        if f.feeds[k] <= 0:
+            raise GameError("out_of_feed", "倉庫沒有這種飼料", 409, {"feed": FEED_IDS[k]})
+        why = self.feed_status(p, c, now)
+        if why == "full":
+            raise GameError("cow_full", "吃飽了，等一下再餵", 409, {"cow_id": c.cid, "until": c.fed_until})
+        if why == "listed":
+            raise GameError(
+                "cow_listed", "正在借種市場上架，先下架才能餵", 409, {"cow_id": c.cid, "listing_id": c.listed}
+            )
+        if why is not None:
+            raise GameError("feed_no_effect", "餵了也不會長肉", 409, {"cow_id": c.cid, "reason": why})
+
+    def feed(self, pid: int, cow_id, kind, now: float) -> dict:
+        """餵一頭牛一份飼料。kind：飼料代號或索引（電腦假玩家用索引）。"""
         p = self.player(pid)
         c = self._cow(p, cow_id)
-        reason = p.farm.feed_block(c, kind, now)
-        if reason is not None or not p.farm.feed(c, kind, now):
-            raise GameError("rejected", "現在不能餵", 409, {"cow_id": c.cid, "reason": reason})
-        return {"cow_id": c.cid, "kind": kind}
+        k = kind if isinstance(kind, int) and not isinstance(kind, bool) else self._feed_index(kind)
+        self._feed_check(p, c, k, now)
+        if not p.farm.feed(c, k, now):
+            raise GameError("rejected", "現在不能餵", 409, {"cow_id": c.cid})
+        return {"cow_id": c.cid, "feed": FEED_IDS[k], "kind": k}
 
-    def hire_helper(self, pid: int, days: int, now: float) -> dict:
-        f = self.player(pid).farm
+    def feed_all(self, pid: int, kind, now: float) -> dict:
+        """全部餵一樣的（企劃 2.2）：現在能吃這種飼料的牛各餵一份，份數不夠先餵小牛、再照編號。"""
+        p = self.player(pid)
+        f = p.farm
+        k = self._feed_index(kind)
+        if f.feeds[k] <= 0:
+            raise GameError("out_of_feed", "倉庫沒有這種飼料", 409, {"feed": FEED_IDS[k]})
+        order = sorted(f.cows, key=lambda c: (c.is_adult(now), c.cid))
+        fed = []
+        for c in order:
+            if f.feeds[k] <= 0:
+                break
+            if f.feed_block(c, k, now) is None and f.feed(c, k, now):
+                fed.append(c.cid)
+        if not fed:
+            raise GameError("nothing_to_feed", "現在沒有牛能吃這種飼料", 409, {"feed": FEED_IDS[k]})
+        return {"feed": FEED_IDS[k], "fed": fed}
+
+    def _max_days(self, until: float, now: float, max_days: int) -> None:
+        if until - now > max_days * DAY + 1e-6:
+            raise GameError("max_days", f"最多預付 {max_days} 天", 409, {"max_days": max_days})
+
+    def hire_helper(self, pid: int, days, now: float) -> dict:
+        p = self.player(pid)
+        f = p.farm
+        cp = f.p.care
+        days = self._int_arg(days, "days")
+        self._max_days(max(now, f.helper_until) + days * DAY, now, cp.helper_max_days)
+        cost = cp.helper_price_per_day * days
+        self._coins(f, cost)
         if not f.hire_helper(days, now):
             raise GameError("rejected", "現在不能雇小幫手", 409)
-        return {"until": f.helper_until}
+        return {"days": days, "cost": int(round(cost)), "until": f.helper_until}
 
-    def buy_floor(self, pid: int, i: int, now: float) -> dict:
-        if not self.player(pid).farm.buy_floor(i, now):
-            raise GameError("rejected", "現在不能買這種地板", 409)
-        return {"floor": i}
-
-    def rent_floor(self, pid: int, i: int, days: int, now: float) -> dict:
-        """租長快地板（按天預付）；正在用這種地板的話，上架的公牛照新的租約算借種費。"""
+    def buy_floor(self, pid: int, floor, now: float) -> dict:
+        """買斷地板（軟墊地）。電腦假玩家傳索引。"""
         f = self.player(pid).farm
+        cp = f.p.care
+        i = floor if isinstance(floor, int) and not isinstance(floor, bool) else self._floor_index(floor)
+        if (f.floors >> i) & 1:
+            raise GameError("floor_owned", "已經有這種地板了", 409, {"floor": FLOOR_IDS[i]})
+        if cp.floor_price[i] <= 0:
+            raise GameError("bad_request", "這種地板只能租", 400, {"fields": ["floor"]})
+        self._coins(f, cp.floor_price[i])
+        if not f.buy_floor(i, now):
+            raise GameError("rejected", "現在不能買這種地板", 409)
+        return {"floor": FLOOR_IDS[i], "cost": int(round(cp.floor_price[i]))}
+
+    def rent_floor(self, pid: int, floor, days, now: float) -> dict:
+        """租長快地板（按天預付，接在還沒到期的後面）；正在用這種地板的話，上架的公牛照新的租約算借種費。"""
+        f = self.player(pid).farm
+        cp = f.p.care
+        i = floor if isinstance(floor, int) and not isinstance(floor, bool) else self._floor_index(floor)
+        days = self._int_arg(days, "days")
+        if cp.floor_rent_per_day[i] <= 0:
+            raise GameError("bad_request", "這種地板不能租", 400, {"fields": ["floor"]})
+        f.advance(now)  # 租約在 now 以前到期的先結算掉
+        if f.rented and f.rented != i:
+            raise GameError(
+                "floor_rented",
+                "已經租了別種地板，到期以後才能租這種",
+                409,
+                {"floor": FLOOR_IDS[f.rented], "until": f.rent_until},
+            )
+        self._max_days((f.rent_until if f.rented == i else now) + days * DAY, now, cp.floor_rent_max_days)
+        cost = cp.floor_rent_per_day[i] * days
+        self._coins(f, cost)
         if not f.rent_floor(i, days, now):
             raise GameError("rejected", "現在不能租這種地板", 409)
         self._follow_floor(pid, f)
-        return {"floor": i, "until": f.rent_until}
+        return {"floor": FLOOR_IDS[i], "days": days, "cost": int(round(cost)), "until": f.rent_until}
 
     def _follow_floor(self, pid: int, f) -> None:
         if self.stud.owner_listings(pid):
             self.stud.follow_owner(pid, f)
             self.stud_dirty = True
 
-    def use_floor(self, pid: int, i: int, now: float) -> dict:
-        """換地板（年紀速度）；上架借種的公牛跟著主人的速度算借種費。"""
+    def use_floor(self, pid: int, floor, now: float) -> dict:
+        """換地板（年紀速度）；上架借種的公牛跟著主人的速度算借種費。換成正在用的那種：什麼都不變。"""
         f = self.player(pid).farm
+        i = floor if isinstance(floor, int) and not isinstance(floor, bool) else self._floor_index(floor)
+        f.advance(now)
+        if not f.has_floor(i, now):
+            raise GameError("floor_locked", "沒有這種地板（先買或租）", 409, {"floor": FLOOR_IDS[i]})
         if not f.use_floor(i, now):
-            raise GameError("rejected", "沒有這種地板", 409)
+            raise GameError("rejected", "現在不能換地板", 409)
         self._follow_floor(pid, f)
-        return {"floor": i}
+        return {"floor": FLOOR_IDS[i]}
 
     # ---- 排行榜用 ----
     # ---- 牧場資料（S21，D34） ----
@@ -936,9 +1183,9 @@ class Game:
         return {"name": name, "cost": cost}
 
     def set_avatar(self, pid: int, breed, now: float) -> dict:
-        """換頭像：只能選圖鑑裡發現過的品種，免費。"""
+        """換頭像：只能選圖鑑裡發現過的品種（雜種牛 "hybrid" 也是，發現過才能選），免費。"""
         p = self.player(pid)
-        if not isinstance(breed, str) or breed not in ALL_BREEDS:
+        if not isinstance(breed, str) or (breed not in ALL_BREEDS and breed != HYBRID_BREED):
             raise GameError("bad_request", "breed 要是品種代號（協定 1.6 節）", 400, {"fields": ["breed"]})
         if breed not in p.codex:
             raise GameError("avatar_locked", "還沒在圖鑑發現這個品種", 409, {"breed": breed})
@@ -1005,7 +1252,8 @@ def stud_fee_view(fp, tier: int, price: float, kg: float, at_max: bool) -> dict:
 
 
 def ship_value(game: Game, p: Player, cow: Cow, now: float, mult: Optional[float] = None) -> float:
-    """這頭牛現在出貨、立刻賣掉的估計收入（幣，含這位玩家的滑價）。mult 沒給就用評級期望值。小牛是 0。"""
+    """這頭牛現在出貨、立刻賣掉的估計收入（幣，含這位玩家的滑價）。mult 沒給就用評級期望值（含稀有度、雜種牛的倍數）。
+    病牛再乘 sick_beef_mult（只剩一成）。小牛是 0。"""
     from cowecon.farm import beef_expected_mult, beef_weight
 
     if not cow.is_adult(now):
@@ -1014,5 +1262,7 @@ def ship_value(game: Game, p: Player, cow: Cow, now: float, mult: Optional[float
     w = beef_weight(f.fp, cow, now)
     if mult is None:
         mult = beef_expected_mult(f.fp, cow, now)
+    if f.is_sick(cow, now):
+        mult *= f.p.care.sick_beef_mult
     res = game.ex.markets["beef"].quote(f.impact["beef"], [(w, mult)], now)
     return res.proceeds
