@@ -4,10 +4,14 @@ import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 
-/// 設計稿的小工具：t 在 a–b 之間走了幾成（0–1）、outCubic、inOut。
+/// 設計稿的小工具：t 在 a–b 之間走了幾成（0–1）、outCubic、inOut、outBack（超過一點再彈回來）。
 double animSeg(double t, double a, double b) => ((t - a) / (b - a)).clamp(0.0, 1.0);
 double animOutCubic(double x) => 1 - math.pow(1 - x, 3).toDouble();
 double animInOut(double x) => x < 0.5 ? 4 * x * x * x : 1 - math.pow(-2 * x + 2, 3) / 2;
+double animOutBack(double x) {
+  const c1 = 1.70158, c3 = c1 + 1;
+  return 1 + c3 * math.pow(x - 1, 3) + c1 * math.pow(x - 1, 2);
+}
 
 /// 一組飛的圖示。第 i 個在 [start] + i × [stagger] 起飛、飛 [dur] 秒；位置照 outCubic 沿拋物線（高 [lift]）從
 /// [from](i) 飛到 [to]，[scale]、[angle]（度）看飛了幾成 k。飛之前、飛完都看不見。

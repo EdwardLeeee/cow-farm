@@ -2,7 +2,8 @@
 // A-03 出貨卡車（照設計稿：載走荷斯坦，後面站著荷斯坦公牛、荷斯坦小牛、娟珊，3.6 秒）、
 // A-11 牛舍滿 40 頭一起走（場景左半、往右滑到底的右半，各一輪 4 秒；其他 32 個位置的走法，ceo 2026-10-03）、
 // A-01 收奶（按下「收奶」以後 1.4 秒：奶桶 36.4 瓶全部進倉庫，130 → 166 瓶）、
-// A-02 成交（賣 130 瓶牛奶、1,924 幣：12,480 → 14,404；賣出面板捲到最上面，跟設計稿一樣）。
+// A-02 成交（賣 130 瓶牛奶、1,924 幣：12,480 → 14,404；賣出面板捲到最上面，跟設計稿一樣）、
+// A-05 升級（牧場頁，累積收入 7,500 跨過 Lv5 的門檻）。
 // 390 寬、每點 2 像素（跟設計稿的動畫一樣只出 390），寫到 SHOTS_DIR/anim/<動畫 ID>/<第幾格>.png。
 // 只在本機拍，CI 不跑（沒給 SHOTS 就整個跳過）。在 app/ 底下：
 //   flutter test --dart-define=SHOTS=1 --dart-define=SHOTS_DIR=build/shots/<PR 編號> test/pages/anim_shots_test.dart
@@ -154,6 +155,23 @@ void main() {
     for (var i = 0; i <= 30; i++) {
       if (i > 0) await tester.pump(_frame);
       await _save(tester, 'A-02', i);
+    }
+  });
+
+  testWidgets('A-05 升級：累積收入跨過門檻，Lv4 → Lv5（1.3 秒）', (tester) async {
+    // 設計稿的底圖：S03-01 的牧場，頂列 Lv 4、經驗條滿的
+    final api = FakeGameApi(
+      state: ranchState(levelProgress: {'earned': 7500, 'level_at': 3500, 'next_at': 7500}),
+      market: ranchMarket(),
+    );
+    final m = await ranchModel(api: api);
+    await _ranch(tester, model: m);
+    api.stateJson = ranchState(level: 5, levelProgress: {'earned': 7500, 'level_at': 7500, 'next_at': 15500});
+    await m.refreshState();
+    await tester.pump();
+    for (var i = 0; i <= 26; i++) {
+      if (i > 0) await tester.pump(_frame);
+      await _save(tester, 'A-05', i);
     }
   });
 

@@ -113,10 +113,12 @@ class AppFrame extends StatelessWidget {
               child: const Center(child: OfflinePill()),
             ),
           ...overlays,
-          // 場主升級慶祝（S11-01）：在哪一頁升級就在哪一頁跳，蓋在最上面。
+          // 場主升級慶祝（S11-01、動畫 A-05）：在哪一頁升級就在哪一頁跳，蓋在最上面。
           // Lv2 以上的慶祝卡關掉以後，可能接著提醒備份牧場（S11-05，只出現一次）
           if (m.levelUp case final up?)
             LevelUpOverlay(
+              // 升到新的一級就從頭播（A-05）
+              key: ValueKey(('level-up', up.level)),
               level: up.level,
               levelAt: up.levelAt,
               onOk: () {
@@ -192,17 +194,20 @@ class HudFx {
 }
 
 /// [HudFxScope] 的值（HomeShell 建、HomeShell 丟）。
-class HudFxNotifier extends ValueNotifier<HudFx?> {
-  HudFxNotifier() : super(null);
-
+class HudFxNotifier extends ChangeNotifier {
+  HudFx? _value;
   bool _disposed = false;
+
+  HudFx? get value => _value;
 
   /// 改自己那一份；全部都沒了就是 null（頂列照伺服器的數字）。頁面在動畫播到一半被丟掉時（例：切分頁），
   /// 下一格才清自己那一份，那時 HomeShell 可能也丟了：丟了就不管。
-  void edit(HudFx Function(HudFx fx) change) {
+  /// [quiet]：畫面正在建的時候改（這時不能叫頂列重畫），頂列這一格本來就要重畫才看得到；之後要再改一次（不 quiet）。
+  void edit(HudFx Function(HudFx fx) change, {bool quiet = false}) {
     if (_disposed) return;
-    final fx = change(value ?? const HudFx());
-    value = fx.isEmpty ? null : fx;
+    final fx = change(_value ?? const HudFx());
+    _value = fx.isEmpty ? null : fx;
+    if (!quiet) notifyListeners();
   }
 
   @override

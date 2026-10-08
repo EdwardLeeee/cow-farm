@@ -1,0 +1,168 @@
+// A-05 升級（設計稿 anims.js 的 A05，1.3 秒）：暗幕變暗、卡片彈出來、等級數字從 4 翻成 5（頂列的等級同時換）、彩紙落下，
+// 停在最後一格等「好」。減少動態：直接是最後一格、整個淡入 0.2 秒。沒開動畫是 S11-01（test/pages/s11_cases.dart）。
+// 逐格的畫面在 test/pages/anim_shots_test.dart。
+import 'package:cowfarm/app.dart';
+import 'package:cowfarm/l10n/l10n.dart';
+import 'package:cowfarm/state/game_model.dart';
+import 'package:cowfarm/ui/kit/frame.dart';
+import 'package:cowfarm/ui/kit/motion.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'fakes.dart';
+import 'pages/page_case.dart';
+
+final _zh = Strings.forLang(AppLang.zhHant);
+
+/// 牧場頁、Lv4，開著動畫；回傳升到 Lv5 的函式（伺服器的 state 變了）。
+Future<(GameModel, Future<void> Function())> _ranchWithMotion(WidgetTester tester, {bool reduced = false}) async {
+  final (m, api, _) = await loadedModel();
+  api.stateJson = {
+    ...api.stateJson,
+    'level': 4,
+    'level_progress': {'earned': 7400, 'level_at': 3500, 'next_at': 7500},
+  };
+  await m.refreshState();
+  final settings = settingsFor(AppLang.zhHant, swipeHintSeen);
+  await settings.load();
+  if (reduced) {
+    tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+  }
+  await tester.pumpWidget(
+    AppMotion(
+      enabled: true,
+      child: CowFarmApp(model: m, settings: settings),
+    ),
+  );
+  await tester.pump();
+  Future<void> levelUp() async {
+    api.stateJson = {
+      ...api.stateJson,
+      'level': 5,
+      'level_progress': {'earned': 7500, 'level_at': 7500, 'next_at': 15500},
+    };
+    await m.refreshState();
+    await tester.pump();
+  }
+
+  return (m, levelUp);
+}
+
+/// 頂列的等級（「Lv 4」）。
+Finder _hudLv(int lv) => find.descendant(
+  of: find.byType(Hud),
+  matching: find.text(_zh.level(lv: lv)),
+);
+
+/// 卡片現在的大小（A-05 從 0.4 倍彈到 1 倍）。
+double _cardScale(WidgetTester tester) {
+  final t = find.ancestor(of: find.byKey(const Key('level-card')), matching: find.byType(Transform));
+  return tester.widget<Transform>(t.first).transform.getMaxScaleOnAxis();
+}
+
+final _confetti = find.byWidgetPredicate(
+  (w) => w.key is ValueKey<String> && (w.key! as ValueKey<String>).value.startsWith('confetti-'),
+);
+
+/// 「4」「5」在捲動框裡的位置（框的上緣是 0）。
+double _numberY(WidgetTester tester, String n) {
+  final text = find.descendant(of: find.byKey(const Key('level-card')), matching: find.text(n));
+  final box = find.ancestor(of: text, matching: find.byType(ClipRect)).first;
+  return tester.getTopLeft(text).dy - tester.getTopLeft(box).dy;
+}
+
+void main() {
+  setUpAll(loadAppAssets);
+
+  testWidgets('開著動畫：卡片彈出來、數字從 4 翻成 5、頂列跟著換、彩紙第 0.35 秒才出來；停在最後一格，按「好」關掉', (tester) async {
+    Screen.w390.apply(tester);
+    final (m, levelUp) = await _ranchWithMotion(tester);
+    expect(_hudLv(4), findsOneWidget);
+    await levelUp();
+    expect(_hudLv(4), findsOneWidget, reason: '升級的那一格頂列也還是 Lv 4（不閃一下 Lv 5）');
+    await tester.pump(const Duration(milliseconds: 50));
+    expect(find.byKey(const Key('level-up')), findsOneWidget);
+    expect(_hudLv(4), findsOneWidget, reason: '數字翻過去以前頂列還是 Lv 4');
+    expect(_confetti, findsNothing, reason: '第 0.35 秒才落下');
+
+    await tester.pump(const Duration(milliseconds: 150)); // 0.2 秒
+    expect(_cardScale(tester), inExclusiveRange(0.4, 1.2));
+    expect(_numberY(tester, '4'), 0, reason: '還沒開始翻');
+
+    await tester.pump(const Duration(milliseconds: 300)); // 0.5 秒：翻到一小半
+    expect(_numberY(tester, '4'), lessThan(0));
+    expect(_numberY(tester, '5'), inExclusiveRange(0, 90));
+    expect(_hudLv(4), findsOneWidget);
+    expect(_confetti, findsNWidgets(26));
+
+    await tester.pump(const Duration(milliseconds: 100)); // 0.6 秒：翻過一半
+    expect(_hudLv(5), findsOneWidget, reason: '數字翻過一半，頂列換成 Lv 5');
+
+    await tester.pump(const Duration(milliseconds: 800)); // 1.4 秒
+    expect(_cardScale(tester), 1);
+    expect(_numberY(tester, '5'), 0);
+    expect(tester.widget<Text>(find.byKey(const Key('level-up-lv'))).data, '5');
+    expect(find.text(_zh.s11Earned(v: '7,500')), findsOneWidget);
+    expect(find.byKey(const Key('level-up')), findsOneWidget, reason: '停住等「好」');
+
+    await tester.tap(find.byKey(const Key('level-up-ok')));
+    await tester.pump();
+    expect(find.byKey(const Key('level-up')), findsNothing);
+    expect(m.levelUp, isNull);
+    expect(_hudLv(5), findsOneWidget);
+  });
+
+  testWidgets('數字還沒翻過去就按「好」：頂列換回 Lv 5', (tester) async {
+    Screen.w390.apply(tester);
+    final (_, levelUp) = await _ranchWithMotion(tester);
+    await levelUp();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(_hudLv(4), findsOneWidget);
+    await tester.tap(find.byKey(const Key('level-up-ok')));
+    await tester.pump();
+    await tester.pump();
+    expect(find.byKey(const Key('level-up')), findsNothing);
+    expect(_hudLv(5), findsOneWidget);
+  });
+
+  testWidgets('減少動態：不彈、不翻，直接是最後一格（頂列 Lv 5），淡入 0.2 秒', (tester) async {
+    Screen.w390.apply(tester);
+    final (_, levelUp) = await _ranchWithMotion(tester, reduced: true);
+    await levelUp();
+    await tester.pump(const Duration(milliseconds: 50));
+    final fade = find.ancestor(of: find.byKey(const Key('level-card')), matching: find.byType(Opacity));
+    expect(tester.widget<Opacity>(fade.last).opacity, inExclusiveRange(0, 1));
+    expect(_hudLv(5), findsOneWidget);
+    expect(_cardScale(tester), 1);
+    expect(_numberY(tester, '5'), 0);
+    expect(find.descendant(of: find.byKey(const Key('level-card')), matching: find.text('4')), findsNothing);
+    expect(_confetti, findsNWidgets(26));
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(tester.widget<Opacity>(fade.last).opacity, 1);
+  });
+
+  testWidgets('兩位數（Lv 9 → 10）：捲動框放寬，「10」整個看得到', (tester) async {
+    Screen.w390.apply(tester);
+    final (m, api, _) = await loadedModel();
+    api.stateJson = {...api.stateJson, 'level': 9};
+    await m.refreshState();
+    final settings = settingsFor(AppLang.zhHant, swipeHintSeen);
+    await settings.load();
+    await tester.pumpWidget(
+      AppMotion(
+        enabled: true,
+        child: CowFarmApp(model: m, settings: settings),
+      ),
+    );
+    await tester.pump();
+    api.stateJson = {...api.stateJson, 'level': 10};
+    await m.refreshState();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 1400));
+    final ten = find.descendant(of: find.byKey(const Key('level-card')), matching: find.text('10'));
+    final box = find.ancestor(of: ten, matching: find.byType(ClipRect)).first;
+    expect(tester.getSize(box).width, greaterThan(60));
+    expect(tester.getSize(box).width, greaterThanOrEqualTo(tester.getSize(ten).width));
+  });
+}
