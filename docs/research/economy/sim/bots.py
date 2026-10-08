@@ -10,8 +10,8 @@
 - Z 懶得照顧（v0.3）：照 D 經營，但每天只清一次大便、不雇小幫手、不餵飼料（量照顧的懲罰有多大）；地板買軟墊地。
 - W 大戶：壓力測試。囤貨前照 D 經營；囤貨時換成大牧場，囤 48 小時後一次倒出／分批／一直囤。
 
-v0.3 照顧（除了 Z，每種玩法都會）：每次上線先清大便、處理病牛（值得就治療，不值得就出貨）；牛群到 HELPER_MIN_COWS 頭
-就一直雇著打掃小幫手（預付到 HELPER_AHEAD_D 天後）；照自己的玩法餵飼料（PROFILES 的 feed：B 豆粕、D 牧草、其他玉米），
+v0.3 照顧（除了 Z，每種玩法都會）：每次上線先清大便、處理病牛（值得就治療，不值得就出貨）；新手保護過後，
+預期省下的治療費（牛的頭數 × SICK_P_DAY × 治療費）不少於一天的小幫手錢才雇（預付到 HELPER_AHEAD_D 天後）；照自己的玩法餵飼料（PROFILES 的 feed：B 豆粕、D 牧草、其他玉米），
 稀有小牛先吃指定的飼料，還沒吃齊就 45 分鐘後回來再餵（care_return）；牛夠多就租最划算的長快地板（FLOOR_GAIN），
 懶得照顧的買軟墊地（少生病）。
 
@@ -50,7 +50,9 @@ HOLD_MIN_COWS = 12  # T：牛群少於這個數量時照 D 經營
 STUD_RELIST_H = 24.0  # L：上架多久沒人借就降一檔
 PANIC_SHIP_AGE_H = 48.0
 TRACK_PLAYERS = 500  # 只追蹤前幾位玩家每頭牛的產出（量商店等級的實際價值；省記憶體）
-HELPER_MIN_COWS = 3  # 牛群到幾頭就雇打掃小幫手
+# 照顧好的玩家不雇小幫手（每次上線照樣清大便）時，每頭牛每天平均生病幾次：100 人 30 天 seed 1–3 量的（六種玩法
+# 0.079–0.086，2026-10-08）。小幫手一天 2,000 ÷（0.083 × 治療 5,000）≈ 5 頭以上才划算。
+SICK_P_DAY = 0.083
 HELPER_AHEAD_D = 2.0  # 小幫手預付到幾天後（不到就再加一天）
 LAZY_CLEAN_H = 24.0  # Z：隔多久才清一次大便
 CURE_PROD_H = 24.0  # 估治療值不值得：治好後多算幾小時的產量
@@ -454,11 +456,14 @@ def care_start(b: Bot, now: float) -> None:
 
 
 def hire_helper(b: Bot, now: float) -> None:
-    """牛群到 HELPER_MIN_COWS 頭就一直雇著（預付到 HELPER_AHEAD_D 天後）；留一頭 C 級小牛的錢。"""
+    """划算才雇（ceo 2026-10-08）：新手保護期間不會生病，不雇；預期省下的治療費（牛的頭數 × SICK_P_DAY × 治療費）
+    少於一天的小幫手錢也不雇。雇的話預付到 HELPER_AHEAD_D 天後，留一頭 C 級小牛的錢。"""
     f = b.farm
-    if b.prof["care"] != "full" or len(f.cows) < HELPER_MIN_COWS:
+    if b.prof["care"] != "full":
         return
     cp = f.p.care
+    if now < f.created_at + cp.newbie_safe_s or len(f.cows) * SICK_P_DAY * cp.cure_price < cp.helper_price_per_day:
+        return
     reserve = f.fp.shop_grade_price[-1]
     while f.helper_until < now + HELPER_AHEAD_D * DAY and f.coins >= cp.helper_price_per_day + reserve:
         if not f.hire_helper(1, now):

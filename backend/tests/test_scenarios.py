@@ -56,7 +56,7 @@ TUNABLES = (
     "STUD_RELIST_H",
     "PANIC_SHIP_AGE_H",
     "SHOP_CHOICE_SCALE",
-    "HELPER_MIN_COWS",
+    "SICK_P_DAY",
     "HELPER_AHEAD_D",
     "LAZY_CLEAN_H",
     "CURE_PROD_H",
