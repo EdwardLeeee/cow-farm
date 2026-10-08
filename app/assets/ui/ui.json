@@ -17,7 +17,8 @@
   "design/m2/src/cow/r11.js": "6320eccb9408e09ad5ee4a983d2c30e1a9341461d08bad9b2665994b4147b06e",
   "design/m2/src/cow/render.js": "fd3363eae9b2bfe19afe8dbbfb990f576133dbcd4d14615e8a5dac05af73d55a",
   "design/m2/src/cow/sick.js": "aa8ab60fae35ac532870d2d91923e756f2b211d40401121dca002523f22a8e66",
-  "design/m2/src/js/icons.js": "f3d0a8e9e82d142d71d23da5ec7c49deb176c8da4561ed977b238de72794c442",
+  "design/m2/src/js/feeds.js": "18fbdcd654cc8aedfb36072facd9fc8c78f4ae3a64ae7a9bf49796906c307f74",
+  "design/m2/src/js/icons.js": "b4c7a26a3157c2c6ce215f34728e37c4e1c4c52369f72482249a49356417e547",
   "design/m2/src/js/poop.js": "e40856515326331787c75d6e199c50373947dac1064a123cabe7eed97b59e595",
   "design/m2/src/js/scene.js": "41570152fdcacb49314777062b67b925c34fa61cab2194fe338015f575507306",
   "design/m2/src/js/truck.js": "3731ad8d2be15bc3ab095511aa41ca2befa924b28d54888b94b70de3abdb741a"
@@ -382,6 +383,36 @@
    "w": 20,
    "h": 20,
    "sha256": "dfe1800ffb5a5e9d6d9e222e8de83da17c8ea3ff5c8d4461b2670ee0864d7c10"
+  },
+  "icons/feed_grass.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "a05e8f95deebc40069fa8ceaca2244f6183c1f622938879ef1b0179e6e1928a7"
+  },
+  "icons/feed_hay.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "787199aceeaa21925e4659d3995fed50102040f72fa466480f15ec6f877caacb"
+  },
+  "icons/feed_oats.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "23e7295573eacd44d8f2edb6b92663dd310720367be0881d246670fd04933c81"
+  },
+  "icons/feed_alfalfa.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "da794dd1ebd4ff801f8e694e2b06883b50787c5fcd7ff280a608ab1b8aa9e41c"
+  },
+  "icons/feed_corn.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "31b74f5a0ac5e64bc7437429360281f4d293f4819020a73753d3a44153f0e1b0"
+  },
+  "icons/feed_soy.svg": {
+   "w": 24,
+   "h": 24,
+   "sha256": "66e6f43f0c4e9bc7de07484508c22b9a371344d466f718ce2a111110f6aced0c"
   },
   "icons/tab_ranch_on.svg": {
    "w": 34,

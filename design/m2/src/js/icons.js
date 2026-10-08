@@ -2,6 +2,7 @@
 // 牛肉一律畫成禮盒（企劃書 4.4：不出現肉塊）。
 import { THERMO_INNER } from '../cow/sick.js';
 import { poopG } from './poop.js';
+import { FEED_IC, FEED_KEYS } from './feeds.js';
 const L = '#4B3326';
 
 const I = {
@@ -88,6 +89,9 @@ const TAB = {
 // 彩虹星 starRainbow1～5（tierChip(4) 照順序用）
 export const RAINBOW = ['#FF6B7A', '#FF9F43', '#FFD23F', '#4CC97A', '#4C9BFF'];
 RAINBOW.forEach((c, k) => { I[`starRainbow${k + 1}`] = (s = 11) => `<svg viewBox="0 0 20 20" width="${s}" height="${s}"><path d="M10 1.8l2.5 5.2 5.6.7-4.1 3.9 1 5.6L10 14.5l-5 2.7 1-5.6-4.1-3.9 5.6-.7z" fill="none" stroke="#FFFFFF" stroke-width="3.6" stroke-linejoin="round"/><path d="M10 1.8l2.5 5.2 5.6.7-4.1 3.9 1 5.6L10 14.5l-5 2.7 1-5.6-4.1-3.9 5.6-.7z" fill="${c}" stroke="${L}" stroke-width="1.8" stroke-linejoin="round"/></svg>`; });
+
+// 六種飼料（第 15 輪 01-C）：feed_grass、feed_hay、feed_oats、feed_alfalfa、feed_corn、feed_soy
+for (const k of FEED_KEYS) I[`feed_${k}`] = (s = 22) => FEED_IC[k](s);
 
 // 圖示的名字（素材匯出用）
 export const ICON_NAMES = Object.keys(I), TAB_KEYS = Object.keys(TAB);

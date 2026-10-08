@@ -1,7 +1,8 @@
 // S04 牛的詳細資料
 import { frame, btn, badge, tierChip, useChip, sexText, icon, fmt, cowSVG, sheet, toast, empty, dialog, calfLook, sickBadge, mixStar, BREEDS } from '../kit.js';
-import { COWS, cowById, pct, studFee, STUD_RATE, BEST_BULL_KG, MIX_COW, TREAT_PRICE, SICK_BEEF, sickOf, RANCH } from '../fixtures.js';
+import { COWS, cowById, pct, studFee, STUD_RATE, BEST_BULL_KG, MIX_COW, TREAT_PRICE, SICK_BEEF, sickOf, RANCH, CALF_DEMO } from '../fixtures.js';
 import { tierOf, MIX_MULT } from '../../cow/breeds.js';
+import { stampCard } from '../stamps.js';
 import { t, dur, cowName, calfName, tierName, feedList } from '../i18n.js';
 
 export const GRADE_BG = { A: '#FFD45E', B: '#CFE6FF', C: '#FFD9C2' };
@@ -39,7 +40,7 @@ export function detailPage(ctx, c, o = {}) {
       <span class="origin-tag">${t('origin', { v: origin })}</span>${c.age === 'old' ? `<p class="hint hero-note">${t('s04.oldNote')}</p>` : calf ? `<p class="hint hero-note">${t('s04.calfUnknown')}</p>` : b.mix ? `<p class="hint hero-note">${t('s04.mixNote', { feeds: feedList(c.missed), mult: MIX_MULT })}</p>` : ''}</article>
     ${o.note ? `<p class="warn-text note-line">${icon('warn', 18)}<span>${o.note}</span></p>` : ''}
     <div class="kv">${cells.map(([k, v]) => `<div class="cell"><div class="k">${k}</div><div class="v num">${v}</div></div>`).join('')}</div>
-    ${probs}
+    ${probs}${calf ? stampCard(c) : ''}
   </div>`;
   const rows = (o.buttons.match(/class="btn-row"/g) || []).length + (o.buttons.includes('block') ? 1 : 0) + (o.buttons.includes('<p') ? 1 : 0);
   return frame(ctx.dev, { tab: 'ranch', content, contentCls: `has-actions rows-${Math.max(1, rows)}`, body: `<div class="detail-actions rows-${Math.max(1, rows)}">${o.buttons}</div>`, overlays: o.overlays || '', offline: o.offline, hud: o.hud || {} });
@@ -85,7 +86,8 @@ full('S04-07', '耕牛在田裡工作', (ctx) => detailPage(ctx, { ...cowById(9)
   note: t('recallFirst', { n: 1 }),
   buttons: `${btn(t('s04.recall'), { ic: 'hand', block: true })}<div class="btn-row" style="margin-top:12px">${breedBtn(true)}${shipBtn(true)}</div>`,
 }));
-full('S04-08', '小牛：長大倒數', (ctx) => detailPage(ctx, cowById(15), { buttons: `<p class="hint" style="text-align:center">${t('s04.calfHint')}</p><div class="btn-row" style="margin-top:8px">${breedBtn(true, t('s04.cantBreedYet'))}${btn(t('shipNotAdult'), { kind: 'danger', disabled: true })}</div>` }));
+// 小牛（第 15 輪 01-C 集點卡）：#15 要吃燕麥、豆粕，吃過燕麥（1 / 2）
+full('S04-08', '小牛：長大倒數、飼料集點卡', (ctx) => detailPage(ctx, CALF_DEMO[15], { buttons: `<p class="hint" style="text-align:center">${t('s04.calfHint')}</p><div class="btn-row" style="margin-top:8px">${breedBtn(true, t('s04.cantBreedYet'))}${btn(t('shipNotAdult'), { kind: 'danger', disabled: true })}</div>` }));
 full('S04-09', '已配種（一輩子一次）', (ctx) => detailPage(ctx, { ...cowById(7), bred: true }, {
   note: t('s04.noteBred'),
   buttons: `<div class="btn-row">${breedBtn(true, t('s04.alreadyBred'))}${shipBtn(false)}</div>`,
@@ -132,5 +134,8 @@ part('S04-21', '治療好了', '.toast', (ctx) => detailPage(ctx, cowById(3), {
   hud: { coins: RANCH.coins - TREAT_PRICE }, buttons: `<div class="btn-row">${breedBtn(false)}${shipBtn(false)}</div>`,
   overlays: toast('ok', t('s04.treated', { cow: cowName('holstein', 3) })),
 }));
+
+// 集點卡的另外兩種：集滿了（#22 肉牛：玉米、豆粕都吃過）、什麼都可以吃（#23，一般、優良的品種沒有指定）
+part('S04-22', '小牛的集點卡：集滿了、什麼都可以吃', '#crop', (ctx) => frame(ctx.dev, { tab: 'ranch', content: `<div id="crop" class="stack" style="padding:4px 0 8px">${stampCard(CALF_DEMO[22])}${stampCard(CALF_DEMO[23])}</div>` }));
 
 export default { id: 'S04', name: '牛的詳細資料', states: S };
