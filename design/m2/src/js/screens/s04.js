@@ -1,5 +1,5 @@
 // S04 牛的詳細資料
-import { frame, btn, badge, tierChip, useChip, sexText, icon, fmt, cowSVG, sheet, toast, empty, dialog, calfLook, sickBadge, BREEDS } from '../kit.js';
+import { frame, btn, badge, tierChip, useChip, sexText, icon, fmt, cowSVG, sheet, toast, empty, dialog, calfLook, sickBadge, mixStar, BREEDS } from '../kit.js';
 import { COWS, cowById, pct, studFee, STUD_RATE, BEST_BULL_KG, MIX_COW, TREAT_PRICE, SICK_BEEF, sickOf, RANCH } from '../fixtures.js';
 import { tierOf, MIX_MULT } from '../../cow/breeds.js';
 import { t, dur, cowName, calfName, tierName, feedList } from '../i18n.js';
@@ -15,7 +15,7 @@ export function detailPage(ctx, c, o = {}) {
   const b = BREEDS[c.breed], tier = tierOf(b);
   const calf = c.age === 'calf';
   // 雜種牛（v0.3 第 1.1 節）不放稀有度，改成「雜種」標籤
-  const chips = [useChip(b.use), `<span class="use">${sexText(c.sex)}</span>`, ...(calf ? [] : b.mix ? [badge('mix', t('badgeMix'))] : [tierChip(tier)])];
+  const chips = [useChip(b.use), `<span class="use">${sexText(c.sex)}</span>`, ...(calf ? [] : b.mix ? [mixStar(), badge('mix', t('badgeMix'))] : [tierChip(tier)])];
   if (c.age === 'calf') chips.push(badge('calf', t('stageCalf')));
   if (c.age === 'old') chips.push(badge('old', t('stageOld')));
   if (c.field != null) chips.push(badge('working', t('badgeWorking')));

@@ -68,6 +68,8 @@ const I = {
   medal: (s = 18) => `<svg viewBox="0 0 20 20" width="${s}" height="${s}"><path d="M6 1.8h3l1 4.4H7zM14 1.8h-3l-1 4.4h3z" fill="#A9DBFF" stroke="${L}" stroke-width="1.5" stroke-linejoin="round"/><circle cx="10" cy="12.2" r="6" fill="#FFD45E" stroke="${L}" stroke-width="1.8"/></svg>`,
   // v0.3 第 5 節（第 13 輪 04-A）：溫度計（病牛的標籤、頭上的泡泡）、大便（霜淇淋捲；牧場場景裡的大便也是這張）
   thermo: (s = 16) => `<svg viewBox="0 0 20 20" width="${s}" height="${s}">${THERMO_INNER}</svg>`,
+  // 雜種牛的稀有度：1 顆灰星（使用者 2026-10-08；一般的稀有度用上面的 star，一般 1、優良 2、稀有 3、傳說 4 顆）
+  starGray: (s = 11) => `<svg viewBox="0 0 20 20" width="${s}" height="${s}"><path d="M10 1.8l2.5 5.2 5.6.7-4.1 3.9 1 5.6L10 14.5l-5 2.7 1-5.6-4.1-3.9 5.6-.7z" fill="#D3C9BE" stroke="#8A7E72" stroke-width="1.8" stroke-linejoin="round"/></svg>`,
   poop: (s = 22) => `<svg viewBox="-12 -19 24 22" width="${s}" height="${Math.round(s * 22 / 24)}">${poopG(0, 0, 20)}</svg>`,
 };
 

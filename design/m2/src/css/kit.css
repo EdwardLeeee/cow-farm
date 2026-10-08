@@ -140,6 +140,10 @@
 .tier-1 { background: #CFEFC4; }
 .tier-2 { background: #CFE6FF; }
 .tier-3 { background: linear-gradient(90deg, #FFE27A, #FFC4D6); }
+/* 星星（第 15 輪 02-A）：星星之間 1、左右 6 */
+.tier.stars { gap: 1px; padding: 0 6px; }
+.tier.stars svg { display: block; flex: none; }
+.tier.mix-star { background: #EEE8E1; border-color: #8A7E72; }
 .use { display: inline-flex; align-items: center; gap: 2px; font-size: 12px; font-weight: 900; line-height: 18px; white-space: nowrap; }
 .chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 

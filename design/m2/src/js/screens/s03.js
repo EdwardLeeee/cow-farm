@@ -1,5 +1,5 @@
 // S03 牧場主畫面
-import { frame, btn, bar, toast, badge, tierChip, useChip, sexText, cowRow, icon, fmt, cowSVG, sickBadge, BREEDS } from '../kit.js';
+import { frame, btn, bar, toast, badge, tierChip, useChip, sexText, cowRow, icon, fmt, cowSVG, sickBadge, mixStar, BREEDS } from '../kit.js';
 import { poopsSvg } from '../poop.js';
 import { ranchScene, HERD, WIDE } from '../scene.js';
 import { RANCH, COWS, PEN, BUCKET, WAREHOUSE, MARKET, NEWS, sum, cowName, compact, vsBase, newsTag, newsText, MIX_COW, TREAT_PRICE, sickOf } from '../fixtures.js';
@@ -266,7 +266,7 @@ function mixGrown(ctx) {
   const c = MIX_COW;
   const inner = `<div class="disc-title gs-title mix-title">${t('anim.grownUp', { cow: calfName('dairy', c.id) })}</div>
     <div class="grow-stage mix-stage"><div class="gs-adult on">${cowSVG({ breed: c.breed, sex: c.sex }, { w: 180, h: 158 })}</div></div>
-    <div class="reveal-name gs-name mix-end"><b>${cowName(c)}</b><div class="chips">${useChip('dairy')}<span class="use">${sexName(c.sex)}</span>${badge('mix', t('badgeMix'))}</div>
+    <div class="reveal-name gs-name mix-end"><b>${cowName(c)}</b><div class="chips">${useChip('dairy')}<span class="use">${sexName(c.sex)}</span>${mixStar()}${badge('mix', t('badgeMix'))}</div>
       <p class="warn-text mr-why">${t('anim.mixGrown', { feeds: feedList(c.missed) })}</p>
       <p class="hint mr-hint">${t('anim.mixHint', { mult: MIX_MULT })}</p>
       ${btn(t('ok'), { kind: 'primary', block: true })}</div>`;
