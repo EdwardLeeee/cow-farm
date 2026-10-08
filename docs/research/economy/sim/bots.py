@@ -7,12 +7,13 @@
 - C 配種收集派：看重稀有度（商店挑高等級、借稀有公牛），稀有母牛多留一陣子。
 - T 抓時機派：牛奶、稻米、牛肉都先存著，價格 ≥ 24 小時均價（或快變差）才賣。
 - L 出借公牛派：自己的公牛都上架借種（價位看稀有度，一天沒人借就降一檔），自己的母牛向別人借種。
-- Z 懶得照顧（v0.3）：照 D 經營（地板也照樣換），但每天只清一次大便、不雇小幫手、不餵飼料（量照顧的懲罰有多大）。
+- Z 懶得照顧（v0.3）：照 D 經營，但每天只清一次大便、不雇小幫手、不餵飼料（量照顧的懲罰有多大）；地板買軟墊地。
 - W 大戶：壓力測試。囤貨前照 D 經營；囤貨時換成大牧場，囤 48 小時後一次倒出／分批／一直囤。
 
 v0.3 照顧（除了 Z，每種玩法都會）：每次上線先清大便、處理病牛（值得就治療，不值得就出貨）；牛群到 HELPER_MIN_COWS 頭
 就一直雇著打掃小幫手（預付到 HELPER_AHEAD_D 天後）；照自己的玩法餵飼料（PROFILES 的 feed：B 豆粕、D 牧草、其他玉米），
-稀有小牛先吃指定的飼料，還沒吃齊就 45 分鐘後回來再餵（care_return）；買得起就換最快的地板（PROFILES 的 floor）。
+稀有小牛先吃指定的飼料，還沒吃齊就 45 分鐘後回來再餵（care_return）；牛夠多就租最划算的長快地板（FLOOR_GAIN），
+懶得照顧的買軟墊地（少生病）。
 
 每次上線的順序：清大便、病牛 → 賣（或存）→ 出貨已配過種的到期牛 → 配種（自己的公牛優先，沒有就借種）→ 出貨其餘到期牛
 → 耕牛下田 → （L）上架公牛 → 花錢：小幫手、商店補空格、奶桶、田地（F）／倉庫冷藏（T）、地板、擴建牛舍 → 餵飼料。
@@ -53,6 +54,12 @@ HELPER_MIN_COWS = 3  # 牛群到幾頭就雇打掃小幫手
 HELPER_AHEAD_D = 2.0  # 小幫手預付到幾天後（不到就再加一天）
 LAZY_CLEAN_H = 24.0  # Z：隔多久才清一次大便
 CURE_PROD_H = 24.0  # 估治療值不值得：治好後多算幾小時的產量
+# 長快地板每頭牛每天多賺多少淨收入（乾草床, 青草地）：100 人 30 天 seed 1、2，大家免費鋪同一種地板量第 3–4 週
+# （牛群約 23 頭），2026-10-08。電腦玩家照「牛的頭數 × 這個 − 租金」挑最划算的地板，牛少就不租。
+FLOOR_GAIN: Dict[str, Tuple[float, float]] = {
+    "D": (370.0, 990.0), "B": (590.0, 1140.0), "F": (450.0, 860.0), "C": (460.0, 890.0), "T": (510.0, 1010.0),
+    "L": (280.0, 610.0), "Z": (390.0, 840.0), "W": (0.0, 0.0),
+}
 
 # 中性估值：一頭牛一生（照模擬的平均市價）實際賺多少幣，依（用途、公母）× 稀有度 0–3。
 # 來源：v0.2 模擬實測（1,000 人 28 天、seed 1，追蹤前 500 位玩家每頭牛的牛奶、稻米、出貨收入；
@@ -67,25 +74,25 @@ VALUE_TABLE: Dict[Tuple[int, bool], Tuple[float, float, float, float]] = {
 }
 SHOP_CHOICE_SCALE = 1000.0  # 挑商店等級的個人差異（隨機效用的尺度，幣）
 
-# v0.3：care = 照顧（full 照顧好、lazy 懶得照顧）；feed = 平常餵哪種飼料（None 不餵）；floor = 想換的地板（0 = 泥土地不換）
+# v0.3：care = 照顧（full 照顧好、lazy 懶得照顧）；feed = 平常餵哪種飼料（None 不餵）
 GRASS, HAY, OAT, ALFALFA, CORN, SOY = range(6)
 PROFILES: Dict[str, dict] = {
     "D": {"pref": (1.25, 1.0, 1.0), "rarity": 0.0, "milker": "decline", "fields": False, "hold": False, "lend": False,
-          "care": "full", "feed": GRASS, "floor": 2},
+          "care": "full", "feed": GRASS},
     "B": {"pref": (1.0, 1.0, 1.25), "rarity": 0.0, "milker": "peak", "fields": False, "hold": False, "lend": False,
-          "care": "full", "feed": SOY, "floor": 2},
+          "care": "full", "feed": SOY},
     "F": {"pref": (1.0, 1.25, 1.0), "rarity": 0.0, "milker": "decline", "fields": True, "hold": False, "lend": False,
-          "care": "full", "feed": CORN, "floor": 2},
+          "care": "full", "feed": CORN},
     "C": {"pref": (1.0, 1.0, 1.0), "rarity": 0.6, "milker": "decline", "fields": False, "hold": False, "lend": False,
-          "care": "full", "feed": CORN, "floor": 2},
+          "care": "full", "feed": CORN},
     "T": {"pref": (1.25, 1.0, 1.0), "rarity": 0.0, "milker": "decline", "fields": False, "hold": True, "lend": False,
-          "care": "full", "feed": CORN, "floor": 2},
+          "care": "full", "feed": CORN},
     "L": {"pref": (1.0, 1.0, 1.0), "rarity": 0.2, "milker": "decline", "fields": False, "hold": False, "lend": True,
-          "care": "full", "feed": CORN, "floor": 2},
+          "care": "full", "feed": CORN},
     "Z": {"pref": (1.25, 1.0, 1.0), "rarity": 0.0, "milker": "decline", "fields": False, "hold": False, "lend": False,
-          "care": "lazy", "feed": None, "floor": 2},
+          "care": "lazy", "feed": None},
     "W": {"pref": (1.25, 1.0, 1.0), "rarity": 0.0, "milker": "decline", "fields": False, "hold": False, "lend": False,
-          "care": "full", "feed": None, "floor": 0},
+          "care": "full", "feed": None},
 }
 
 
@@ -458,18 +465,48 @@ def hire_helper(b: Bot, now: float) -> None:
             break
 
 
+def best_floor(b: Bot, n_cows: int) -> int:
+    """照顧好的玩家該租哪種長快地板：牛的頭數 × FLOOR_GAIN − 租金 最大的（都不划算就 0 = 泥土地）。"""
+    cp = b.farm.p.care
+    best, best_v = 0, 0.0
+    for i, g in zip((1, 2), FLOOR_GAIN[b.strategy]):
+        v = n_cows * g - cp.floor_rent_per_day[i]
+        if v > best_v:
+            best, best_v = i, v
+    return best
+
+
 def change_floor(b: Bot, now: float) -> None:
-    """買得起（留兩頭 C 級小牛的錢）就換想要的地板。照顧好的玩法都換青草地（×1.5）：100 人的試跑裡只有 B、F 換的話，
-    B 的收入多將近五成，六種玩法差到 1.8 倍；大家都換才是玩家實際會做的。"""
+    """地板（ceo 2026-10-08）：
+    - 懶得照顧（不雇小幫手）：買軟墊地（生病速度 ×0.5），留兩頭 C 級小牛的錢。
+    - 照顧好的：照 best_floor 租長快地板，預付到 HELPER_AHEAD_D 天後（留一頭 C 級小牛的錢）。租約還沒到期就不換別種；
+      不划算了就不再續租，到期自動回泥土地。"""
     f = b.farm
-    i = b.prof["floor"]
-    if not i or f.floor == i:
+    cp = f.p.care
+    sm = _W["stud"]
+    if b.prof["care"] == "lazy":
+        i = len(cp.floor_ids) - 1  # 軟墊地
+        if not (f.floors >> i) & 1:
+            if f.coins < cp.floor_price[i] + 2 * f.fp.shop_grade_price[-1] or not f.buy_floor(i, now):
+                return
+        if f.floor != i:
+            f.use_floor(i, now)
+            sm.follow_owner(b.pid, f)
         return
-    if not (f.floors >> i) & 1:
-        if f.coins < f.p.care.floor_price[i] + 2 * f.fp.shop_grade_price[-1] or not f.buy_floor(i, now):
-            return
-    f.use_floor(i, now)
-    _W["stud"].follow_owner(b.pid, f)
+    want = best_floor(b, len(f.cows))
+    if not want or f.rented not in (0, want):
+        return
+    reserve = f.fp.shop_grade_price[-1]
+    rented = False
+    while f.rent_until < now + HELPER_AHEAD_D * DAY and f.coins >= cp.floor_rent_per_day[want] + reserve:
+        if not f.rent_floor(want, 1, now):
+            break
+        rented = True
+    if f.floor != want and f.has_floor(want, now):
+        f.use_floor(want, now)
+        rented = True
+    if rented:
+        sm.follow_owner(b.pid, f)
 
 
 def feed_pass(b: Bot, now: float) -> None:

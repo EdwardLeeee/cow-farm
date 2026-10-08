@@ -60,6 +60,7 @@ TUNABLES = (
     "HELPER_AHEAD_D",
     "LAZY_CLEAN_H",
     "CURE_PROD_H",
+    "FLOOR_GAIN",
 )
 
 

@@ -911,8 +911,20 @@ class Farm:
         self.speed = speed
         self.late_speed = late_speed
 
+    def _rent_expires_by(self, now: float) -> bool:
+        """正在用的租的地板在 now 以前到期（還沒結算）：年紀速度中途會變，預覽要照 advance 分段算。"""
+        return bool(self.rented) and self.floor == self.rented and self.rent_until <= now
+
+    def _settled_copy(self, now: float) -> "Farm":
+        """結算到 now 的複本（預覽用；本身不改）。"""
+        f = Farm.from_dict(self.p, self.to_dict())
+        f.advance(now)
+        return f
+
     def bucket_preview(self, now: float) -> List[float]:
         """到 now 為止奶桶裡各價值等級的牛奶（瓶），不改狀態。advance() 用同一個算法。"""
+        if self._rent_expires_by(now):
+            return list(self._settled_copy(now).bucket)
         out, _ = self._bucket_calc(now, per_cow=False, pending=True)
         return out
 
@@ -979,6 +991,8 @@ class Farm:
 
     def field_preview(self, now: float) -> List[float]:
         """到 now 為止每塊田長好的稻米（公斤），不改狀態。"""
+        if self._rent_expires_by(now):
+            return [fl.rice for fl in self._settled_copy(now).fields]
         by_id = {c.cid: c for c in self.cows}
         sick = self._pending_sick(now)
         out = []
@@ -1872,15 +1886,23 @@ def stud_fee(
     now: float,
     speed: float = 1.0,
     bonus: float = 0.0,
+    until: Optional[float] = None,
+    after: float = 1.0,
 ) -> Tuple[float, float, bool]:
     """借種費（D26）：公牛現在的體重 × 每公斤價格（依價值等級；雜種牛是 HYBRID），四捨五入到 stud_fee_round 幣。
 
     體重跟 beef_weight 同一個算法（公牛，成年後 peak_age_h 小時長到最佳體重，之後不變；飼料加成 bonus 跟著年紀長出來）。
-    adult_at = None 是公營種牛站（沒有真的牛）：用那種用途公牛的最佳體重。speed：主人牧場的年紀速度（Cow.speed）。
-    回傳 (借種費, 體重公斤, 是否已經長到最壯)。
+    adult_at = None 是公營種牛站（沒有真的牛）：用那種用途公牛的最佳體重。speed：主人牧場的年紀速度（Cow.speed）；
+    主人租的地板在 until 到期的話，之後照 after（泥土地）的速度長。回傳 (借種費, 體重公斤, 是否已經長到最壯)。
     """
     w0, w1, pa = fp.adult_weight_kg[ctype], fp.peak_weight_kg[ctype], fp.peak_age_h[ctype]
-    frac = 1.0 if adult_at is None else min(max(now - adult_at, 0.0) / HOUR * speed / pa, 1.0)
+    if adult_at is None:
+        frac = 1.0
+    elif until is not None and now > until:
+        a = max(until - adult_at, 0.0) / HOUR * speed + (now - max(until, adult_at)) / HOUR * after
+        frac = min(a / pa, 1.0)
+    else:
+        frac = min(max(now - adult_at, 0.0) / HOUR * speed / pa, 1.0)
     kg = (w0 + (w1 - w0) * frac) * fp.bull_weight_mult + bonus * frac
     step = fp.stud_fee_round
     return math.floor(kg * fp.stud_fee_per_kg[tier] / step + 0.5) * step, kg, frac >= 1.0
@@ -1892,7 +1914,21 @@ class StudListing:
     （StudMarket.fee）。公營種牛站沒有真的牛，adult_at = None（用最佳體重算）。
     vt：價值等級（雜種公牛是 HYBRID，借種費每公斤 0.6）；bonus：公牛的飼料加成（上架期間不能餵，所以固定）。"""
 
-    __slots__ = ("lid", "owner", "cow_id", "g", "ctype", "tier", "vt", "bonus", "adult_at", "listed_at", "speed")
+    __slots__ = (
+        "lid",
+        "owner",
+        "cow_id",
+        "g",
+        "ctype",
+        "tier",
+        "vt",
+        "bonus",
+        "adult_at",
+        "listed_at",
+        "speed",
+        "until",
+        "after",
+    )
 
     def __init__(
         self,
@@ -1917,6 +1953,8 @@ class StudListing:
         self.adult_at = adult_at
         self.listed_at = listed_at
         self.speed = speed  # 主人牧場的年紀速度；主人換速度時 StudMarket.follow_owner 跟著改
+        self.until: Optional[float] = None  # 主人租的地板到期的時間（之後照 after 的速度長）；None = 沒有租
+        self.after = 1.0
 
     def to_dict(self) -> dict:
         return {
@@ -1929,11 +1967,12 @@ class StudListing:
             **({"speed": self.speed} if self.speed != 1.0 else {}),
             **({"hybrid": True} if self.vt == HYBRID else {}),
             **({"bonus": self.bonus} if self.bonus else {}),
+            **({"until": self.until, "after": self.after} if self.until is not None else {}),
         }
 
     @classmethod
     def from_dict(cls, d: dict) -> "StudListing":
-        return cls(
+        lst = cls(
             d["id"],
             d["owner"],
             d["cow_id"],
@@ -1944,6 +1983,8 @@ class StudListing:
             d.get("hybrid", False),
             d.get("bonus", 0.0),
         )
+        lst.until, lst.after = d.get("until"), d.get("after", 1.0)
+        return lst
 
 
 class StudMarket:
@@ -1978,7 +2019,7 @@ class StudMarket:
 
     def fee(self, lst: StudListing, now: float) -> Tuple[float, float, bool]:
         """這一刻的借種費：(價格, 公牛體重, 是否已經長到最壯)。"""
-        return stud_fee(self.p.farm, lst.ctype, lst.vt, lst.adult_at, now, lst.speed, lst.bonus)
+        return stud_fee(self.p.farm, lst.ctype, lst.vt, lst.adult_at, now, lst.speed, lst.bonus, lst.until, lst.after)
 
     def price(self, lst: StudListing, now: float) -> float:
         return self.fee(lst, now)[0]
@@ -2011,6 +2052,7 @@ class StudMarket:
             return None
         farm.advance(now)  # 揭曉（雜種公牛的借種費不一樣）
         lst = StudListing(self._next_id, owner, cow.cid, cow.g, cow.adult_at, now, cow.speed, cow.hybrid, cow.bonus)
+        self._follow(lst, farm)
         self._next_id += 1
         self._add(lst)
         cow.listed = lst.lid
@@ -2031,11 +2073,19 @@ class StudMarket:
         return [l for l in self.listings.values() if l.owner == owner]
 
     def follow_owner(self, owner, farm: "Farm") -> None:
-        """主人換了年紀速度（Farm.set_speed）之後：上架的公牛照新的長大時間和速度算借種費。"""
+        """主人換了年紀速度（Farm.set_speed）或租了地板之後：上架的公牛照新的長大時間、速度、租約算借種費。"""
         for lst in self.owner_listings(owner):
             c = farm.cow_by_id(lst.cow_id)
             if c is not None:
                 lst.adult_at, lst.speed = c.adult_at, c.speed
+                self._follow(lst, farm)
+
+    def _follow(self, lst: "StudListing", farm: "Farm") -> None:
+        """主人正在用租的地板：租約到期以後照泥土地的速度長（Farm.advance 在到期那一刻換回泥土地）。"""
+        if farm.rented and farm.floor == farm.rented:
+            lst.until, lst.after = farm.rent_until, self.p.care.floor_speed[0]
+        else:
+            lst.until, lst.after = None, 1.0
 
     # ---- 借種 ----
     def can_borrow(

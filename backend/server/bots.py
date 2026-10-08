@@ -12,12 +12,13 @@
 - C 配種收集派：看重稀有度（商店挑高等級、借稀有公牛），稀有母牛多留一陣子。
 - T 抓時機派：牛奶、稻米、牛肉都先存著，價格 ≥ 24 小時均價（或快變差）才賣。
 - L 出借公牛派：自己的公牛都上架借種（價位看稀有度，一天沒人借就降一檔），自己的母牛向別人借種。
-- Z 懶得照顧（v0.3）：照 D 經營（地板也照樣換），但每天只清一次大便、不雇小幫手、不餵飼料（量照顧的懲罰有多大）。
+- Z 懶得照顧（v0.3）：照 D 經營，但每天只清一次大便、不雇小幫手、不餵飼料（量照顧的懲罰有多大）；地板買軟墊地。
 - W 大戶（只給情境測試）：囤貨前照 D 經營；囤貨時換成大牧場，囤 48 小時後一次倒出／分批／一直囤。
 
 v0.3 照顧（除了 Z，每種玩法都會）：每次上線先清大便、處理病牛（值得就治療，不值得就出貨）；牛群到 HELPER_MIN_COWS 頭
 就一直雇著打掃小幫手（預付到 HELPER_AHEAD_D 天後）；照自己的玩法餵飼料（PROFILES 的 feed：B 豆粕、D 牧草、其他玉米），
-稀有小牛先吃指定的飼料，還沒吃齊就 45 分鐘後回來再餵（care_return）；買得起就換最快的地板（PROFILES 的 floor）。
+稀有小牛先吃指定的飼料，還沒吃齊就 45 分鐘後回來再餵（care_return）；牛夠多就租最划算的長快地板（FLOOR_GAIN），
+懶得照顧的買軟墊地（少生病）。
 
 每次上線的順序：清大便、病牛 → 賣（或存）→ 出貨已配過種的到期牛 → 配種（自己的公牛優先，沒有就借種）→ 出貨其餘到期牛
 → 耕牛下田 →（L）上架公牛 → 花錢：小幫手、商店補空格、奶桶、田地（F）／倉庫冷藏（T）、地板、擴建牛舍 → 餵飼料。
@@ -85,6 +86,17 @@ HELPER_MIN_COWS = 3  # 牛群到幾頭就雇打掃小幫手
 HELPER_AHEAD_D = 2.0  # 小幫手預付到幾天後（不到就再加一天）
 LAZY_CLEAN_H = 24.0  # Z：隔多久才清一次大便
 CURE_PROD_H = 24.0  # 估治療值不值得：治好後多算幾小時的產量
+# 長快地板每頭牛每天多賺多少淨收入（乾草床, 青草地），電腦玩家照這個挑地板（研究模擬量的，見 sim/bots.py）
+FLOOR_GAIN: Dict[str, Tuple[float, float]] = {
+    "D": (370.0, 990.0),
+    "B": (590.0, 1140.0),
+    "F": (450.0, 860.0),
+    "C": (460.0, 890.0),
+    "T": (510.0, 1010.0),
+    "L": (280.0, 610.0),
+    "Z": (390.0, 840.0),
+    "W": (0.0, 0.0),
+}
 
 # 中性估值：一頭牛一生實際賺多少幣，依（用途、公母）× 稀有度 0–3（研究模擬實測，見 sim/bots.py 的說明）。
 # 經濟代理重新量過時要同步這張表（tests/test_scenarios.py 的 test_bot_tunables_match_research 會提醒）。
@@ -98,9 +110,9 @@ VALUE_TABLE: Dict[Tuple[int, bool], Tuple[float, float, float, float]] = {
 }
 SHOP_CHOICE_SCALE = 1000.0  # 挑商店等級的個人差異（隨機效用的尺度，幣）
 
-# v0.3：care = 照顧（full 照顧好、lazy 懶得照顧）；feed = 平常餵哪種飼料（None 不餵）；floor = 想換的地板（0 = 泥土地不換）
+# v0.3：care = 照顧（full 照顧好、lazy 懶得照顧）；feed = 平常餵哪種飼料（None 不餵）
 GRASS, HAY, OAT, ALFALFA, CORN, SOY = range(6)
-_BASE = {"rarity": 0.0, "milker": "decline", "fields": False, "hold": False, "lend": False, "care": "full", "floor": 2}
+_BASE = {"rarity": 0.0, "milker": "decline", "fields": False, "hold": False, "lend": False, "care": "full"}
 PROFILES: Dict[str, dict] = {
     "D": {**_BASE, "pref": (1.25, 1.0, 1.0), "feed": GRASS},
     "B": {**_BASE, "pref": (1.0, 1.0, 1.25), "milker": "peak", "feed": SOY},
@@ -109,7 +121,7 @@ PROFILES: Dict[str, dict] = {
     "T": {**_BASE, "pref": (1.25, 1.0, 1.0), "hold": True, "feed": CORN},
     "L": {**_BASE, "pref": (1.0, 1.0, 1.0), "rarity": 0.2, "lend": True, "feed": CORN},
     "Z": {**_BASE, "pref": (1.25, 1.0, 1.0), "care": "lazy", "feed": None},
-    "W": {**_BASE, "pref": (1.25, 1.0, 1.0), "feed": None, "floor": 0},
+    "W": {**_BASE, "pref": (1.25, 1.0, 1.0), "feed": None},
 }
 
 
@@ -553,18 +565,41 @@ def hire_helper(b: Bot, now: float) -> None:
             break
 
 
+def best_floor(b: Bot, n_cows: int) -> int:
+    """照顧好的玩家該租哪種長快地板：牛的頭數 × FLOOR_GAIN − 租金 最大的（都不划算就 0 = 泥土地）。"""
+    cp = b.farm.p.care
+    best, best_v = 0, 0.0
+    for i, g in zip((1, 2), FLOOR_GAIN[b.strategy]):
+        v = n_cows * g - cp.floor_rent_per_day[i]
+        if v > best_v:
+            best, best_v = i, v
+    return best
+
+
 def change_floor(b: Bot, now: float) -> None:
-    """買得起（留兩頭 C 級小牛的錢）就換想要的地板（照顧好的玩法都換青草地，說明見研究模擬的 sim/bots.py）。"""
+    """地板（說明見研究模擬的 sim/bots.py）：懶得照顧的買軟墊地；照顧好的照 best_floor 租長快地板。"""
+    g = b.game
     f = b.farm
-    i = b.prof["floor"]
-    if not i or f.floor == i:
+    cp = f.p.care
+    if b.prof["care"] == "lazy":
+        i = len(cp.floor_ids) - 1  # 軟墊地
+        if not (f.floors >> i) & 1:
+            if f.coins < cp.floor_price[i] + 2 * f.fp.shop_grade_price[-1]:
+                return
+            if _try(g.buy_floor, b.pid, i, now) is None:
+                return
+        if f.floor != i:
+            _try(g.use_floor, b.pid, i, now)
         return
-    if not (f.floors >> i) & 1:
-        if f.coins < f.p.care.floor_price[i] + 2 * f.fp.shop_grade_price[-1]:
-            return
-        if _try(b.game.buy_floor, b.pid, i, now) is None:
-            return
-    _try(b.game.use_floor, b.pid, i, now)
+    want = best_floor(b, len(f.cows))
+    if not want or f.rented not in (0, want):
+        return
+    reserve = f.fp.shop_grade_price[-1]
+    while f.rent_until < now + HELPER_AHEAD_D * DAY and f.coins >= cp.floor_rent_per_day[want] + reserve:
+        if _try(g.rent_floor, b.pid, want, 1, now) is None:
+            break
+    if f.floor != want and f.has_floor(want, now):
+        _try(g.use_floor, b.pid, want, now)
 
 
 def feed_pass(b: Bot, ctx, now: float) -> None:

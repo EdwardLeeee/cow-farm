@@ -425,32 +425,102 @@ class TestSickness(unittest.TestCase):
 
 
 class TestFloor(unittest.TestCase):
-    """第 4 節：買地板、換地板（年紀速度）；大便、吃飽冷卻是現實時間。"""
+    """第 4 節（ceo 2026-10-08）：長快地板按天租、軟墊地買斷；換地板改年紀速度；大便、吃飽冷卻是現實時間。"""
 
-    def test_buy_and_use(self):
+    def test_rent_and_use(self):
         f = farm()
-        f.coins = 5000
+        f.coins = 100_000
         calf = add_cow(f, 0)
-        self.assertFalse(f.use_floor(1, T0))
-        self.assertTrue(f.buy_floor(1, T0))
-        self.assertEqual(f.coins, 5000 - CP.floor_price[1])
-        self.assertFalse(f.buy_floor(1, T0))
+        self.assertFalse(f.buy_floor(1, T0))  # 長快地板不能買斷
+        self.assertFalse(f.use_floor(1, T0))  # 還沒租
+        self.assertTrue(f.rent_floor(1, 2, T0))
+        self.assertEqual(f.coins, 100_000 - 2 * CP.floor_rent_per_day[1])
+        self.assertEqual((f.rented, f.rent_until, f.floor), (1, T0 + 2 * DAY, 0))  # 租了不會自動換上
         self.assertTrue(f.use_floor(1, T0 + HOUR))
         self.assertEqual((f.floor, f.speed), (1, 1.25))
         self.assertAlmostEqual(calf.adult_at, T0 + HOUR + 2 * HOUR / 1.25)
         self.assertEqual(calf.poop_at, T0)
-        self.assertTrue(f.use_floor(0, T0 + 2 * HOUR))  # 泥土地免費換回來
+        self.assertTrue(f.use_floor(0, T0 + 2 * HOUR))  # 泥土地隨時免費換回來，租約照樣算時間
         self.assertEqual(f.speed, 1.0)
+        self.assertTrue(f.use_floor(1, T0 + 3 * HOUR))
 
-    def test_listing_follows_floor(self):
+    def test_rent_rules(self):
         f = farm()
+        f.coins = 1e7
+        self.assertTrue(f.rent_floor(2, 3, T0))
+        self.assertFalse(f.rent_floor(1, 1, T0 + HOUR))  # 同時只能租一種
+        self.assertTrue(f.rent_floor(2, CP.floor_rent_max_days - 3, T0 + HOUR))  # 接在後面續租
+        self.assertEqual(f.rent_until, T0 + CP.floor_rent_max_days * DAY)
+        self.assertFalse(f.rent_floor(2, 1, T0 + HOUR))  # 最多預付 7 天
+        self.assertFalse(f.rent_floor(2, 0, T0 + DAY))
+        f.advance(T0 + CP.floor_rent_max_days * DAY)  # 到期了才能租別種
+        self.assertTrue(f.rent_floor(1, 1, T0 + CP.floor_rent_max_days * DAY))
+        f.coins = CP.floor_rent_per_day[1] - 1
+        self.assertFalse(f.rent_floor(1, 1, T0 + CP.floor_rent_max_days * DAY))
+
+    def test_expiry_reverts_to_dirt_exactly(self):
+        """租約到期那一刻換回泥土地：年紀照到期那一刻切兩段、產量和結算幾次無關，預覽也一樣。"""
+
+        def run(steps):
+            f = farm(care=False)
+            f.coins, f.bucket_level = 1e7, 12
+            f.cows.clear()
+            cow = add_cow(f, 0, adult_h=1)
+            calf = add_cow(f, 1, now=T0)
+            f.rent_floor(2, 1, T0)
+            f.use_floor(2, T0)
+            end = T0 + DAY + 13 * HOUR
+            previews = [f.bucket_preview(end)]
+            for t in steps:
+                f.advance(t)
+            f.advance(end)
+            return f, cow, calf, previews
+
+        f, cow, calf, previews = run([])
+        for steps in ([T0 + 7 * HOUR, T0 + DAY - 1, T0 + DAY + 2 * HOUR], [T0 + DAY], [T0 + 30 * HOUR]):
+            g, _, _, _ = run(steps)
+            self.assertAlmostEqual(g.bucket_total(), f.bucket_total(), places=9)
+        self.assertEqual(previews[0], f.bucket)  # 預覽算到到期那一刻換回泥土地
+        self.assertEqual((f.floor, f.rented, f.speed), (0, 0, 1.0))
+        end = T0 + DAY + 13 * HOUR
+        self.assertAlmostEqual(cow.adult_age_h(end), 1 + 24 * 1.5 + 13)
+        grow = FP.tier_growth_h[0] / 1.5  # 小牛在租約期間 2 小時就長大，之後照 ×1.5 長到租約到期
+        self.assertAlmostEqual(calf.adult_age_h(end), (24 - grow) * 1.5 + 13)
+
+    def test_cushion_halves_sickness(self):
+        """軟墊地：一次買斷，這個牛舍的牛生病速度 ×0.5（累積風險只長一半）。"""
+
+        def hazard(floor):
+            f = farm()
+            f.coins = 1e6
+            if floor:
+                self.assertTrue(f.buy_floor(floor, T0))
+                self.assertEqual(f.coins, 1e6 - CP.floor_price[floor])
+                f.use_floor(floor, T0)
+            f.advance(T0 + 3 * DAY)
+            return f.hazard
+
+        self.assertGreater(hazard(0), 0)
+        self.assertAlmostEqual(hazard(3), hazard(0) * CP.floor_sick_mult[3])
+        self.assertFalse(farm().rent_floor(3, 1, T0))  # 軟墊地不能租
+
+    def test_listing_follows_floor_and_rent(self):
+        """上架的公牛：主人換地板、租約到期以後，借種費照公牛真正的體重算。"""
+        f = farm(care=False)
+        f.coins = 1e7
         sm = StudMarket(DEFAULT)
         bull = add_cow(f, 2, bull=True, adult_h=1)
         lst = sm.list_bull(f, "p1", bull, T0)
-        f.buy_floor(2, T0)
+        f.rent_floor(2, 1, T0)
         f.use_floor(2, T0 + HOUR)
         sm.follow_owner("p1", f)
-        self.assertEqual((lst.speed, lst.adult_at), (1.5, bull.adult_at))
+        self.assertEqual((lst.speed, lst.adult_at, lst.until), (1.5, bull.adult_at, T0 + DAY))
+        t = T0 + DAY + 5 * HOUR  # 租約已經到期（主人還沒結算）
+        fee_kg = sm.fee(lst, t)[1]
+        f.advance(t)
+        self.assertAlmostEqual(fee_kg, beef_weight(FP, bull, t))
+        back = StudListing.from_dict(json.loads(json.dumps(lst.to_dict())))
+        self.assertEqual((back.until, back.after), (lst.until, lst.after))
 
 
 class TestFloorPhases(unittest.TestCase):
@@ -544,12 +614,14 @@ class TestCareSave(unittest.TestCase):
             f.buy_shop("B", T0, rng)
         f.buy_feed(SOY, 20, T0)
         f.feed(f.cows[3], SOY, T0)
-        f.buy_floor(3, T0)
-        f.use_floor(3, T0 + HOUR)
+        self.assertTrue(f.buy_floor(3, T0))  # 買了軟墊地但沒鋪
+        self.assertTrue(f.rent_floor(2, 3, T0))
+        f.use_floor(2, T0 + HOUR)
         f.hire_helper(1, T0 + 2 * HOUR)
         t = T0 + 2 * DAY
         f.advance(t)
         d = json.loads(json.dumps(f.to_dict()))
+        self.assertEqual((d["floor"], d["floors"], d["rented"], d["rent_until"]), (2, 0b1001, 2, T0 + 3 * DAY))
         g = Farm.from_dict(DEFAULT, d)
         self.assertEqual(g.to_dict(), d)
         f.advance(t + 3 * DAY)

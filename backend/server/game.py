@@ -901,14 +901,25 @@ class Game:
             raise GameError("rejected", "現在不能買這種地板", 409)
         return {"floor": i}
 
+    def rent_floor(self, pid: int, i: int, days: int, now: float) -> dict:
+        """租長快地板（按天預付）；正在用這種地板的話，上架的公牛照新的租約算借種費。"""
+        f = self.player(pid).farm
+        if not f.rent_floor(i, days, now):
+            raise GameError("rejected", "現在不能租這種地板", 409)
+        self._follow_floor(pid, f)
+        return {"floor": i, "until": f.rent_until}
+
+    def _follow_floor(self, pid: int, f) -> None:
+        if self.stud.owner_listings(pid):
+            self.stud.follow_owner(pid, f)
+            self.stud_dirty = True
+
     def use_floor(self, pid: int, i: int, now: float) -> dict:
         """換地板（年紀速度）；上架借種的公牛跟著主人的速度算借種費。"""
         f = self.player(pid).farm
         if not f.use_floor(i, now):
             raise GameError("rejected", "沒有這種地板", 409)
-        if self.stud.owner_listings(pid):
-            self.stud.follow_owner(pid, f)
-            self.stud_dirty = True
+        self._follow_floor(pid, f)
         return {"floor": i}
 
     # ---- 排行榜用 ----

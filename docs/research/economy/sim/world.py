@@ -26,7 +26,7 @@ START_EPOCH = 1791129600.0  # 2026-10-05（週一）00:00 台灣時間
 BOT_TUNABLES = {k: getattr(B, k) for k in (
     "BUCKET_TARGET_H", "DAIRY_SHIP_FRAC", "RARE_KEEP_FRAC", "PEAK_H", "BULL_WAIT_MAX_H", "HOLD_THR", "HOLD_FRESH_SELL",
     "HOLD_WH_TARGET_H", "HOLD_MIN_COWS", "STUD_RELIST_H", "PANIC_SHIP_AGE_H", "TRACK_PLAYERS", "SHOP_CHOICE_SCALE",
-    "HELPER_MIN_COWS", "HELPER_AHEAD_D", "LAZY_CLEAN_H", "CURE_PROD_H",
+    "HELPER_MIN_COWS", "HELPER_AHEAD_D", "LAZY_CLEAN_H", "CURE_PROD_H", "FLOOR_GAIN",
 )}
 
 AMOUNT_KINDS = ("milk", "beef", "rice", "calf", "breed", "expand", "bucket", "warehouse", "fresh", "field", "stud_in", "stud_out",
