@@ -135,7 +135,9 @@ def cow_view(game: Game, p: Player, c: Cow, now: float) -> dict:
         "feed_block": game.feed_status(p, c, now),
         "poop": c.poop,
         "sick": sick,
-        "sick_since": c.sick_since if c.sick_since is not None else (now if sick else None),
+        "sick_since": c.sick_since
+        if c.sick_since is not None
+        else ((f._pending_sick(now) or {}).get(c.cid) if sick else None),
     }
 
 
