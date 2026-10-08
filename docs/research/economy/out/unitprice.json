@@ -6,63 +6,63 @@
   30
  ],
  "market_avg": {
-  "milk": 11.885230433481167,
-  "beef": 12.183529860296998
+  "milk": 11.888099690721731,
+  "beef": 12.194803368226971
  },
  "D": {
-  "milk_per_bottle": 13.539725045426891,
-  "milk_bottles_per_player_day": 1486.6152347565255,
-  "beef_per_kg": 15.720203671470314,
-  "beef_kgs_per_player_day": 2863.9670658682635,
-  "rice_per_kg": 5.005927254578379,
-  "rice_kgs_per_player_day": 306.4484718754138
+  "milk_per_bottle": 13.676722687357957,
+  "milk_bottles_per_player_day": 1399.0444271440435,
+  "beef_per_kg": 16.002831803284153,
+  "beef_kgs_per_player_day": 3538.086078269241,
+  "rice_per_kg": 5.00502112146752,
+  "rice_kgs_per_player_day": 308.2302404318385
  },
  "B": {
-  "milk_per_bottle": 13.765566006611053,
-  "milk_bottles_per_player_day": 1300.5341508665092,
-  "beef_per_kg": 15.731802691221784,
-  "beef_kgs_per_player_day": 3047.443862275449,
-  "rice_per_kg": 5.015081131405927,
-  "rice_kgs_per_player_day": 308.3949607151048
+  "milk_per_bottle": 13.746551190425118,
+  "milk_bottles_per_player_day": 1273.923501995526,
+  "beef_per_kg": 15.330582600711201,
+  "beef_kgs_per_player_day": 4122.094694324863,
+  "rice_per_kg": 5.010538145249949,
+  "rice_kgs_per_player_day": 305.7256611976499
  },
  "F": {
-  "milk_per_bottle": 13.624227659015792,
-  "milk_bottles_per_player_day": 1284.5031814243266,
-  "beef_per_kg": 15.545168497979585,
-  "beef_kgs_per_player_day": 2684.9812874251497,
-  "rice_per_kg": 4.980780386681711,
-  "rice_kgs_per_player_day": 1772.639863600088
+  "milk_per_bottle": 13.723767921862501,
+  "milk_bottles_per_player_day": 1240.7835849811936,
+  "beef_per_kg": 15.544293629694092,
+  "beef_kgs_per_player_day": 3374.3675751144538,
+  "rice_per_kg": 4.995157361588542,
+  "rice_kgs_per_player_day": 1740.5001456490168
  },
  "C": {
-  "milk_per_bottle": 14.799273377575192,
-  "milk_bottles_per_player_day": 1520.910541279659,
-  "beef_per_kg": 16.871570875113633,
-  "beef_kgs_per_player_day": 2721.24625748503,
-  "rice_per_kg": 5.02223629390152,
-  "rice_kgs_per_player_day": 332.37759429843385
+  "milk_per_bottle": 14.818239173150607,
+  "milk_bottles_per_player_day": 1561.678210943501,
+  "beef_per_kg": 16.319606144701538,
+  "beef_kgs_per_player_day": 3454.4985610672643,
+  "rice_per_kg": 5.011830240623922,
+  "rice_kgs_per_player_day": 323.04405383060293
  },
  "T": {
-  "milk_per_bottle": 14.904598836826231,
-  "milk_bottles_per_player_day": 1470.762345297159,
-  "beef_per_kg": 16.99009723736167,
-  "beef_kgs_per_player_day": 2868.59375,
-  "rice_per_kg": 5.319846358815953,
-  "rice_kgs_per_player_day": 294.851515107527
+  "milk_per_bottle": 14.860032042171294,
+  "milk_bottles_per_player_day": 1466.8941724845263,
+  "beef_per_kg": 17.17186874215045,
+  "beef_kgs_per_player_day": 3571.2091509109728,
+  "rice_per_kg": 5.3258369100720415,
+  "rice_kgs_per_player_day": 285.0130702462867
  },
  "L": {
-  "milk_per_bottle": 13.272214391275387,
-  "milk_bottles_per_player_day": 1501.593936707904,
-  "beef_per_kg": 15.526190468530528,
-  "beef_kgs_per_player_day": 2925.7473644578313,
-  "rice_per_kg": 4.9959756580332915,
-  "rice_kgs_per_player_day": 255.73542673553115
+  "milk_per_bottle": 13.033636728010723,
+  "milk_bottles_per_player_day": 1202.744881361478,
+  "beef_per_kg": 15.212879888311058,
+  "beef_kgs_per_player_day": 2546.877403846154,
+  "rice_per_kg": 5.018970237206455,
+  "rice_kgs_per_player_day": 228.83075630350905
  },
  "T_over_D": {
-  "milk_per_bottle": 1.1008051335474005,
-  "milk_bottles_per_player_day": 0.9893362525226894,
-  "beef_per_kg": 1.0807809868389946,
-  "beef_kgs_per_player_day": 1.001615480913477,
-  "rice_per_kg": 1.0627094818348521,
-  "rice_kgs_per_player_day": 0.9621569110887864
+  "milk_per_bottle": 1.086519949396,
+  "milk_bottles_per_player_day": 1.0484972056813011,
+  "beef_per_kg": 1.0730518793946446,
+  "beef_kgs_per_player_day": 1.009361861726647,
+  "rice_per_kg": 1.0640987881606492,
+  "rice_kgs_per_player_day": 0.9246758846470613
  }
 }

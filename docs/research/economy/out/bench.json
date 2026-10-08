@@ -1,18 +1,18 @@
 {
  "exchange_step_us": {
-  "median": 48.601690999930725,
-  "max": 51.982339000005595
+  "median": 37.967882002703846,
+  "max": 58.84725799842272
  },
- "farm_json_bytes_20_cows": 4325,
+ "farm_json_bytes_20_cows": 7723,
  "sell_all_milk_20_cows_us": {
-  "median": 82.08248000300955,
-  "max": 95.65776000272308
+  "median": 53.453554974112194,
+  "max": 54.819274992041755
  },
  "farm_advance_20_cows_us": {
-  "median": 52.84644700032004,
-  "max": 72.3380280001038
+  "median": 32.68171949821408,
+  "max": 33.01815200029523
  },
  "impact_state_json_bytes": 175,
  "market_snapshot_json_bytes": 1123,
- "python": "3.10.12"
+ "python": "3.10.22"
 }
