@@ -80,6 +80,8 @@ def goal_a() -> dict:
 
 # ---------------------------------------------------------------------------
 # (b) 各策略週收入、新增 a：耕田派 vs 乳牛派
+# v0.3 起「週收入」= 收入（賣出＋借種）− 照顧花費（地板、小幫手、飼料、治療），使用者 2026-10-08 選的口徑；
+# 只算收入的照舊列出（revenue_*），只當參考、不算過不過。
 # ---------------------------------------------------------------------------
 def goal_b() -> dict:
     out = {}
@@ -90,18 +92,22 @@ def goal_b() -> dict:
         n_weeks = min(len(d["strategies"]["D"]["weeks"]) for d in runs)
         weeks = []
         for w in range(n_weeks):
-            means = {k: statistics.fmean(d["strategies"][k]["weeks"][w]["revenue_mean"] for d in runs) for k in STRATS}
-            parts = {k: {p: statistics.fmean(d["strategies"][k]["weeks"][w][p + "_mean"] for d in runs) for p in ("milk", "beef", "rice", "stud_in")} for k in STRATS}
+            means = {k: statistics.fmean(d["strategies"][k]["weeks"][w]["care_net_mean"] for d in runs) for k in STRATS}
+            rev = {k: statistics.fmean(d["strategies"][k]["weeks"][w]["revenue_mean"] for d in runs) for k in STRATS}
+            parts = {k: {p: statistics.fmean(d["strategies"][k]["weeks"][w][p + "_mean"] for d in runs) for p in ("milk", "beef", "rice", "stud_in", "care_spend")} for k in STRATS}
             weeks.append({
                 "week": w + 1,
                 "means": means,
+                "revenue_means": rev,
                 "parts": parts,
                 "max_over_min": max(means.values()) / min(means.values()),
+                "revenue_max_over_min": max(rev.values()) / min(rev.values()),
                 "top": max(means, key=means.get),
                 "bottom": min(means, key=means.get),
                 "F_over_D": means["F"] / means["D"],
             })
         tot = {k: sum(wk["means"][k] for wk in weeks) for k in STRATS}
+        rev_tot = {k: sum(wk["revenue_means"][k] for wk in weeks) for k in STRATS}
         worth = {k: statistics.fmean(d["strategies"][k]["worth_end_mean"] for d in runs) for k in STRATS}
         net = {k: statistics.fmean(sum(x["net_mean"] for x in d["strategies"][k]["weeks"]) for d in runs) for k in STRATS}
         slots = {k: statistics.fmean(d["strategies"][k]["slots_end_mean"] for d in runs) for k in STRATS}
@@ -129,6 +135,8 @@ def goal_b() -> dict:
             "total_bottom": min(tot, key=tot.get),
             "total_F_over_D": tot["F"] / tot["D"],
             "week_max_over_min_worst": max(wk["max_over_min"] for wk in weeks),
+            "revenue_total": rev_tot,
+            "revenue_week_max_over_min_worst": max(wk["revenue_max_over_min"] for wk in weeks),
             "week_F_over_D_range": [min(f_over_d), max(f_over_d)],
             "net": net,
             "worth_end": worth,
@@ -172,6 +180,7 @@ def goal_care() -> dict:
             rev, feed, rare = tot("revenue"), tot("feed_spend"), tot("rare_grown")
             row[k] = {
                 "revenue_mean": rev / sum(c["n"] for c in cs),
+                "care_net_mean": (rev - tot("helper_spend") - tot("floor_spend") - tot("cure_spend") - feed) / sum(c["n"] for c in cs),
                 "sick_share": statistics.fmean(c["sick_share"] for c in cs),
                 "feed_roi": tot("bonus_value") / feed if feed else None,
                 "feed_share": feed / rev if rev else None,
@@ -185,8 +194,10 @@ def goal_care() -> dict:
         lazy = row.get("Z")
         row["summary"] = {
             "sick_share_max": max(r["sick_share"] for r in care),
-            "lazy_over_D": lazy["revenue_mean"] / row["D"]["revenue_mean"] if lazy and "D" in row else None,
-            "lazy_over_care_mean": lazy["revenue_mean"] / statistics.fmean(r["revenue_mean"] for r in care) if lazy else None,
+            # 收入 − 照顧花費（跟玩法差距同一個口徑）；只算收入的列在 lazy_over_D_revenue 當參考
+            "lazy_over_D": lazy["care_net_mean"] / row["D"]["care_net_mean"] if lazy and "D" in row else None,
+            "lazy_over_D_revenue": lazy["revenue_mean"] / row["D"]["revenue_mean"] if lazy and "D" in row else None,
+            "lazy_over_care_mean": lazy["care_net_mean"] / statistics.fmean(r["care_net_mean"] for r in care) if lazy else None,
             "care_spend_share_range": [min(r["care_spend_share"] for r in care), max(r["care_spend_share"] for r in care)],
             "soymeal_roi_B": row["B"]["feed_roi"] if "B" in row else None,
         }
@@ -194,7 +205,7 @@ def goal_care() -> dict:
         sm["pass_sick"] = sm["sick_share_max"] < 0.02
         sm["pass_lazy"] = sm["lazy_over_D"] is not None and 0.6 <= sm["lazy_over_D"] <= 0.8
         sm["pass_soymeal_roi"] = sm["soymeal_roi_B"] is not None and 1.5 <= sm["soymeal_roi_B"] <= 2.5
-        sm["pass_spend_share"] = 0.05 <= sm["care_spend_share_range"][0] and sm["care_spend_share_range"][1] <= 0.15
+        sm["pass_spend_share"] = 0.05 <= sm["care_spend_share_range"][0] and sm["care_spend_share_range"][1] <= 0.20  # ceo 2026-10-08 放寬到 20%
         out[str(n)] = row
     return out
 
@@ -492,10 +503,10 @@ def main() -> None:
     print("(a) 價格在 0.6–1.7 倍的時間（各 seed 最低）")
     for n, row in goals["a_price"].items():
         print(f"  {n:>6} 人（{row['days']} 天）: " + "  ".join(f"{c} {row[c]['inside_min']:.4f}（p1–p99 {row[c]['p1']:.2f}–{row[c]['p99']:.2f}）" for c in CIDS) + f"  pass={row['pass']}")
-    print("(b) 各策略收入（千幣）；新增 a 耕田÷乳牛")
+    print("(b) 各策略收入 − 照顧花費（千幣）；新增 a 耕田÷乳牛；括號是只算收入的（參考）")
     for n, row in goals["b_strategies"].items():
         tot = " ".join(f"{k}:{v / 1000:.0f}" for k, v in row["total"].items())
-        wk = " ".join(f"{w['max_over_min']:.2f}" for w in row["weeks"])
+        wk = " ".join(f"{w['max_over_min']:.2f}（{w['revenue_max_over_min']:.2f}）" for w in row["weeks"])
         print(f"  {n:>6} 人: {tot}  合計 max/min={row['total_max_over_min']:.3f} 排名={''.join(row['ranking'])}（耕田第 {row['F_rank']}）  每週 max/min={wk}  F/D={row['total_F_over_D']:.3f}（每週 {row['week_F_over_D_range'][0]:.2f}–{row['week_F_over_D_range'][1]:.2f}）  牛奶佔 {row['revenue_share']['milk']:.1%}")
     c = goals["c_whale"]
     print(f"(c) 大戶：理論上限 一次倒貨 {c['bound_single_dump']:.2%}、持續賣 {c['bound_single_player_sustained']:.2%}")

@@ -34,7 +34,9 @@ AMOUNT_KINDS = ("milk", "beef", "rice", "calf", "breed", "expand", "bucket", "wa
 QTY_KINDS = ("milk", "beef", "rice", "collect", "spoiled", "harvest", "breed", "stud_in", "stud_out",
              "grade_A", "grade_B", "grade_C", "shop_A", "shop_B", "shop_C",
              "feed_buy", "feed", "clean", "sick", "cure", "bonus_kg", "hybrid", "rare_grown")
-REVENUE_KINDS = ("milk", "beef", "rice", "stud_in")  # 週收入 = 賣出收入 + 借種收入
+REVENUE_KINDS = ("milk", "beef", "rice", "stud_in")  # 收入 = 賣出收入 + 借種收入
+# v0.3 照顧的花費。玩法週收入差距的目標用「收入 − 照顧花費」比（使用者 2026-10-08 選的口徑；只算收入的照舊列出當參考）
+CARE_KINDS = ("floor", "helper", "feed_buy", "cure")
 
 
 class Ledger:
@@ -72,6 +74,10 @@ class Ledger:
 
     def revenue_days(self, d0: int, d1: int) -> float:
         return sum(self.amount_days(k, d0, d1) for k in REVENUE_KINDS)
+
+    def care_days(self, d0: int, d1: int) -> float:
+        """照顧花費（正數）：地板、小幫手、飼料、治療。"""
+        return -sum(self.amount_days(k, d0, d1) for k in CARE_KINDS)
 
 
 class World:

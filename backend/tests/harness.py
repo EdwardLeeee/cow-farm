@@ -148,7 +148,8 @@ QTY_KINDS = (
     "hybrid",
     "rare_grown",
 )
-REVENUE_KINDS = ("milk", "beef", "rice", "stud_in")  # 週收入 = 賣出收入 + 借種收入
+REVENUE_KINDS = ("milk", "beef", "rice", "stud_in")  # 收入 = 賣出收入 + 借種收入
+CARE_KINDS = ("floor", "helper", "feed_buy", "cure")  # v0.3 照顧花費（照研究模擬的 sim/world.py）
 
 
 class Ledger:
@@ -184,6 +185,9 @@ class Ledger:
 
     def revenue_days(self, d0: int, d1: int) -> float:
         return sum(self.amount_days(k, d0, d1) for k in REVENUE_KINDS)
+
+    def care_days(self, d0: int, d1: int) -> float:
+        return -sum(self.amount_days(k, d0, d1) for k in CARE_KINDS)
 
 
 # ---------------------------------------------------------------------------
@@ -401,18 +405,20 @@ def price_stats(ratios, lo=0.6, hi=1.7) -> dict:
 
 
 def strategy_weeks(w: ServiceWorld) -> Dict[str, dict]:
-    """各策略每週收入（賣牛奶、牛肉、稻米 + 借種收入）。"""
+    """各策略每週收入：weeks = 收入（賣牛奶、牛肉、稻米 + 借種收入）− 照顧花費（地板、小幫手、飼料、治療），
+    v0.3 起玩法差距的目標用這個（使用者 2026-10-08，研究模擬 report.py 的 goal_b 同一個口徑）；revenue_weeks 只算收入，參考用。"""
     groups: Dict[str, list] = {}
     for b in w.bots:
         groups.setdefault(b.strategy, []).append(b)
     out = {}
     for s, bs in sorted(groups.items()):
-        weeks = []
+        weeks, revenue = [], []
         for d0, d1 in WEEKS:
             if d1 > w.n_days:
                 break
-            weeks.append(statistics.fmean([b.ledger.revenue_days(d0, d1) for b in bs]))
-        out[s] = {"n": len(bs), "weeks": weeks, "total": sum(weeks)}
+            weeks.append(statistics.fmean([b.ledger.revenue_days(d0, d1) - b.ledger.care_days(d0, d1) for b in bs]))
+            revenue.append(statistics.fmean([b.ledger.revenue_days(d0, d1) for b in bs]))
+        out[s] = {"n": len(bs), "weeks": weeks, "total": sum(weeks), "revenue_weeks": revenue}
     return out
 
 
