@@ -17,6 +17,12 @@ class AppMotion extends InheritedWidget {
       (context.getInheritedWidgetOfExactType<AppMotion>()?.enabled ?? false) &&
       !(context.getInheritedWidgetOfExactType<MediaQuery>()?.data.disableAnimations ?? false);
 
+  /// 手機設定了「減少動態」（app 的動畫本來是開著的）：設計稿每個動畫的減少動態版（例：提示淡入 0.2 秒）。
+  /// 沒有包 AppMotion 的時候（測試）不算。按鈕的處理函式裡讀（不登記依賴）。
+  static bool reducedRead(BuildContext context) =>
+      (context.getInheritedWidgetOfExactType<AppMotion>()?.enabled ?? false) &&
+      (context.getInheritedWidgetOfExactType<MediaQuery>()?.data.disableAnimations ?? false);
+
   @override
   bool updateShouldNotify(AppMotion oldWidget) => oldWidget.enabled != enabled;
 }

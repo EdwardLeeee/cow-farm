@@ -19,6 +19,7 @@ import '../kit/app_icon.dart';
 import '../kit/cow_bits.dart';
 import '../kit/frame.dart';
 import '../kit/kit.dart';
+import '../kit/motion.dart';
 import '../kit/press.dart';
 import '../market/news_tier.dart';
 import '../widgets/action_button.dart';
@@ -36,8 +37,20 @@ class RanchPage extends StatefulWidget {
   State<RanchPage> createState() => _RanchPageState();
 }
 
-class _RanchPageState extends State<RanchPage> {
+class _RanchPageState extends State<RanchPage> with SingleTickerProviderStateMixin {
   double _pan = 0;
+
+  /// A-01 收奶（1.4 秒，設計稿 anims.js 的 A01）：奶瓶從奶桶飛進倉庫卡、奶桶的數字往下降、倉庫的牛奶往上跳，最後提示。
+  late final _collectAnim = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400));
+
+  /// 收奶前的數字（動畫中從這裡變到伺服器的新數字）；null 是沒在播。
+  _CollectFx? _fx;
+
+  /// A-01 的減少動態版：提示淡入 0.2 秒（不飛奶瓶、數字直接變）。
+  bool _fadeToast = false;
+  final _pailKey = GlobalKey();
+  final _milkKey = GlobalKey();
+  final _fxLayerKey = GlobalKey();
 
   /// 畫牛的 Flame 遊戲（A-11、A-07）：泡泡和小名片從這裡知道停下來的牛走到哪裡。
   final _game = RanchGame();
@@ -50,22 +63,62 @@ class _RanchPageState extends State<RanchPage> {
   @override
   void dispose() {
     _toastTimer?.cancel();
+    _collectAnim.dispose();
     super.dispose();
   }
 
-  void _showToast(_Toast t) {
+  /// [delay]：A-01 播完前提示先不出來（第 1.0 秒才淡入），停留的時間從那時候算。
+  void _showToast(_Toast t, {Duration delay = Duration.zero}) {
     _toastTimer?.cancel();
     setState(() => _toast = t);
-    _toastTimer = Timer(t.action == null ? const Duration(milliseconds: 2500) : const Duration(seconds: 5), () {
-      if (mounted) setState(() => _toast = null);
-    });
+    _toastTimer = Timer(
+      delay + (t.action == null ? const Duration(milliseconds: 2500) : const Duration(seconds: 5)),
+      () {
+        if (mounted) setState(() => _toast = null);
+      },
+    );
+  }
+
+  /// A-01 現在播到第幾秒；沒在播是 null。
+  double? get _fxT => _fx == null ? null : _collectAnim.value * 1.4;
+
+  /// 動畫中面板上的數字：奶桶照 inOut 從原本降到新的（0.1–0.85 秒），倉庫的牛奶照 outCubic 往上跳（0.55–1.05 秒），
+  /// 「幾分鐘後滿」降完才換（設計稿 A01.frame）。
+  DockData _fxData(DockData data) {
+    final fx = _fx, t = _fxT;
+    if (fx == null || t == null) return data;
+    final drain = _inOut(_seg(t, 0.1, 0.85)), gain = _outCubic(_seg(t, 0.55, 1.05));
+    return DockData(
+      bucket: fx.bucket + (data.bucket - fx.bucket) * drain,
+      bucketCap: data.bucketCap,
+      perHour: data.perHour,
+      timeScale: data.timeScale,
+      warehouse: data.warehouse,
+      quotes: data.quotes,
+      upIsRed: data.upIsRed,
+      rateBucket: drain >= 1 ? data.bucket : fx.bucket,
+      milkShown: fx.milk + (data.warehouse.milkTotal - fx.milk) * gain,
+      draining: drain > 0 && drain < 1,
+    );
   }
 
   Future<void> _collect() async {
     final m = context.read<GameModel>();
     final s = Strings.of(context, listen: false);
+    // A-01：收奶前的奶桶、倉庫；減少動態（或測試）時不播，數字直接變（設計稿的減少動態版）
+    final motion = AppMotion.read(context);
+    final reduced = AppMotion.reducedRead(context);
+    final before = _CollectFx(m.bucketNow, m.state?.warehouse.milkTotal ?? 0);
     final r = await m.collect();
     if (!mounted) return;
+    final delay = r.ok && motion ? const Duration(milliseconds: 1000) : Duration.zero;
+    _fadeToast = r.ok && reduced;
+    if (delay > Duration.zero) {
+      setState(() => _fx = before);
+      _collectAnim.forward(from: 0).whenComplete(() {
+        if (mounted) setState(() => _fx = null);
+      });
+    }
     final err = r.error;
     if (err != null) {
       if (err case ApiActionError(:final error) when error.maintenance || error.unauthorized) return;
@@ -78,6 +131,7 @@ class _RanchPageState extends State<RanchPage> {
       // 倉庫滿了，奶只收進一部分（S03-04）：剩下的留在奶桶；可以去加大倉庫
       final left = m.state?.bucket.amount ?? 0;
       _showToast(
+        delay: delay,
         _Toast(
           ToastKind.warn,
           s.s03Partial(n: oneDecimal(got), left: oneDecimal(left)),
@@ -97,6 +151,7 @@ class _RanchPageState extends State<RanchPage> {
       // 順便丟掉倉庫裡壞掉的牛奶（S03-18，D29）
       final spoiled = (res['spoiled'] as num?)?.toDouble() ?? 0;
       _showToast(
+        delay: delay,
         _Toast(
           ToastKind.ok,
           spoiled > 0
@@ -217,13 +272,18 @@ class _RanchPageState extends State<RanchPage> {
           left: 12,
           right: 12,
           bottom: FrameSizes.contentBottom(safe) + 10,
-          child: Dock(
-            data: data,
-            collapsed: collapsed,
-            pan: _pan,
-            onToggle: () => settings.setDockCollapsed(!collapsed),
-            collect: collectButton,
-            onStorage: m.openWarehouse,
+          child: AnimatedBuilder(
+            animation: _collectAnim,
+            builder: (context, _) => Dock(
+              data: _fxData(data),
+              collapsed: collapsed,
+              pan: _pan,
+              onToggle: () => settings.setDockCollapsed(!collapsed),
+              collect: collectButton,
+              onStorage: m.openWarehouse,
+              pailKey: _pailKey,
+              milkKey: _milkKey,
+            ),
           ),
         ),
       ],
@@ -281,15 +341,75 @@ class _RanchPageState extends State<RanchPage> {
               },
             ),
           ),
+        // A-01：飛的奶瓶（不擋點擊）
+        if (_fx != null)
+          Positioned.fill(
+            key: _fxLayerKey,
+            child: IgnorePointer(
+              child: AnimatedBuilder(animation: _collectAnim, builder: (context, _) => _bottles()),
+            ),
+          ),
         if (_toast != null)
           Positioned(
             left: 16,
             right: 16,
             bottom: FrameSizes.contentBottom(safe) + 14,
             child: Center(
-              child: ToastPill(_toast!.text, kind: _toast!.kind, action: _toast!.action, key: const Key('toast')),
+              // A-01 播的時候第 1.0–1.2 秒淡入、從下面 14 滑上來
+              child: AnimatedBuilder(
+                animation: _collectAnim,
+                builder: (context, child) {
+                  final t = _fxT;
+                  if (t == null) {
+                    if (!_fadeToast) return child!;
+                    return TweenAnimationBuilder<double>(
+                      key: ObjectKey(_toast),
+                      tween: Tween(begin: 0, end: 1),
+                      duration: const Duration(milliseconds: 200),
+                      builder: (context, o, child) => Opacity(opacity: o, child: child),
+                      child: child,
+                    );
+                  }
+                  final k = _seg(t, 1.0, 1.2);
+                  return Opacity(
+                    opacity: k,
+                    child: Transform.translate(offset: Offset(0, (1 - _outCubic(k)) * 14), child: child),
+                  );
+                },
+                child: ToastPill(_toast!.text, kind: _toast!.kind, action: _toast!.action, key: const Key('toast')),
+              ),
             ),
           ),
+      ],
+    );
+  }
+
+  /// A-01 的五個奶瓶：從奶桶圖示的中間，沿拋物線（高 90）飛到倉庫卡牛奶那一行的左邊 20，一個晚 0.08 秒；
+  /// 飛的時候變大再變小（0.7 → 1.2 → 0.7）、從 −20 度轉到 20 度（設計稿 A01.frame）。面板收起來（沒有倉庫卡）就不飛。
+  Widget _bottles() {
+    final t = _fxT;
+    final layer = _fxLayerKey.currentContext?.findRenderObject() as RenderBox?;
+    final pail = _pailKey.currentContext?.findRenderObject() as RenderBox?;
+    final milk = _milkKey.currentContext?.findRenderObject() as RenderBox?;
+    if (t == null || layer == null || pail == null || milk == null || !layer.hasSize) return const SizedBox.shrink();
+    final from = layer.globalToLocal(pail.localToGlobal(pail.size.center(Offset.zero)));
+    final to = layer.globalToLocal(milk.localToGlobal(Offset(20, milk.size.height / 2)));
+    return Stack(
+      children: [
+        for (var i = 0; i < 5; i++)
+          if (_seg(t, 0.1 + i * 0.08, 0.6 + i * 0.08) case final k when k > 0 && k < 1)
+            Positioned(
+              key: Key('collect-bottle-$i'),
+              left: from.dx + (to.dx - from.dx) * _outCubic(k) - 14,
+              top: from.dy + (to.dy - from.dy) * _outCubic(k) - math.sin(math.pi * _outCubic(k)) * 90 - 14,
+              child: Transform.rotate(
+                angle: (-20 + 40 * k) * math.pi / 180,
+                child: Transform.scale(
+                  scale: 0.7 + 0.5 * math.sin(math.pi * k),
+                  child: const AppIcon('milk', size: 28),
+                ),
+              ),
+            ),
       ],
     );
   }
@@ -304,6 +424,18 @@ class _RanchPageState extends State<RanchPage> {
     return null;
   }
 }
+
+/// A-01：收奶前的奶桶、倉庫的牛奶。
+class _CollectFx {
+  const _CollectFx(this.bucket, this.milk);
+  final double bucket;
+  final double milk;
+}
+
+// 設計稿 anims.js 的小工具：seg 是 t 在 a–b 之間走了幾成（0–1）。
+double _seg(double t, double a, double b) => ((t - a) / (b - a)).clamp(0.0, 1.0);
+double _outCubic(double x) => 1 - math.pow(1 - x, 3).toDouble();
+double _inOut(double x) => x < 0.5 ? 4 * x * x * x : 1 - math.pow(-2 * x + 2, 3) / 2;
 
 class _Toast {
   const _Toast(this.kind, this.text, {this.action});
