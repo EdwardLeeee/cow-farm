@@ -42,6 +42,7 @@ const Map<String, List<String>> kPlaceholders = {
   'g.grade': ['g'],
   's07.income': ['v'],
   'expectedValue': ['v'],
+  's07.sickNote': ['v'],
   's20.title': ['cow'],
   's20.gradeFormat': ['grade'],
   's20.kgIn': ['kg'],
@@ -68,6 +69,7 @@ const Map<String, List<String>> kPlaceholders = {
   's03.bucketCount': ['amount'],
   's03.fullIn': ['time'],
   's03.milkUsed': ['pct'],
+  'treat': ['price'],
   'commodityTag': ['name'],
   's03.metaField': ['n', 'rate'],
   's03.metaListed': ['price'],
@@ -106,6 +108,9 @@ const Map<String, List<String>> kPlaceholders = {
   's04.listConfirm': ['price'],
   'recallFirst': ['n'],
   's04.mixNote': ['feeds', 'mult'],
+  's04.treatTitle': ['cow'],
+  's04.treatBody': ['price'],
+  's04.treated': ['cow'],
   'cowTitle': ['id'],
   's04.recallFirstOx': ['n'],
   's08.probFailedRetry': ['n'],
@@ -334,6 +339,7 @@ const Map<String, String> _zhHant = {
   's07.income': '收入約 {v} 幣',
   'expectedValue': '期望收入 約 {v} 幣',
   's07.note': '出貨時才會隨機評級。牛肉立刻放進倉庫，要不要賣、什麼時候賣都可以自己決定。',
+  's07.sickNote': '生病了：牛肉只剩一成。先治療再出貨，大約可以賣 {v} 幣',
   'shipConfirmTitle': '確定出貨？',
   'cancel': '取消',
   's07.confirm': '確定出貨',
@@ -371,6 +377,7 @@ const Map<String, String> _zhHant = {
   'feed.corn': '玉米',
   'feed.soy': '豆粕',
   'stageOld': '老牛',
+  'badgeSick': '生病了',
   'badgeMix': '雜種',
   'badgeWorking': '工作中',
   'badgeListed': '上架中',
@@ -437,6 +444,11 @@ const Map<String, String> _zhHant = {
   's03.prices': '收購價',
   's03.vsNormal': '比平常',
   's03.bubbleFull': '奶桶滿了',
+  's03.poop': '大便',
+  's03.poopDanger': '會生病',
+  's03.sickNoMilk': '不產奶，也不能配種、上架',
+  's03.sickShip': '出貨的話，牛肉只剩一成',
+  'treat': '治療（{price} 幣）',
   'cowsTitle': '我的牛',
   'commodityTag': '【{name}】',
   'bothTag': '【全部】',
@@ -539,6 +551,11 @@ const Map<String, String> _zhHant = {
   's04.calfHint': '小牛長大以後才能配種、出貨。',
   's04.calfUnknown': '長大才知道是什麼品種',
   's04.mixNote': '小時候沒吃到{feeds}；牛奶、牛肉、稻米 ×{mult}',
+  's04.sickNote': '生病了：不產奶、不能耕田、配種、上架；出貨的話，牛肉只剩一成',
+  's04.sickMilk': '停止',
+  's04.treatTitle': '治療{cow}？',
+  's04.treatBody': '花 {price} 幣，馬上就好。',
+  's04.treated': '{cow} 好了！',
   's04.cantBreedYet': '還不能配種',
   'shipNotAdult': '小牛還不能出貨',
   's04.noteBred': '已配種：每頭牛一輩子只能配種一次',
@@ -616,6 +633,7 @@ const Map<String, String> _zhHant = {
   'fieldName': '第 {n} 塊田',
   's17.leftover': '牛叫回來了，田裡還有 {kg} 公斤稻米，收成時一起收。',
   's17.emptyHint': '空田：派一頭成年耕牛來種稻。',
+  's17.sickStop': '生病了，停止耕田',
   'fieldEmpty': '空田',
   'noOx': '沒有能下田的成年耕牛',
   'assignOx': '派耕牛',
@@ -1115,6 +1133,7 @@ const Map<String, String> _en = {
   's07.income': 'Earn ~{v} coins',
   'expectedValue': 'Expected: ~{v} coins',
   's07.note': 'The grade is random when you ship. Beef goes straight to storage, and you decide if and when to sell it.',
+  's07.sickNote': 'Sick: beef is worth only 10%. Treat first to sell for ~{v} coins.',
   'shipConfirmTitle': 'Ship this cow?',
   'cancel': 'Cancel',
   's07.confirm': 'Ship',
@@ -1152,6 +1171,7 @@ const Map<String, String> _en = {
   'feed.corn': 'Corn',
   'feed.soy': 'Soymeal',
   'stageOld': 'Senior',
+  'badgeSick': 'Sick',
   'badgeMix': 'Mixed',
   'badgeWorking': 'Working',
   'badgeListed': 'Listed',
@@ -1218,6 +1238,11 @@ const Map<String, String> _en = {
   's03.prices': 'Prices',
   's03.vsNormal': 'vs usual',
   's03.bubbleFull': 'Bucket full!',
+  's03.poop': 'Poop',
+  's03.poopDanger': 'Sick risk',
+  's03.sickNoMilk': 'No milk, breeding or listing',
+  's03.sickShip': 'If shipped, beef is worth only 10%',
+  'treat': 'Treat ({price} coins)',
   'cowsTitle': 'My cows',
   'commodityTag': '[{name}] ',
   'bothTag': '[All] ',
@@ -1320,6 +1345,11 @@ const Map<String, String> _en = {
   's04.calfHint': 'Calves can breed or be shipped once grown up.',
   's04.calfUnknown': 'Breed revealed when grown up',
   's04.mixNote': 'Missed {feeds} as a calf · milk, beef, rice ×{mult}',
+  's04.sickNote': 'Sick: no milk, plowing, breeding or listing. If shipped, beef is worth only 10%',
+  's04.sickMilk': 'Stopped',
+  's04.treatTitle': 'Treat {cow}?',
+  's04.treatBody': 'It costs {price} coins and works right away.',
+  's04.treated': '{cow} is all better!',
   's04.cantBreedYet': 'Can\'t breed yet',
   'shipNotAdult': 'Can\'t ship yet',
   's04.noteBred': 'Bred: each cow can breed only once in its life',
@@ -1398,6 +1428,7 @@ const Map<String, String> _en = {
   'fieldName': 'Field {n}',
   's17.leftover': 'Ox called back. {kg} kg of rice is still in the field and will be collected at harvest.',
   's17.emptyHint': 'Empty field: send an adult ox here to grow rice.',
+  's17.sickStop': 'Sick: stopped plowing',
   'fieldEmpty': 'Empty',
   'noOx': 'No adult oxen available',
   'assignOx': 'Send an ox',
@@ -1896,6 +1927,7 @@ const Map<String, String> _th = {
   's07.income': 'ได้ราว {v} เหรียญ',
   'expectedValue': 'คาดว่าจะได้ราว {v} เหรียญ',
   's07.note': 'เกรดจะสุ่มตอนส่งขาย เนื้อวัวจะเข้าโกดังทันที จะขายหรือไม่ และขายเมื่อไรก็เลือกเองได้',
+  's07.sickNote': 'ป่วย: เนื้อเหลือมูลค่าแค่ 10% รักษาก่อนแล้วค่อยส่งขาย จะขายได้ราว {v} เหรียญ',
   'shipConfirmTitle': 'ส่งขายเลยไหม?',
   'cancel': 'ยกเลิก',
   's07.confirm': 'ยืนยันส่งขาย',
@@ -1933,6 +1965,7 @@ const Map<String, String> _th = {
   'feed.corn': 'ข้าวโพด',
   'feed.soy': 'กากถั่วเหลือง',
   'stageOld': 'วัยชรา',
+  'badgeSick': 'ป่วย',
   'badgeMix': 'พันธุ์ผสม',
   'badgeWorking': 'ไถนาอยู่',
   'badgeListed': 'ลงประกาศอยู่',
@@ -1999,6 +2032,11 @@ const Map<String, String> _th = {
   's03.prices': 'ราคารับซื้อ',
   's03.vsNormal': 'เทียบปกติ',
   's03.bubbleFull': 'ถังนมเต็มแล้ว',
+  's03.poop': 'มูลวัว',
+  's03.poopDanger': 'เสี่ยงป่วย',
+  's03.sickNoMilk': 'ไม่ให้นม ผสมพันธุ์หรือลงประกาศไม่ได้',
+  's03.sickShip': 'ถ้าส่งขาย เนื้อเหลือมูลค่าแค่ 10%',
+  'treat': 'รักษา ({price} เหรียญ)',
   'cowsTitle': 'วัวของฉัน',
   'commodityTag': '[{name}] ',
   'bothTag': '[ทั้งหมด] ',
@@ -2101,6 +2139,11 @@ const Map<String, String> _th = {
   's04.calfHint': 'ลูกวัวต้องโตก่อนจึงจะผสมพันธุ์หรือส่งขายได้',
   's04.calfUnknown': 'จะรู้สายพันธุ์เมื่อโตแล้ว',
   's04.mixNote': 'ตอนเป็นลูกวัวไม่ได้กิน{feeds} · นม เนื้อ ข้าว ×{mult}',
+  's04.sickNote': 'ป่วย: ไม่ให้นม ไถนา ผสมพันธุ์ หรือลงประกาศไม่ได้ ถ้าส่งขาย เนื้อเหลือมูลค่าแค่ 10%',
+  's04.sickMilk': 'หยุด',
+  's04.treatTitle': 'รักษา{cow}?',
+  's04.treatBody': 'ใช้ {price} เหรียญ หายทันที',
+  's04.treated': '{cow} หายแล้ว!',
   's04.cantBreedYet': 'ยังผสมพันธุ์ไม่ได้',
   'shipNotAdult': 'ลูกวัวยังส่งขายไม่ได้',
   's04.noteBred': 'ผสมพันธุ์แล้ว: วัวแต่ละตัวผสมพันธุ์ได้ครั้งเดียวในชีวิต',
@@ -2179,6 +2222,7 @@ const Map<String, String> _th = {
   'fieldName': 'แปลงที่ {n}',
   's17.leftover': 'เรียกวัวกลับแล้ว ในแปลงยังมีข้าว {kg} กก. จะเก็บเกี่ยวไปพร้อมกัน',
   's17.emptyHint': 'แปลงว่าง: ส่งวัวงานโตเต็มวัยมาไถนาปลูกข้าว',
+  's17.sickStop': 'ป่วย หยุดไถนา',
   'fieldEmpty': 'แปลงว่าง',
   'noOx': 'ไม่มีวัวงานโตเต็มวัยที่ส่งไปไถนาได้',
   'assignOx': 'ส่งไปไถนา',
@@ -2993,6 +3037,9 @@ abstract class GeneratedStrings {
   /// `s07.note`：出貨時才會隨機評級。牛肉立刻放進倉庫，要不要賣、什麼時候賣都可以自己決定。
   String get s07Note => table['s07.note']!;
 
+  /// `s07.sickNote`：生病了：牛肉只剩一成。先治療再出貨，大約可以賣 {v} 幣
+  String s07SickNote({required Object v}) => fill('s07.sickNote', {'v': v});
+
   /// `shipConfirmTitle`：確定出貨？
   String get shipConfirmTitle => table['shipConfirmTitle']!;
 
@@ -3103,6 +3150,9 @@ abstract class GeneratedStrings {
 
   /// `stageOld`：老牛
   String get stageOld => table['stageOld']!;
+
+  /// `badgeSick`：生病了
+  String get badgeSick => table['badgeSick']!;
 
   /// `badgeMix`：雜種
   String get badgeMix => table['badgeMix']!;
@@ -3301,6 +3351,21 @@ abstract class GeneratedStrings {
 
   /// `s03.bubbleFull`：奶桶滿了
   String get s03BubbleFull => table['s03.bubbleFull']!;
+
+  /// `s03.poop`：大便
+  String get s03Poop => table['s03.poop']!;
+
+  /// `s03.poopDanger`：會生病
+  String get s03PoopDanger => table['s03.poopDanger']!;
+
+  /// `s03.sickNoMilk`：不產奶，也不能配種、上架
+  String get s03SickNoMilk => table['s03.sickNoMilk']!;
+
+  /// `s03.sickShip`：出貨的話，牛肉只剩一成
+  String get s03SickShip => table['s03.sickShip']!;
+
+  /// `treat`：治療（{price} 幣）
+  String treat({required Object price}) => fill('treat', {'price': price});
 
   /// `cowsTitle`：我的牛
   String get cowsTitle => table['cowsTitle']!;
@@ -3608,6 +3673,21 @@ abstract class GeneratedStrings {
   /// `s04.mixNote`：小時候沒吃到{feeds}；牛奶、牛肉、稻米 ×{mult}
   String s04MixNote({required Object feeds, required Object mult}) => fill('s04.mixNote', {'feeds': feeds, 'mult': mult});
 
+  /// `s04.sickNote`：生病了：不產奶、不能耕田、配種、上架；出貨的話，牛肉只剩一成
+  String get s04SickNote => table['s04.sickNote']!;
+
+  /// `s04.sickMilk`：停止
+  String get s04SickMilk => table['s04.sickMilk']!;
+
+  /// `s04.treatTitle`：治療{cow}？
+  String s04TreatTitle({required Object cow}) => fill('s04.treatTitle', {'cow': cow});
+
+  /// `s04.treatBody`：花 {price} 幣，馬上就好。
+  String s04TreatBody({required Object price}) => fill('s04.treatBody', {'price': price});
+
+  /// `s04.treated`：{cow} 好了！
+  String s04Treated({required Object cow}) => fill('s04.treated', {'cow': cow});
+
   /// `s04.cantBreedYet`：還不能配種
   String get s04CantBreedYet => table['s04.cantBreedYet']!;
 
@@ -3838,6 +3918,9 @@ abstract class GeneratedStrings {
 
   /// `s17.emptyHint`：空田：派一頭成年耕牛來種稻。
   String get s17EmptyHint => table['s17.emptyHint']!;
+
+  /// `s17.sickStop`：生病了，停止耕田
+  String get s17SickStop => table['s17.sickStop']!;
 
   /// `fieldEmpty`：空田
   String get fieldEmpty => table['fieldEmpty']!;
