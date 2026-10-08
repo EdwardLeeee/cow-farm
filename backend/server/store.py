@@ -336,11 +336,14 @@ class Store:
         others: Sequence[Tuple[int, dict, int, float]] = (),
         stud: Optional[dict] = None,
         stud_log: Sequence[dict] = (),
+        ranch_name: Optional[str] = None,
     ) -> None:
         """一個動作的結果，同一個交易：牧場狀態（樂觀鎖）、被動到的別的牧場（借種的主人）、借種市場、
-        成交紀錄、借種紀錄、request_id 與回應。"""
+        成交紀錄、借種紀錄、request_id 與回應。ranch_name：改名（S21）時新的名字，跟扣錢一起寫。"""
         async with self.pool.acquire() as conn:
             async with conn.transaction():
+                if ranch_name is not None:
+                    await conn.execute("UPDATE players SET ranch_name=$1 WHERE id=$2", ranch_name, pid)
                 for p_id, p_state, p_version, p_t in [(pid, state, version, game_t), *others]:
                     r = await conn.execute(
                         "UPDATE farms SET state=$1, version=version+1, game_t=$2, updated_at=now() WHERE player_id=$3 AND version=$4",
@@ -413,8 +416,10 @@ class Store:
         exchange_meta: dict,
         clock_meta: dict,
         news: Iterable[dict] = (),
+        weeks: Optional[dict] = None,
     ) -> None:
-        """一個或多個 tick：最後一個的市場狀態、每個 tick 的價格、交易所 meta、遊戲時鐘、新的新聞。"""
+        """一個或多個 tick：最後一個的市場狀態、每個 tick 的價格、交易所 meta、遊戲時鐘、新的新聞；
+        weeks：週結算有變時的週冠軍（成就 weekChamp，S21）。"""
         t_last, snaps, _ = ticks[-1]
         async with self.pool.acquire() as conn:
             async with conn.transaction():
@@ -434,6 +439,11 @@ class Store:
                     "INSERT INTO meta(key, value) VALUES('clock', $1) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=now()",
                     clock_meta,
                 )
+                if weeks is not None:
+                    await conn.execute(
+                        "INSERT INTO meta(key, value) VALUES('weeks', $1) ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value, updated_at=now()",
+                        weeks,
+                    )
                 for n in news:
                     await conn.execute(
                         "INSERT INTO news(id, headline, targets, factor, rare, announce_at, start_at, end_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT (id) DO NOTHING",

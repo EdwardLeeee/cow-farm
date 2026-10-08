@@ -32,6 +32,7 @@ from cowecon.farm import (
 )
 from cowecon.params import HEADLINES, HOUR
 
+from . import achievements as A
 from .breeds import ORDER as BREED_ORDER
 from .breeds import breed_of_genes
 from .game import TYPE_WIRE, Game, Player, level_threshold, ship_value, stud_fee_view
@@ -276,6 +277,7 @@ def ranch_ref(p: Player) -> dict:
         "name_words": words,
         "is_bot": p.is_bot,
         "level": p.level(),
+        "avatar": None if p.is_bot else p.avatar,  # S21：頭像的品種代號；電腦和沒選過的是 null（app 畫荷斯坦）
     }
 
 
@@ -287,6 +289,7 @@ def station_ref(game: Game, listing_id: int) -> dict:
         "name_words": station_words(game.seed, listing_id),
         "is_bot": True,
         "level": None,
+        "avatar": None,
     }
 
 
@@ -344,7 +347,41 @@ def state_view(game: Game, p: Player, now: float, clock) -> dict:
             "income": int(round(p.stud_income)),
         },
         "economy": economy_view(f.fp),
+        "profile": {"avatar": p.avatar, "renames": p.renames},  # S21 牧場資料（D34）
+        "achievements": achievements_view(game, p, now),
     }
+
+
+def achievements_view(game: Game, p: Player, now: float) -> List[dict]:
+    """成就（S21；server/achievements.py）：18 個，順序跟設計稿 BADGES 一樣。時間都是遊戲時間（同 codex[].found_at）。
+    一般的 {key, unlocked_at}；有計數的再加 progress、goal；分階段的 {key, progress, tiers[{goal, unlocked_at}]}。"""
+    found = sorted(p.codex.values())
+    progress = {
+        "gradeA": p.ach_n.get("gradeA", 0.0),
+        "popularBull": p.ach_n.get("popularBull", 0.0),
+        "rice": r2(p.ach_n.get("rice", 0.0)),
+        "codex": float(len(found)),
+        "level": float(p.level()),
+        "rich": float(round(game.net_worth(p, now))),
+    }
+    out = []
+    for key, goal in A.ACHIEVEMENTS:
+        if isinstance(goal, tuple):
+            tiers = []
+            for i, g in enumerate(goal, start=1):
+                if key == "codex":  # 第 g 種牛被發現的時間
+                    at = found[g - 1] if len(found) >= g else None
+                else:
+                    at = p.ach.get(A.tier_key(key, i))
+                tiers.append({"goal": g, "unlocked_at": at})
+            out.append({"key": key, "progress": progress[key], "tiers": tiers})
+        elif key == "weekChamp":
+            out.append({"key": key, "unlocked_at": game.week_champ_at(p.pid)})
+        elif isinstance(goal, int):
+            out.append({"key": key, "unlocked_at": p.ach.get(key), "progress": progress[key], "goal": goal})
+        else:
+            out.append({"key": key, "unlocked_at": None if key in A.NOT_YET else p.ach.get(key)})
+    return out
 
 
 def economy_view(fp) -> dict:
@@ -357,6 +394,7 @@ def economy_view(fp) -> dict:
         "calf_grow_h": list(fp.tier_growth_h),  # 小牛長大要幾遊戲小時，依稀有度（params 的 tier_growth_h）
         "peak_weight_kg": {TYPE_WIRE[i]: w for i, w in enumerate(fp.peak_weight_kg)},  # 母牛的最佳體重，依用途
         "bull_weight_mult": fp.bull_weight_mult,  # 公牛的體重 = 母牛 × 這個
+        "rename_price": A.RENAME_PRICE,  # S21：第二次起改名的價錢（第一次免費，看 profile.renames）
         "field_cap_h": fp.field_cap_h,  # 一塊田最多存這頭耕牛壯年幾小時的量（fields[].capacity 不乘年齡曲線）
     }
 
