@@ -41,6 +41,8 @@ void main() {
     ];
     expect(breeds, hasLength(25), reason: '24 種牛（企劃書 4.5）加雜種牛 mix（D35，#157）');
     expect(breeds, contains('mix'));
+    // 雜種牛的品種代號是 hybrid（協定 C1），名字讀 breed.mix.name
+    expect(Strings.forLang(AppLang.zhHant).breedName('hybrid'), '雜種牛');
     for (final lang in AppLang.values) {
       final s = Strings.forLang(lang);
       for (final b in breeds) {

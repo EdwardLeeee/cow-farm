@@ -2,6 +2,8 @@
 // - 只能選圖鑑裡發現過的牛（使用者：「本來我們的原則就是沒有發現過的牛就要不能選」）；換頭像不用錢，不寫價錢。
 // - 還沒發現的畫成剪影加鎖，點了不能選，下面那行換成「還沒發現「星空牛」，在圖鑑發現以後就能用」（S21-03）。
 // - 上面一列：現在的頭像（淡）→ 選的頭像、品種名。窄於 340 收起來、格子 5 欄（平常 6 欄）。
+// - 24 種下面「其他」一排放雜種牛（#157，ceo 2026-10-03；之後的特殊牛也放這排），規則跟 24 種一樣：沒發現是剪影加鎖。
+//   「已發現 n / 24 種」不算雜種牛。
 import 'package:flutter/material.dart';
 
 import '../../api/breeds.dart';
@@ -57,6 +59,38 @@ class AvatarSheetState extends State<AvatarSheet> {
     }
   });
 
+  /// 一組格子：[cols] 欄，最後一排不滿的留空。
+  Widget _grid({required Key key, required List<String> codes, required int cols, required String? tapped}) => Column(
+    key: key,
+    children: [
+      for (var i = 0; i < codes.length; i += cols) ...[
+        if (i > 0) const SizedBox(height: 8),
+        Row(
+          children: [
+            for (var c = 0; c < cols; c++) ...[
+              if (c > 0) const SizedBox(width: 8),
+              Expanded(
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: i + c < codes.length
+                      ? _Cell(
+                          key: Key('av-${codes[i + c]}'),
+                          breed: codes[i + c],
+                          locked: !widget.found.contains(codes[i + c]),
+                          on: codes[i + c] == _sel,
+                          tapped: codes[i + c] == tapped,
+                          onTap: () => _pick(codes[i + c]),
+                        )
+                      : const SizedBox.shrink(),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ],
+    ],
+  );
+
   @override
   Widget build(BuildContext context) {
     final s = Strings.of(context);
@@ -70,36 +104,17 @@ class AvatarSheetState extends State<AvatarSheet> {
         if (!narrow) _Preview(current: widget.current, selected: _sel),
         if (!narrow) const SizedBox(height: 12),
         // .av-grid：每格是正方形，格子之間 8
-        Column(
-          key: const Key('av-grid'),
-          children: [
-            for (var i = 0; i < kCodexOrder.length; i += cols) ...[
-              if (i > 0) const SizedBox(height: 8),
-              Row(
-                children: [
-                  for (var c = 0; c < cols; c++) ...[
-                    if (c > 0) const SizedBox(width: 8),
-                    Expanded(
-                      child: AspectRatio(
-                        aspectRatio: 1,
-                        child: i + c < kCodexOrder.length
-                            ? _Cell(
-                                key: Key('av-${kCodexOrder[i + c]}'),
-                                breed: kCodexOrder[i + c],
-                                locked: !widget.found.contains(kCodexOrder[i + c]),
-                                on: kCodexOrder[i + c] == _sel,
-                                tapped: kCodexOrder[i + c] == tapped,
-                                onTap: () => _pick(kCodexOrder[i + c]),
-                              )
-                            : const SizedBox.shrink(),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ],
-          ],
+        _grid(key: const Key('av-grid'), codes: kCodexOrder, cols: cols, tapped: tapped),
+        // .av-sub：「其他」（13 特粗、淡色，上 10、左右 2），下面 4 是那一排（.av-grid.other）
+        Padding(
+          padding: const EdgeInsets.fromLTRB(2, 10, 2, 4),
+          child: Text(
+            s.s09Other,
+            key: const Key('av-other'),
+            style: AppText.style(13, weight: FontWeight.w900, color: AppColors.ink2, lineHeight: 18),
+          ),
         ),
+        _grid(key: const Key('av-grid-other'), codes: const [kHybrid], cols: cols, tapped: tapped),
         const SizedBox(height: 10),
         // .av-count：發現了幾種；點了鎖住的換成那種牛的提示（橘色）
         Row(

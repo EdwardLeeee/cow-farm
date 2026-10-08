@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../api/breeds.dart' show kHybrid;
 import '../../theme/tokens.dart';
 
 /// 一張牛圖的量測（cows.json 的 images）：SVG 的 viewBox 原點在腳底中間，往上是負的；四邊各留 4。
@@ -163,6 +164,7 @@ class CowPicture extends StatelessWidget {
 }
 
 /// 牛的臉（設計稿 kit.js 的 cowFace）：正面的圖只取臉那個圓，畫成 [size]×[size]。頂列的頭像用。
+/// 頭像選了雜種牛（[kHybrid]）畫乳牛體型的雜種牛（設計稿的 MIX_LOOK.dairy）。
 class CowFace extends StatelessWidget {
   const CowFace({super.key, this.breed = 'holstein', required this.size});
 
@@ -172,7 +174,8 @@ class CowFace extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final art = CowArt.instance;
-    final (name, _) = art?.pick(breed: breed, bull: false, calf: false, front: true, right: false) ?? ('', false);
+    final look = breed == kHybrid ? 'mixDairy' : breed;
+    final (name, _) = art?.pick(breed: look, bull: false, calf: false, front: true, right: false) ?? ('', false);
     final m = art?.meta(name);
     if (m == null) return SizedBox.square(dimension: size);
     final (cx, cy, r) = m.face;
