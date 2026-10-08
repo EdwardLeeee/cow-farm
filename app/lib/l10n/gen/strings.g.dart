@@ -69,6 +69,7 @@ const Map<String, List<String>> kPlaceholders = {
   's03.bucketCount': ['amount'],
   's03.fullIn': ['time'],
   's03.milkUsed': ['pct'],
+  's03.growSoon': ['cow', 'time'],
   'treat': ['price'],
   'commodityTag': ['name'],
   's03.metaField': ['n', 'rate'],
@@ -447,6 +448,10 @@ const Map<String, String> _zhHant = {
   's03.bubbleFull': '奶桶滿了',
   's03.poop': '大便',
   's03.poopDanger': '會生病',
+  's03.stampsFull': '集滿了',
+  's03.growSoon': '{cow} 再 {time}就長大',
+  's03.notEaten': '還沒吃：',
+  's03.goFeed': '去餵食',
   's03.sickNoMilk': '不產奶，也不能配種、上架',
   's03.sickShip': '出貨的話，牛肉只剩一成',
   'treat': '治療（{price} 幣）',
@@ -551,6 +556,10 @@ const Map<String, String> _zhHant = {
   's04.recall': '叫回來',
   's04.calfHint': '小牛長大以後才能配種、出貨。',
   's04.calfUnknown': '長大才知道是什麼品種',
+  's04.stampTitle': '飼料集點卡',
+  's04.stamped': '吃過',
+  's04.stampRule': '集滿再長大，才不會變成雜種牛',
+  's04.eatAny': '什麼都可以吃',
   's04.mixNote': '小時候沒吃到{feeds}；牛奶、牛肉、稻米 ×{mult}',
   's04.sickNote': '生病了：不產奶、不能耕田、配種、上架；出貨的話，牛肉只剩一成',
   's04.sickMilk': '停止',
@@ -1242,6 +1251,10 @@ const Map<String, String> _en = {
   's03.bubbleFull': 'Bucket full!',
   's03.poop': 'Poop',
   's03.poopDanger': 'Sick risk',
+  's03.stampsFull': 'Card full',
+  's03.growSoon': '{cow} grows up in {time}',
+  's03.notEaten': 'Still needs:',
+  's03.goFeed': 'Feed',
   's03.sickNoMilk': 'No milk, breeding or listing',
   's03.sickShip': 'If shipped, beef is worth only 10%',
   'treat': 'Treat ({price} coins)',
@@ -1346,6 +1359,10 @@ const Map<String, String> _en = {
   's04.recall': 'Call back',
   's04.calfHint': 'Calves can breed or be shipped once grown up.',
   's04.calfUnknown': 'Breed revealed when grown up',
+  's04.stampTitle': 'Feed stamp card',
+  's04.stamped': 'Ate',
+  's04.stampRule': 'Fill the card before it grows up, or it becomes a crossbreed',
+  's04.eatAny': 'Can eat anything',
   's04.mixNote': 'Missed {feeds} as a calf · milk, beef, rice ×{mult}',
   's04.sickNote': 'Sick: no milk, plowing, breeding or listing. If shipped, beef is worth only 10%',
   's04.sickMilk': 'Stopped',
@@ -2037,6 +2054,10 @@ const Map<String, String> _th = {
   's03.bubbleFull': 'ถังนมเต็มแล้ว',
   's03.poop': 'มูลวัว',
   's03.poopDanger': 'เสี่ยงป่วย',
+  's03.stampsFull': 'ครบแล้ว',
+  's03.growSoon': '{cow} จะโตในอีก {time}',
+  's03.notEaten': 'ยังไม่ได้กิน:',
+  's03.goFeed': 'ไปให้อาหาร',
   's03.sickNoMilk': 'ไม่ให้นม ผสมพันธุ์หรือลงประกาศไม่ได้',
   's03.sickShip': 'ถ้าส่งขาย เนื้อเหลือมูลค่าแค่ 10%',
   'treat': 'รักษา ({price} เหรียญ)',
@@ -2141,6 +2162,10 @@ const Map<String, String> _th = {
   's04.recall': 'เรียกกลับ',
   's04.calfHint': 'ลูกวัวต้องโตก่อนจึงจะผสมพันธุ์หรือส่งขายได้',
   's04.calfUnknown': 'จะรู้สายพันธุ์เมื่อโตแล้ว',
+  's04.stampTitle': 'บัตรสะสมอาหาร',
+  's04.stamped': 'กินแล้ว',
+  's04.stampRule': 'สะสมให้ครบก่อนโต ไม่งั้นจะกลายเป็นวัวพันธุ์ผสม',
+  's04.eatAny': 'กินอะไรก็ได้',
   's04.mixNote': 'ตอนเป็นลูกวัวไม่ได้กิน{feeds} · นม เนื้อ ข้าว ×{mult}',
   's04.sickNote': 'ป่วย: ไม่ให้นม ไถนา ผสมพันธุ์ หรือลงประกาศไม่ได้ ถ้าส่งขาย เนื้อเหลือมูลค่าแค่ 10%',
   's04.sickMilk': 'หยุด',
@@ -3364,6 +3389,18 @@ abstract class GeneratedStrings {
   /// `s03.poopDanger`：會生病
   String get s03PoopDanger => table['s03.poopDanger']!;
 
+  /// `s03.stampsFull`：集滿了
+  String get s03StampsFull => table['s03.stampsFull']!;
+
+  /// `s03.growSoon`：{cow} 再 {time}就長大
+  String s03GrowSoon({required Object cow, required Object time}) => fill('s03.growSoon', {'cow': cow, 'time': time});
+
+  /// `s03.notEaten`：還沒吃：
+  String get s03NotEaten => table['s03.notEaten']!;
+
+  /// `s03.goFeed`：去餵食
+  String get s03GoFeed => table['s03.goFeed']!;
+
   /// `s03.sickNoMilk`：不產奶，也不能配種、上架
   String get s03SickNoMilk => table['s03.sickNoMilk']!;
 
@@ -3675,6 +3712,18 @@ abstract class GeneratedStrings {
 
   /// `s04.calfUnknown`：長大才知道是什麼品種
   String get s04CalfUnknown => table['s04.calfUnknown']!;
+
+  /// `s04.stampTitle`：飼料集點卡
+  String get s04StampTitle => table['s04.stampTitle']!;
+
+  /// `s04.stamped`：吃過
+  String get s04Stamped => table['s04.stamped']!;
+
+  /// `s04.stampRule`：集滿再長大，才不會變成雜種牛
+  String get s04StampRule => table['s04.stampRule']!;
+
+  /// `s04.eatAny`：什麼都可以吃
+  String get s04EatAny => table['s04.eatAny']!;
 
   /// `s04.mixNote`：小時候沒吃到{feeds}；牛奶、牛肉、稻米 ×{mult}
   String s04MixNote({required Object feeds, required Object mult}) => fill('s04.mixNote', {'feeds': feeds, 'mult': mult});

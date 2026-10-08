@@ -1,8 +1,9 @@
 // S03 牧場主畫面
 import { frame, btn, bar, toast, badge, tierChip, useChip, sexText, cowRow, icon, fmt, cowSVG, sickBadge, mixStar, rarityChip, BREEDS } from '../kit.js';
 import { poopsSvg } from '../poop.js';
+import { stampLine, wantBubble, growAlert } from '../stamps.js';
 import { ranchScene, HERD, WIDE } from '../scene.js';
-import { RANCH, COWS, PEN, BUCKET, WAREHOUSE, MARKET, NEWS, sum, cowName, compact, vsBase, newsTag, newsText, MIX_COW, TREAT_PRICE, sickOf } from '../fixtures.js';
+import { RANCH, COWS, PEN, BUCKET, WAREHOUSE, MARKET, NEWS, sum, cowName, compact, vsBase, newsTag, newsText, MIX_COW, TREAT_PRICE, sickOf, CALF_DEMO } from '../fixtures.js';
 import { t, tb, dur, useName, sexName, tierName, calfName, feedList } from '../i18n.js';
 import { tierOf, MIX_MULT } from '../../cow/breeds.js';
 import { TIER_CLS, tierTag, pctText, newsIcons } from './s06.js';
@@ -96,6 +97,8 @@ export function ranchPage(ctx, o = {}) {
     const a = sc.anchors[o.bubble];
     over += `<div class="bubble" style="left:${a.head[0]}px;top:${a.head[1] - 4}px">${icon('pail', 22)}<span class="bubble-text">${t('s03.bubbleFull')}</span></div>`;
   }
+  // 小牛頭上的想吃泡泡（第 15 輪 01-C）：o.wants 是要畫泡泡的小牛
+  if (o.wants) over += o.wants.map((c) => wantBubble(c, sc.anchors[c.id])).join('');
   if (o.pop) {
     const a = sc.anchors[o.pop.id];
     // 名片寬 208（病牛的名片 236，S03-29）：左右都留 12，擋在畫面裡
@@ -137,7 +140,7 @@ export function cowListRow(c) {
   else if (c.listed) meta = t('s03.metaListed', { price: fmt(c.listed) });
   else if (b.use === 'dairy' && c.sex === 'cow') meta = t('milkRate', { v: c.milk }) + sep + t('weight', { v: c.kg });
   else meta = t('weight', { v: fmt(c.kg) }) + sep + t('s03.metaValue', { v: fmt(c.value) });
-  return cowRow(c, { chips: chips.join(''), meta, right: `<span class="chev">${icon('chevron', 20)}</span>` });
+  return cowRow(c, { chips: chips.join(''), meta, extra: c.age === 'calf' ? stampLine(c) : '', right: `<span class="chev">${icon('chevron', 20)}</span>` });
 }
 
 const S = [];
@@ -285,6 +288,13 @@ full('S03-28', '有病牛：轉正面、臉色發青、頭上溫度計', (ctx) =
 full('S03-29', '點病牛：名片寫「生病了」、按鈕換成治療', (ctx) => ranchPage(ctx, { poops: POOPS_ALL, herd: SICK_HERD, pop: { id: 3, html: popHtml(SICK3), cls: 'sick' } }));
 part('S03-30', '牛舍清單：病牛那一列', '#crop', (ctx) => frame(ctx.dev, {
   tab: 'ranch', content: `<div id="crop" class="list" style="padding:4px 0 8px">${cowListRow(SICK3)}${cowListRow(COWS.find((c) => c.id === 7))}</div>`,
+}));
+// ---------- 飼料集點卡（使用者 2026-10-08 選第 15 輪 01-C；v0.3 第 1 節） ----------
+// 預設的牧場、清單裡 #15 已經集滿了，所以 S03-01 等狀態不冒泡泡；這幾個狀態用 #15 吃了一半的樣子（燕麥吃過、豆粕還沒吃）
+full('S03-31', '小牛頭上的想吃泡泡：還沒吃的飼料＋幾個了', (ctx) => ranchPage(ctx, { wants: [CALF_DEMO[15]] }));
+full('S03-32', '快長大了、還有沒吃的：提醒卡（一頭一張，可以關）', (ctx) => ranchPage(ctx, { wants: [CALF_DEMO[15]], overlays: growAlert(CALF_DEMO[15]) }));
+part('S03-33', '牛舍清單：小牛的集點（吃了一半、還沒吃、集滿了、什麼都可以吃）', '#crop', (ctx) => frame(ctx.dev, {
+  tab: 'ranch', content: `<div id="crop" class="list" style="padding:4px 0 8px">${[15, 21, 22, 23].map((id) => cowListRow(CALF_DEMO[id])).join('')}</div>`,
 }));
 part('S03-10', '耕牛在田裡：清單顯示「工作中」、場景裡看不到', '#crop', (ctx) => frame(ctx.dev, {
   tab: 'ranch', content: `<div id="crop" class="list" style="padding:4px 0 8px">${COWS.filter((c) => c.field != null).map(cowListRow).join('')}</div>`,

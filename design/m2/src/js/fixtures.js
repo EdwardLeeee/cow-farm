@@ -11,7 +11,7 @@ export const COWS = [
   { id: 3, breed: 'holstein', sex: 'cow', age: 'adult', age_: { d: 2, h: 5 }, milk: 14, kg: 212, value: 2514, probs: { A: 0.397, B: 0.441, C: 0.162 }, origin: 'start' },
   { id: 7, breed: 'jersey', sex: 'cow', age: 'adult', age_: { d: 1, h: 20 }, milk: 14, kg: 196, value: 3102, probs: { A: 0.402, B: 0.437, C: 0.161 }, origin: 'B' },
   { id: 12, breed: 'strawberry', sex: 'cow', age: 'adult', age_: { d: 1, h: 2 }, milk: 14, kg: 174, value: 5520, probs: { A: 0.487, B: 0.402, C: 0.111 }, origin: 'breed' },
-  { id: 15, breed: 'holstein', sex: 'cow', age: 'calf', seed: 31, age_: { h: 2, m: 18 }, grow_: { m: 42 }, origin: 'breed' },
+  { id: 15, breed: 'holstein', sex: 'cow', age: 'calf', seed: 31, age_: { h: 2, m: 18 }, grow_: { m: 42 }, origin: 'breed', need: ['oats', 'soy'], ate: ['oats', 'soy'] },
   { id: 2, breed: 'yellow', sex: 'bull', age: 'adult', age_: { d: 3, h: 1 }, kg: 431, value: 5108, probs: { A: 0.416, B: 0.428, C: 0.156 }, rice: 11, field: 0, origin: 'start' },
   { id: 9, breed: 'highland', sex: 'cow', age: 'adult', age_: { d: 2, h: 9 }, kg: 377, value: 5832, probs: { A: 0.401, B: 0.439, C: 0.16 }, rice: 14.3, field: 2, origin: 'A' },
   { id: 5, breed: 'angus', sex: 'bull', age: 'adult', age_: { d: 2, h: 14 }, kg: 790, value: 9420, probs: { A: 0.448, B: 0.414, C: 0.138 }, listed: 870, origin: 'C' },
@@ -27,6 +27,14 @@ export const MIX_COW = { id: 20, breed: 'mixDairy', sex: 'cow', age: 'adult', ag
 export const TREAT_PRICE = 5000;
 export const SICK_BEEF = 0.1;
 export const sickOf = (c) => ({ ...c, sick: true });
+// 飼料集點卡（第 15 輪 01-C）：牧場、清單預設的 #15 已經集滿了（牧場不冒泡泡）；下面這些只用在集點卡的狀態（S03-31～33、S04-08、S04-22）
+// need 照「長大會是哪個品種」（D35 補充 3 的表）：乳牛「燕麥、豆粕」、耕牛「燕麥」、肉牛「玉米、豆粕」；一般、優良的什麼都可以吃
+export const CALF_DEMO = {
+  15: { id: 15, breed: 'holstein', sex: 'cow', age: 'calf', seed: 31, age_: { h: 2, m: 18 }, grow_: { m: 42 }, origin: 'breed', need: ['oats', 'soy'], ate: ['oats'] },
+  21: { id: 21, breed: 'yellow', sex: 'bull', age: 'calf', age_: { m: 50 }, grow_: { h: 2, m: 10 }, origin: 'breed', need: ['oats'], ate: [] },
+  22: { id: 22, breed: 'angus', sex: 'cow', age: 'calf', age_: { h: 1, m: 30 }, grow_: { h: 1, m: 30 }, origin: 'B', need: ['corn', 'soy'], ate: ['corn', 'soy'] },
+  23: { id: 23, breed: 'holstein', sex: 'bull', age: 'calf', age_: { m: 20 }, grow_: { h: 2, m: 40 }, origin: 'C', need: [], ate: [] },
+};
 export const PEN = { slots: 12, used: 10, max: 40, nextCost: 12150 };
 export const cowById = (id) => COWS.find((c) => c.id === id);
 export const breedOf = (c) => BREEDS[c.breed];

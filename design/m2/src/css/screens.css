@@ -1039,3 +1039,39 @@
 /* 病牛出貨（S07-06）：「生病了」像標籤一樣貼在牛那一格的右上角（不多佔一行，矮手機才放得下） */
 .ship-head.sick { position: relative; }
 .ship-head.sick .badge.sick { position: absolute; right: 8px; top: -12px; }
+
+/* ================= 小牛的飼料集點卡（使用者 2026-10-08 選第 15 輪 01-C；v0.3 第 1 節） ================= */
+.feed-ic { display: inline-block; flex: none; line-height: 0; vertical-align: middle; }
+.tr-done { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; font-weight: 900; color: #3E8E2F; white-space: nowrap; }
+/* 牛的詳細：集點卡（米黃底、虛線框）；吃過一種蓋一個紅章，章在圈的右下角，不擋飼料 */
+.stamp-card { background: #FFF8E6; border-style: dashed; }
+.sc-head { display: flex; align-items: center; justify-content: space-between; }
+.sc-head b { font-size: 16px; line-height: 22px; }
+.sc-count { font-size: 18px; font-weight: 900; }
+.stamps { display: flex; justify-content: center; gap: 22px; margin-top: 8px; }
+.stamp { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.stamp b { font-size: 15px; line-height: 20px; }
+.st-ring { position: relative; width: 70px; height: 70px; display: grid; place-items: center; border: 3px dashed #D9B98C; border-radius: 50%; background: #FFFFFF; line-height: 0; }
+.stamp:not(.done) .feed-ic { opacity: 0.45; }
+.stamp.done .st-ring { border: 3px solid var(--ink); background: #FFFDF6; }
+.st-ink { position: absolute; right: -14px; bottom: -8px; width: 38px; height: 38px; display: grid; place-items: center; border: 3px solid #E0483E; border-radius: 50%; color: #E0483E; font-style: normal; font-size: 12px; font-weight: 900; line-height: 1; transform: rotate(-14deg); background: #FFF1EE; }
+.sc-rule { margin-top: 8px; }
+.any-line { display: flex; align-items: center; gap: 6px; margin-top: 2px; font-size: 16px; font-weight: 900; color: #3E8E2F; }
+/* 牛舍清單：一排小章＋幾個了 */
+.fl-any { color: #3E8E2F; font-weight: 900; }
+.fl-stamps { display: flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 13px; }
+.mini-stamp { width: 28px; height: 28px; display: grid; place-items: center; border: 2px dashed #D9B98C; border-radius: 50%; background: #FFFFFF; line-height: 0; }
+.mini-stamp:not(.done) .feed-ic { opacity: 0.45; }
+.mini-stamp.done { border: 2.5px solid #E0483E; background: #FFF1EE; }
+/* 牧場：小牛頭上的想吃泡泡（尖角朝下指著小牛） */
+.want { position: absolute; z-index: 20; transform: translate(-50%, -100%); display: flex; align-items: center; gap: 3px; padding: 2px 9px 2px 4px; margin-top: -10px; background: #FFF8E6; border: 2.5px solid var(--ink); border-radius: 15px; box-shadow: 0 3px 0 var(--ink); font-size: 13px; font-weight: 900; line-height: 22px; white-space: nowrap; }
+.want::after { content: ""; position: absolute; left: 50%; bottom: -9px; width: 12px; height: 12px; margin-left: -6px; background: #FFF8E6; border-right: 2.5px solid var(--ink); border-bottom: 2.5px solid var(--ink); transform: rotate(45deg); }
+/* 牧場：快長大的提醒卡（跳一次，一頭一張，可以關） */
+.grow-alert { position: absolute; left: 12px; right: 12px; top: calc(var(--safe-top) + var(--hud-h) + 56px); z-index: 60; display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 12px; background: #FFF6D6; }
+.grow-alert .ga-pic { flex: none; width: 56px; height: 56px; border-radius: 16px; background: #E4F4DA; border: 2px solid var(--ink); overflow: hidden; display: grid; place-items: end center; line-height: 0; }
+.grow-alert > .grow { min-width: 0; }
+.grow-alert b { font-size: 15px; line-height: 20px; }
+.grow-alert p { font-size: 13px; font-weight: 700; line-height: 19px; color: var(--ink-2); margin-top: 2px; }
+.grow-alert .bn-close { right: -4px; top: -4px; }
+.grow-alert .btn { flex: none; margin-top: 18px; }
+.ga-feed { display: inline-flex; align-items: center; gap: 1px; margin-left: 4px; color: var(--ink); font-weight: 900; vertical-align: middle; }
