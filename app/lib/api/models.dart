@@ -138,7 +138,7 @@ class RanchRef {
   final bool isBot;
   final int? level; // 公營種牛站是 null
 
-  /// 頭像的品種代號（S21；暫定協定）：真人才有，電腦、公營種牛站是 null。null 的頭像畫荷斯坦。
+  /// 頭像的品種代號（S21，協定 1.6 節）：真人選過才有，電腦、公營種牛站是 null。null 的頭像畫荷斯坦。
   final String? avatar;
 
   static RanchRef? fromJson(Object? v) {
@@ -509,7 +509,7 @@ class Economy {
   /// 一塊田最多存這頭耕牛壯年幾小時的產量（S17「最多存 8 小時的量」）；田的上限 = [oxRicePerH] × 稀有度倍率 × 這個。
   final double? fieldCapH;
 
-  /// 改名的價錢（S21；第一次免費，看 [RanchProfile.renames]）。暫定協定 `economy.rename_price`，舊的伺服器沒有。
+  /// 改名的價錢（S21；第一次免費，看 [RanchProfile.renames]）。協定 2.3 節 `economy.rename_price`，舊的伺服器沒有。
   final double? renamePrice;
 
   /// 稀有度 [tier] 的倍率；沒有就是 null（畫面不寫倍數）。
@@ -757,7 +757,7 @@ class GameState {
 }
 
 // ---------------------------------------------------------------------------
-// S21 牧場資料（D34）。暫定協定：欄位名稱是 cow-app 的提案（ceo 2026-10-03 同意），cow-back 定案時跟著改。
+// S21 牧場資料（D34）：協定 2.3 節的 `profile`、`achievements`（cow-back #153 定案，跟 cow-app 的提案相同）。
 // ---------------------------------------------------------------------------
 /// `state.profile`：頭像（品種代號，null 是荷斯坦）、改過幾次名（0 代表下次改名免費）。
 class RanchProfile {

@@ -170,6 +170,24 @@ void main() {
     expect(reqs[10].url.queryParameters, {'listing_id': '4', 'dam': '1'});
   });
 
+  test('牧場資料（協定 2.5）：改名送 name、換頭像送 breed，都帶 request_id', () async {
+    final reqs = <http.Request>[];
+    final client = MockClient((req) async {
+      reqs.add(req);
+      return http.Response(jsonEncode({'ok': true}), 200);
+    });
+    final api = HttpGameApi(base: base, client: client, sleep: noSleep)..token = 'tok';
+    await api.renameRanch('小花的新牧場');
+    await api.setAvatar('jersey');
+    expect(reqs.map((r) => r.url.path).toList(), ['/v1/ranch/rename', '/v1/ranch/avatar']);
+    final rename = jsonDecode(reqs[0].body) as Map<String, dynamic>;
+    final avatar = jsonDecode(reqs[1].body) as Map<String, dynamic>;
+    expect(rename.keys.toSet(), {'name', 'request_id'});
+    expect(rename['name'], '小花的新牧場');
+    expect(avatar.keys.toSet(), {'breed', 'request_id'});
+    expect(avatar['breed'], 'jersey');
+  });
+
   test('借種紀錄（協定 4.6）：借出、借入；對方的牧場刪除了是 null', () async {
     final client = MockClient((req) async {
       expect(req.method, 'GET');

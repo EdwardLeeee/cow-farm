@@ -20,7 +20,7 @@ import '../settings/settings_page.dart' show SettingsFrame;
 import '../start/namer.dart';
 import '../widgets/action_button.dart' show actionErrorTextWith;
 
-/// 改名的價錢（暫定協定 `economy.rename_price`；舊的伺服器沒有時用 D34 的 1,000 幣）。
+/// 改名的價錢（協定 2.3 節 `economy.rename_price`；舊的伺服器沒有時用 D34 的 1,000 幣）。
 double renamePrice(GameModel m) => m.state?.economy?.renamePrice ?? 1000;
 
 /// 下次改名要不要錢：改過一次以後（`profile.renames` ≥ 1）。舊的伺服器不知道次數，當成還沒改過。

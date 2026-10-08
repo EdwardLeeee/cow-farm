@@ -206,7 +206,7 @@ class HttpGameApi implements GameApi {
   Future<Map<String, dynamic>> renameRanch(String name) => _mutate('/v1/ranch/rename', {'name': name});
 
   @override
-  Future<Map<String, dynamic>> setAvatar(String breed) => _mutate('/v1/ranch/avatar', {'avatar': breed});
+  Future<Map<String, dynamic>> setAvatar(String breed) => _mutate('/v1/ranch/avatar', {'breed': breed});
 
   @override
   Future<StudMarket> stud() async => StudMarket.fromJson(await _get('/v1/stud'));

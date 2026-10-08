@@ -423,8 +423,8 @@ class FakeGameApi implements GameApi {
     return {'harvested': 33.0};
   }
 
-  /// 改名、換頭像（S21 暫定協定）失敗時丟的錯；沒設就成功，照伺服器的樣子改 [stateJson]
-  /// （牧場名、profile.renames、金幣；頭像）。
+  /// 改名、換頭像（S21，協定 2.5 節）失敗時丟的錯；沒設就成功，照伺服器的樣子改 [stateJson]
+  /// （牧場名、profile.renames、金幣；頭像），回應的欄位照協定（rename：name、cost、coins；avatar：avatar）。
   Exception? renameError;
   Exception? avatarError;
 
@@ -441,7 +441,7 @@ class FakeGameApi implements GameApi {
       'coins': (stateJson['coins'] as num) - price,
       'profile': {...profile, 'renames': renames + 1},
     };
-    return {'ranch_name': name, 'cost': price};
+    return {'name': name, 'cost': price, 'coins': stateJson['coins']};
   }
 
   @override
