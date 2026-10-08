@@ -66,9 +66,11 @@ final _confetti = find.byWidgetPredicate(
   (w) => w.key is ValueKey<String> && (w.key! as ValueKey<String>).value.startsWith('confetti-'),
 );
 
-/// 「4」「5」在捲動框裡的位置（框的上緣是 0）。
-double _numberY(WidgetTester tester, String n) {
-  final text = find.descendant(of: find.byKey(const Key('level-card')), matching: find.text(n));
+const _old = Key('level-up-old'), _new = Key('level-up-lv');
+
+/// 舊的、新的數字在捲動框裡的位置（框的上緣是 0）。
+double _numberY(WidgetTester tester, Key n) {
+  final text = find.byKey(n);
   final box = find.ancestor(of: text, matching: find.byType(ClipRect)).first;
   return tester.getTopLeft(text).dy - tester.getTopLeft(box).dy;
 }
@@ -89,11 +91,11 @@ void main() {
 
     await tester.pump(const Duration(milliseconds: 150)); // 0.2 秒
     expect(_cardScale(tester), inExclusiveRange(0.4, 1.2));
-    expect(_numberY(tester, '4'), 0, reason: '還沒開始翻');
+    expect(_numberY(tester, _old), 0, reason: '還沒開始翻');
 
     await tester.pump(const Duration(milliseconds: 300)); // 0.5 秒：翻到一小半
-    expect(_numberY(tester, '4'), lessThan(0));
-    expect(_numberY(tester, '5'), inExclusiveRange(0, 90));
+    expect(_numberY(tester, _old), lessThan(0));
+    expect(_numberY(tester, _new), inExclusiveRange(0, 90));
     expect(_hudLv(4), findsOneWidget);
     expect(_confetti, findsNWidgets(26));
 
@@ -102,8 +104,9 @@ void main() {
 
     await tester.pump(const Duration(milliseconds: 800)); // 1.4 秒
     expect(_cardScale(tester), 1);
-    expect(_numberY(tester, '5'), 0);
-    expect(tester.widget<Text>(find.byKey(const Key('level-up-lv'))).data, '5');
+    expect(_numberY(tester, _new), 0);
+    expect(find.byKey(_old), findsNothing, reason: '翻完舊的數字就藏起來');
+    expect(tester.widget<Text>(find.byKey(_new)).data, '5');
     expect(find.text(_zh.s11Earned(v: '7,500')), findsOneWidget);
     expect(find.byKey(const Key('level-up')), findsOneWidget, reason: '停住等「好」');
 
@@ -112,6 +115,38 @@ void main() {
     expect(find.byKey(const Key('level-up')), findsNothing);
     expect(m.levelUp, isNull);
     expect(_hudLv(5), findsOneWidget);
+  });
+
+  testWidgets('播完的最後一格跟 S11-01（沒開動畫的靜態樣子）一樣：卡片、「Lv」、數字、每一片彩紙（#178）', (tester) async {
+    Screen.w390.apply(tester);
+    Map<String, Object> look() => {
+      'card': tester.getRect(find.byKey(const Key('level-card'))),
+      'lv': tester.getRect(find.descendant(of: find.byKey(const Key('level-card')), matching: find.text(_zh.s11Lv))),
+      'num': tester.getRect(find.byKey(_new)),
+      for (var i = 0; i < 26; i++) ...{
+        'c$i': tester.getRect(find.byKey(ValueKey('confetti-$i'))),
+        'r$i': tester
+            .widget<Transform>(
+              find.descendant(of: find.byKey(ValueKey('confetti-$i')), matching: find.byType(Transform)),
+            )
+            .transform
+            .storage
+            .map((v) => (v * 1000).round())
+            .toList(),
+      },
+    };
+    final (m, levelUp) = await _ranchWithMotion(tester);
+    await levelUp();
+    await tester.pump(const Duration(milliseconds: 1400));
+    final anim = look();
+    final settings = settingsFor(AppLang.zhHant, swipeHintSeen);
+    await settings.load();
+    await tester.pumpWidget(CowFarmApp(model: m, settings: settings));
+    await tester.pump();
+    final still = look();
+    for (final k in anim.keys) {
+      expect(anim[k], still[k], reason: k);
+    }
   });
 
   testWidgets('數字還沒翻過去就按「好」：頂列換回 Lv 5', (tester) async {
@@ -136,15 +171,14 @@ void main() {
     final fade = find.descendant(of: find.byKey(const Key('level-up')), matching: find.byType(Opacity)).first;
     expect(tester.widget<Opacity>(fade).opacity, closeTo(0.25, 0.01), reason: '0.2 秒淡入，第 0.05 秒四分之一');
     expect(_hudLv(5), findsOneWidget);
-    expect(_cardScale(tester), 1);
-    expect(_numberY(tester, '5'), 0);
-    final four = find.descendant(of: find.byKey(const Key('level-card')), matching: find.text('4'));
     expect(
-      tester.widget<Visibility>(find.ancestor(of: four, matching: find.byType(Visibility)).first).visible,
-      isFalse,
+      find.ancestor(of: find.byKey(const Key('level-card')), matching: find.byType(Transform)),
+      findsNothing,
+      reason: '不彈',
     );
+    expect(find.byKey(_old), findsNothing, reason: '不翻：沒有 4');
+    expect(find.descendant(of: find.byKey(const Key('level-card')), matching: find.text('4')), findsNothing);
     expect(find.bySemanticsLabel('5'), findsOneWidget, reason: '螢幕閱讀器只唸 5');
-    expect(find.bySemanticsLabel('4'), findsNothing);
     expect(_confetti, findsNWidgets(26));
     await tester.pump(const Duration(milliseconds: 200));
     expect(tester.widget<Opacity>(fade).opacity, 1);
@@ -169,9 +203,11 @@ void main() {
     await m.refreshState();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 1400));
-    final ten = find.descendant(of: find.byKey(const Key('level-card')), matching: find.text('10'));
-    final box = find.ancestor(of: ten, matching: find.byType(ClipRect)).first;
-    expect(tester.getSize(box).width, greaterThan(60));
-    expect(tester.getSize(box).width, greaterThanOrEqualTo(tester.getSize(ten).width));
+    // S11-07：框跟著新的數字變寬（框裡看不到的「10」撐出寬度），兩位數整個看得到
+    final box = find.ancestor(of: find.byKey(_new), matching: find.byType(ClipRect)).first;
+    final sizer = find.descendant(of: box, matching: find.byType(Visibility));
+    expect(tester.getSize(box).width, tester.getSize(sizer).width);
+    expect(tester.getSize(box).width, greaterThan(60), reason: '以前的框寬 60 會切掉');
+    expect(tester.widget<Text>(find.byKey(_new)).data, '10');
   });
 }

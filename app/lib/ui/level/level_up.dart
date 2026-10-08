@@ -1,13 +1,11 @@
 // S11-01 場主升級慶祝（設計稿 s10.js 的 levelUp；screens.css 的 .lv-wrap、.confetti、.lv-card、.lv-ribbon、.lv-big）：
 // 暗幕、彩紙、中間一張卡（「場主升級」彩帶、Lv 5、累積收入到 7,500 幣了！、說明、「好」）。沒有獎勵，只有慶祝（D24）。
 // 開著動畫時播 A-05（設計稿 anims.js 的 A05，1.3 秒）：暗幕變暗、卡片彈出來、等級數字從 4 翻成 5（頂列的等級同時換）、
-// 彩紙落下，停在最後一格等「好」。減少動態：直接是最後一格，整個淡入 0.2 秒。沒開動畫（測試）是 S11-01 的靜態樣子。
-// A-05 的最後一格跟 S11-01 不一樣（「Lv」比較低、彩紙比較低）：ceo 2026-10-08 裁示動畫要停在 S11-01 的樣子，
-// cow-ui 改 A-05；改好以前照現在的 A-05。
+// 彩紙落下，停在最後一格等「好」：最後一格跟 S11-01 一樣（#178）。減少動態：直接是最後一格，整個淡入 0.2 秒。
+// 沒開動畫（測試）是 S11-01 的靜態樣子。兩位數（Lv 10 以上）是 S11-07。
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 
 import '../../l10n/format.dart';
 import '../../l10n/l10n.dart';
@@ -90,7 +88,8 @@ class _LevelUpOverlayState extends State<LevelUpOverlay> with SingleTickerProvid
       key: const Key('level-up'),
       child: switch (_play) {
         _Play.anim => AnimatedBuilder(animation: _anim, builder: (context, _) => _layer(s, _anim.value * _dur)),
-        _Play.reduced => FadeIn(child: _layer(s, _dur)),
+        // 減少動態：A-05 的最後一格（就是 S11-01）淡入
+        _Play.reduced => FadeIn(child: _layer(s, null)),
         _ => _layer(s, null),
       },
     );
@@ -138,7 +137,7 @@ class _LevelUpOverlayState extends State<LevelUpOverlay> with SingleTickerProvid
                 top: h * 0.14 + h * 0.4 * _confettiTop(i, t) / 100,
                 child: IgnorePointer(
                   child: Transform.rotate(
-                    angle: (((i * 29) % 90) + (t == null ? 0 : _confettiFall(i, t) * 240)) * math.pi / 180,
+                    angle: _confettiAngle(i, t) * math.pi / 180,
                     child: Container(
                       width: 10,
                       height: 16,
@@ -176,13 +175,18 @@ class _LevelUpOverlayState extends State<LevelUpOverlay> with SingleTickerProvid
   /// 第 i 片彩紙落了幾成（A-05）。
   static double _confettiFall(int i, double t) => animSeg(t, 0.35 + (i % 7) * 0.04, 1.3);
 
-  /// 第 i 片彩紙的 top（.confetti 高度的 %）：S11-01 是 (i × 53) % 46，A-05 從 −10 落到 30 + (i × 53) % 46。
-  static double _confettiTop(int i, double? t) =>
-      t == null ? ((i * 53) % 46).toDouble() : -10 + _confettiFall(i, t) * (40 + (i * 53) % 46);
+  /// 第 i 片彩紙的 top（.confetti 高度的 %）：S11-01 是 y = (i × 53) % 46；A-05 從 y − 60 落到 y（最後一格跟 S11-01 一樣）。
+  static double _confettiTop(int i, double? t) {
+    final y = ((i * 53) % 46).toDouble();
+    return t == null ? y : y - 60 * (1 - _confettiFall(i, t));
+  }
+
+  /// 第 i 片彩紙的角度：S11-01 是 (i × 29) % 90；A-05 多轉 240 度，落完轉回 S11-01 的角度。
+  static double _confettiAngle(int i, double? t) => ((i * 29) % 90) + (t == null ? 0 : (1 - _confettiFall(i, t)) * 240);
 }
 
-/// A-05 的 .lv-roll：寬 60（兩位數以上放寬到放得下，設計稿沒畫）、高 88 的框，舊的數字往上捲出去、新的從下面捲進來
-/// （f：0–1，各移 90）。框裡的字是絕對定位的，設計稿的基線在框的底，所以「Lv」對齊框的底。
+/// A-05 的 .lv-big .lv-roll：框裡放一個看不到的新數字撐出寬度和基線（「Lv」跟數字的基線對齊、兩位數也放得下，跟 S11-01
+/// 一樣），舊的數字往上捲出去、新的從下面捲進來（f：0–1，各移 90）；只切上下（clip-path: inset(0 −24px)）。
 class _LvRoll extends StatelessWidget {
   const _LvRoll({required this.from, required this.to, required this.f});
 
@@ -193,56 +197,46 @@ class _LvRoll extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = AppText.number(76, lineHeight: 88);
-    return _BaselineAtBottom(
-      child: SizedBox(
-        height: 88,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 60),
-          child: ClipRect(
-            child: Stack(
-              alignment: Alignment.topCenter,
-              children: [
-                _shown(
-                  f < 1,
-                  Transform.translate(
-                    offset: Offset(0, -f * 90),
-                    child: Text('$from', style: style),
-                  ),
-                ),
-                _shown(
-                  f > 0,
-                  Transform.translate(
-                    offset: Offset(0, (1 - f) * 90),
-                    child: Text('$to', key: const Key('level-up-lv'), style: style),
-                  ),
-                ),
-              ],
-            ),
+    Widget number(int n, double dy, {Key? key}) => Positioned(
+      left: 0,
+      right: 0,
+      top: 0,
+      child: Transform.translate(
+        offset: Offset(0, dy),
+        child: Text('$n', key: key, textAlign: TextAlign.center, softWrap: false, style: style),
+      ),
+    );
+    return ClipRect(
+      clipper: const _ClipTopBottom(),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // .size：看不到的新數字（螢幕閱讀器也不唸）
+          Visibility(
+            visible: false,
+            maintainSize: true,
+            maintainAnimation: true,
+            maintainState: true,
+            child: Text('$to', style: style),
           ),
-        ),
+          // 翻完就藏起來（設計稿：old 在 f ≥ 1 時 visibility: hidden）；新的還沒開始翻也不唸
+          if (f < 1) number(from, -f * 90, key: const Key('level-up-old')),
+          if (f > 0) number(to, (1 - f) * 90, key: const Key('level-up-lv')),
+        ],
       ),
     );
   }
 }
 
-/// 捲到框外的數字不畫、螢幕閱讀器也不唸，但還是佔位置（框的寬度照兩個數字比較寬的那個，捲的時候不會變）。
-Widget _shown(bool visible, Widget child) =>
-    Visibility(visible: visible, maintainSize: true, maintainAnimation: true, maintainState: true, child: child);
-
-/// 基線在自己的底（給 Row 的基線對齊用）。
-class _BaselineAtBottom extends SingleChildRenderObjectWidget {
-  const _BaselineAtBottom({super.child});
+/// clip-path: inset(0 −24px)：只切上下，左右多留 24。
+class _ClipTopBottom extends CustomClipper<Rect> {
+  const _ClipTopBottom();
 
   @override
-  RenderObject createRenderObject(BuildContext context) => _RenderBaselineAtBottom();
-}
-
-class _RenderBaselineAtBottom extends RenderProxyBox {
-  @override
-  double? computeDistanceToActualBaseline(TextBaseline baseline) => size.height;
+  Rect getClip(Size size) => Rect.fromLTRB(-24, 0, size.width + 24, size.height);
 
   @override
-  double? computeDryBaseline(BoxConstraints constraints, TextBaseline baseline) => getDryLayout(constraints).height;
+  bool shouldReclip(_ClipTopBottom oldClipper) => false;
 }
 
 class _LevelCard extends StatelessWidget {
