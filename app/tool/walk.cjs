@@ -3,7 +3,7 @@
 //   擴建牛舍、加大奶桶（S10）→ 新手引導卡「小公牛長大了」→ × → 抽 C 級（S19）→
 //   等小牛長大 → 出貨（S04 → S07 → A-03 卡車 → S20）→ 田地（S17）：派耕牛、收成 → 賣稻米 → 叫回耕牛 →
 //   借種（S18）：上架、借別人的公牛、借種紀錄 → 圖鑑（S09）：點一格看品種詳細 → 排行榜（S12）：總資產、圖鑑、本週收入 →
-//   牧場資料（S21）：點頂列的頭像打開、返回 →
+//   牧場資料（S21）：點頂列的頭像打開、改名、換頭像、返回 →
 //   設定（S13）：語言、漲跌顏色、音效，最後刪除牧場（S13-04 → 開新牧場 → S02）→
 //   另開一個新牧場（新的瀏覽器設定檔）：收奶賣奶、擴建牛舍 → 自己配種（S08）：開局的公母配、機率、新小牛、已配種
 //
@@ -561,7 +561,8 @@ const writeLog = () => fs.writeFileSync(
 
   step('升級慶祝（S11-01）', levelUps.length > 0, levelUps.join('、'));
 
-  // ---- 10b. 牧場資料（S21）：點頂列的頭像 → 牧場資料（名字、#編號・Lv；伺服器還沒送 achievements 時沒有徽章卡）→ 返回 ----
+  // ---- 10b. 牧場資料（S21）：點頂列的頭像 → 牧場資料（名字、#編號・Lv、有沒有徽章卡）→ 改名（第一次免費，S21-04 → S21-09）
+  //          → 換頭像（S21-02：選一種發現過、不是現在的 → S21-10）→ 返回 ----
   await tab('牧場');
   await tap(button(/^牧場資料/).first());
   await wait(1200);
@@ -569,14 +570,70 @@ const writeLog = () => fs.writeFileSync(
   await shot('s21-profile');
   const profMeta = (profText.match(/#\d{4,}・Lv \d+/) || [''])[0];
   const profBadges = profText.includes('成就徽章');
+  step(
+    '牧場資料（S21-01）：點頂列的頭像打開',
+    profMeta !== '',
+    `${profMeta}；${profBadges ? '有徽章卡' : '沒有徽章卡（伺服器沒送 achievements）'}`,
+  );
+  // 改名：牧場名是一顆按鈕（讀名字），點了進改名頁；輸入框一開始是現在的名字，清掉打新的
+  const oldName = (welcome.match(/歡迎來到\s*(.+?)\s*#\d+/) || [])[1] || '';
+  const newName = '月光小牧場';
+  let renamed = '';
+  const nameBtn = oldName ? button(new RegExp(`^${oldName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)).first() : null;
+  if (nameBtn && (await nameBtn.count()) > 0) {
+    await tap(nameBtn);
+    await wait(1200);
+    const sameOff = !(await enabled(button(/^改名（/).first()));
+    const nameBox = page.getByRole('textbox').first();
+    await nameBox.click().catch(() => {});
+    await wait(400);
+    await page.keyboard.press('End');
+    for (let i = 0; i < 20; i++) await page.keyboard.press('Backspace');
+    await page.keyboard.type(newName);
+    await wait(800);
+    await shot('s21-rename');
+    const free = (await labels()).includes('改名（免費）');
+    if (!sameOff) issue('改名頁：名字跟現在一樣時按鈕就能按');
+    if (!free) issue('改名頁：第一次改名的按鈕不是「改名（免費）」');
+    await mark(); await tap(button(/^改名（/).first());
+    await wait(2500);
+    renamed = (await labels()).find((x) => x.startsWith('牧場名改好了')) || '';
+    await shot('s21-renamed');
+  } else {
+    issue(`牧場資料：找不到牧場名的按鈕（${oldName || '歡迎卡沒有名字'}）`);
+  }
+  const nameNow = (await fullText()).includes(newName);
+  step('改名（S21-04 → S21-09）：第一次免費、回到牧場資料', renamed !== '' && nameNow, `${oldName} → ${nameNow ? newName : '(名字沒變)'}；${renamed || '(沒有提示)'}`);
+  // 換頭像：格子讀品種名（還沒發現的讀「？？？」），選一種發現過、不是荷斯坦的
+  const zh = JSON.parse(fs.readFileSync(require('path').join(__dirname, '../../design/m2/i18n/zh-Hant.json'), 'utf8'));
+  const breedNames = Object.entries(zh).filter(([k]) => /^breed\.\w+\.name$/.test(k) && k !== 'breed.mix.name').map(([, v]) => v);
+  await tap(button('換頭像').first());
+  await wait(1500);
+  await shot('s21-avatar');
+  const cells = (await nodes()).filter((x) => x.role === 'button' && breedNames.includes(x.label)).map((x) => x.label);
+  const locked = (await nodes()).filter((x) => x.role === 'button' && x.label === '？？？').length;
+  const pick = cells.find((x) => x !== '荷斯坦');
+  let avatarDone = '';
+  if (pick) {
+    await tap(button(pick).first());
+    await wait(600);
+    await mark(); await tap(button('用這個頭像').first());
+    await wait(2500);
+    avatarDone = (await labels()).find((x) => x.startsWith('頭像換好了')) || '';
+    await shot('s21-avatar-done');
+  } else {
+    await tap(button('取消').first()).catch(() => {});
+    await wait(800);
+  }
+  step(
+    '換頭像（S21-02 → S21-10）：只能選發現過的',
+    cells.length + locked === 24 && (!pick || avatarDone !== ''),
+    `發現過 ${cells.length} 種、鎖住 ${locked} 種；${pick ? `選「${pick}」：${avatarDone || '(沒有提示)'}` : '只發現荷斯坦，沒得換（跳過）'}`,
+  );
   await tap(button('返回').first());
   await wait(1000);
   const profBack = (await button(/^牧場資料/).count()) > 0 && (await button(/^設定/).count()) > 0;
-  step(
-    '牧場資料（S21-01）：點頂列的頭像打開、返回',
-    profMeta !== '' && profBack,
-    `${profMeta}；${profBadges ? '有徽章卡' : '沒有徽章卡（伺服器還沒送 achievements）'}；${profBack ? '回到牧場' : '(沒回到牧場)'}`,
-  );
+  step('牧場資料：返回回到牧場', profBack, profBack ? '回到牧場' : '(沒回到牧場)');
 
   // ---- 11. 設定（S13）：頂列的齒輪 → 設定主頁 → 語言、漲跌顏色換過再換回來 → 音效關掉再打開 →
   //          刪除牧場（這個牧場的最後一步）：打「刪除」→ S13-04「牧場已經刪除了」→「開新牧場」到 S02 取名 ----
