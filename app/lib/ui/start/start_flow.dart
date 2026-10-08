@@ -47,7 +47,7 @@ class _StartFlowState extends State<StartFlow> {
   late final Random _random = widget.random ?? StartFlow.debugRandom ?? Random();
   bool _filled = false;
   String? _serverError;
-  String? _toast;
+  ({ToastKind kind, String text})? _toast;
   Timer? _toastTimer;
 
   @override
@@ -100,15 +100,15 @@ class _StartFlowState extends State<StartFlow> {
       case ApiActionError(:final error) when error.maintenance || error.unauthorized:
         break; // 整個畫面會換成 S16-01／S15-03
       case final ActionError e?:
-        _showToast(actionErrorTextWith(s, m, e));
+        _showToast(actionErrorKind(e), actionErrorTextWith(s, m, e));
       case null:
         break;
     }
   }
 
-  void _showToast(String text) {
+  void _showToast(ToastKind kind, String text) {
     _toastTimer?.cancel();
-    setState(() => _toast = text);
+    setState(() => _toast = (kind: kind, text: text));
     _toastTimer = Timer(const Duration(seconds: 2), () {
       if (mounted) setState(() => _toast = null);
     });
@@ -166,7 +166,7 @@ class _StartFlowState extends State<StartFlow> {
               right: 16,
               bottom: MediaQuery.paddingOf(context).bottom + 16,
               child: Center(
-                child: ToastPill(_toast!, kind: ToastKind.err, key: const Key('toast')),
+                child: ToastPill(_toast!.text, kind: _toast!.kind, key: const Key('toast')),
               ),
             ),
         ],

@@ -136,6 +136,7 @@ void main() {
     await _tap(tester, 'switch-confirm');
     expect(find.byKey(const Key('switch-confirm')), findsOneWidget, reason: '對話框還在');
     expect(find.byKey(const Key('toast')), findsOneWidget);
+    expect(tester.widget<ToastPill>(find.byKey(const Key('toast'))).kind, ToastKind.warn, reason: '連不上是警告（S16-03）');
     api.switchError = null;
     await _tap(tester, 'switch-confirm');
     expect(m.ranchName, '晨光河畔牧場');

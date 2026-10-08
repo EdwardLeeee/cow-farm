@@ -109,7 +109,7 @@ class _BackupPageState extends State<BackupPage> {
         final e = r.error;
         // 維護、token 失效：整個畫面會換掉；其他照一般的錯誤提示
         if (e is ApiActionError && (e.error.maintenance || e.error.unauthorized)) return;
-        if (e != null) _showToast(ToastKind.err, actionErrorTextWith(s, m, e));
+        if (e != null) _showToast(actionErrorKind(e), actionErrorTextWith(s, m, e));
     }
   }
 
@@ -128,7 +128,7 @@ class _BackupPageState extends State<BackupPage> {
     if (e is ApiActionError && (e.error.maintenance || e.error.unauthorized)) return;
     // 沒收到回應：留著對話框，再按一次原封不動重送（GameModel.switchRanch）；ticket 過期、用過了就關掉重來
     if (e is! NetworkActionError) setState(() => _conflict = null);
-    _showToast(ToastKind.err, actionErrorTextWith(s, m, e));
+    _showToast(actionErrorKind(e), actionErrorTextWith(s, m, e));
   }
 
   Future<void> _doUnbind() async {
@@ -147,7 +147,7 @@ class _BackupPageState extends State<BackupPage> {
     if (e == null) {
       _showToast(ToastKind.ok, s.s13ToastUnbound(name: p.label));
     } else if (!(e is ApiActionError && (e.error.maintenance || e.error.unauthorized))) {
-      _showToast(ToastKind.err, actionErrorTextWith(s, m, e));
+      _showToast(actionErrorKind(e), actionErrorTextWith(s, m, e));
     }
   }
 
