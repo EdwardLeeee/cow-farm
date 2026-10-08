@@ -229,3 +229,9 @@ body { background: #FFF9EF; }
 .beat i { width: 12px; height: 12px; border-radius: 50%; background: rgba(255, 255, 255, 0.35); }
 .beat i.on { background: #FFD45E; box-shadow: 0 0 0 2px #FFFFFF; }
 .drag-hint { position: absolute; z-index: 35; }
+/* 第 18 輪 GIF：上面一條標籤，下面是手機（寬 390） */
+.gif-box { display: inline-block; background: #FFF7EC; }
+.gif-label { width: 390px; padding: 6px 10px; font-size: 14px; font-weight: 900; line-height: 20px; color: var(--ink); background: #FFD45E; border-bottom: 2px solid var(--ink); white-space: nowrap; overflow: hidden; }
+.gif-box .phone { border-radius: 0; }
+.big-cue.stop { color: #6B7A8C; transform: translateX(-50%) rotate(0deg); }
+.beat i.rest { border-radius: 3px; }

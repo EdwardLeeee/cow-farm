@@ -798,12 +798,136 @@ const BOARDS = [
   { id: 'R18-99', render: r1899 },
 ];
 
+// ================= 第 18 輪 GIF：使用者喜歡 A 和 C，「i like A AND c,so you can show me gif」（ceo 2026-10-08 轉達） =================
+// 兩個 GIF 用同一條時間線（8 秒、15 fps），方便比較：
+//   0–2 秒小牛跑 → 1.8–2.2 手指滑 → 2.2–2.7 繩圈飛出去 → 2.9–6.1 拔河／拉 → 6.1–8 抓到了
+const GT = { total: 8, swipe0: 1.8, swipe1: 2.2, land: 2.7, tug0: 2.9, tug1: 6.1 };
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+const lerp = (a, b, k) => a + (b - a) * k;
+const easeOut = (k) => 1 - (1 - k) ** 2;
+const easeIn = (k) => k * k;
+const tseg = (t, a, b) => clamp01((t - a) / (b - a));
+const clock = (t) => `0:${String(30 - Math.floor(t)).padStart(2, '0')}`;
+// 跑的時候上下跳、身體微微晃（四隻腳不會動，用跳和晃表現在跑）
+const runner = (entry, x, y, s, facing, t, ph = 0, amp = 4) => {
+  const hop = Math.abs(Math.sin((t * 3.2 + ph) * Math.PI)) * amp * s;
+  const tilt = Math.sin((t * 3.2 + ph) * Math.PI * 2) * 3 * (facing === 'right' ? 1 : -1);
+  return `<g transform="translate(0 ${f2(-hop)}) rotate(${f2(tilt)} ${f2(x)} ${f2(y)})">${critter(entry, x, y, s, facing).svg}</g>`;
+};
+const puff = (x, y, t, ph, d = -1) => { const k = ((t * 2.5 + ph) % 1); return `<g opacity="${f2(0.9 * (1 - k))}"><circle cx="${f2(x + d * (10 + 26 * k))}" cy="${f2(y - 4 - 6 * k)}" r="${f2(4 + 5 * k)}" fill="#F4E8D2"/></g>`; };
+const twinkle = (x, y, t) => sparkles([[x + 38, y - 48, 5 + 3 * Math.abs(Math.sin(t * 5))], [x + 54, y - 14, 3 + 3 * Math.abs(Math.sin(t * 5 + 1.3))], [x - 30, y - 36, 3 + 2 * Math.abs(Math.sin(t * 5 + 2.1))]]);
+const fingerAt = (x, y, press = 0) => `<div class="gesture" style="left:${f2(x - 16)}px;top:${f2(y - 2 + press * 4)}px;transform:scale(${f2(1 - press * 0.08)})">${POINTER(40)}</div>`;
+const swipeTrail = (x0, y0, x1, y1, k, fade = 1) => (k <= 0 || fade <= 0 ? '' : `<g opacity="${f2(fade)}">${swipe(x0, y0, lerp(x0, x1, k), lerp(y0, y1, k)).replace(/<path d="M[^"]*L[^"]*" fill="none"[^>]*\/>$/, '')}</g>`);
+const pop = (t, t0) => { const k = tseg(t, t0, t0 + 0.32); const s = k < 0.7 ? lerp(0.6, 1.06, k / 0.7) : lerp(1.06, 1, (k - 0.7) / 0.3); return { s, o: clamp01(k * 2.5) }; };
+function caught(t, perf) {
+  if (t < GT.tug1) return '';
+  const p = pop(t, GT.tug1 + 0.1);
+  return catchCard(perf).replace('<div class="backdrop"></div>', `<div class="backdrop" style="opacity:${f2(clamp01((t - GT.tug1) / 0.25))}"></div>`)
+    .replace('<div class="reveal">', `<div class="reveal" style="opacity:${f2(p.o)};transform:scale(${f2(p.s)})">`);
+}
+// 拉的進度：每一下連點（A）或每一拍（C）往上加，中間小牛會扯回去一點
+const tapTimes = Array.from({ length: 15 }, (_, i) => GT.tug0 + 0.2 + i * 0.2);
+
+// ---------- A 從上往下看：一群一起跑 ----------
+function gifA(t) {
+  const dx = -170 + 78 * Math.min(t, GT.land); // 一群往右跑
+  const others = [[150, 430, 'dairy', 'cow', 1, 0.1], [210, 470, 'beef', 'bull', 1.05, 0.5], [118, 500, 'draft', 'cow', 0.95, 0.3], [250, 410, 'dairy', 'bull', 0.95, 0.8], [184, 540, 'beef', 'cow', 1, 0.65]];
+  const after = Math.max(0, t - GT.land) * 150; // 套到以後其他小牛嚇得跑走
+  let svg = others.map(([x, y, u, sx, s, ph]) => puff(x + dx + after - 30, y, t, ph) + runner(calfE(u, sx), x + dx + after, y, s, 'right', t, ph)).join('');
+  // 目標：閃閃發亮的那頭（耕牛公小牛）
+  const tx0 = 280 + dx, ty0 = 500;
+  const tug = tseg(t, GT.tug0, GT.tug1 - 0.2);
+  let n = tapTimes.filter((x) => x <= t).length, p = Math.min(1, n / 15);
+  const since = n ? t - tapTimes[n - 1] : 0;
+  if (n && n < 15) p = Math.max(0, p - Math.min(0.03, since * 0.15));
+  const lassoedNow = t >= GT.land;
+  const tx = lassoedNow ? lerp(tx0, 236, easeOut(p)) + (p < 1 ? Math.sin(t * 22) * 4 : 0) : tx0;
+  const ty = lassoedNow ? lerp(ty0, 650, easeOut(p)) : ty0;
+  const ts = lassoedNow ? lerp(1.05, 1.2, p) : 1.05;
+  if (!lassoedNow) svg += puff(tx - 30, ty, t, 0.2) + runner(calfE(CATCH.use, CATCH.sex), tx, ty, ts, 'right', t, 0.2) + twinkle(tx, ty, t);
+  else svg += (p < 1 ? puff(tx + 34, ty, t, 0.4, 1) + puff(tx + 30, ty - 8, t, 0.9, 1) : '') + runner(calfE(CATCH.use, CATCH.sex), tx, ty, ts, 'right', p < 1 ? t * 1.6 : 0, 0.2, p < 1 ? 2 : 0) + (p < 1 ? twinkle(tx, ty, t) : '');
+  // 繩圈：下面等著 → 手指往小牛前面一點滑 → 飛出去 → 套在脖子上
+  const aim = [280 + (-170 + 78 * GT.land) - 4, ty0 - 34];
+  const fly = tseg(t, GT.swipe1, GT.land);
+  let rope = '';
+  if (t < GT.swipe1) rope = loopOn(195, 790, 30);
+  else if (t < GT.land) {
+    const k = easeOut(fly), x = lerp(195, aim[0], k), y = lerp(790, aim[1], k) - Math.sin(k * Math.PI) * 40;
+    rope = loopAt(x, y, lerp(26, 24, k)) + ropeFrom(195, 860, x - 10, y + 6, -30 * (1 - k));
+  } else rope = lassoed(tx - 2, ty - 36 * ts, 21 * ts, [195, 860]);
+  const sw = tseg(t, GT.swipe0, GT.swipe1);
+  const swipeFx = swipeTrail(195, 780, aim[0] - 30, aim[1] + 60, easeOut(sw), t < GT.swipe1 ? 1 : 1 - tseg(t, GT.swipe1, GT.swipe1 + 0.4));
+  // 手指
+  let fin = '';
+  if (t >= 1.2 && t < GT.swipe0) fin = fingerAt(195, 800);
+  else if (t >= GT.swipe0 && t < GT.swipe1 + 0.15) { const k = easeOut(sw); fin = fingerAt(lerp(195, aim[0] - 30, k), lerp(800, aim[1] + 70, k)); }
+  else if (t >= GT.tug0 && t < GT.tug1) {
+    const press = tapTimes.some((x) => t >= x && t < x + 0.08) ? 1 : 0;
+    const rip = tapTimes.filter((x) => t >= x && t < x + 0.18).map(() => tapRings(195, 700)).join('');
+    fin = rip + fingerAt(190, 704, press);
+  }
+  const hint = t < 1.7 ? hintPill('閃閃發亮的那頭比較可能是稀有') : t < GT.land ? hintPill('往牠前面一點滑') : '';
+  const cueK = t >= GT.tug0 && t < GT.tug1 ? 1 + 0.08 * Math.abs(Math.sin(t * 10)) : 0;
+  const tugUi = t >= GT.land ? pullBar(p, '拉繩子') + (cueK ? bigCue('連點！').replace('class="big-cue "', `class="big-cue" style="transform:translateX(-50%) rotate(-4deg) scale(${f2(cueK)})"`) : '') : '';
+  return sceneFrame(meadow(svg + swipeFx) + rope, gameTop(T18, { time: clock(t) }) + hint + tugUi, fin + caught(t, '表現：很好（3 秒就拉上來）'));
+}
+
+// ---------- C 往前看：從遠處衝向你 ----------
+function gifC(t) {
+  const far = runner(calfE('dairy', 'cow'), 120 + 30 * Math.sin(t * 0.7), 380, 0.42, 'right', t, 0.3, 3) + runner(calfE('beef', 'bull'), 270 - 24 * Math.sin(t * 0.6), 400, 0.5, 'left', t, 0.7, 3);
+  // 衝過來：越來越大（越靠近越快）
+  const run = easeIn(tseg(t, 0, 2.05));
+  let n = tapTimes.length ? 0 : 0;
+  // C 的拉：一拍 0.4 秒，亮兩拍拉、暗一拍停（0.8 秒拉、0.4 秒停）
+  const cyc = 1.2, inTug = t >= GT.tug0 && t < GT.tug1, ct = (t - GT.tug0) % cyc;
+  const pulling = inTug && ct < 0.8;
+  const pulled = (() => { if (t < GT.tug0) return 0; const tt = Math.min(t, GT.tug1 - 0.1) - GT.tug0; const full = Math.floor(tt / cyc), rem = tt % cyc; return Math.min(1, (full * 0.8 + Math.min(rem, 0.8)) / 2.3); })();
+  const p = pulled;
+  const landY = 596, landS = 1.0;
+  const cy = t < GT.land ? lerp(368, landY, run < 1 ? run : 1) + (t > 2.05 ? (t - 2.05) * 30 : 0) : lerp(landY + 20, 690, easeOut(p));
+  const cs = t < GT.land ? lerp(0.3, landS, Math.min(1, run)) + (t > 2.05 ? (t - 2.05) * 0.05 : 0) : lerp(1.03, 1.3, easeOut(p));
+  const strain = t >= GT.land && p < 1 ? Math.sin(t * 18) * 3 : 0;
+  const calf = `<g transform="translate(${f2(strain)} 0)">${runner({ ...calfE(CATCH.use, CATCH.sex), pose: 'front' }, 195, cy, cs, 'left', t < GT.land ? t * 1.3 : (pulling ? t * 2 : 0), 0, t < GT.land ? 5 : 1.5)}</g>`;
+  const inRing = t >= 1.6 && t < GT.swipe1 + 0.1;
+  const ring = t < GT.land ? `<ellipse cx="195" cy="560" rx="96" ry="26" fill="${inRing ? 'rgba(255,226,122,0.35)' : 'none'}" stroke="${inRing ? '#FFD45E' : '#FFFFFF'}" stroke-width="${inRing ? 6 : 4}" stroke-dasharray="10 8"/>` : '';
+  const dust = t < GT.land ? puff(170, cy, t, 0.1, -1) + puff(220, cy, t, 0.6, 1) : (pulling && p < 1 ? puff(160, cy, t, 0.3, -1) + puff(230, cy, t, 0.8, 1) : '');
+  // 繩圈
+  const fly = tseg(t, GT.swipe1, GT.land);
+  const headY = (y, s) => y - 22 * s; // 脖子的位置：繩圈套在脖子上（套在頭上看起來像光環）
+  let rope = '';
+  if (t < GT.swipe1) rope = loopOn(195, 790, 30);
+  else if (t < GT.land) { const k = easeOut(fly), y = lerp(790, headY(landY, landS), k) - Math.sin(k * Math.PI) * 60; rope = loopAt(195, y, lerp(32, 26, k)) + ropeFrom(195, 860, 205, y + 6, 20 * (1 - k)); }
+  else rope = lassoed(195 + strain, headY(cy, cs) + 4, 24 * cs, [195, 860]);
+  // 手指：踩進圈圈時往上滑；拉的時候亮燈就往下拖、暗燈放開
+  const sw = tseg(t, GT.swipe0, GT.swipe1);
+  const swipeFx = swipeTrail(195, 800, 195, 660, easeOut(sw), t < GT.swipe1 ? 1 : 1 - tseg(t, GT.swipe1, GT.swipe1 + 0.4));
+  let fin = '';
+  if (t >= 1.2 && t < GT.swipe0) fin = fingerAt(196, 806);
+  else if (t >= GT.swipe0 && t < GT.swipe1 + 0.15) fin = fingerAt(196, lerp(806, 670, easeOut(sw)));
+  else if (inTug) { const k = pulling ? ct / 0.8 : 0; fin = `${pulling ? `<svg class="drag-hint" style="left:166px;top:700px" width="60" height="120" viewBox="0 0 60 120"><path d="M30 6V104M16 90l14 16 14-16" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/></svg>` : ''}${fingerAt(196, pulling ? lerp(720, 790, k) : 760, pulling ? 1 : 0)}`; }
+  const hint = t < 1.6 ? hintPill('小牛衝過來了！') : t < GT.land ? hintPill('踩進圈圈了：往上滑！') : '';
+  let tugUi = '';
+  if (t >= GT.land) {
+    const beat = inTug ? Math.floor(ct / 0.4) : -1;
+    tugUi = pullBar(p, '拉近') + (inTug ? `<div class="beat">${[0, 1, 2].map((i) => `<i class="${i === beat ? 'on' : ''}${i === 2 ? ' rest' : ''}"></i>`).join('')}</div>` + bigCue(pulling ? '拉！⬇' : '停 ✋', pulling ? '' : 'stop') : '');
+  }
+  return sceneFrame(perspective(far + ring + dust + calf + swipeFx) + rope, gameTop(T18, { time: clock(t) }) + hint + tugUi, fin + caught(t, '表現：很好（一圈就套中）'));
+}
+const GIFS = { A: { fn: gifA, file: 'R18-01-抓牛小遊戲-A-一群一起跑-390' }, C: { fn: gifC, file: 'R18-01-抓牛小遊戲-C-往前看衝過來-390' } };
+
 async function settle() {
   await document.fonts.ready;
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
 }
 if (q.has('list')) {
   window.__boards = BOARDS.map(({ id }) => ({ id, w: 390 }));
+  window.__ready = true;
+} else if (q.has('gif')) {
+  // GIF：一次載入，harness/gif.mjs 一格一格呼叫 __frame(t)，截 .gif-box
+  const g = GIFS[q.get('gif')];
+  window.__frame = async (t) => { app.innerHTML = `<div class="gif-box"><div class="gif-label">${g.file}</div>${g.fn(t)}</div>`; await settle(); };
+  window.__gif = { file: g.file, total: GT.total };
+  await window.__frame(0);
   window.__ready = true;
 } else {
   const b = BOARDS.find((x) => x.id === q.get('b'));
