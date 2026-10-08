@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from conftest import T0, Harness, new_rid
 from cowecon import DEFAULT, Cow
 from cowecon.farm import make_genotype
@@ -180,11 +178,7 @@ def test_week_champions_saved_and_shown(db_dsn):
 
 
 def test_tailwind_needs_super_event(db_dsn):
-    """在那種商品的超級大事件期間賣出：tailwind。D33（#115）以前的引擎沒有 tier，這個測試先跳過。"""
-    from cowecon.market import MarketEvent
-
-    if "tier" not in MarketEvent.__slots__:
-        pytest.skip("引擎還沒有新聞級別（D33）")
+    """在那種商品的超級大事件期間賣出：tailwind（D33 的新聞等級；+100% 是超級大事件）。"""
     with Harness(db_dsn) as h:
         tok = h.session()["token"]
         h.advance(60)
@@ -195,8 +189,11 @@ def test_tailwind_needs_super_event(db_dsn):
         h.post("/v1/sell", tok, {"commodity": "milk", "qty": q, "request_id": new_rid()})
         assert ach(state(h, tok), "tailwind")["unlocked_at"] is None  # 牛奶不在超級大事件裡
         h.server.game.ex.inject_event(("milk",), 2.0, now, 4 * 3600.0)
+        h.advance(60)  # 再產一點奶來賣
+        now = h.clock.now()
         h.post("/v1/collect", tok, {"request_id": new_rid()})
         q = state(h, tok)["warehouse"]["milk_total"]
+        assert q > 0
         h.post("/v1/sell", tok, {"commodity": "milk", "qty": q, "request_id": new_rid()})
         assert ach(state(h, tok), "tailwind")["unlocked_at"] == now
 
