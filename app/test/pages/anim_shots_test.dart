@@ -167,4 +167,21 @@ void main() {
       await _save(tester, 'A-07', i);
     }
   });
+
+  // A-12 左右滑動牧場：真的手勢（設計稿是示意，手指畫得比場景移動少）。用力往左拖、放開以後滑到右邊停下，再往右拖回左邊。
+  // 每一格 50 毫秒，拖的那 0.3 秒拍不到（手勢在測試裡一次做完），只拍放開以後滑的樣子。
+  testWidgets('A-12 左右滑動牧場：往左甩滑到右邊，再甩回左邊', (tester) async {
+    await _ranch(tester);
+    final box = tester.getRect(find.byType(RanchScene));
+    final at = Offset(box.center.dx, box.top + 150);
+    var i = 0;
+    await _save(tester, 'A-12', i++);
+    for (final dx in [-1.0, 1.0]) {
+      await tester.timedDragFrom(at - Offset(dx * 80, 0), Offset(dx * 160, 0), const Duration(milliseconds: 300));
+      for (var f = 0; f < 24; f++) {
+        await tester.pump(_frame);
+        await _save(tester, 'A-12', i++);
+      }
+    }
+  });
 }

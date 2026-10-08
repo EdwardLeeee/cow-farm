@@ -101,6 +101,8 @@ class RanchScene extends StatefulWidget {
     required this.pan,
     this.game,
     this.onPan,
+    this.onPanStart,
+    this.onPanEnd,
     this.onTapCow,
     this.onTapEmpty,
   });
@@ -109,6 +111,12 @@ class RanchScene extends StatefulWidget {
   final double pan;
   final RanchGame? game;
   final ValueChanged<double>? onPan;
+
+  /// 手指按下開始拖（A-12：停掉還在滑的場景）。
+  final VoidCallback? onPanStart;
+
+  /// 手指放開：場景座標每秒往右捲多少（A-12 照這個速度再滑一小段）。
+  final ValueChanged<double>? onPanEnd;
   final ValueChanged<Cow>? onTapCow;
 
   /// 點到場景的空地（不是牛）。
@@ -150,6 +158,7 @@ class _RanchSceneState extends State<RanchScene> {
           ),
         );
         final onTapCow = widget.onTapCow, onTapEmpty = widget.onTapEmpty, onPan = widget.onPan;
+        final onPanStart = widget.onPanStart, onPanEnd = widget.onPanEnd;
         if (onPan == null && onTapCow == null && onTapEmpty == null) return scene;
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -164,9 +173,12 @@ class _RanchSceneState extends State<RanchScene> {
                     onTapEmpty?.call();
                   }
                 },
+          onHorizontalDragStart: onPanStart == null ? null : (_) => onPanStart(),
           onHorizontalDragUpdate: onPan == null
               ? null
               : (d) => onPan((widget.pan - d.delta.dx / fit.k).clamp(0.0, kMaxPan)),
+          // 手指往左甩（速度是負的）場景往右捲
+          onHorizontalDragEnd: onPanEnd == null ? null : (d) => onPanEnd(-d.velocity.pixelsPerSecond.dx / fit.k),
           child: scene,
         );
       },

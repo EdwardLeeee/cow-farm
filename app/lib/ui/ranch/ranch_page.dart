@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 
@@ -37,8 +38,12 @@ class RanchPage extends StatefulWidget {
   State<RanchPage> createState() => _RanchPageState();
 }
 
-class _RanchPageState extends State<RanchPage> with SingleTickerProviderStateMixin {
+class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
   double _pan = 0;
+
+  /// A-12 左右滑動牧場（設計稿 anims.js 的 A12）：手指放開以後照放開時的速度再滑一小段停下（跟 iOS 捲動一樣的摩擦力），
+  /// 到兩邊就停、不回彈。減少動態時拖多少就移多少、不滑行。
+  late final _glide = AnimationController.unbounded(vsync: this)..addListener(_glideTick);
 
   /// A-01 收奶（1.4 秒，設計稿 anims.js 的 A01）：奶瓶從奶桶飛進倉庫卡、奶桶的數字往下降、倉庫的牛奶往上跳，最後提示。
   late final _collectAnim = AnimationController(vsync: this, duration: const Duration(milliseconds: 1400));
@@ -60,10 +65,27 @@ class _RanchPageState extends State<RanchPage> with SingleTickerProviderStateMix
   _Toast? _toast;
   Timer? _toastTimer;
 
+  /// 放開（A-12）：場景座標每秒 [v]（往右捲是正的）。照 iOS 捲動的摩擦力（FrictionSimulation 0.135）滑下去，
+  /// 滑的距離是 v ÷ ln(1 ÷ 0.135) ≈ v ÷ 2；太慢（每秒不到 50）就不滑。
+  void _panEnd(double v) {
+    if (!AppMotion.read(context) || v.abs() < 50) return;
+    // 每秒不到 1（場景座標，約 1 點）就算停了：不然會一直往終點逼近、很久才停
+    _glide.animateWith(FrictionSimulation(0.135, _pan, v, tolerance: const Tolerance(velocity: 1)));
+  }
+
+  void _glideTick() {
+    final x = _glide.value;
+    final p = x.clamp(0.0, kMaxPan);
+    if (p != _pan) setState(() => _pan = p);
+    // 滑到兩邊就停（不回彈）
+    if (x < 0 || x > kMaxPan) _glide.stop();
+  }
+
   @override
   void dispose() {
     _toastTimer?.cancel();
     _collectAnim.dispose();
+    _glide.dispose();
     super.dispose();
   }
 
@@ -228,6 +250,8 @@ class _RanchPageState extends State<RanchPage> with SingleTickerProviderStateMix
           setState(() => _pan = p);
           if (!settings.swipeHintSeen) settings.markSwipeHintSeen();
         },
+        onPanStart: _glide.stop,
+        onPanEnd: _panEnd,
         // 點一頭牛：轉正面、跳出小名片；再點一次或點空地就收起來
         onTapCow: (c) => setState(() => _popId = _popId == c.id ? null : c.id),
         onTapEmpty: _popId == null ? null : () => setState(() => _popId = null),
