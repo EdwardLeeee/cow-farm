@@ -342,7 +342,8 @@ class Game:
         if pid in self.players:
             raise ValueError(f"player {pid} 已存在")
         self.next_pid = max(self.next_pid, pid + 1)
-        farm = Farm(self.params, now, rng if rng is not None else random.Random(f"{self.seed}:new:{pid}"))
+        # v0.3 照顧規則（大便、生病、變雜種）：PR A 先只給電腦玩家，真人到 C1（按鈕和協定都好了）才開
+        farm = Farm(self.params, now, rng if rng is not None else random.Random(f"{self.seed}:new:{pid}"), care=is_bot)
         p = Player(pid, name, is_bot, now, farm, token_hash)
         for c in farm.cows:
             p.add_codex(c, now)
@@ -695,7 +696,7 @@ class Game:
     def stud_fee(self, lst, now: float) -> dict:
         """借種費（協定 1.6 節）：這一刻依公牛的體重和稀有度算（D26）。"""
         price, kg, at_max = self.stud.fee(lst, now)
-        return stud_fee_view(self.params.farm, lst.tier, price, kg, at_max)
+        return stud_fee_view(self.params.farm, lst.vt, price, kg, at_max)  # 價值等級：雜種公牛每公斤 0.6
 
     def stud_list(self, pid: int, cow_id, now: float) -> dict:
         """上架：主人只決定要不要上架，借種費由系統算（D26）。"""
@@ -860,6 +861,66 @@ class Game:
         if not ok:
             raise GameError("rejected", "現在不能升級", 409)
         return {"kind": kind, "cost": int(round(cost))}
+
+    # ---- 照顧（v0.3）：PR A 給電腦玩家用；HTTP 端點、錯誤碼在 C1 ----
+    def settle(self, pid: int, now: float) -> None:
+        """結算到 now（長大揭曉、大便、生病、奶桶、田地）。"""
+        self.player(pid).farm.advance(now)
+
+    def clean(self, pid: int, now: float, piles: Optional[Dict[int, int]] = None) -> dict:
+        return {"cleaned": self.player(pid).farm.clean(now, piles)}
+
+    def cure(self, pid: int, cow_id, now: float, rng: Optional[random.Random] = None) -> dict:
+        p = self.player(pid)
+        c = self._cow(p, cow_id)
+        if not p.farm.cure(c, now, self._rng(p, rng)):
+            raise GameError("rejected", "現在不能治療", 409, {"cow_id": c.cid})
+        return {"cow_id": c.cid}
+
+    def buy_feed(self, pid: int, kind: int, n: int, now: float) -> dict:
+        if not self.player(pid).farm.buy_feed(kind, n, now):
+            raise GameError("rejected", "現在不能買飼料", 409)
+        return {"kind": kind, "n": n}
+
+    def feed(self, pid: int, cow_id, kind: int, now: float) -> dict:
+        p = self.player(pid)
+        c = self._cow(p, cow_id)
+        reason = p.farm.feed_block(c, kind, now)
+        if reason is not None or not p.farm.feed(c, kind, now):
+            raise GameError("rejected", "現在不能餵", 409, {"cow_id": c.cid, "reason": reason})
+        return {"cow_id": c.cid, "kind": kind}
+
+    def hire_helper(self, pid: int, days: int, now: float) -> dict:
+        f = self.player(pid).farm
+        if not f.hire_helper(days, now):
+            raise GameError("rejected", "現在不能雇小幫手", 409)
+        return {"until": f.helper_until}
+
+    def buy_floor(self, pid: int, i: int, now: float) -> dict:
+        if not self.player(pid).farm.buy_floor(i, now):
+            raise GameError("rejected", "現在不能買這種地板", 409)
+        return {"floor": i}
+
+    def rent_floor(self, pid: int, i: int, days: int, now: float) -> dict:
+        """租長快地板（按天預付）；正在用這種地板的話，上架的公牛照新的租約算借種費。"""
+        f = self.player(pid).farm
+        if not f.rent_floor(i, days, now):
+            raise GameError("rejected", "現在不能租這種地板", 409)
+        self._follow_floor(pid, f)
+        return {"floor": i, "until": f.rent_until}
+
+    def _follow_floor(self, pid: int, f) -> None:
+        if self.stud.owner_listings(pid):
+            self.stud.follow_owner(pid, f)
+            self.stud_dirty = True
+
+    def use_floor(self, pid: int, i: int, now: float) -> dict:
+        """換地板（年紀速度）；上架借種的公牛跟著主人的速度算借種費。"""
+        f = self.player(pid).farm
+        if not f.use_floor(i, now):
+            raise GameError("rejected", "沒有這種地板", 409)
+        self._follow_floor(pid, f)
+        return {"floor": i}
 
     # ---- 排行榜用 ----
     # ---- 牧場資料（S21，D34） ----

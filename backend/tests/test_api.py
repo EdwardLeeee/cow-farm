@@ -151,8 +151,8 @@ def test_session_and_state_fields(h):
     assert st["upgrades"]["field"]["cost"] == int(round(h.server.game.players[s["player_id"]].farm.next_field_cost()))
     assert st["rice"] == {"in_fields": 0.0, "stock": 0.0, "per_hour": 0.0}
     assert set(st["stud"]) == {"listings", "income"} and st["stud"]["listings"] == []  # D26：不再選價位
-    assert st["economy"] == {  # S05、S09 的倍數：直接讀 params，app 不寫死
-        "tier_mult": list(FP.tier_mult),
+    economy = {  # S05、S09 的倍數：直接讀 params，app 不寫死
+        "tier_mult": list(FP.tier_mult)[:4],  # 一般～傳說；引擎的第 5 格是雜種牛（C1 另外給）
         "beef_grade_mult": dict(zip("ABC", FP.beef_grade_mult)),
         "ox_rice_per_h": FP.rice_per_h[1],
         "dairy_milk_per_h": FP.milk_per_h[0],
@@ -162,6 +162,7 @@ def test_session_and_state_fields(h):
         "field_cap_h": FP.field_cap_h,
         "rename_price": 1000,  # S21：第二次起改名的價錢
     }
+    assert st["economy"] == economy
     cows = {c["id"]: c for c in st["cows"]}
     assert len(cows) == 2
     for c in cows.values():

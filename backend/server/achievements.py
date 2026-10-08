@@ -13,6 +13,8 @@ from __future__ import annotations
 
 from typing import Dict, Optional, Tuple, Union
 
+from cowecon import DEFAULT
+
 # (key, 目標)：None = 一般；數字 = 有計數；tuple = 分階段
 ACHIEVEMENTS: Tuple[Tuple[str, Union[None, int, Tuple[int, ...]]], ...] = (
     ("firstMilk", None),  # 第一次收奶
@@ -37,7 +39,9 @@ ACHIEVEMENTS: Tuple[Tuple[str, Union[None, int, Tuple[int, ...]]], ...] = (
 GOALS: Dict[str, Union[None, int, Tuple[int, ...]]] = dict(ACHIEVEMENTS)
 NOT_YET = frozenset({"pureBreed", "healer", "clean", "trucks"})  # v0.3 才接上
 
-RENAME_PRICE = 1000  # 第二次起改名的價錢（幣，D34）；第一次免費。v0.3 的引擎 PR 再搬進 cowecon/params（要重跑模擬）
+RENAME_PRICE = int(
+    DEFAULT.care.rename_price
+)  # 第二次起改名的價錢（幣，D34）；第一次免費。v0.3 起在 cowecon/params（CareParams）
 
 
 def tier_key(key: str, i: int) -> str:

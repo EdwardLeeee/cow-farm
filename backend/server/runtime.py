@@ -136,6 +136,8 @@ class ServerBots:
         meta = p.bot
         b = B.Bot(self.game, p.pid, meta["strategy"], meta["joined_at"], meta.get("taste", 0.0), rng=None)
         b.returns = set(meta.get("returns", []))
+        b.last_clean = meta.get("last_clean", b.last_clean)
+        b.care_return_at = meta.get("care_return_at", 0.0)
         self.bots[p.pid] = b
         last = meta.get("last_t")
         for k in range(int(TUTORIAL_S // MINUTE)):
@@ -204,6 +206,8 @@ class ServerBots:
                     self.server.stats["errors"] += 1
                 meta = self.game.players[pid].bot
                 meta["returns"] = sorted(b.returns)
+                meta["last_clean"] = b.last_clean
+                meta["care_return_at"] = b.care_return_at
                 meta["last_t"] = t_ev
                 meta["extra"] = [x for x in meta.get("extra", []) if x[0] + x[2] > t_ev]  # 在線時段結束才刪
                 return None
@@ -472,7 +476,7 @@ class GameServer:
         game = self.game
         now = self.clock.now()
         mix = list(B.PLAYER_STRATEGIES)
-        # 六種玩法各六分之一：依序輪流，再用固定種子打亂
+        # 每種玩法一樣多（v0.3 起七種，含 Z 懶得照顧）：依序輪流，再用固定種子打亂
         order = [mix[i % len(mix)] for i in range(len(have) + n_new)]
         random.Random(f"{game.seed}:assign").shuffle(order)
         for i in range(len(have), len(have) + n_new):

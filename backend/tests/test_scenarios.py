@@ -2,7 +2,8 @@
 
 情境照 docs/research/economy/sim/scenarios.py（v0.2），目標照 docs/research/2026-09-economy.md 第 9 節：
 - 三種商品的價格 95% 以上的時間在基本價 0.6–1.7 倍。
-- 六種玩法每週收入「最高 ÷ 最低」≤ 1.5；耕田派 ÷ 乳牛派在 ±15% 內。
+- 六種玩法每週收入「最高 ÷ 最低」≤ 1.5；耕田派 ÷ 乳牛派在 ±15% 內。v0.3 起「收入」扣掉照顧花費（地板、小幫手、飼料、治療），
+  使用者 2026-10-08 選的口徑；只算收入的只印出來參考。
 - 大戶倒貨：2 小時內壓低的比例不超過理論上限（由參數算）；一次倒出的滑價比分批大。
 - 新手：第一次賣奶 ≤ 5 分鐘、第一次擴建中位數 10–20 分鐘、全部 30 分鐘內第一次配種。
 - 借種有成交、出借收入不失控；商店三級都有人買；出貨三種評級都會出現。
@@ -56,6 +57,11 @@ TUNABLES = (
     "STUD_RELIST_H",
     "PANIC_SHIP_AGE_H",
     "SHOP_CHOICE_SCALE",
+    "SICK_P_DAY",
+    "HELPER_AHEAD_D",
+    "LAZY_CLEAN_H",
+    "CURE_PROD_H",
+    "FLOOR_GAIN",
 )
 
 
@@ -114,17 +120,20 @@ def test_price_band(players):
 @pytest.mark.parametrize("players", [10, 100])
 def test_strategy_income(players):
     per = [H.strategy_weeks(run("base", players, s)) for s in SEEDS[players]]
-    keys = MB.PLAYER_STRATEGIES
-    worst = 0.0
+    keys = MB.CARE_STRATEGIES  # v0.3：懶得照顧（Z）是用來量懲罰的，不算在差距裡
+    worst = worst_revenue = 0.0
     for wk in range(4):
-        means = {k: statistics.fmean(p[k]["weeks"][wk] for p in per) for k in keys}
+        means = {k: statistics.fmean(p[k]["weeks"][wk] for p in per) for k in keys}  # 收入 − 照顧花費
         ratio = max(means.values()) / min(means.values())
         worst = max(worst, ratio)
+        rev = [statistics.fmean(p[k]["revenue_weeks"][wk] for p in per) for k in keys]
+        worst_revenue = max(worst_revenue, max(rev) / min(rev))
         assert ratio <= 1.5, (players, wk + 1, means)
     tot = {k: statistics.fmean(p[k]["total"] for p in per) for k in keys}
     f_over_d = tot["F"] / tot["D"]
     print(
-        f"\n{players} 人：每週最高÷最低最大 {worst:.3f}；28 天合計最高 {max(tot, key=tot.get)}；耕田派÷乳牛派 {f_over_d:.3f}"
+        f"\n{players} 人：每週最高÷最低最大 {worst:.3f}（只算收入 {worst_revenue:.3f}，參考）；"
+        f"28 天合計最高 {max(tot, key=tot.get)}；耕田派÷乳牛派 {f_over_d:.3f}"
     )
     assert 0.85 <= f_over_d <= 1.15, tot
 
@@ -313,7 +322,7 @@ def test_numbers_match_research_note():
     per = [H.strategy_weeks(w) for w in worlds]
     total = {
         k: sum(statistics.fmean(p[k]["weeks"][i] for p in per) for i in range(len(per[0][k]["weeks"])))
-        for k in MB.PLAYER_STRATEGIES
+        for k in MB.CARE_STRATEGIES
     }
     assert total == pytest.approx(g["b_strategies"]["10"]["total"], rel=1e-12)
 

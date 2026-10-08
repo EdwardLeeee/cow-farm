@@ -71,7 +71,8 @@ PLAYER_KEYS = ("D", "B", "F", "C", "T", "L")
 
 
 def strategy_weeks(world) -> dict:
-    """各策略每週收入（賣牛奶、牛肉、稻米的收入 + 借種收入，幣）等統計。大戶（W）另計。"""
+    """各策略每週收入（賣牛奶、牛肉、稻米的收入 + 借種收入，幣）等統計。大戶（W）另計。
+    v0.3：care_net_mean = 收入 − 照顧花費（地板、小幫手、飼料、治療），玩法差距的目標用這個（使用者 2026-10-08）。"""
     groups: Dict[str, list] = {}
     for b in world.bots:
         groups.setdefault(b.strategy, []).append(b)
@@ -82,6 +83,7 @@ def strategy_weeks(world) -> dict:
             if d1 > world.n_days:
                 break
             rev = [b.ledger.revenue_days(d0, d1) for b in bs]
+            care = [b.ledger.care_days(d0, d1) for b in bs]
             part = {k: statistics.fmean([b.ledger.amount_days(k, d0, d1) for b in bs]) for k in ("milk", "beef", "rice", "stud_in")}
             opex = [-(b.ledger.amount_days("calf", d0, d1) + b.ledger.amount_days("stud_out", d0, d1)) for b in bs]
             capex = [-sum(b.ledger.amount_days(k, d0, d1) for k in ("expand", "bucket", "warehouse", "fresh", "field")) for b in bs]
@@ -91,6 +93,8 @@ def strategy_weeks(world) -> dict:
                 "revenue_p25": _pct(rev, 0.25), "revenue_p75": _pct(rev, 0.75),
                 "milk_mean": part["milk"], "beef_mean": part["beef"], "rice_mean": part["rice"], "stud_in_mean": part["stud_in"],
                 "net_mean": statistics.fmean([r - o for r, o in zip(rev, opex)]),
+                "care_spend_mean": statistics.fmean(care),
+                "care_net_mean": statistics.fmean([r - c for r, c in zip(rev, care)]),
                 "opex_mean": statistics.fmean(opex), "capex_mean": statistics.fmean(capex),
                 "spoiled_mean": statistics.fmean([b.ledger.qty_days("spoiled", d0, d1) for b in bs]),
             })
@@ -115,17 +119,18 @@ def strategy_weeks(world) -> dict:
             "tier_counts_end": tiers,
             "type_counts_end": types,
             "revenue_total_mean": sum(w["revenue_mean"] for w in weeks),
+            "care_net_total_mean": sum(w["care_net_mean"] for w in weeks),
         }
     return out
 
 
 def week_ratios(strategies: dict, keys=PLAYER_KEYS) -> List[dict]:
-    """每週各策略平均週收入的 最大/最小、最高者、耕田÷乳牛、抓時機÷乳牛。"""
+    """每週各策略平均週收入（收入 − 照顧花費）的 最大/最小、最高者、耕田÷乳牛、抓時機÷乳牛。"""
     rows = []
     keys = [k for k in keys if k in strategies]
     n_weeks = min(len(strategies[k]["weeks"]) for k in keys)
     for w in range(n_weeks):
-        vals = {k: strategies[k]["weeks"][w]["revenue_mean"] for k in keys}
+        vals = {k: strategies[k]["weeks"][w]["care_net_mean"] for k in keys}
         hi, lo = max(vals.values()), min(vals.values())
         rows.append({
             "week": w + 1,
