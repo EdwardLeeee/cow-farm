@@ -1,5 +1,5 @@
 // S17 田地與耕田。照協定：稻米在田裡持續長，每塊田最多存這頭耕牛壯年 8 小時的量，長滿就停（企劃書 4.0）。
-import { frame, btn, icon, fmt, bar, cowSVG, sheet, toast, tierChip, badge, BREEDS } from '../kit.js';
+import { frame, btn, icon, fmt, bar, cowSVG, sheet, toast, tierChip, badge, sickBadge, BREEDS } from '../kit.js';
 import { FIELDS, FIELD_UP, cowById, WAREHOUSE, sum, RANCH } from '../fixtures.js';
 import { drawCow } from '../../cow/render.js';
 import { tierOf } from '../../cow/breeds.js';
@@ -52,6 +52,13 @@ function fieldCard(f, o = {}) {
   }
   // 田裡剩的稻米比這頭牛的上限多（叫回稀有耕牛後改派一般耕牛）：照長滿了顯示，進度條到滿為止，數字只寫公斤數（缺口清單 2-5）
   const c = cowById(f.cow), b = BREEDS[c.breed], full = f.rice >= f.cap, over = f.rice > f.cap, p = Math.min(100, (f.rice / f.cap) * 100);
+  // 病牛（v0.3 第 5 節）：停止耕田（不再長稻米），標籤換成「生病了」，牛是正面、臉色發青；叫回來以後到牛的詳細治療
+  if (f.sick) {
+    return `<article class="card field-card sick">${head}${sickBadge()}</div>
+    <div class="fc-ox">${cowSVG({ breed: c.breed, sex: c.sex, seed: c.seed, sick: true }, { w: 52, h: 52, pad: 2 })}<div class="grow"><b>${cowName(c.breed, c.id)}</b><div class="chips">${tierChip(tierOf(b))}</div></div>${btn(t('recall'), { small: true, ic: 'hand' })}</div>
+    <div class="fc-bar">${bar(p, { color: 'gray' })}<span class="num">${fmt(f.rice, 1)} / ${fmt(f.cap, 1)}</span><small>${t('g.kg')}</small></div>
+    <p class="warn-text">${t('s17.sickStop')}</p></article>`;
+  }
   return `<article class="card field-card${full ? ' full' : ''}">${head}${full ? `<span class="badge full">${t('s17.full')}</span>` : badge('working', t('badgeWorking'))}</div>
     <div class="fc-ox">${cowSVG({ breed: c.breed, sex: c.sex, seed: c.seed }, { w: 52, h: 52, pad: 2 })}<div class="grow"><b>${cowName(c.breed, c.id)}</b><div class="chips">${tierChip(tierOf(b))}<span class="hint">${t('fieldRate', { v: f.rate })}</span></div></div>${btn(t('recall'), { small: true, ic: 'hand' })}</div>
     <div class="fc-bar">${bar(p, { color: full ? 'yellow' : 'green' })}<span class="num">${over ? fmt(f.rice, 1) : `${fmt(f.rice, 1)} / ${fmt(f.cap, 1)}`}</span><small>${t('g.kg')}</small></div>
@@ -61,7 +68,7 @@ function fieldCard(f, o = {}) {
 function fieldsPage(ctx, o = {}) {
   const fields = o.fields || FIELDS;
   const inField = fields.reduce((s, f) => s + (f.rice || 0), 0);
-  const rate = fields.reduce((s, f) => s + (f.cow ? (f.rice >= f.cap ? 0 : f.rate) : 0), 0);
+  const rate = fields.reduce((s, f) => s + (f.cow ? (f.rice >= f.cap || f.sick ? 0 : f.rate) : 0), 0);
   const w = ctx.dev.w - 24;
   const content = `<div class="stack">
     <article class="card field-scene">${fieldScene(w - 6, fields)}</article>
@@ -101,5 +108,6 @@ part('S17-10', '開新田：金幣不夠、已經 12 塊', '#crop', (ctx) => fra
 part('S17-11', '開新田成功', '.toast', (ctx) => fieldsPage(ctx, { hud: { coins: RANCH.coins - FIELD_UP.cost }, fields: [...FIELDS, { index: 3, cow: null, rice: 0 }], overlays: toast('ok', t('fieldExpanded', { n: 4 })) }));
 // 第 1 塊田：之前的稀有耕牛長了 120 公斤，叫回後改派一般耕牛（上限 88 公斤），伺服器不會再長
 part('S17-12', '田裡剩的稻米比這頭牛的上限多', '.field-card', (ctx) => fieldsPage(ctx, { fields: [{ ...FIELDS[0], rice: 120 }, FIELDS[1], FIELDS[2]], scrollTo: '.field-card' }), { board: '剩的稻米-狀態表' });
+part('S17-13', '病牛在田裡：停止耕田', '.field-card', (ctx) => fieldsPage(ctx, { fields: [{ ...FIELDS[0], sick: true }, FIELDS[1], FIELDS[2]], scrollTo: '.field-card' }));
 
 export default { id: 'S17', name: '田地', states: S };

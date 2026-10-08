@@ -1,5 +1,7 @@
 // M2 圖示：沿用 R1-A 的圖示（金幣、跑馬燈、牛奶、葉子、漲跌、奶桶、分頁），其他照同一套畫法新畫。
 // 牛肉一律畫成禮盒（企劃書 4.4：不出現肉塊）。
+import { THERMO_INNER } from '../cow/sick.js';
+import { poopG } from './poop.js';
 const L = '#4B3326';
 
 const I = {
@@ -64,6 +66,9 @@ const I = {
   // 超級黑天鵝（D33）：一隻往左游的天鵝側影，顏色跟著字（currentColor）
   swan: (s = 14) => `<svg viewBox="0 0 20 20" width="${s}" height="${s}"><path d="M2.4 5.6L5 4.6C5.3 3 7.3 2.4 8.5 3.6c1.1 1.1.4 2.8-.5 4.1-.8 1.2-1.1 2.4-.4 3.5 2.6-1.3 6.2-2 10.2-3.2-.1 4.8-3.3 8-8 8-3.5 0-5.6-1.6-5.9-3.9-.2-1.4.5-2.8 1.4-4 .8-1.1 1.2-2 .7-2.6-.4-.4-1-.3-1.5 0z" fill="currentColor"/></svg>`,
   medal: (s = 18) => `<svg viewBox="0 0 20 20" width="${s}" height="${s}"><path d="M6 1.8h3l1 4.4H7zM14 1.8h-3l-1 4.4h3z" fill="#A9DBFF" stroke="${L}" stroke-width="1.5" stroke-linejoin="round"/><circle cx="10" cy="12.2" r="6" fill="#FFD45E" stroke="${L}" stroke-width="1.8"/></svg>`,
+  // v0.3 第 5 節（第 13 輪 04-A）：溫度計（病牛的標籤、頭上的泡泡）、大便（霜淇淋捲；牧場場景裡的大便也是這張）
+  thermo: (s = 16) => `<svg viewBox="0 0 20 20" width="${s}" height="${s}">${THERMO_INNER}</svg>`,
+  poop: (s = 22) => `<svg viewBox="-12 -19 24 22" width="${s}" height="${Math.round(s * 22 / 24)}">${poopG(0, 0, 20)}</svg>`,
 };
 
 // 分頁圖示（R1-A 的牧場、市場、配種、圖鑑沿用；田地、商店、紀錄新畫）

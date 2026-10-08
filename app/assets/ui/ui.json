@@ -4,18 +4,22 @@
   "scenes：設計稿的座標，一個螢幕 390×844（ranch 是兩個螢幕寬 780），app 用 cover 放到螢幕上；不含牛。",
   "parts/road：出貨那一幕的路，畫在螢幕座標：上緣 = 螢幕高 × 0.74 − 34，高 70，左右各多 10；48 寬一段，左右重複接。",
   "parts/truck_*：卡車自己的座標 270×152（anchors.truck）。back 畫在牛後面，front 畫在牛前面；輪子、擋板另外畫。",
-  "parts/sparkle：半徑 10，中心在 (0, 0)；描邊 1.6，設計稿畫小的星星時描邊不縮。"
+  "parts/sparkle：半徑 10，中心在 (0, 0)；描邊 1.6，設計稿畫小的星星時描邊不縮。",
+  "parts/sick_bubble：病牛頭上的溫度計泡泡，中心在 (0, 0)、半徑 10。放的位置照 cows.json 那張牛圖的 face、headTop：中心 (face.cx + 0.9315 × face.r, headTop.y − 0.2 × face.r)，半徑 0.5 × face.r（設計稿 src/cow/sick.js 的 sickBubbleAt）。",
+  "icons/poop：大便（霜淇淋捲），牧場場景裡的大便也是這張：底部中間對齊地上那一點，寬約 19（場景座標）。"
  ],
  "generator": {
-  "design/m2/harness/assetexport.mjs": "b7521ae458423974ffeecc6e0d7877299e672b2117e468c73952258b51ec0615",
+  "design/m2/harness/assetexport.mjs": "1b8309626232977c429ff26906404e96717620b0b87905862e186c96a7df0799",
   "design/m2/src/cow/breeds.js": "a7f37d682deea250586c15bac9eaa28a551825b28fcf7ab7766526a48d75ecf8",
   "design/m2/src/cow/calf.js": "3d773e00d3f42d69b9de1b2de366e9af4f25f46645fdcf47a5146b063d84c29b",
   "design/m2/src/cow/q.js": "161f0ebf2cffa8d8baf19f095bab63f04c6d55004155fd078942b2aae7b5fbee",
   "design/m2/src/cow/r1/cowgen.js": "1935ca123df02952bfc2c3ba4ed768a4101e009477d1258ce018eb060096db42",
   "design/m2/src/cow/r11.js": "6320eccb9408e09ad5ee4a983d2c30e1a9341461d08bad9b2665994b4147b06e",
-  "design/m2/src/cow/render.js": "d4aa6d2d5424a517065cc814a5ee3bf77258bf285891beff7ca9c8ecdeacf3c8",
-  "design/m2/src/js/icons.js": "d0c81cc471ef6e432bdb587f64a51cfb64dbeaf4913ca558fa4d4e15412fcee8",
-  "design/m2/src/js/scene.js": "6d3a904b47b3c7d40be2868b1934dc646b5d7d8ee411f25f6a55d14264764003",
+  "design/m2/src/cow/render.js": "fd3363eae9b2bfe19afe8dbbfb990f576133dbcd4d14615e8a5dac05af73d55a",
+  "design/m2/src/cow/sick.js": "aa8ab60fae35ac532870d2d91923e756f2b211d40401121dca002523f22a8e66",
+  "design/m2/src/js/icons.js": "0cb8caa5395e364fc7895d009d13a604a44202cf5405309fa5d3041dfde66e9d",
+  "design/m2/src/js/poop.js": "e40856515326331787c75d6e199c50373947dac1064a123cabe7eed97b59e595",
+  "design/m2/src/js/scene.js": "41570152fdcacb49314777062b67b925c34fa61cab2194fe338015f575507306",
   "design/m2/src/js/truck.js": "3731ad8d2be15bc3ab095511aa41ca2befa924b28d54888b94b70de3abdb741a"
  },
  "anchors": {
@@ -339,6 +343,16 @@
    "h": 20,
    "sha256": "6716269775222a8733f8de83e7248e8ba7f1f26aaced37564f6d6db50df96734"
   },
+  "icons/thermo.svg": {
+   "w": 20,
+   "h": 20,
+   "sha256": "d626ab165cc817b0729139e85fa3c61e00ce461ecbb6ef1458444a5b02a82f0f"
+  },
+  "icons/poop.svg": {
+   "w": 24,
+   "h": 22,
+   "sha256": "7961712fd80dae6ad8fa8c4dc1f3b2c45009f7121e8f1fad679a74e8607201b5"
+  },
   "icons/tab_ranch_on.svg": {
    "w": 34,
    "h": 34,
@@ -438,6 +452,11 @@
    "w": 24,
    "h": 24,
    "sha256": "d60a9998bb838a4629ecb5289493d65ab255d4cc847f2312f7a7e75afe7e5e57"
+  },
+  "parts/sick_bubble.svg": {
+   "w": 24.6,
+   "h": 25.8,
+   "sha256": "74a0b0e0729c7b82521312db3b6471d3630370663d755d8afaa8809922175a37"
   }
  }
 }
