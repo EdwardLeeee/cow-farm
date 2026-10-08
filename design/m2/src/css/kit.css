@@ -144,6 +144,7 @@
 .tier.stars { gap: 1px; padding: 0 6px; }
 .tier.stars svg { display: block; flex: none; }
 .tier.mix-star { background: #EEE8E1; border-color: #8A7E72; }
+.tier-4 { background: linear-gradient(90deg, #FFE1EA, #E3F0FF 50%, #E6F7D8); } /* 特殊牛：淡彩虹底 */
 .use { display: inline-flex; align-items: center; gap: 2px; font-size: 12px; font-weight: 900; line-height: 18px; white-space: nowrap; }
 .chips { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
 

@@ -69,6 +69,8 @@ const I = {
   // v0.3 第 5 節（第 13 輪 04-A）：溫度計（病牛的標籤、頭上的泡泡）、大便（霜淇淋捲；牧場場景裡的大便也是這張）
   thermo: (s = 16) => `<svg viewBox="0 0 20 20" width="${s}" height="${s}">${THERMO_INNER}</svg>`,
   // 雜種牛的稀有度：1 顆灰星（使用者 2026-10-08；一般的稀有度用上面的 star，一般 1、優良 2、稀有 3、傳說 4 顆）
+  // 特殊牛的稀有度：5 顆彩虹星（使用者 2026-10-08 選第 16 輪 02-B）。小的時候顏色容易糊在一起：外面先描一圈白（像貼紙），再畫彩虹和深色的線
+  starRainbow: (s = 11) => `<svg viewBox="0 0 20 20" width="${s}" height="${s}"><defs><linearGradient id="starRbw" x1="0.1" y1="0.1" x2="0.9" y2="0.9"><stop offset="0" stop-color="#FF6F91"/><stop offset="0.35" stop-color="#FFC93C"/><stop offset="0.65" stop-color="#5FCF8F"/><stop offset="1" stop-color="#5E9BFF"/></linearGradient></defs><path d="M10 1.8l2.5 5.2 5.6.7-4.1 3.9 1 5.6L10 14.5l-5 2.7 1-5.6-4.1-3.9 5.6-.7z" fill="none" stroke="#FFFFFF" stroke-width="3.6" stroke-linejoin="round"/><path d="M10 1.8l2.5 5.2 5.6.7-4.1 3.9 1 5.6L10 14.5l-5 2.7 1-5.6-4.1-3.9 5.6-.7z" fill="url(#starRbw)" stroke="${L}" stroke-width="1.8" stroke-linejoin="round"/></svg>`,
   starGray: (s = 11) => `<svg viewBox="0 0 20 20" width="${s}" height="${s}"><path d="M10 1.8l2.5 5.2 5.6.7-4.1 3.9 1 5.6L10 14.5l-5 2.7 1-5.6-4.1-3.9 5.6-.7z" fill="#D3C9BE" stroke="#8A7E72" stroke-width="1.8" stroke-linejoin="round"/></svg>`,
   poop: (s = 22) => `<svg viewBox="-12 -19 24 22" width="${s}" height="${Math.round(s * 22 / 24)}">${poopG(0, 0, 20)}</svg>`,
 };

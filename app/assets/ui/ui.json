@@ -17,7 +17,7 @@
   "design/m2/src/cow/r11.js": "6320eccb9408e09ad5ee4a983d2c30e1a9341461d08bad9b2665994b4147b06e",
   "design/m2/src/cow/render.js": "fd3363eae9b2bfe19afe8dbbfb990f576133dbcd4d14615e8a5dac05af73d55a",
   "design/m2/src/cow/sick.js": "aa8ab60fae35ac532870d2d91923e756f2b211d40401121dca002523f22a8e66",
-  "design/m2/src/js/icons.js": "ff65314cc12011864ddd7f32fadc9324eacc672fa8f5a4c0f5a08ba1243d2081",
+  "design/m2/src/js/icons.js": "12b96121d2a7f02972a6fc14f5c619f3bf15df83b250f136f36337ea15af333d",
   "design/m2/src/js/poop.js": "e40856515326331787c75d6e199c50373947dac1064a123cabe7eed97b59e595",
   "design/m2/src/js/scene.js": "41570152fdcacb49314777062b67b925c34fa61cab2194fe338015f575507306",
   "design/m2/src/js/truck.js": "3731ad8d2be15bc3ab095511aa41ca2befa924b28d54888b94b70de3abdb741a"
@@ -347,6 +347,11 @@
    "w": 20,
    "h": 20,
    "sha256": "d626ab165cc817b0729139e85fa3c61e00ce461ecbb6ef1458444a5b02a82f0f"
+  },
+  "icons/starRainbow.svg": {
+   "w": 20,
+   "h": 20,
+   "sha256": "99aeffc967c58a39ada09bec75091ac6d4d4582a1cf5241adaf32f715ef25f10"
   },
   "icons/starGray.svg": {
    "w": 20,
