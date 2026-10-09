@@ -29,6 +29,7 @@ import '../kit/page_head.dart';
 import '../ship/truck_scene.dart';
 import '../widgets/action_button.dart';
 import '../widgets/ticker_builder.dart';
+import 'treat.dart';
 
 /// CSS 的 line-height 把多出來（或不夠）的行距上下平分；字比行高大的地方要照這樣排，字才不會偏上。
 TextStyle _even(TextStyle s) => s.copyWith(leadingDistribution: TextLeadingDistribution.even);
@@ -76,6 +77,18 @@ class _CowDetailPageState extends State<CowDetailPage> {
       actionErrorKind(err),
       actionErrorTextWith(Strings.of(context, listen: false), context.read<GameModel>(), err),
     );
+  }
+
+  /// 治療（S04-19 確認）：治好了提示「荷斯坦 #3 好了！」（S04-21），失敗照一般的錯誤提示。
+  Future<void> _treat(Cow cow) async {
+    final s = Strings.of(context, listen: false);
+    final r = await treatCow(context, cow);
+    if (r == null || !mounted) return;
+    if (r.ok) {
+      _showToast(ToastKind.ok, s.s04Treated(cow: s.cowLabel(cow)));
+    } else {
+      _done(r);
+    }
   }
 
   Future<void> _ship(Cow cow) async {
@@ -153,6 +166,7 @@ class _CowDetailPageState extends State<CowDetailPage> {
             ),
             _DetailActions(
               cow: cow,
+              onTreat: () => _treat(cow),
               onShip: () => _ship(cow),
               onList: () => setState(() => _listing = true),
               onDone: _done,
@@ -212,9 +226,11 @@ class _DetailList extends StatelessWidget {
     final m = context.watch<GameModel>();
     final s = Strings.of(context);
     final adult = cow.isAdultAt(m.gameNow);
-    // 橘字提醒：在田裡（S04-07）、已配種（S04-09）。上架中的公牛不放（D31：看「上架中」標籤和停用的按鈕就知道）；
-    // 老牛配過種不加（S04-10 的設計稿：大圖下面已經有老牛的說明，配過種看標籤和按鈕）
-    final note = cow.fieldIndex != null
+    // 橘字提醒：生病了（S04-18，優先）、在田裡（S04-07）、已配種（S04-09）。上架中的公牛不放（D31：看「上架中」標籤和
+    // 停用的按鈕就知道）；老牛配過種不加（S04-10 的設計稿：大圖下面已經有老牛的說明，配過種看標籤和按鈕）
+    final note = cow.sick
+        ? s.s04SickNote
+        : cow.fieldIndex != null
         ? (isStudOx(cow, m.gameNow) ? s.s04RecallFirstOx : s.recallFirst)(n: cow.fieldIndex! + 1)
         : cow.bred && adult && cow.stage != CowStage.old
         ? s.s04NoteBred
@@ -403,6 +419,8 @@ class _Hero extends StatelessWidget {
                           variant: cow.number,
                           width: 200,
                           height: 150,
+                          // 病牛：臉色發青、頭上溫度計（S04-18）
+                          sick: cow.sick,
                         ),
                       ),
                       if (below)
@@ -477,6 +495,7 @@ class _Kv extends StatelessWidget {
     final m = context.read<GameModel>();
     final s = Strings.of(context);
     final cells = <KvCell>[];
+    final colors = <int, Color>{};
     // age_h 是拿到 state 那一刻的遊戲小時；加上之後走過的遊戲時間，再換成現實時間
     final ageH = cow.ageH, serverTime = m.state?.serverTime;
     if (ageH != null) {
@@ -486,6 +505,10 @@ class _Kv extends StatelessWidget {
     final adultAt = cow.adultAt;
     if (!adult) {
       if (adultAt != null) cells.add((s.s04GrowIn, s.countdown((adultAt - m.gameNow) / m.timeScale), null));
+    } else if (cow.milker && cow.sick) {
+      // 病牛不產奶（S04-18）：橘字「停止」（.sick-v）
+      colors[cells.length] = const Color(0xFFC2541B);
+      cells.add((s.gMilk, s.s04SickMilk, null));
     } else if (cow.milker) {
       cells.add((s.gMilk, rateText(cow.milkPerH), s.gPerHourMilk));
     } else if (cow.type == CowType.dual) {
@@ -498,7 +521,7 @@ class _Kv extends StatelessWidget {
       cells.add((s.s04Weight, fmt(cow.weightKg), s.gKg));
       cells.add((s.s04Value, s.s04About(v: fmt(cow.shipValue ?? 0)), s.gCoin));
     }
-    return KvGrid(key: const Key('kv'), cells: cells);
+    return KvGrid(key: const Key('kv'), cells: cells, valueColors: colors);
   }
 }
 
@@ -506,9 +529,16 @@ class _Kv extends StatelessWidget {
 /// 小牛一句說明；在田裡「叫回」；上架中「下架」；耕牛「派去田裡」（沒有空田停用、加一句說明）；沒配過種的公牛「上架」。
 /// 下面一排「選這頭去配種」「出貨」。斷線時全部停用（S04-12）。
 class _DetailActions extends StatelessWidget {
-  const _DetailActions({required this.cow, required this.onShip, required this.onList, required this.onDone});
+  const _DetailActions({
+    required this.cow,
+    required this.onTreat,
+    required this.onShip,
+    required this.onList,
+    required this.onDone,
+  });
 
   final Cow cow;
+  final VoidCallback onTreat;
   final VoidCallback onShip;
   final VoidCallback onList;
   final void Function(ActionResult<Object?>) onDone;
@@ -531,6 +561,33 @@ class _DetailActions extends StatelessWidget {
     if (!adult) {
       top.add(Text(s.s04CalfHint, key: const Key('calf-hint'), textAlign: TextAlign.center, style: KitText.hint()));
       space = 8;
+    } else if (cow.sick) {
+      // 病牛（S04-18）：第一排「治療（5,000 幣）」；金幣不夠就停用，下面寫還差多少（S04-20）。
+      // 治好以前不能下田、上架，那一排先不放（下田的、上架中的，治好了再叫回、下架）
+      final price = curePrice(m), coins = m.state?.coins ?? 0;
+      top.add(
+        AppButton(
+          s.treat(price: fmt(price)),
+          key: const Key('detail-treat'),
+          kind: ButtonKind.primary,
+          block: true,
+          icon: 'coin',
+          onPressed: act && coins >= price ? onTreat : null,
+        ),
+      );
+      if (coins < price) {
+        top.add(
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              s.notEnoughCoins(n: fmt(price - coins)),
+              key: const Key('treat-short'),
+              textAlign: TextAlign.center,
+              style: KitText.warn(),
+            ),
+          ),
+        );
+      }
     } else if (isStudOx(cow, now)) {
       // 公耕牛（D31，S04-14～16）：第一排兩顆半寬。在田裡第一顆換成「叫回來」，上架中第二顆換成「下架」；
       // 放不下（窄手機的英文、泰文）就一顆一排（BtnRow），內容區跟著讓位
@@ -861,7 +918,7 @@ class _ShipConfirmDialogState extends State<ShipConfirmDialog> {
     final hint = KitText.hint();
     // .ship-head：牛的小圖（76；矮手機 60，整張圖照比例縮，#172）、名字、約多少公斤牛肉、牛肉現價
     final pic = isShortScreen(context) ? 60.0 : 76.0;
-    final head = Container(
+    final Widget head = Container(
       key: const Key('ship-head'),
       padding: const EdgeInsets.fromLTRB(4, 4, 10, 4),
       decoration: BoxDecoration(
@@ -871,7 +928,15 @@ class _ShipConfirmDialogState extends State<ShipConfirmDialog> {
       ),
       child: Row(
         children: [
-          CowPicture(breed: cow.look, bull: cow.bull, variant: cow.number, width: pic, height: pic, pad: 3 * pic / 76),
+          CowPicture(
+            breed: cow.look,
+            bull: cow.bull,
+            variant: cow.number,
+            width: pic,
+            height: pic,
+            pad: 3 * pic / 76,
+            sick: cow.sick,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -954,8 +1019,21 @@ class _ShipConfirmDialogState extends State<ShipConfirmDialog> {
                 textAlign: TextAlign.right,
               ),
             ),
+          // 病牛（S07-06）：橘字「先治療再出貨，大約可以賣 x 幣」（伺服器的期望收入已經乘了一成，除回去）；
           // 伺服器說現在不能出貨（S07-03）：橘字原因；不然一句說明
-          if (blockers.isNotEmpty)
+          if (cow.sick)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: NoteLine(
+                key: const Key('ship-sick'),
+                icon: 'warn',
+                text: s.s07SickNote(
+                  v: fmt((p.expectedValue ?? cow.shipValue ?? 0) / (m.state?.economy?.sickBeefMult ?? 0.1)),
+                ),
+                kind: NoteKind.warn,
+              ),
+            )
+          else if (blockers.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 10),
               child: NoteLine(
@@ -981,7 +1059,23 @@ class _ShipConfirmDialogState extends State<ShipConfirmDialog> {
     return AppDialog(
       key: const Key('ship-confirm-dialog'),
       title: s.shipConfirmTitle,
-      body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [head, body]),
+      body: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 病牛：「生病了」貼在小圖那一格的右上角（.ship-head.sick .badge.sick：右 8、上 −12）
+          if (cow.sick)
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                head,
+                const Positioned(right: 8, top: -12, child: SickBadge()),
+              ],
+            )
+          else
+            head,
+          body,
+        ],
+      ),
       buttons: [
         AppButton(s.cancel, key: const Key('ship-cancel'), onPressed: () => Navigator.of(context).pop(false)),
         AppButton(

@@ -1393,6 +1393,9 @@ class GameModel extends ChangeNotifier {
     return r;
   }
 
+  /// 治療病牛（v0.3 第 5 節；協定 2.6 的 POST /v1/cure，`economy.cure_price` 幣，馬上好）。
+  Future<ActionResult<Map<String, dynamic>>> cure(Cow cow) => _act(() => api.cure(cow.id));
+
   /// 商店抽牛（v0.2）。
   Future<ActionResult<ShopBuyResult>> shopBuy(String grade) => _act(() => api.shopBuy(grade));
 
@@ -1479,8 +1482,13 @@ class GameModel extends ChangeNotifier {
   double fieldRiceNow(FieldInfo f) {
     final s = state;
     if (s == null) return f.rice;
+    // 病牛（v0.3 第 5 節）停止耕田：田裡的稻米不再長
+    if (fieldOxSick(f)) return f.rice;
     return f.riceAfter(gameNow - s.serverTime);
   }
+
+  /// 這塊田的耕牛生病了（S17-13）。
+  bool fieldOxSick(FieldInfo f) => f.cowId != null && (state?.cowById('${f.cowId}')?.sick ?? false);
 
   Future<void> loadHistory(Commodity c, String range) async {
     final pts = await _read(() => api.marketHistory(c, range));

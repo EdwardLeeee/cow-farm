@@ -81,12 +81,13 @@ class _PenListPageState extends State<PenListPage> {
   }
 }
 
-/// 牛舍清單那一行說明（設計稿 cowListRow 的 meta）：
+/// 牛舍清單那一行說明（設計稿 cowListRow 的 meta）：病牛「不產奶，也不能配種、上架」（S03-30）、
 /// 小牛「長大還要 …」、在田裡「在第 n 塊田・稻米 x 公斤／時」、上架中「借種上架中：x 幣」、
 /// 產奶的母牛「產奶 x 瓶／時・體重 x 公斤」、其他「體重 x 公斤・估值約 x 幣」。倒數一律是現實時間。
 String cowMeta(Strings s, GameModel m, Cow c) {
   final sep = s.gSep;
   final adultAt = c.adultAt;
+  if (c.sick) return s.s03SickNoMilk;
   if (c.stage == CowStage.calf && adultAt != null) {
     return s.growUp(v: s.countdown((adultAt - m.gameNow) / m.timeScale));
   }
