@@ -1,0 +1,107 @@
+/* 第 28 輪草稿的樣式：大便掃地機的選款式、壞掉了、修理。顏色和元件沿用 M2 設計稿（design/m2/src/css） */
+
+/* ---------- 說明圖的版面（不是畫面的一部分；跟第 13 輪一樣） ---------- */
+body { background: #FFF9EF; }
+.board { padding: 28px 36px 36px; background: #FFF9EF; }
+.b-label { display: inline-block; font-size: 22px; font-weight: 900; line-height: 34px; padding: 0 14px; background: var(--yellow); border: 3px solid var(--ink); border-radius: 12px; }
+.b-title { margin-top: 12px; font-size: 26px; font-weight: 900; line-height: 34px; }
+.b-sub { margin-top: 4px; font-size: 16px; font-weight: 700; line-height: 24px; color: var(--ink-2); }
+.b-row { display: grid; gap: 30px 40px; margin-top: 22px; align-items: start; }
+.b-cell { margin: 0; }
+.b-cell figcaption { min-height: 68px; margin-bottom: 10px; font-size: 14px; font-weight: 700; line-height: 20px; color: #C2541B; }
+.b-cell figcaption b { display: block; font-size: 18px; font-weight: 900; line-height: 26px; color: var(--ink); }
+.b-cell .phone { outline: 2px solid #E2D4C2; }
+.b-cell .phone.tall { height: auto; min-height: 844px; } /* 長頁：整頁畫出來（跟 M2 的長頁狀態一樣） */
+.b-notes { margin: 24px 0 0; padding-left: 22px; font-size: 15px; font-weight: 700; line-height: 24px; color: var(--ink-2); }
+.skip-note { padding: 4px 12px; border: 2px dashed #C2541B; border-radius: 14px; font-size: 14px; font-weight: 900; line-height: 20px; color: #C2541B; text-align: center; background: rgba(255, 255, 255, 0.6); }
+.gesture { position: absolute; z-index: 40; line-height: 0; pointer-events: none; }
+.ov-row { margin-top: 26px; }
+.ov-title { font-size: 20px; font-weight: 900; line-height: 28px; }
+.ov-cells { display: flex; flex-wrap: wrap; gap: 28px; margin-top: 10px; }
+.ov-cap { min-height: 28px; font-size: 15px; line-height: 22px; }
+.ov-cap b { font-weight: 900; }
+.ov-ph { overflow: hidden; outline: 2px solid #E2D4C2; }
+.ov-pair { display: flex; gap: 14px; }
+.ov-legend { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+.ov-legend .tier, .ov-legend .stars4 { transform: scale(1.2); transform-origin: left center; margin-right: 10px; }
+.ov-sp { display: flex; gap: 18px; padding: 10px 14px; background: linear-gradient(180deg, #E6F5FF 0, #F1FAE8 62%, #E3F2D3 100%); border: 2px solid #E2D4C2; border-radius: 18px; }
+.ov-sp span { display: flex; flex-direction: column; align-items: center; gap: 2px; line-height: 0; }
+.ov-sp b { font-size: 16px; line-height: 22px; }
+.gif-box { display: inline-block; background: #FFF7EC; }
+.gif-label { width: 390px; padding: 6px 10px; font-size: 14px; font-weight: 900; line-height: 20px; color: var(--ink); background: #FFD45E; border-bottom: 2px solid var(--ink); white-space: nowrap; overflow: hidden; }
+.gif-box .phone { border-radius: 0; }
+.gesture { position: absolute; z-index: 90; line-height: 0; pointer-events: none; }
+
+/* 右上角「打掃中」（用 M2 大便數膠囊 .dirty 的位置和外框） */
+.dirty.cleaning { background: #E4F7D8; gap: 6px; padding-left: 4px; }
+.cl-face { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: #FFFFFF; border: 2px solid var(--ink); overflow: hidden; line-height: 0; }
+.cl-face svg { flex: none; }
+.dirty.cleaning > span:not(.cl-face) { font-size: 14px; font-weight: 900; }
+.dirty.cleaning .cl-left { font-size: 12px; font-weight: 700; color: var(--ink-2); }
+
+/* 雇用面板 */
+.hire-hero { display: flex; align-items: center; gap: 12px; }
+.hh-pic { flex: none; display: grid; place-items: center; width: 124px; height: 124px; background: linear-gradient(180deg, #DDF0FF, #E8F6DA); border: 2px solid var(--line-soft); border-radius: 18px; line-height: 0; }
+.hh-pic.robot { height: 100px; }
+.hh-name { display: block; font-size: 18px; line-height: 25px; }
+.hire-hero .hint { margin: 4px 0 0; font-size: 13px; line-height: 19px; }
+.hire-rules { margin: 12px 0 0; padding-left: 20px; font-size: 13px; font-weight: 700; line-height: 20px; }
+.hire-rules.tbd b { color: #C2541B; }
+
+/* 牧場下方面板：照第 26 輪飼料列 B（原本，有底板）＋倉庫小鈕（第 26 輪的程式和樣式，等使用者選完有沒有底板再換） */
+.fbar { margin-top: 8px; }
+.fbar-b { position: relative; padding: 8px 0 6px 6px; background: rgba(255, 255, 255, 0.94); border: 2.5px solid var(--ink); border-radius: 18px; box-shadow: 0 3px 0 var(--ink); overflow: hidden; }
+.fb-track { display: flex; gap: 6px; width: max-content; }
+.fb-item { position: relative; display: flex; flex-direction: column; align-items: center; width: 68px; }
+.sack { position: relative; display: block; line-height: 0; }
+.sk-ic { position: absolute; left: 50%; top: 22px; transform: translateX(-50%); line-height: 0; }
+.sk-n { position: absolute; right: -4px; top: 2px; min-width: 20px; height: 20px; padding: 0 4px; border-radius: 10px; background: var(--ink); color: #FFFFFF; font-size: 12px; line-height: 20px; text-align: center; }
+.fb-name { display: flex; flex-direction: column; align-items: center; font-size: 11px; font-weight: 900; line-height: 13px; }
+.fb-name b { color: #3E8E2F; }
+.fb-item.none23 .sack, .fb-item.none23 .fb-name { opacity: 0.4; }
+.fb-item.lift { transform: translateY(-8px) rotate(-6deg); }
+.fb-more { position: absolute; right: 0; top: 0; bottom: 0; width: 34px; display: grid; place-items: center; background: linear-gradient(90deg, rgba(255, 255, 255, 0), #FFFFFF 60%); }
+.wh-pill { position: absolute; left: 0; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; gap: 4px; height: 30px; padding: 0 10px 0 6px; background: #FFFFFF; border: 2.5px solid var(--ink); border-radius: 15px; box-shadow: 0 2px 0 var(--ink); font-size: 13px; font-weight: 900; }
+.dock-head { position: relative; }
+.fbar-b:not(.bare26) { padding-top: 17px; }
+
+/* ---------- 第 28 輪：大便掃地機（新的 class 都加 r28- 開頭，避免跟 M2 撞名） ---------- */
+/* 右上角「掃地機壞了」（用 M2 大便數膠囊 .dirty 的位置和外框），帶大便數 */
+.dirty.r28-broken { background: #FFE6DF; gap: 6px; padding-left: 4px; }
+.dirty.r28-broken > span:not(.cl-face) { font-size: 14px; font-weight: 900; color: #C2412D; }
+.dirty.r28-broken > .r28-bp-n { display: inline-flex; align-items: center; gap: 2px; padding-left: 6px; margin-left: 2px; border-left: 2px solid #F3B9AC; color: var(--ink); }
+.r28-bp-n .num { font-size: 15px; }
+/* 選款式 */
+.r28-sheet .r28-sub { margin: -4px 0 10px; font-size: 13px; font-weight: 700; line-height: 19px; color: var(--ink-2); }
+.r28-models { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.r28-model { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 8px; background: #FFFFFF; border: 2.5px solid var(--line-soft); border-radius: 18px; text-align: center; font: inherit; color: inherit; }
+.r28-model.picked { background: #FFF6D6; border-color: #E7B53A; box-shadow: 0 0 0 3px #FFE7A0; }
+.r28-model.owned { background: #F3F9EE; }
+.r28-pic { display: grid; place-items: center; width: 100%; height: 78px; background: linear-gradient(180deg, #DDF0FF, #E8F6DA); border-radius: 12px; line-height: 0; }
+.r28-name { display: flex; align-items: center; gap: 4px; font-size: 15px; line-height: 21px; }
+.r28-tier { font-style: normal; padding: 0 6px; font-size: 11px; font-weight: 900; line-height: 17px; color: #FFFFFF; background: #8C8F99; border-radius: 8px; white-space: nowrap; }
+.r28-tier.hi { background: #4E88C7; }
+.r28-price { display: inline-flex; align-items: center; gap: 4px; min-height: 24px; font-size: 18px; line-height: 24px; }
+.r28-have { font-size: 13px; font-weight: 900; color: #3E8E2F; }
+.r28-spec { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; width: 100%; margin-top: 2px; padding-top: 6px; border-top: 1.5px dashed var(--line-soft); font-size: 12px; font-weight: 700; line-height: 18px; text-align: left; }
+.r28-spec > span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.r28-spec b { font-weight: 900; }
+.r28-often b { color: #C2412D; }
+.r28-chip { position: absolute; left: 8px; top: 8px; z-index: 2; font-style: normal; padding: 0 8px; font-size: 11px; font-weight: 900; line-height: 18px; color: #FFFFFF; background: #3E8E2F; border-radius: 9px; }
+.r28-check { position: absolute; right: -6px; top: -6px; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #E7B53A; border: 2px solid var(--ink); line-height: 0; }
+.r28-rules { margin: 10px 0 0; padding-left: 18px; font-size: 12px; font-weight: 700; line-height: 18px; color: var(--ink-2); }
+.r28-warn { display: flex; gap: 6px; align-items: flex-start; margin: 10px 0 0; padding: 8px 10px; background: #FFF0E3; border: 2px solid #F2B07A; border-radius: 12px; font-size: 13px; font-weight: 700; line-height: 19px; }
+.r28-warn b { color: #C2412D; }
+.r28-sheet .btn-row { margin-top: 12px; }
+/* 修理面板 */
+.r28-hero { display: flex; align-items: center; gap: 12px; }
+.r28-hpic { flex: none; display: grid; place-items: center; width: 124px; height: 112px; background: linear-gradient(180deg, #FFE9E2, #F5EFE6); border: 2px solid var(--line-soft); border-radius: 18px; line-height: 0; }
+.r28-hname { display: flex; align-items: center; gap: 6px; font-size: 18px; line-height: 25px; }
+.r28-hint { margin: 4px 0 0; font-size: 13px; font-weight: 700; line-height: 19px; color: var(--ink-2); }
+.r28-cost { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; padding: 8px 12px; background: #FFFFFF; border: 2px solid var(--line-soft); border-radius: 14px; font-size: 14px; font-weight: 900; }
+.r28-cv { display: inline-flex; align-items: center; gap: 4px; }
+.r28-cv .num { font-size: 20px; }
+.r28-link { display: inline-flex; align-items: center; gap: 2px; margin-top: 8px; padding: 0; background: none; border: 0; font: inherit; font-size: 13px; font-weight: 900; line-height: 19px; color: #2F6FB0; text-decoration: underline; }
+/* GIF：手指按下去的一圈、「過了一陣子」 */
+.r28-tap { position: absolute; z-index: 89; width: 36px; height: 36px; border-radius: 50%; border: 3px solid #FFFFFF; box-shadow: 0 0 0 2px rgba(75, 51, 38, 0.35); pointer-events: none; }
+.r28-later { position: absolute; left: 0; right: 0; top: 46%; z-index: 50; margin: 0 auto; width: max-content; padding: 6px 16px; background: rgba(46, 29, 20, 0.72); color: #FFFFFF; border-radius: 16px; font-size: 16px; font-weight: 900; line-height: 22px; }
