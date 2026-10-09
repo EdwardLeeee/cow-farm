@@ -130,7 +130,8 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
   void _takePoop(ScenePoop p) {
     final m = context.read<GameModel>();
     if (!m.online || m.poopOf(p.cow) <= 0) return;
-    m.poopLayout.take(p.spot);
+    // 場景的大便下一格畫面才更新：同一格裡被劃到兩次（或連點兩下）的，第二次不算
+    if (!m.poopLayout.take(p.spot)) return;
     m.takePoop(p.cow);
   }
 
