@@ -3,7 +3,7 @@
 // A-11 牛舍滿 40 頭一起走（場景左半、往右滑到底的右半，各一輪 4 秒；其他 32 個位置的走法，ceo 2026-10-03）、
 // A-01 收奶（按下「收奶」以後 1.4 秒：奶桶 36.4 瓶全部進倉庫，130 → 166 瓶）、
 // A-02 成交（賣 130 瓶牛奶、1,924 幣：12,480 → 14,404；賣出面板捲到最上面，跟設計稿一樣）、
-// A-05 升級（牧場頁，累積收入 7,500 跨過 Lv5 的門檻）。
+// A-05 升級（牧場頁，累積收入 7,500 跨過 Lv5 的門檻）、A-08 收成稻米（田地頁，倉庫 184 → 361 公斤）。
 // 390 寬、每點 2 像素（跟設計稿的動畫一樣只出 390），寫到 SHOTS_DIR/anim/<動畫 ID>/<第幾格>.png。
 // 只在本機拍，CI 不跑（沒給 SHOTS 就整個跳過）。在 app/ 底下：
 //   flutter test --dart-define=SHOTS=1 --dart-define=SHOTS_DIR=build/shots/<PR 編號> test/pages/anim_shots_test.dart
@@ -25,6 +25,7 @@ import 'page_case.dart';
 import 's03_cases.dart';
 import 's05_cases.dart' show milkLot;
 import 's06_cases.dart';
+import 's17_cases.dart';
 
 final _shots = const String.fromEnvironment('SHOTS').isNotEmpty;
 const _dir = String.fromEnvironment('SHOTS_DIR', defaultValue: 'build/shots/local');
@@ -172,6 +173,28 @@ void main() {
     for (var i = 0; i <= 26; i++) {
       if (i > 0) await tester.pump(_frame);
       await _save(tester, 'A-05', i);
+    }
+  });
+
+  testWidgets('A-08 收成稻米：按下「收成」以後 1.3 秒', (tester) async {
+    final api = FieldsApi()
+      ..after = fieldsState(
+        stock: 361,
+        fields: [
+          designField(0, cow: 2, rice: 0, cap: 88, rate: 11),
+          designField(1),
+          designField(2, cow: 9, rice: 0, cap: 114.4, rate: 14.3),
+        ],
+      );
+    final m = await ranchModel(api: api);
+    m.selectTab(AppTab.fields);
+    await _ranch(tester, model: m);
+    await tester.tap(find.byKey(const Key('harvest')));
+    await tester.pump();
+    await tester.pump();
+    for (var i = 0; i <= 26; i++) {
+      if (i > 0) await tester.pump(_frame);
+      await _save(tester, 'A-08', i);
     }
   });
 

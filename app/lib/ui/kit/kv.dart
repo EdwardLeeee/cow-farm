@@ -11,19 +11,23 @@ TextStyle _even(TextStyle s) => s.copyWith(leadingDistribution: TextLeadingDistr
 
 /// .kv：[columns] 欄、間距 8；同一排的格子一樣高（CSS grid）。大字 .kv .v 是 17px，.kv3 是 16px（[valueSize]）。
 class KvGrid extends StatelessWidget {
-  const KvGrid({super.key, required this.cells, this.columns = 2, this.valueSize = 17});
+  const KvGrid({super.key, required this.cells, this.columns = 2, this.valueSize = 17, this.cellKeys = const {}});
 
   final List<KvCell> cells;
   final int columns;
   final double valueSize;
 
+  /// 第幾格掛什麼 key（例：A-08 稻穗飛進「倉庫稻米」那一格）。
+  final Map<int, Key> cellKeys;
+
   @override
   Widget build(BuildContext context) {
     final value = _even(AppText.number(valueSize, lineHeight: 22));
     final unitStyle = _even(AppText.style(12, weight: FontWeight.w700, lineHeight: 22, letterSpacing: 0.2));
-    Widget cell(KvCell c) {
-      final (k, v, unit) = c;
+    Widget cell(int i) {
+      final (k, v, unit) = cells[i];
       return Container(
+        key: cellKeys[i],
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -70,7 +74,7 @@ class KvGrid extends StatelessWidget {
               children: [
                 for (var j = 0; j < columns; j++) ...[
                   if (j > 0) const SizedBox(width: 8),
-                  Expanded(child: i + j < cells.length ? cell(cells[i + j]) : const SizedBox.shrink()),
+                  Expanded(child: i + j < cells.length ? cell(i + j) : const SizedBox.shrink()),
                 ],
               ],
             ),
