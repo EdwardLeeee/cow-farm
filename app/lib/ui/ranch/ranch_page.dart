@@ -7,6 +7,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 
 import '../../api/breeds.dart';
@@ -16,6 +17,7 @@ import '../../l10n/l10n.dart';
 import '../../state/game_model.dart';
 import '../../state/settings.dart';
 import '../../theme/tokens.dart';
+import '../cow/stamps.dart';
 import '../cow/treat.dart';
 import '../kit/app_icon.dart';
 import '../kit/cow_bits.dart';
@@ -268,8 +270,12 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
     // 小牛長大揭曉（A-13 的最後一格、S03-25）：一頭一頭來，揭曉的時候大新聞、引導卡先不出
     final grown = m.grownCow;
     final bigNews = grown == null ? _bigNews(m, settings) : null;
-    // 新手引導卡（S11-03）：大新聞、空牧場的卡片開著時先不出（一次一張）
-    final coach = grown == null && bigNews == null && st.cows.isNotEmpty ? coachToShow(m, settings) : null;
+    // 快長大的提醒卡（S03-32）：再 1 小時內長大、還有沒吃的小牛，一頭一張（先長大的先），按過就不再跳
+    final alertCow = grown == null && bigNews == null ? _growAlertCow(m, settings, st) : null;
+    // 新手引導卡（S11-03）：大新聞、空牧場的卡片、提醒卡開著時先不出（一次一張）
+    final coach = grown == null && bigNews == null && alertCow == null && st.cows.isNotEmpty
+        ? coachToShow(m, settings)
+        : null;
     final collectButton = AppButton(
       s.collect,
       key: const Key('collect'),
@@ -312,7 +318,18 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
         onSwipePoop: _takePoop,
         onSwipeEnd: _sendPoop,
       ),
-      underlays: [if (bubbleCow != null) _BubbleAnchor(cows: cows, cow: bubbleCow, pan: _pan, game: _game)],
+      underlays: [
+        if (bubbleCow != null) _BubbleAnchor(cows: cows, cow: bubbleCow, pan: _pan, game: _game),
+        // 小牛頭上的想吃泡泡（S03-31）：還有沒吃的飼料才冒（集滿了、一般優良的不冒；病牛頭上已經有溫度計，先不冒）
+        _WantAnchors(
+          cows: [
+            for (final sc in cows)
+              if (sc.cow.stage == CowStage.calf && !sc.cow.sick && feedTodo(sc.cow).isNotEmpty) sc,
+          ],
+          pan: _pan,
+          game: _game,
+        ),
+      ],
       body: [
         if (news != null)
           Positioned(
@@ -377,6 +394,22 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
       overlays: [
         // S11-03：跑馬燈下面 12、左右各 12，× 疊在卡片的右上角。跟大新聞一樣在最上層：蓋在場景、「我的牛」上，
         // 很矮的手機（320 × 568 英文、泰文）卡片比較高，會暫時蓋到面板的上緣（按卡上的按鈕或 × 就收起來）
+        if (alertCow case final c?)
+          Positioned(
+            left: 12,
+            right: 12,
+            top: top + 56,
+            child: GrowAlertCard(
+              cow: c,
+              time: s.countdown((c.adultAt! - m.gameNow) / m.timeScale),
+              // 去餵食：餵食還沒做（ceo），先打開這頭小牛的詳細，看得到集點卡
+              onGo: () {
+                settings.markGrowAlertSeen(c.id, st.playerId);
+                m.openCow(c.key);
+              },
+              onClose: () => settings.markGrowAlertSeen(c.id, st.playerId),
+            ),
+          ),
         if (coach != null) ...[
           Positioned(
             left: 12,
@@ -504,6 +537,19 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
     );
   }
 
+  /// 快長大的提醒卡（S03-32）要提醒哪一頭：還有沒吃的飼料、再 1 小時（現實時間）內長大、這支手機還沒提醒過；先長大的先。
+  static Cow? _growAlertCow(GameModel m, SettingsController settings, GameState st) {
+    Cow? best;
+    for (final c in st.cows) {
+      final at = c.adultAt;
+      if (c.stage != CowStage.calf || at == null || feedTodo(c).isEmpty) continue;
+      final left = (at - m.gameNow) / m.timeScale;
+      if (left <= 0 || left > 3600 || settings.growAlertSeen(c.id, st.playerId)) continue;
+      if (best == null || at < best.adultAt!) best = c;
+    }
+    return best;
+  }
+
   /// 大新聞（收購價大漲或大跌 20% 以上，企劃書 4.7、D24、m3-backlog）：還沒看過的那一則，跳出一次（S03-15）。
   /// 觸發條件只看幅度，不看伺服器的 big（big 是 ±30–40% 的罕見新聞；ceo 2026-10-02）。
   /// 全部商品一起漲跌的也跳（S03-16、17，D29）。
@@ -616,6 +662,77 @@ class _BubbleTail extends CustomPainter {
 
   @override
   bool shouldRepaint(_BubbleTail oldDelegate) => false;
+}
+
+/// 小牛頭上的想吃泡泡（S03-31，.want）：頭頂上方 10、置中（translate(−50%, −100%)、margin-top −10）。
+/// 小牛會走動（A-11）：開著動畫的時候每一格跟著小牛走到的地方。
+class _WantAnchors extends StatefulWidget {
+  const _WantAnchors({required this.cows, required this.pan, required this.game});
+
+  final List<SceneCow> cows;
+  final double pan;
+  final RanchGame game;
+
+  @override
+  State<_WantAnchors> createState() => _WantAnchorsState();
+}
+
+class _WantAnchorsState extends State<_WantAnchors> with SingleTickerProviderStateMixin {
+  late final Ticker _ticker = createTicker((_) => setState(() {}));
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _sync();
+  }
+
+  @override
+  void didUpdateWidget(_WantAnchors oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _sync();
+  }
+
+  /// 有泡泡、牛會走動才每一格重畫。
+  void _sync() {
+    final on = widget.cows.isNotEmpty && AppMotion.of(context);
+    if (on && !_ticker.isActive) {
+      _ticker.start();
+    } else if (!on && _ticker.isActive) {
+      _ticker.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.cows.isEmpty) return const SizedBox.shrink();
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: LayoutBuilder(
+          builder: (context, c) {
+            final fit = SceneFit(c.biggest, widget.pan);
+            return Stack(
+              children: [
+                for (final sc in widget.cows)
+                  if (CowPlacement.of(sc, fit, dx: widget.game.dxOf(sc.cow.id)) case final p?)
+                    Positioned(
+                      left: p.head.dx - 150,
+                      width: 300,
+                      bottom: c.maxHeight - (p.head.dy - 10),
+                      child: Center(child: WantBubble(cow: sc.cow)),
+                    ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
 }
 
 /// .ticker：最新一則新聞，太長就跑馬燈（減少動態時不跑）。

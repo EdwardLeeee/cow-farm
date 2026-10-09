@@ -8,6 +8,7 @@ import 'package:cowfarm/api/models.dart';
 import 'package:cowfarm/l10n/format.dart';
 import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
+import 'package:cowfarm/ui/cow/stamps.dart';
 import 'package:cowfarm/ui/kit/cow_bits.dart';
 import 'package:cowfarm/ui/kit/kit.dart';
 import 'package:flutter/widgets.dart';
@@ -64,7 +65,7 @@ Map<String, dynamic> detailCow(int id, {int? field, bool listed = false, bool br
     probs: [0.401, 0.439, 0.16],
   ),
   15 => _detail(
-    designCow(15, 'holstein', stage: 'calf'),
+    halfCalf15(),
     ageH: 2 + 18 / 60, // v0.3：所有小牛 3 小時長大（#151），出生 2 小時 18 分、還要 42 分
     origin: 'breed',
   ),
@@ -334,6 +335,11 @@ final s04Cases = <PageCase>[
       expect(_btn(tester, 'detail-ship').label, _zh.shipNotAdult);
       expect(_btn(tester, 'detail-ship').onPressed, isNull);
       expect(find.byKey(const Key('detail-grade-probs')), findsNothing);
+      // 飼料集點卡（#174）：燕麥吃過、豆粕還沒吃
+      expect(find.text('1 / 2'), findsOneWidget);
+      expect(find.byKey(const Key('stamp-ink-oats')), findsOneWidget);
+      expect(find.byKey(const Key('stamp-ink-soy')), findsNothing);
+      expect(find.text(_zh.s04StampRule), findsOneWidget);
     },
   ),
   PageCase(
@@ -451,6 +457,22 @@ final s04Cases = <PageCase>[
       expect(find.text(_zh.s04MixNote(feeds: _zh.feedList(['alfalfa']), mult: '0.6')), findsOneWidget);
       expect(_btn(tester, 'detail-breed').onPressed, isNotNull, reason: '可以配種、出貨，跟一般的牛一樣');
       expect(_btn(tester, 'detail-ship').onPressed, isNotNull);
+    },
+  ),
+  PageCase(
+    'S04-22',
+    '小牛的集點卡：集滿了、什麼都可以吃',
+    // 設計稿：小肉牛 #22 玉米、豆粕都吃過；小乳牛（公）#23 一般品種，什麼都可以吃
+    (tester, lang) => pumpSheet(tester, lang, [
+      StampCard(cow: Cow.fromJson(stampCalves()[2])),
+      StampCard(cow: Cow.fromJson(stampCalves()[3])),
+    ]),
+    crop: find.byKey(const Key('sheet')),
+    check: (tester) {
+      expect(find.text('2 / 2'), findsOneWidget);
+      expect(find.byKey(const Key('stamp-ink-corn')), findsOneWidget);
+      expect(find.byKey(const Key('stamp-ink-soy')), findsOneWidget);
+      expect(find.text(_zh.s04EatAny), findsOneWidget);
     },
   ),
   PageCase(

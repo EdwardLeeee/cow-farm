@@ -29,6 +29,7 @@ import '../kit/page_head.dart';
 import '../ship/truck_scene.dart';
 import '../widgets/action_button.dart';
 import '../widgets/ticker_builder.dart';
+import 'stamps.dart';
 import 'treat.dart';
 
 /// CSS 的 line-height 把多出來（或不夠）的行距上下平分；字比行高大的地方要照這樣排，字才不會偏上。
@@ -281,6 +282,8 @@ class _DetailList extends StatelessWidget {
               ),
             ),
           ],
+          // 小牛：飼料集點卡（S04-08、S04-22；v0.3 第 1 節）
+          if (cow.stage == CowStage.calf) ...[const SizedBox(height: 12), StampCard(cow: cow)],
         ],
       ),
     );

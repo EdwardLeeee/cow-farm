@@ -82,7 +82,12 @@ List<Map<String, dynamic>> designCows() => [
   designCow(3, 'holstein', milk: 14, kg: 212, value: 2514),
   designCow(7, 'jersey', milk: 14, kg: 196, value: 3102),
   designCow(12, 'strawberry', milk: 14, kg: 174, value: 5520),
-  designCow(15, 'holstein', stage: 'calf'),
+  // 小乳牛 #15：要吃燕麥、豆粕，都吃過了（集滿了，牧場不冒泡泡；設計稿 fixtures.js 的 COWS）
+  {
+    ...designCow(15, 'holstein', stage: 'calf'),
+    'need': ['oats', 'soy'],
+    'ate': ['oats', 'soy'],
+  },
   designCow(2, 'yellow', bull: true, kg: 431, value: 5108, field: 0, rice: 11),
   designCow(9, 'highland', kg: 377, value: 5832, field: 2, rice: 14.3),
   designCow(5, 'angus', bull: true, kg: 790, value: 9420, listed: 7, fee: 870),
@@ -114,6 +119,32 @@ List<Map<String, dynamic>> poopCows(int n) {
     for (var i = 0; i < herd.length; i++) {...herd[i], 'poop': n ~/ herd.length + (i < n % herd.length ? 1 : 0)},
   ];
 }
+
+/// 設計稿 S03-31～33、S04-08 的小乳牛 #15（fixtures.js 的 CALF_DEMO）：燕麥吃過、豆粕還沒吃，42 分後長大。
+Map<String, dynamic> halfCalf15() => {
+  ...designCow(15, 'holstein', stage: 'calf'),
+  'need': ['oats', 'soy'],
+  'ate': ['oats'],
+};
+
+/// 設計稿的 10 頭牛，小乳牛 #15 換成吃了一半的（S03-31、32）。
+List<Map<String, dynamic>> stampHerd() => [for (final c in designCows()) c['id'] == 15 ? halfCalf15() : c];
+
+/// 設計稿 S03-33 的四頭小牛（CALF_DEMO）：#15 吃了一半、#21 小耕牛還沒吃（2 小時 10 分後長大）、
+/// #22 小肉牛集滿了（1 小時 30 分）、#23 小乳牛（公）什麼都可以吃（2 小時 40 分）。
+List<Map<String, dynamic>> stampCalves() => [
+  halfCalf15(),
+  {
+    ...designCow(21, 'yellow', bull: true, stage: 'calf', growMin: 130),
+    'need': ['oats'],
+  },
+  {
+    ...designCow(22, 'angus', stage: 'calf', growMin: 90),
+    'need': ['corn', 'soy'],
+    'ate': ['corn', 'soy'],
+  },
+  designCow(23, 'holstein', bull: true, stage: 'calf', growMin: 160),
+];
 
 /// 設計稿的病牛（fixtures.js 的 sickOf；v0.3 第 5 節）：生病了、不產奶、不能配種，出貨估值只剩一成
 /// （協定 2.3：伺服器的 ship_value 已經乘進去，四捨五入到整數）。
@@ -1027,6 +1058,75 @@ final s03Cases = <PageCase>[
       expect(find.descendant(of: rows, matching: find.byType(SickBadge)), findsOneWidget);
       expect(find.text(_zh.s03SickNoMilk), findsOneWidget);
       expect(find.text('${_zh.milkRate(v: '14')}${_zh.gSep}${_zh.weight(v: '196')}'), findsOneWidget);
+    },
+  ),
+  PageCase(
+    'S03-31',
+    '小牛頭上的想吃泡泡：還沒吃的飼料＋幾個了',
+    // 提醒卡（S03-32）另外一個狀態：這裡當作已經提醒過了
+    (tester, lang) async => pumpAppIn(
+      tester,
+      await ranchModel(state: ranchState(cows: stampHerd())),
+      lang,
+      prefs: {...swipeHintSeen, SettingsController.growAlertKey: '15@31'},
+    ),
+    check: (tester) {
+      final want = find.byKey(const Key('want-15'));
+      expect(want, findsOneWidget);
+      expect(find.descendant(of: want, matching: find.text('1 / 2')), findsOneWidget);
+      expect(find.byKey(const Key('grow-alert-15')), findsNothing);
+    },
+  ),
+  PageCase(
+    'S03-32',
+    '快長大了、還有沒吃的：提醒卡（一頭一張，可以關）',
+    (tester, lang) async => pumpAppIn(
+      tester,
+      await ranchModel(state: ranchState(cows: stampHerd())),
+      lang,
+      prefs: swipeHintSeen,
+    ),
+    check: (tester) {
+      expect(find.byKey(const Key('grow-alert-15')), findsOneWidget);
+      expect(
+        find.text(_zh.s03GrowSoon(cow: _zh.calfName(CowType.dairy, 15), time: _zh.countdown(42 * 60))),
+        findsOneWidget,
+      );
+      final alert = find.byKey(const Key('grow-alert-15'));
+      expect(
+        find.descendant(of: alert, matching: find.textContaining(_zh.s03NotEaten, findRichText: true)),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: alert, matching: find.textContaining(_zh.byKey('feed.soy'), findRichText: true)),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('grow-alert-go-15')), findsOneWidget);
+      expect(find.byKey(const Key('want-15')), findsOneWidget);
+    },
+  ),
+  PageCase(
+    'S03-33',
+    '牛舍清單：小牛的集點（吃了一半、還沒吃、集滿了、什麼都可以吃）',
+    // 提醒卡（S03-32）會蓋住「我的牛」：這裡當作已經提醒過了
+    (tester, lang) async {
+      await pumpAppIn(
+        tester,
+        await ranchModel(state: ranchState(cows: stampCalves())),
+        lang,
+        prefs: {...swipeHintSeen, SettingsController.growAlertKey: '15@31'},
+      );
+      await openPenList(tester);
+    },
+    crop: find.byKey(const Key('pen-rows')),
+    check: (tester) {
+      final rows = find.byKey(const Key('pen-rows'));
+      expect(find.descendant(of: rows, matching: find.byKey(const Key('stamp-line'))), findsNWidgets(3));
+      expect(find.descendant(of: rows, matching: find.byKey(const Key('stamp-any'))), findsOneWidget);
+      expect(find.text('1 / 2'), findsOneWidget);
+      expect(find.text('0 / 1'), findsOneWidget);
+      expect(find.text('2 / 2'), findsOneWidget);
+      expect(find.text(_zh.s03StampsFull), findsOneWidget);
     },
   ),
   PageCase(

@@ -8,6 +8,7 @@ import '../../api/models.dart';
 import '../../l10n/format.dart';
 import '../../l10n/l10n.dart';
 import '../../state/game_model.dart';
+import '../cow/stamps.dart';
 import '../kit/cow_bits.dart';
 import '../kit/kit.dart';
 import '../kit/page_head.dart';
@@ -72,7 +73,14 @@ class _PenListPageState extends State<PenListPage> {
           children: [
             for (final (i, c) in cows.indexed) ...[
               if (i > 0) const SizedBox(height: 10),
-              CowRow(key: Key('cow-${c.id}'), cow: c, meta: cowMeta(s, m, c), onTap: () => m.openCow(c.key)),
+              CowRow(
+                key: Key('cow-${c.id}'),
+                cow: c,
+                meta: cowMeta(s, m, c),
+                onTap: () => m.openCow(c.key),
+                // 小牛：飼料集點（S03-33；長大以後就不用了）
+                extra: c.stage == CowStage.calf ? StampLine(cow: c) : null,
+              ),
             ],
           ],
         ),
