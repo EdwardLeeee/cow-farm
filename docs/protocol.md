@@ -128,7 +128,7 @@ PR 3–10 都做完了（2026-10-02）。每個 PR 合併時更新這張表的�
 | 409 | `floor_owned` | 買地板：已經有這種地板了 | `floor` | `unknownError` | C1 |
 | 409 | `floor_rented` | 租地板：已經租了另一種，到期以後才能租這種 | `floor`（租著的那種）、`until` | `unknownError` | C1 |
 | 409 | `floor_locked` | 換地板：沒有這種地板（沒買、沒租，或租約到期了） | `floor` | `unknownError` | C1 |
-| 409 | `max_days` | 雇小幫手、租地板：預付超過上限（現在起算最多 7 天，含還沒到期的） | `max_days` | `unknownError` | C1 |
+| 409 | `max_days` | 雇打掃牛、租地板：預付超過上限（現在起算最多 7 天，含還沒到期的） | `max_days` | `unknownError` | C1 |
 | 409 | `no_free_field` | 派牛時沒指定田號，而且沒有空田 | | `err.no_free_field` | |
 | 409 | `field_occupied` | 這塊田已經有牛 | `field`、`cow_id` | `err.field_occupied` | |
 | 409 | `not_an_ox` | 只有耕牛能下田 | `cow_id` | `unknownError` | |
@@ -343,6 +343,7 @@ app 怎麼顯示：
   "field": {"level": 0, "cost": 1800, "count": 1, "max": 12}},
  "shop": {"grades": [{"grade": "A", "price": 3200}, {"grade": "B", "price": 1700}, {"grade": "C", "price": 900}]},
  "codex": [{"breed": "holstein", "found_at": 1791129600.0}, {"breed": "yellow", "found_at": 1791129600.0}],
+ "pairings": [{"sire": "holstein", "dam": "angus", "child": "yellow", "count": 2, "found_at": 1791141660.0}],
  "fields": [{"index": 0, "cow_id": 2, "rice": 33.0, "capacity": 88.0, "per_hour": 11.0}],
  "rice": {"in_fields": 33.0, "stock": 0.0, "per_hour": 11.0},
  "stud": {"listings": [], "income": 0},
@@ -380,13 +381,14 @@ app 怎麼顯示：
 | `level_progress` | object | `earned` 累積收入、`level_at` 這一級的門檻、`next_at` 下一級的門檻（頂列經驗條） |
 | `shop.grades[]` | array | 商店各等級 `{"grade": "A"｜"B"｜"C", "price"}`。錢不夠就停用按鈕。精確機率看 `GET /v1/shop` |
 | `codex[]` | array | PR 4：已發現的品種 `{"breed", "found_at"}`，`found_at` 是第一次發現的遊戲時間（S09-03「第一次發現：{date}」）。v0.3 C1 起**長大那一刻才算發現**（抽到、配種、借種生下的小牛都一樣），`found_at` 是那頭牛長大的時間（`adult_at`），不是玩家看到的時間；之後出貨也不會消失。共 24 種，沒出現在陣列裡的顯示剪影；另外雜種牛第一次長大時多一筆 `"hybrid"`（不算 24 種，1.6 節）。「目前有 n 頭」由 app 數 `cows[]` |
+| `pairings[]` | array | v0.3 C1b：圖鑑配種表裡配出過的組合（2.7 節）`{"sire", "dam", "child", "count", "found_at"}`，先配出來的在前 |
 | `fields[]`、`rice` | | 田地（見下） |
 | `stud` | object | `listings` 自己上架的借種（形狀同 `GET /v1/stud` 的 `listings[]`）、`income` 借種收入累計（幣） |
 | `economy` | object | 經濟倍數，直接讀伺服器的參數（`params.py`），app 不要寫死：`tier_mult`（一般、優良、稀有、傳說：牛奶、牛肉的賣價倍率，也是耕牛的稻米產量倍率；S05「優良牛奶 ×1.3」、S09 品種卡）、`beef_grade_mult`（牛肉評級 A／B／C 的賣價倍率）、`ox_rice_per_h`（壯年一般耕牛每遊戲小時的稻米公斤數；某頭牛 = 這個 × `tier_mult` × 年齡曲線，現在的值看 `cows[].rice_per_h`）、`dairy_milk_per_h`（壯年母乳牛每遊戲小時產幾瓶；× 年齡曲線，稀有度不影響產量、只影響賣價；S09-03「產奶 14 瓶／時」）、`calf_grow_h`（小牛長大要幾遊戲小時，依稀有度 0–3；S08-06、S09-03。v0.3 起四個數字一樣，看倒數猜不到稀有度）、`peak_weight_kg`（母牛的最佳體重，依用途，key 同 `cows[].type`：`dairy`、`dual`、`beef`；S09-03）、`bull_weight_mult`（公牛的體重 = 母牛 × 這個）、`field_cap_h`（一塊田最多存這頭耕牛**壯年**幾小時的產量：`fields[].capacity` = `ox_rice_per_h` × `tier_mult` × 這個，不乘年齡曲線。過了壯年、產量變少的耕牛要更久才長滿，例：產量剩 4 成時要 8 ÷ 0.4 = 20 小時；S17「最多存 8 小時的量」）。牛奶賣價 = 市價 × `tier_mult` × 新鮮度；牛肉 = 市價 × `beef_grade_mult` × `tier_mult` × 存放折價。**這些只是給畫面顯示的說明數字**：帳一律由伺服器算，app 不能拿它們自己算成交價或收入（手機不算帳；要價格用 `POST /v1/sell/quote`、`GET /v1/ship/preview`） |
 | `feeds` | object | v0.3 C1：倉庫裡每種飼料幾份（key 是飼料代號，1.6 節）。不會壞、不佔倉庫容量，每種最多 `economy.feed_cap` 份 |
 | `poop` | object | v0.3 C1：`total` 全場還沒清的大便（坨，= `cows[].poop` 加起來）、`dirt` 髒的程度（= total ÷ 牛的頭數；超過 `economy.sick_dirt_free` 才會生病）、`safe_until` 新手保護（開牧場 24 遊戲小時內不會生病）到什麼時候，過了是 null |
 | `floor` | object | v0.3 C1：`current` 正在用的地板、`owned` 買斷的（含開局的 `dirt`）、`rented` 租著的那種（沒租或到期是 null）、`rent_until` 租到什麼時候。租約到期那一刻正在用的話自動換回 `dirt` |
-| `helper` | object | v0.3 C1：打掃小幫手 `until` 雇到什麼時候；沒雇或到期是 null。雇用期間每 `economy.helper_clean_min` 遊戲分鐘清掉全部大便 |
+| `helper` | object | v0.3 C1：打掃牛（使用者 2026-10-09 把「打掃小幫手」改名，規則一樣；欄位名照舊叫 `helper`）`until` 雇到什麼時候；沒雇或到期是 null。雇用期間每 `economy.helper_clean_min` 遊戲分鐘清掉全部大便 |
 | `account` | object | PR 9：`links[]` 綁定的帳號 `{"provider": "apple"｜"google", "linked_at_real"}`。空陣列 = 還沒備份（頂列齒輪的小點 G-10、S13-01「還沒備份」） |
 | `maintenance` | object／null | PR 8：維護預告或維護中（第 6 節）；沒有是 null |
 | `profile` | object | S21 牧場資料（D34）：`avatar` 頭像的品種代號（沒選過是 null，app 畫荷斯坦）、`renames` 改過幾次名（0 = 下次改名免費，之後每次 `economy.rename_price` 幣）。改名、換頭像見 2.5 節 |
@@ -503,7 +505,7 @@ v2 拿掉的：`type_name`、`tier_name`、`ready_at`、`breed_ready`（看 `can
 | `feed_bonus_max_kg` | 飼料加成最多幾公斤 |
 | `floors[]` | 每種地板 `{"id", "speed", "late_speed", "sick_mult", "price", "rent_per_day"}`：`speed` 長到最壯之前年紀走多快、`late_speed` 過了最壯以後、`sick_mult` 生病速度的倍數、`price` 買斷的價錢（不能買是 null）、`rent_per_day` 租一天的價錢（不能租是 null） |
 | `floor_rent_max_days`、`helper_max_days` | 最多一次預付幾天 |
-| `helper_per_day`、`helper_clean_min` | 小幫手一天的價錢、每幾遊戲分鐘清一次 |
+| `helper_per_day`、`helper_clean_min` | 打掃牛一天的價錢、每幾遊戲分鐘清一次 |
 | `cure_price` | 治療一頭的價錢 |
 | `sick_beef_mult` | 病牛出貨，牛肉只剩這個比例（0.1） |
 | `poop_every_h`、`poop_max_per_cow` | 每頭牛（小牛也算）每幾遊戲小時拉一坨、最多累積幾坨 |
@@ -575,28 +577,29 @@ v2 拿掉的：`type_name`、`tier_name`、`ready_at`、`breed_ready`（看 `can
 - 兩個都照 1.3 節：同一個 `request_id` 重送回同一個結果，只改一次、只扣一次錢。
 - 排行榜、借種的主人和對方等牧場物件（1.6 節）都會帶新的名字和 `avatar`。
 
-### 2.6 照顧：餵食、清大便、治療、小幫手、地板（v0.3 C1）
+### 2.6 照顧：餵食、清大便、治療、打掃牛、地板（v0.3 C1）
 
 企劃 `docs/design/v0.3-care.md`。數字都在 `state.economy`（2.3 節）。全部要帶 `request_id`（1.3 節），回應都附 `coins`、`state`。
 
 | 端點 | 請求 | 回應 | 錯誤 |
 |---|---|---|---|
 | `POST /v1/feed` 餵一頭 | `{"cow_id": 3, "feed": "oats", "request_id": "<uuid>"}` | `cow_id`、`feed`、`cow`（同 `cows[]`）、`feeds`（同 `state.feeds`） | `cow_not_found`、`out_of_feed`、`cow_full`、`cow_listed`、`feed_no_effect`、`bad_request`（不是飼料代號） |
-| `POST /v1/feed/all` 全部餵一樣的 | `{"feed": "corn", "request_id": "<uuid>"}` | `feed`、`fed`（餵到的牛的編號，照餵的順序）、`feeds` | `out_of_feed`、`nothing_to_feed`、`bad_request` |
+| `POST /v1/feed/all` 全部餵一樣的（**app 第一版不用**） | `{"feed": "corn", "request_id": "<uuid>"}` | `feed`、`fed`（餵到的牛的編號，照餵的順序）、`feeds` | `out_of_feed`、`nothing_to_feed`、`bad_request` |
 | `POST /v1/feed/buy` 買飼料 | `{"feed": "soy", "qty": 10, "request_id": "<uuid>"}` | `feed`、`qty`、`cost`、`feeds` | `not_enough_coins`、`feed_cap`、`bad_request`（`qty` 不是 ≥ 1 的整數） |
 | `POST /v1/clean` 清大便 | `{"piles": [{"cow_id": 3, "n": 2}], "request_id": "<uuid>"}`；不給 `piles` = 全部清 | `cleaned`（清了幾坨）、`poop`（同 `state.poop`） | `cow_not_found`、`bad_request` |
 | `POST /v1/cure` 治療 | `{"cow_id": 3, "request_id": "<uuid>"}` | `cow_id`、`cost`、`cow` | `cow_not_found`、`cow_not_sick`、`not_enough_coins` |
-| `POST /v1/helper` 雇打掃小幫手 | `{"days": 3, "request_id": "<uuid>"}` | `days`、`cost`、`helper`（同 `state.helper`）、`poop` | `max_days`、`not_enough_coins`、`bad_request` |
+| `POST /v1/helper` 雇打掃牛 | `{"days": 3, "request_id": "<uuid>"}` | `days`、`cost`、`helper`（同 `state.helper`）、`poop` | `max_days`、`not_enough_coins`、`bad_request` |
 | `POST /v1/floor/buy` 買地板 | `{"floor": "cushion", "request_id": "<uuid>"}` | `floor`、`cost`、`floors`（同 `state.floor`） | `floor_owned`、`not_enough_coins`、`bad_request`（不是地板代號，或這種只能租） |
 | `POST /v1/floor/rent` 租地板 | `{"floor": "meadow", "days": 2, "request_id": "<uuid>"}` | `floor`、`days`、`cost`、`until`、`floors` | `floor_rented`、`max_days`、`not_enough_coins`、`bad_request`（這種不能租） |
 | `POST /v1/floor/use` 換地板 | `{"floor": "meadow", "request_id": "<uuid>"}` | `floor`、`floors` | `floor_locked`、`bad_request` |
 
 - **餵食**：一份飼料餵一頭牛一次，長固定公斤數（`economy.feeds[].kg`），加成最多 `economy.feed_bonus_max_kg`。吃完冷卻 `feed_cooldown_h`（小牛 `calf_feed_cooldown_h`）。小牛時期吃的算進 `ate`（指定的飼料各吃過一次就算數）；過了最壯不能餵（`feed_no_effect`，`reason: "past_peak"`），上架借種中的公牛也不能餵（`cow_listed`）。病牛可以餵。
-- **全部餵一樣的**（企劃 2.2）：現在能吃這種飼料的牛各餵一份；份數不夠先餵小牛、再照編號。一頭都餵不到回 `nothing_to_feed`，什麼都不扣。
+- **全部餵一樣的**（企劃 2.2）：現在能吃這種飼料的牛各餵一份；份數不夠先餵小牛、再照編號。一頭都餵不到回 `nothing_to_feed`，什麼都不扣。**app 第一版不做這個按鈕**（使用者 2026-10-09：「先不要，我覺得讓用戶一頭一頭喂比較好玩」，D35 補充 8）；端點留著，電腦假玩家用得到。
+- **丟飼料**（app 第一版的餵法，D35 補充 8）：玩家把飼料丟在地上，最近、而且能吃的那頭牛走過來吃。app 照落點挑出那頭牛（看 `cows[].feed_block` 是 null 的），再送 `POST /v1/feed` 和它的 `cow_id`；伺服器照一般的餵食算帳。挑到的牛剛好不能吃（例如兩次請求之間吃飽了）會回 409，app 照錯誤碼顯示。
 - **買飼料**：固定價（`economy.feeds[].price` × `qty`）；每種最多 `feed_cap` 份，超過回 `feed_cap`，什麼都不買。
 - **清大便**：免費。`piles` 是 app 劃過去清掉的每頭牛幾坨（同一頭出現幾次就加起來；比那頭牛現有的多就清到 0）；不給就全部清。
 - **治療**：一頭 `cure_price` 幣，馬上好。
-- **小幫手**：一天 `helper_per_day` 幣，接在還沒到期的後面，從現在起算最多 `helper_max_days` 天。雇用那一刻先清一次，之後每 `helper_clean_min` 遊戲分鐘清掉全部大便。
+- **打掃牛**（原本叫打掃小幫手，2026-10-09 改名；端點、欄位名照舊用 `helper`）：一天 `helper_per_day` 幣，接在還沒到期的後面，從現在起算最多 `helper_max_days` 天。雇用那一刻先清一次，之後每 `helper_clean_min` 遊戲分鐘清掉全部大便。
 - **地板**：牛舍一次鋪一種，全部的牛一起受影響（`economy.floors[]` 的倍數）。
   - 買斷的（`cushion`）隨時免費換回來用。
   - 長快的（`hay_bed`、`meadow`）按天租：接在還沒到期的後面，最多預付 `floor_rent_max_days` 天；同時只能租一種。
@@ -604,6 +607,38 @@ v2 拿掉的：`type_name`、`tier_name`、`ready_at`、`breed_ready`（看 `can
   - 換地板以後，每頭牛的 `adult_at`、`born_at` 會照新的速度重新推算（年紀不會跳），app 要用新的 `state`。上架中的公牛借種費也照新的速度漲。
 - **大便和生病**（企劃第 5 節）：每頭牛（小牛也算）每 `poop_every_h` 遊戲小時拉一坨，最多 `poop_max_per_cow` 坨，沒上線也一樣。生病的機率見 2.3 節 `economy`；試玩伺服器（倍率 144）幾分鐘沒清就可能生病。
 - **病牛**：見 `cows[].sick`。配種、借種（母牛）、上架、下田回 `cow_sick`；借別人生病的公牛回 `bull_sick`（借種預覽的 `blockers` 也有這兩個）。上架中的公牛生病，上架照樣留著，主人治好以前別人不能借（上架清單的 `sick`）。
+
+### 2.7 圖鑑的配種表（v0.3 C1b）
+
+企劃 v0.3 第 13.2 節、設計稿 S09-03、S09-08。品種詳細頁下面一張表：一列是「爸爸的品種 ♂ × 媽媽的品種 ♀」，玩家用這一對品種配出這個品種，那一列就亮起來。
+
+**`GET /v1/codex/pairings`**（要 token；固定資料，同一版伺服器不會變，app 可以快取）：每個品種的代表配法。
+
+```json
+{"server_time": 1791141900.0, "real_time": 1790771411.2, "time_scale": 144.0,
+ "pairings": {"holstein": [{"sire": "holstein", "dam": "holstein"}, "…共 4 組"],
+              "fluffyHolstein": [{"sire": "fluffyHolstein", "dam": "fluffyHolstein"}, {"sire": "fluffyHolstein", "dam": "cottonCream"},
+                                 {"sire": "cottonCream", "dam": "fluffyHolstein"}, {"sire": "fluffyHolstein", "dam": "velvetBlack"}],
+              "…": "共 24 種，key 照 1.6 節的品種表"}}
+```
+
+- 每個品種 4 組，照「這一對品種配出這個品種的機率」從高排到低（伺服器的 `server/pairings.py` 照遺傳算，爸媽身上看不到的隱性基因照商店 B 級的比例估）。機率不送，只用來挑和排；不是保證。
+- **爸爸、媽媽分開算**：「荷斯坦♂×安格斯♀」和「安格斯♂×荷斯坦♀」是兩列（設計稿 S09-03 的假資料就是這樣）。遺傳上兩個方向的機率一樣，所以同一對的兩個方向常常排在一起。
+- 雜種牛（`hybrid`）沒有配種表。
+
+**`state.pairings[]`**：配出過的組合，每一筆 `{"sire", "dam", "child", "count", "found_at"}`：
+
+| 欄位 | 說明 |
+|---|---|
+| `sire`、`dam` | 爸爸、媽媽的品種（畫面上的品種：雜種牛是 `"hybrid"`） |
+| `child` | 生出的品種（24 種之一） |
+| `count` | 這一列配出過幾次（設計稿「配出過 {n} 次」） |
+| `found_at` | 第一次配出來的時間（那頭小牛長大的時間） |
+
+- 小牛**長大揭曉那一刻**才算（2.3 節），長成雜種牛的不算。
+- 只算自己配種（3.8 節）和借種（4.4 節，爸爸是借來的公牛的品種）生的小牛；商店抽的、之後小遊戲抓的沒有爸媽，不算。
+- app 怎麼畫一個品種的表：`GET /v1/codex/pairings` 的 4 組照順序列出，`state.pairings` 裡 `child` 是這個品種、`sire` 和 `dam` 一樣的那一筆就亮起來（`count` 次）；`state.pairings` 裡這個品種、但不在那 4 組裡的，加在最後面（設計稿「表上沒有的配法」，直接是亮的）。
+- 跟 `codex` 一樣，`GET /v1/state` 會把到現在為止長大的小牛算進去（2.3 節「長大揭曉」）。
 
 ## 3. 市場、出貨、商店、配種、升級、田地
 
@@ -1249,3 +1284,5 @@ app 啟動時先打這個（還沒有 token 也能打），再決定要不要顯
   - 新的 2.6 節：餵食、全部餵、買飼料、清大便、治療、小幫手、買／租／換地板；1.6 節加飼料、地板代號；1.4 節加 13 個錯誤碼（app 文案先用 `unknownError`）。病牛不能配種、借種、上架、下田（`cow_sick`、`bull_sick`）。
   - 成就 `pureBreed`、`healer`、`clean` 接上；`legend` 改成傳說小牛長大、沒變雜種那一刻。
   - 3.8 節更正：小牛長大時間 v0.3 起每頭一樣（`economy.calf_grow_h`）。
+- 2026-10-09：v0.3 C1b 圖鑑的配種表（2.7 節）：`GET /v1/codex/pairings`（每個品種 4 組代表配法 `{sire, dam}`）、`state.pairings[]`（配出過的組合 `{sire, dam, child, count, found_at}`）。爸爸媽媽分開算、長大揭曉才算、雜種牛不算、只算配種和借種。只加不改，存檔格式不變。
+- 2026-10-09：使用者把「打掃小幫手」改名「打掃牛」（規則一樣），協定的文字跟著改，端點和欄位名照舊用 `helper`。2.6 節寫明「全部餵一樣的」app 第一版不用（端點留給電腦假玩家），第一版的餵法是丟飼料（app 照落點挑牛，送 `POST /v1/feed`）。

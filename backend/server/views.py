@@ -357,6 +357,16 @@ def codex_view(p: Player) -> List[dict]:
     return [{"breed": b, "found_at": t} for b, t in rows]
 
 
+def pairings_view(p: Player) -> List[dict]:
+    """配種表配出過的組合（C1b，協定 2.7 節）：{sire, dam, child, count, found_at}，先配出來的在前。"""
+    rows = []
+    for k, (t, n) in p.pairs.items():
+        sire, dam, child = k.split(",")
+        rows.append({"sire": sire, "dam": dam, "child": child, "count": int(n), "found_at": t})
+    rows.sort(key=lambda r: (r["found_at"], r["child"], r["sire"], r["dam"]))
+    return rows
+
+
 def time_fields(clock, now: float) -> dict:
     return {"server_time": now, "real_time": time.time(), "time_scale": clock.scale}
 
@@ -382,6 +392,7 @@ def state_view(game: Game, p: Player, now: float, clock) -> dict:
         "upgrades": upgrades_view(p, now),
         "shop": shop_view(game, p),
         "codex": codex_view(p),
+        "pairings": pairings_view(p),  # v0.3 C1b：配種表已解鎖的組合（代表配法在 GET /v1/codex/pairings）
         # v0.2
         "fields": fields_view(p, now),
         "rice": rice_view(p, now),

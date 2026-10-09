@@ -146,7 +146,7 @@ def test_reveal_codex_achievements_and_pairs():
     assert good.vt == 3 and bad.vt == HYBRID
     assert p.codex["hybrid"] == now - HOUR  # 第一次發現的時間不會被後來的蓋掉
     assert p.ach["legend"] == good.adult_at == p.ach["pureBreed"]
-    assert p.pairs == {"strawberry,strawberry,strawberry": good.adult_at}  # 雜種牛不算
+    assert p.pairs == {"strawberry,strawberry,strawberry": [good.adult_at, 1]}  # 雜種牛不算
     assert p.parents == {}
     v = cow_view(game, p, bad, t)
     assert v["breed"] == "hybrid" and v["tier"] == bad.tier and v["hybrid"] and v["missed"] == ["soy"]

@@ -27,6 +27,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from cowecon.farm import HYBRID
 
+from . import pairings as PAIRINGS
 from . import views as V
 from .config import Config
 from .game import GameError, Player, ship_value
@@ -414,6 +415,11 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
     @app.get("/v1/state")
     async def state(p: Player = Depends(current)):
         return state_of(p, server.clock.now())
+
+    @app.get("/v1/codex/pairings")
+    async def codex_pairings(p: Player = Depends(current)):
+        """圖鑑的配種表：每個品種的代表配法（協定 2.7 節；固定資料，已解鎖的看 state.pairings）。"""
+        return {**base(server.clock.now()), "pairings": PAIRINGS.view()}
 
     # ---- 動作 ----
     @app.post("/v1/collect")
