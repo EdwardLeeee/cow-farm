@@ -1,6 +1,6 @@
 // 紀錄分頁：上面的分段鈕切「圖鑑」（S09，設計稿 s09.js；screens.css 的 .dex-*）和「排行榜」（S12，rank_page.dart）。
 // 圖鑑：已發現 n / 24、三種用途各 8 格（發現的是牛的正面小圖，沒發現的是深色剪影和「？？？」）；點一格看品種詳細
-// （S09-03 已發現：大圖、介紹、數值、怎麼配出來、第一次發現的日期；S09-04 還沒發現：剪影和提示）。
+// （S09-03 已發現：大圖、介紹、數值、怎麼配出來、配種表（pair_table.dart）、第一次發現的日期；S09-04 還沒發現：剪影和提示）。
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
@@ -20,6 +20,7 @@ import '../kit/meter.dart';
 import '../kit/page_head.dart';
 import '../kit/press.dart';
 import '../kit/seg.dart';
+import 'pair_table.dart';
 import 'rank_page.dart';
 
 /// 圖鑑的三種用途，照設計稿的順序（乳牛、耕牛、肉牛）。
@@ -607,10 +608,21 @@ class CodexDetailPage extends StatelessWidget {
                 children: [
                   CardTitle(s.s09HowTitle, color: AppColors.pink, icon: 'heart', iconSize: 16),
                   const SizedBox(height: 6),
-                  Text(breedHint(s, info), style: KitText.hint().copyWith(color: AppColors.ink)),
+                  // 相鄰的全形標點擠掉半格（「帶著）。」），跟設計稿（Chrome）一樣
+                  Text.rich(
+                    TextSpan(children: cjkTrimSpans(breedHint(s, info))),
+                    key: const Key('codex-how'),
+                    style: KitText.hint().copyWith(color: AppColors.ink),
+                  ),
                 ],
               ),
             ),
+            // 配種表（v0.3 第 13.2 節）：代表配法拿到了才放（打開紀錄分頁就先拿）；舊的伺服器沒有代表配法、也沒配出過就不放
+            if (m.codexPairings case final table?)
+              if (pairRows(breed, table[breed] ?? const [], st.pairings) case final rows when rows.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                PairTable(breed: breed, rows: rows),
+              ],
             const SizedBox(height: 12),
             Text(
               s.s09FirstFound(
@@ -669,11 +681,8 @@ List<KvCell> codexStats(Strings s, GameModel m, CowType type, int tier) {
   }
   final peak = e?.peakWeightKg[type];
   cells.add((s.s09BestKg, peak == null ? '–' : fmt(peak), s.gKg));
-  cells.add((
-    s.s09Mult,
-    mult == null ? '–' : '×${mult.toStringAsFixed(1)}',
-    type == CowType.dual ? s.s09MultBeef : null,
-  ));
+  // 設計稿是「×1.3 <small></small>」：不是耕牛的小字是空的，這一行照樣跟有單位的一樣高
+  cells.add((s.s09Mult, mult == null ? '–' : '×${mult.toStringAsFixed(1)}', type == CowType.dual ? s.s09MultBeef : ''));
   return cells;
 }
 

@@ -73,6 +73,25 @@ Map<String, dynamic> _cow(
   };
 }
 
+/// GET /v1/codex/pairings 的假資料：娟珊照設計稿 S09-03（s09.js 的 JERSEY_PAIRS 裡不是「表上沒有的」那 4 組）；
+/// 其他品種只放同品種配同品種一組（真的伺服器每種 4 組，照遺傳算）。
+Map<String, dynamic> samplePairingsJson() => {
+  'server_time': t0,
+  'pairings': {
+    for (final b in kCodexOrder)
+      b: b == 'jersey'
+          ? [
+              {'sire': 'jersey', 'dam': 'jersey'},
+              {'sire': 'holstein', 'dam': 'jersey'},
+              {'sire': 'jersey', 'dam': 'holstein'},
+              {'sire': 'cottonCream', 'dam': 'chocolate'},
+            ]
+          : [
+              {'sire': b, 'dam': b},
+            ],
+  },
+};
+
 /// 剛建好的牧場（伺服器 cowecon/params.py 的 OnboardingParams）：100 幣、奶桶裡 20 瓶、開局 1 小時產奶 ×5，
 /// 送一頭成年母乳牛（#1）和一頭還要 20 分鐘長大的公耕牛小牛（#2）。倍率 1（正式版），倒數就是現實時間。
 Map<String, dynamic> newRanchStateJson() => {
@@ -291,6 +310,12 @@ class FakeGameApi implements GameApi {
   /// 設了就讓 /v1/market 等到 complete 才回（測試「補抓完才提示」）。
   Completer<void>? marketGate;
 
+  /// GET /v1/codex/pairings 的回應（[samplePairingsJson]）。
+  Map<String, dynamic> pairingsJson = samplePairingsJson();
+
+  /// 設了就讓 GET /v1/codex/pairings 丟這個錯（例如舊的伺服器沒有這個端點、連不上）。
+  Exception? pairingsError;
+
   @override
   Future<Session> createSession(String ranchName) async {
     calls.add('session:$ranchName');
@@ -366,6 +391,13 @@ class FakeGameApi implements GameApi {
       'free_slots': 1,
       'grades': [_shopGrade('A', 3200, 0.5), _shopGrade('B', 1700, 0.3), _shopGrade('C', 900, 0.1)],
     });
+  }
+
+  @override
+  Future<Map<String, List<BreedPair>>> codexPairings() async {
+    calls.add('codexPairings');
+    if (pairingsError case final e?) throw e;
+    return codexPairingsFromJson(pairingsJson);
   }
 
   @override

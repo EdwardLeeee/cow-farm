@@ -96,6 +96,10 @@ abstract class GameApi {
   /// 錯誤 `cow_not_found`、`cow_not_sick`、`not_enough_coins`。
   Future<Map<String, dynamic>> cure(Object cowId);
 
+  // ---- v0.3 C1b 圖鑑的配種表（協定 2.7） ----
+  /// 每個品種的代表配法（`GET /v1/codex/pairings`，固定資料，同一版伺服器不會變）：品種 → 4 組 `{sire, dam}`。
+  Future<Map<String, List<BreedPair>>> codexPairings();
+
   Future<StudMarket> stud();
   Future<BreedPreview> studPreview(Object listingId, Object dam);
 

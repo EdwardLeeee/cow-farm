@@ -701,6 +701,7 @@ class GameState {
     this.profile = const RanchProfile(),
     this.achievements,
     this.poop = const PoopInfo(),
+    this.pairings = const [],
   });
 
   final double serverTime; // 遊戲時間 Unix 秒
@@ -740,6 +741,9 @@ class GameState {
   /// v0.3 C1：全場還沒清的大便（協定 2.3 `state.poop`）。舊的伺服器沒有：0 坨。
   final PoopInfo poop;
 
+  /// v0.3 C1b：圖鑑的配種表配出過的組合（協定 2.7 `state.pairings`，先配出來的在前）。舊的伺服器沒有：空的。
+  final List<PairingRecord> pairings;
+
   /// 綁定、解除以後換掉 [accountLinks]（協定 5.2、5.4 的回應只有 account），其他照舊，等下一次 state 校正。
   GameState withAccountLinks(List<AccountLink> links) => GameState(
     serverTime: serverTime,
@@ -766,6 +770,7 @@ class GameState {
     profile: profile,
     achievements: achievements,
     poop: poop,
+    pairings: pairings,
   );
 
   double? gradePrice(String grade) {
@@ -820,6 +825,7 @@ class GameState {
       profile: RanchProfile.fromJson(j['profile']),
       achievements: Achievement.listFrom(j['achievements']),
       poop: PoopInfo.fromJson(_m(j['poop'])),
+      pairings: [for (final e in _l(j['pairings'])) ?PairingRecord.fromJson(e)],
     );
   }
 }
@@ -836,6 +842,43 @@ class PoopInfo {
   factory PoopInfo.fromJson(Map<String, dynamic> j) =>
       PoopInfo(total: _i(j['total']), dirt: _d(j['dirt']), safeUntil: _dn(j['safe_until']));
 }
+
+// ---------------------------------------------------------------------------
+// v0.3 C1b 圖鑑的配種表（協定 2.7 節）
+// ---------------------------------------------------------------------------
+/// 配種表的一列：爸爸的品種 ♂ × 媽媽的品種 ♀。爸媽是雜種牛時是 `"hybrid"`。
+typedef BreedPair = ({String sire, String dam});
+
+/// `state.pairings[]` 的一筆：用 [sire] ♂ × [dam] ♀ 配出 [child]（長大揭曉那一刻才算），配出過 [count] 次，
+/// 第一次是 [foundAt]（遊戲時間）。
+class PairingRecord {
+  const PairingRecord({required this.sire, required this.dam, required this.child, this.count = 1, this.foundAt = 0});
+
+  final String sire;
+  final String dam;
+  final String child;
+  final int count;
+  final double foundAt;
+
+  /// 少了品種的不要（回 null）。
+  static PairingRecord? fromJson(Object? v) {
+    final j = _m(v);
+    final sire = j['sire'], dam = j['dam'], child = j['child'];
+    if (sire is! String || dam is! String || child is! String) return null;
+    return PairingRecord(sire: sire, dam: dam, child: child, count: _i(j['count'], 1), foundAt: _d(j['found_at']));
+  }
+}
+
+/// `GET /v1/codex/pairings` 的 `pairings`：品種 → 代表配法（每種 4 組，照配出這個品種的機率從高排到低）。
+/// 雜種牛沒有配種表；少了品種的那一組不要。
+Map<String, List<BreedPair>> codexPairingsFromJson(Map<String, dynamic> j) => {
+  for (final e in _m(j['pairings']).entries)
+    e.key: [
+      for (final p in _l(e.value))
+        if (_m(p)['sire'] is String && _m(p)['dam'] is String)
+          (sire: _m(p)['sire'] as String, dam: _m(p)['dam'] as String),
+    ],
+};
 
 // ---------------------------------------------------------------------------
 // S21 牧場資料（D34）：協定 2.3 節的 `profile`、`achievements`（cow-back #153 定案，跟 cow-app 的提案相同）。
