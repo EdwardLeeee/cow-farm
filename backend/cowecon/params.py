@@ -427,10 +427,20 @@ class CareParams:
     cure_price: float = 5000.0  # 治療一頭，馬上好（使用者選「固定很貴」）
     sick_beef_mult: float = 0.1  # 病牛出貨，牛肉價值只剩一成
 
-    # --- 打掃小幫手（5.1 節）---
+    # --- 打掃牛（5.1 節；使用者 2026-10-09 把「打掃小幫手」改名，規則一樣。程式裡照舊叫 helper）---
     helper_price_per_day: float = 2000.0  # ceo 2026-10-08 從 800 漲（目標：小幫手、地板、治療等花費佔收入 5–15%）
     helper_max_days: int = 7  # 最多一次預付幾天（遊戲時間）
     helper_clean_s: float = 30 * MINUTE  # 雇用期間每 30 分鐘清掉全部大便（雇用那一刻也清一次）
+
+    # --- 大便掃地機（使用者 2026-10-09 選兩款，cow-back 試算的 R3）：一次買斷，開始動以後每 robot_clean_s 清掉全部大便
+    # （比打掃牛慢）。會隨機壞掉：每次開始動（買來、修好）抽一個壞掉的時間，平均 robot_mtbf_d 天；壞了就停，付修理費才再動。
+    # 牛多又常上線的人買掃地機划算，常常不在的人（壞了沒人修）雇打掃牛划算。一次只有一台，買另一款就換掉舊的。---
+    robot_ids: Tuple[str, ...] = ("basic", "sturdy")
+    robot_names: Tuple[str, ...] = ("基本款", "耐用款")  # 乳牛紋圓盤、透明圓頂
+    robot_price: Tuple[float, ...] = (3000.0, 12000.0)
+    robot_mtbf_d: Tuple[float, ...] = (1.0, 3.0)  # 平均幾天（遊戲時間）壞一次
+    robot_repair: Tuple[float, ...] = (750.0, 3000.0)  # 修理費（買價的 1/4）
+    robot_clean_s: float = 60 * MINUTE
 
     # --- 牧場資料（v0.3 第 8 節、D34）：改名第一次免費，之後每次這個價錢（S21 時先放伺服器常數，v0.3 搬進參數）---
     rename_price: float = 1000.0

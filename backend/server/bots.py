@@ -16,12 +16,13 @@
 - W 大戶（只給情境測試）：囤貨前照 D 經營；囤貨時換成大牧場，囤 48 小時後一次倒出／分批／一直囤。
 
 v0.3 照顧（除了 Z，每種玩法都會）：每次上線先清大便、處理病牛（值得就治療，不值得就出貨）；新手保護過後，
-預期省下的治療費（牛的頭數 × SICK_P_DAY × 治療費）不少於一天的小幫手錢才雇（預付到 HELPER_AHEAD_D 天後）；照自己的玩法餵飼料（PROFILES 的 feed：B 豆粕、D 牧草、其他玉米），
+預期省下的治療費（牛的頭數 × SICK_P_DAY × 治療費）不少於一天的小幫手錢才雇（預付到 HELPER_AHEAD_D 天後）；
+掃地機照划算與否買（ROBOT_PAYBACK_D 天內省回買價）和修（robot_care），掃地機在動時不雇小幫手；照自己的玩法餵飼料（PROFILES 的 feed：B 豆粕、D 牧草、其他玉米），
 稀有小牛先吃指定的飼料，還沒吃齊就 45 分鐘後回來再餵（care_return）；牛夠多就租最划算的長快地板（FLOOR_GAIN），
 懶得照顧的買軟墊地（少生病）。
 
 每次上線的順序：清大便、病牛 → 賣（或存）→ 出貨已配過種的到期牛 → 配種（自己的公牛優先，沒有就借種）→ 出貨其餘到期牛
-→ 耕牛下田 →（L）上架公牛 → 花錢：小幫手、商店補空格、奶桶、田地（F）／倉庫冷藏（T）、地板、擴建牛舍 → 餵飼料。
+→ 耕牛下田 →（L）上架公牛 → 花錢：掃地機、小幫手、商店補空格、奶桶、田地（F）／倉庫冷藏（T）、地板、擴建牛舍 → 餵飼料。
 教學（每人第一次上線的 30 分鐘）：每分鐘賣奶、第 15 分鐘擴建、小公牛長大就配種、配完派去田裡。
 
 ctx（呼叫端提供）要有：started_news(now)、schedule(t, pid, kind, dur)、npc_rng（None = 服務層預設）。
@@ -85,6 +86,8 @@ TUTORIAL_S = 30 * MINUTE
 SICK_P_DAY = 0.083  # 不雇小幫手（每次上線照樣清）時每頭牛每天生病幾次（研究模擬量的，見 sim/bots.py）
 HELPER_AHEAD_D = 2.0  # 小幫手預付到幾天後（不到就再加一天）
 LAZY_CLEAN_H = 24.0  # Z：隔多久才清一次大便
+ROBOT_SICK_PER_BREAK = 0.015  # 掃地機壞掉到修好之前每頭牛平均生病幾次（研究模擬量的，見 sim/bots.py）
+ROBOT_PAYBACK_D = 14.0  # 買掃地機：每天省下的錢要在幾天內把買價省回來
 CURE_PROD_H = 24.0  # 估治療值不值得：治好後多算幾小時的產量
 # 長快地板每頭牛每天多賺多少淨收入（乾草床, 青草地），電腦玩家照這個挑地板（研究模擬量的，見 sim/bots.py）
 FLOOR_GAIN: Dict[str, Tuple[float, float]] = {
@@ -553,6 +556,44 @@ def care_start(b: Bot, now: float) -> None:
         ship_list(b, ship, now)
 
 
+def robot_daily_cost(cp, m: int, n_cows: int) -> float:
+    """第 m 款掃地機每天的預期花費：（修理費 + 壞掉期間病牛的治療費）÷ 平均幾天壞一次。"""
+    return (cp.robot_repair[m] + n_cows * ROBOT_SICK_PER_BREAK * cp.cure_price) / cp.robot_mtbf_d[m]
+
+
+def robot_rng(b: Bot, now: float) -> random.Random:
+    """掃地機壞掉的時間用的亂數：由這位玩家（編號、taste）和現在的時間導出，跟玩家自己的亂數分開。
+    掃地機的運氣就不會打亂玩家其他的隨機決定（比較有沒有掃地機、不同參數時，其他的事照同一條路走），也不必另外存檔。"""
+    return random.Random(f"robot:{b.pid}:{b.taste!r}:{now!r}")
+
+
+def robot_care(b: Bot, now: float) -> None:
+    """掃地機（說明見研究模擬的 sim/bots.py）：照划算與否買（或換另一款）、壞了照划算與否修。"""
+    f = b.farm
+    cp = f.p.care
+    if b.prof["care"] != "full" or now < f.created_at + cp.newbie_safe_s:
+        return
+    n = len(f.cows)
+    alt = min(n * SICK_P_DAY * cp.cure_price, cp.helper_price_per_day)
+    reserve = f.fp.shop_grade_price[-1]
+    cur = robot_daily_cost(cp, f.robot, n) if f.robot >= 0 else alt
+    best, best_v = -1, 0.0
+    for m in range(len(cp.robot_price)):
+        if m == f.robot:
+            continue
+        v = (cur - robot_daily_cost(cp, m, n)) * ROBOT_PAYBACK_D - cp.robot_price[m]
+        if v > best_v:
+            best, best_v = m, v
+    if best >= 0 and f.coins >= cp.robot_price[best] + reserve:
+        _try(b.game.buy_robot, b.pid, best, now, rng=robot_rng(b, now))
+        return
+    if f.robot >= 0 and not f.robot_working(now):
+        m = f.robot
+        save = (alt - n * ROBOT_SICK_PER_BREAK * cp.cure_price / cp.robot_mtbf_d[m]) * cp.robot_mtbf_d[m]
+        if save >= cp.robot_repair[m] and f.coins >= cp.robot_repair[m] + reserve:
+            _try(b.game.repair_robot, b.pid, now, rng=robot_rng(b, now))
+
+
 def hire_helper(b: Bot, now: float) -> None:
     """划算才雇（ceo 2026-10-08）：新手保護期間不會生病，不雇；預期省下的治療費（牛的頭數 × SICK_P_DAY × 治療費）
     少於一天的小幫手錢也不雇。雇的話預付到 HELPER_AHEAD_D 天後，留一頭 C 級小牛的錢。"""
@@ -561,6 +602,8 @@ def hire_helper(b: Bot, now: float) -> None:
         return
     cp = f.p.care
     if now < f.created_at + cp.newbie_safe_s or len(f.cows) * SICK_P_DAY * cp.cure_price < cp.helper_price_per_day:
+        return
+    if f.robot_working(now):  # 掃地機在動：不雇
         return
     reserve = f.fp.shop_grade_price[-1]
     while f.helper_until < now + HELPER_AHEAD_D * DAY and f.coins >= cp.helper_price_per_day + reserve:
@@ -676,6 +719,7 @@ def manage(b: Bot, ctx, now: float) -> None:
     if prof["lend"]:
         lending(b, now)
     # 6. 花錢
+    robot_care(b, now)
     hire_helper(b, now)
     fill_slots(b, now)
     maintain_bucket(b, now)

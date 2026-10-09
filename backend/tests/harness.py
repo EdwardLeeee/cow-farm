@@ -122,6 +122,7 @@ AMOUNT_KINDS = (
     "cure",
     "helper",
     "floor",
+    "robot",
 )
 QTY_KINDS = (
     "milk",
@@ -149,7 +150,7 @@ QTY_KINDS = (
     "rare_grown",
 )
 REVENUE_KINDS = ("milk", "beef", "rice", "stud_in")  # 收入 = 賣出收入 + 借種收入
-CARE_KINDS = ("floor", "helper", "feed_buy", "cure")  # v0.3 照顧花費（照研究模擬的 sim/world.py）
+CARE_KINDS = ("floor", "helper", "feed_buy", "cure", "robot")  # v0.3 照顧花費（照研究模擬的 sim/world.py）
 
 
 class Ledger:

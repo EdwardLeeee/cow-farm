@@ -16,86 +16,86 @@
   }
  },
  "seed": 1,
- "params_fingerprint": "0cffd78df6eb0e57",
+ "params_fingerprint": "12d3cfd49a2207ac",
  "tick_s": 60.0,
  "wall": {
-  "seconds": 1.6454310417175293,
-  "actions": 1892,
-  "total_seconds": 1.9754459857940674
+  "seconds": 1.8265388011932373,
+  "actions": 1902,
+  "total_seconds": 2.1714367866516113
  },
  "players": 11,
  "price": {
   "milk": {
    "n": 33120,
-   "inside_soft_band": 0.9672403381642513,
-   "inside_0.8_1.25": 0.907397342995169,
-   "p1": 0.2881439149883566,
-   "p5": 0.698077174206143,
-   "p25": 0.9058495733916575,
-   "p50": 0.9804338507930632,
-   "p75": 1.0649712646903868,
-   "p95": 1.1839876726279686,
-   "p99": 1.2526063123326288,
-   "min": 0.07215688373306146,
-   "max": 1.3586543623958445,
-   "mean": 0.9689130242971079,
-   "log_sd": 0.2392453714003535,
-   "max_drawdown": 0.9468909196259302,
-   "daily_range_median": 0.42811700199667424,
-   "worst_1h_drop": 0.9039402923184701
+   "inside_soft_band": 0.9671799516908213,
+   "inside_0.8_1.25": 0.9073671497584541,
+   "p1": 0.2881650454644411,
+   "p5": 0.6978666349536591,
+   "p25": 0.9058569031480416,
+   "p50": 0.9805190483296209,
+   "p75": 1.0649932719483652,
+   "p95": 1.1839795716030368,
+   "p99": 1.2526345943335335,
+   "min": 0.0721815479585356,
+   "max": 1.358122270352119,
+   "mean": 0.9689303801616213,
+   "log_sd": 0.23921392016474305,
+   "max_drawdown": 0.9468519517467149,
+   "daily_range_median": 0.42814850876797594,
+   "worst_1h_drop": 0.9039330145365895
   },
   "beef": {
    "n": 33120,
-   "inside_soft_band": 0.9605072463768116,
-   "inside_0.8_1.25": 0.8794082125603865,
-   "p1": 0.31082198482903955,
-   "p5": 0.778852800624936,
-   "p25": 0.9361640981400285,
-   "p50": 1.0044951408094716,
-   "p75": 1.0909056566784723,
-   "p95": 1.30182373462432,
-   "p99": 1.7646338609406889,
-   "min": 0.09243896148998511,
-   "max": 2.0406474887531196,
-   "mean": 1.0157977639542006,
-   "log_sd": 0.24533105022265236,
-   "max_drawdown": 0.9547011612738331,
-   "daily_range_median": 0.3731836654884091,
-   "worst_1h_drop": 0.9025344524369903
+   "inside_soft_band": 0.9605374396135266,
+   "inside_0.8_1.25": 0.8796195652173913,
+   "p1": 0.31077940565704487,
+   "p5": 0.778851608137636,
+   "p25": 0.9360606847447699,
+   "p50": 1.0046697550691146,
+   "p75": 1.0909576070140523,
+   "p95": 1.3014492634412747,
+   "p99": 1.7639000624685215,
+   "min": 0.09245597375620691,
+   "max": 2.040457342781684,
+   "mean": 1.0157955193641393,
+   "log_sd": 0.24529631989952552,
+   "max_drawdown": 0.9546886024923389,
+   "daily_range_median": 0.37300558539056183,
+   "worst_1h_drop": 0.9025391187476152
   },
   "rice": {
    "n": 33120,
-   "inside_soft_band": 0.9593900966183575,
-   "inside_0.8_1.25": 0.8006340579710145,
-   "p1": 0.36095090604852836,
-   "p5": 0.7682780378262445,
-   "p25": 0.942193334483377,
-   "p50": 1.0372484773056865,
-   "p75": 1.1444204466137045,
-   "p95": 1.4375687411708957,
+   "inside_soft_band": 0.9594202898550724,
+   "inside_0.8_1.25": 0.8005434782608696,
+   "p1": 0.3609699586333419,
+   "p5": 0.7684103294985819,
+   "p25": 0.9422521205824415,
+   "p50": 1.0371809035368478,
+   "p75": 1.144443733891358,
+   "p95": 1.4376134478085958,
    "p99": 1.8658398722963916,
-   "min": 0.11281841285239977,
-   "max": 2.1843106268843693,
-   "mean": 1.0562294902363891,
-   "log_sd": 0.246955907702759,
-   "max_drawdown": 0.9455043241784369,
-   "daily_range_median": 0.4127952253849321,
-   "worst_1h_drop": 0.9009595230441005
+   "min": 0.11282188971949662,
+   "max": 2.183772445588804,
+   "mean": 1.0562048934073995,
+   "log_sd": 0.24694175334384924,
+   "max_drawdown": 0.9454957899682519,
+   "daily_range_median": 0.4126005774517387,
+   "worst_1h_drop": 0.9009577172557675
   }
  },
  "online": {
-  "mean": 0.3099541971459378,
-  "max": 4.448310999076057
+  "mean": 0.3105580618802373,
+  "max": 5.0
  },
  "excess_mean": {
-  "milk": -0.8688734619713256,
-  "beef": -0.958805846322752,
-  "rice": -0.8779390580757525
+  "milk": -0.8676183057558999,
+  "beef": -0.9591352130314195,
+  "rice": -0.8710685093326891
  },
  "pressure_mean": {
-  "milk": 0.0003708163591289859,
-  "beef": 0.00038493043553157767,
-  "rice": 0.0003275850249320306
+  "milk": 0.0003943126372460103,
+  "beef": 0.0003902412184195698,
+  "rice": 0.00030640382906923694
  },
  "strategies": {
   "B": {
@@ -106,19 +106,19 @@
       0,
       7
      ],
-     "revenue_mean": 87932.5,
-     "revenue_median": 87932.5,
-     "revenue_p25": 83485.75,
-     "revenue_p75": 92379.25,
-     "milk_mean": 43338.0,
-     "beef_mean": 37244.5,
-     "rice_mean": 7350.0,
+     "revenue_mean": 75057.5,
+     "revenue_median": 75057.5,
+     "revenue_p25": 67790.25,
+     "revenue_p75": 82324.75,
+     "milk_mean": 39749.5,
+     "beef_mean": 28265.0,
+     "rice_mean": 7043.0,
      "stud_in_mean": 0.0,
-     "net_mean": 64197.5,
-     "care_spend_mean": 18470.0,
-     "care_net_mean": 69462.5,
-     "opex_mean": 23735.0,
-     "capex_mean": 39933.5,
+     "net_mean": 54057.5,
+     "care_spend_mean": 10160.0,
+     "care_net_mean": 64897.5,
+     "opex_mean": 21000.0,
+     "capex_mean": 41320.0,
      "spoiled_mean": 0.0
     },
     {
@@ -126,19 +126,19 @@
       7,
       14
      ],
-     "revenue_mean": 437705.0,
-     "revenue_median": 437705.0,
-     "revenue_p25": 422277.5,
-     "revenue_p75": 453132.5,
-     "milk_mean": 97146.0,
-     "beef_mean": 331400.5,
-     "rice_mean": 9158.5,
+     "revenue_mean": 436537.5,
+     "revenue_median": 436537.5,
+     "revenue_p25": 423731.75,
+     "revenue_p75": 449343.25,
+     "milk_mean": 80610.0,
+     "beef_mean": 346317.0,
+     "rice_mean": 9610.5,
      "stud_in_mean": 0.0,
-     "net_mean": 378515.0,
-     "care_spend_mean": 94952.5,
-     "care_net_mean": 342752.5,
-     "opex_mean": 59190.0,
-     "capex_mean": 242898.0,
+     "net_mean": 370142.5,
+     "care_spend_mean": 93727.5,
+     "care_net_mean": 342810.0,
+     "opex_mean": 66395.0,
+     "capex_mean": 239362.0,
      "spoiled_mean": 0.0
     },
     {
@@ -146,40 +146,40 @@
       14,
       21
      ],
-     "revenue_mean": 436957.5,
-     "revenue_median": 436957.5,
-     "revenue_p25": 433964.25,
-     "revenue_p75": 439950.75,
-     "milk_mean": 112435.0,
-     "beef_mean": 316509.0,
-     "rice_mean": 8013.5,
+     "revenue_mean": 407182.5,
+     "revenue_median": 407182.5,
+     "revenue_p25": 384243.75,
+     "revenue_p75": 430121.25,
+     "milk_mean": 85941.5,
+     "beef_mean": 311846.0,
+     "rice_mean": 9395.0,
      "stud_in_mean": 0.0,
-     "net_mean": 380302.5,
-     "care_spend_mean": 86390.0,
-     "care_net_mean": 350567.5,
-     "opex_mean": 56655.0,
-     "capex_mean": 268926.5,
+     "net_mean": 346532.5,
+     "care_spend_mean": 88765.0,
+     "care_net_mean": 318417.5,
+     "opex_mean": 60650.0,
+     "capex_mean": 267744.5,
      "spoiled_mean": 0.0
     }
    ],
-   "worth_end_mean": 237608.4499111965,
-   "worth_end_median": 237608.4499111965,
-   "herd_end_mean": 21.0,
-   "slots_end_mean": 21.0,
+   "worth_end_mean": 282668.86696659157,
+   "worth_end_median": 282668.86696659157,
+   "herd_end_mean": 20.5,
+   "slots_end_mean": 20.5,
    "fields_end_mean": 1.0,
    "tier_counts_end": [
-    24,
-    12,
-    6,
+    21,
+    17,
+    3,
     0
    ],
    "type_counts_end": [
-    19,
     16,
-    7
+    14,
+    11
    ],
-   "revenue_total_mean": 962595.0,
-   "care_net_total_mean": 762782.5
+   "revenue_total_mean": 918777.5,
+   "care_net_total_mean": 726125.0
   },
   "C": {
    "n": 1,
@@ -189,19 +189,19 @@
       0,
       7
      ],
-     "revenue_mean": 79513.0,
-     "revenue_median": 79513.0,
-     "revenue_p25": 79513.0,
-     "revenue_p75": 79513.0,
-     "milk_mean": 17953.0,
-     "beef_mean": 57542.0,
-     "rice_mean": 4018.0,
+     "revenue_mean": 68418.0,
+     "revenue_median": 68418.0,
+     "revenue_p25": 68418.0,
+     "revenue_p75": 68418.0,
+     "milk_mean": 24917.0,
+     "beef_mean": 39252.0,
+     "rice_mean": 4249.0,
      "stud_in_mean": 0.0,
-     "net_mean": 43013.0,
-     "care_spend_mean": 12820.0,
-     "care_net_mean": 66693.0,
-     "opex_mean": 36500.0,
-     "capex_mean": 30171.0,
+     "net_mean": 45318.0,
+     "care_spend_mean": 7290.0,
+     "care_net_mean": 61128.0,
+     "opex_mean": 23100.0,
+     "capex_mean": 32070.0,
      "spoiled_mean": 0.0
     },
     {
@@ -209,19 +209,19 @@
       7,
       14
      ],
-     "revenue_mean": 277782.0,
-     "revenue_median": 277782.0,
-     "revenue_p25": 277782.0,
-     "revenue_p75": 277782.0,
-     "milk_mean": 94024.0,
-     "beef_mean": 179309.0,
-     "rice_mean": 4449.0,
+     "revenue_mean": 378386.0,
+     "revenue_median": 378386.0,
+     "revenue_p25": 378386.0,
+     "revenue_p75": 378386.0,
+     "milk_mean": 98368.0,
+     "beef_mean": 270553.0,
+     "rice_mean": 9465.0,
      "stud_in_mean": 0.0,
-     "net_mean": 238182.0,
-     "care_spend_mean": 21720.0,
-     "care_net_mean": 256062.0,
-     "opex_mean": 39600.0,
-     "capex_mean": 209073.0,
+     "net_mean": 330526.0,
+     "care_spend_mean": 50700.0,
+     "care_net_mean": 327686.0,
+     "opex_mean": 47860.0,
+     "capex_mean": 207174.0,
      "spoiled_mean": 0.0
     },
     {
@@ -229,40 +229,40 @@
       14,
       21
      ],
-     "revenue_mean": 357553.0,
-     "revenue_median": 357553.0,
-     "revenue_p25": 357553.0,
-     "revenue_p75": 357553.0,
-     "milk_mean": 150275.0,
-     "beef_mean": 199631.0,
-     "rice_mean": 7647.0,
+     "revenue_mean": 433711.0,
+     "revenue_median": 433711.0,
+     "revenue_p25": 433711.0,
+     "revenue_p75": 433711.0,
+     "milk_mean": 171641.0,
+     "beef_mean": 254936.0,
+     "rice_mean": 7134.0,
      "stud_in_mean": 0.0,
-     "net_mean": 309323.0,
-     "care_spend_mean": 94595.0,
-     "care_net_mean": 262958.0,
-     "opex_mean": 48230.0,
-     "capex_mean": 98137.0,
+     "net_mean": 359511.0,
+     "care_spend_mean": 80655.0,
+     "care_net_mean": 353056.0,
+     "opex_mean": 74200.0,
+     "capex_mean": 226201.0,
      "spoiled_mean": 0.0
     }
    ],
-   "worth_end_mean": 181385.72449168877,
-   "worth_end_median": 181385.72449168877,
-   "herd_end_mean": 20.0,
-   "slots_end_mean": 20.0,
+   "worth_end_mean": 185362.87926077843,
+   "worth_end_median": 185362.87926077843,
+   "herd_end_mean": 21.0,
+   "slots_end_mean": 21.0,
    "fields_end_mean": 1.0,
    "tier_counts_end": [
-    10,
     7,
-    1,
-    2
+    11,
+    2,
+    1
    ],
    "type_counts_end": [
     8,
     9,
-    3
+    4
    ],
-   "revenue_total_mean": 714848.0,
-   "care_net_total_mean": 585713.0
+   "revenue_total_mean": 880515.0,
+   "care_net_total_mean": 741870.0
   },
   "D": {
    "n": 2,
@@ -272,19 +272,19 @@
       0,
       7
      ],
-     "revenue_mean": 81299.0,
-     "revenue_median": 81299.0,
-     "revenue_p25": 69147.5,
-     "revenue_p75": 93450.5,
-     "milk_mean": 33899.5,
-     "beef_mean": 38820.0,
-     "rice_mean": 8579.5,
+     "revenue_mean": 79316.0,
+     "revenue_median": 79316.0,
+     "revenue_p25": 68147.5,
+     "revenue_p75": 90484.5,
+     "milk_mean": 27573.5,
+     "beef_mean": 43169.5,
+     "rice_mean": 8573.0,
      "stud_in_mean": 0.0,
-     "net_mean": 58349.0,
-     "care_spend_mean": 12792.5,
-     "care_net_mean": 68506.5,
-     "opex_mean": 22950.0,
-     "capex_mean": 36086.5,
+     "net_mean": 53166.0,
+     "care_spend_mean": 11212.5,
+     "care_net_mean": 68103.5,
+     "opex_mean": 26150.0,
+     "capex_mean": 32856.0,
      "spoiled_mean": 0.0
     },
     {
@@ -292,19 +292,19 @@
       7,
       14
      ],
-     "revenue_mean": 369648.5,
-     "revenue_median": 369648.5,
-     "revenue_p25": 332381.75,
-     "revenue_p75": 406915.25,
-     "milk_mean": 155876.5,
-     "beef_mean": 204123.5,
-     "rice_mean": 9648.5,
+     "revenue_mean": 293503.0,
+     "revenue_median": 293503.0,
+     "revenue_p25": 270947.5,
+     "revenue_p75": 316058.5,
+     "milk_mean": 91602.5,
+     "beef_mean": 190652.5,
+     "rice_mean": 11248.0,
      "stud_in_mean": 0.0,
-     "net_mean": 316863.5,
-     "care_spend_mean": 15767.5,
-     "care_net_mean": 353881.0,
-     "opex_mean": 52785.0,
-     "capex_mean": 250076.5,
+     "net_mean": 239653.0,
+     "care_spend_mean": 22657.5,
+     "care_net_mean": 270845.5,
+     "opex_mean": 53850.0,
+     "capex_mean": 171569.0,
      "spoiled_mean": 0.0
     },
     {
@@ -312,40 +312,40 @@
       14,
       21
      ],
-     "revenue_mean": 467265.0,
-     "revenue_median": 467265.0,
-     "revenue_p25": 432433.0,
-     "revenue_p75": 502097.0,
-     "milk_mean": 107084.5,
-     "beef_mean": 350024.5,
-     "rice_mean": 10156.0,
+     "revenue_mean": 413774.0,
+     "revenue_median": 413774.0,
+     "revenue_p25": 385105.0,
+     "revenue_p75": 442443.0,
+     "milk_mean": 122721.0,
+     "beef_mean": 279077.0,
+     "rice_mean": 11976.0,
      "stud_in_mean": 0.0,
-     "net_mean": 390420.0,
-     "care_spend_mean": 66287.5,
-     "care_net_mean": 400977.5,
-     "opex_mean": 76845.0,
-     "capex_mean": 265595.0,
+     "net_mean": 336724.0,
+     "care_spend_mean": 37967.5,
+     "care_net_mean": 375806.5,
+     "opex_mean": 77050.0,
+     "capex_mean": 344001.5,
      "spoiled_mean": 0.0
     }
    ],
-   "worth_end_mean": 169031.76585442922,
-   "worth_end_median": 169031.76585442922,
-   "herd_end_mean": 21.5,
-   "slots_end_mean": 21.5,
+   "worth_end_mean": 230605.46348285652,
+   "worth_end_median": 230605.46348285652,
+   "herd_end_mean": 20.5,
+   "slots_end_mean": 20.5,
    "fields_end_mean": 1.0,
    "tier_counts_end": [
     16,
-    18,
-    8,
-    1
+    16,
+    9,
+    0
    ],
    "type_counts_end": [
     16,
-    13,
-    14
+    15,
+    10
    ],
-   "revenue_total_mean": 918212.5,
-   "care_net_total_mean": 823365.0
+   "revenue_total_mean": 786593.0,
+   "care_net_total_mean": 714755.5
   },
   "F": {
    "n": 2,
@@ -355,19 +355,19 @@
       0,
       7
      ],
-     "revenue_mean": 84838.5,
-     "revenue_median": 84838.5,
-     "revenue_p25": 64493.75,
-     "revenue_p75": 105183.25,
-     "milk_mean": 27193.5,
-     "beef_mean": 37725.0,
-     "rice_mean": 19920.0,
+     "revenue_mean": 95295.5,
+     "revenue_median": 95295.5,
+     "revenue_p25": 76238.75,
+     "revenue_p75": 114352.25,
+     "milk_mean": 46057.0,
+     "beef_mean": 34455.5,
+     "rice_mean": 14783.0,
      "stud_in_mean": 0.0,
-     "net_mean": 68988.5,
-     "care_spend_mean": 16455.0,
-     "care_net_mean": 68383.5,
-     "opex_mean": 15850.0,
-     "capex_mean": 43425.5,
+     "net_mean": 77895.5,
+     "care_spend_mean": 12065.0,
+     "care_net_mean": 83230.5,
+     "opex_mean": 17400.0,
+     "capex_mean": 63325.5,
      "spoiled_mean": 0.0
     },
     {
@@ -375,19 +375,19 @@
       7,
       14
      ],
-     "revenue_mean": 324122.5,
-     "revenue_median": 324122.5,
-     "revenue_p25": 300482.25,
-     "revenue_p75": 347762.75,
-     "milk_mean": 43835.0,
-     "beef_mean": 218230.0,
-     "rice_mean": 62057.5,
+     "revenue_mean": 394027.0,
+     "revenue_median": 394027.0,
+     "revenue_p25": 386045.5,
+     "revenue_p75": 402008.5,
+     "milk_mean": 108566.5,
+     "beef_mean": 246873.0,
+     "rice_mean": 38587.5,
      "stud_in_mean": 0.0,
-     "net_mean": 282887.5,
-     "care_spend_mean": 36102.5,
-     "care_net_mean": 288020.0,
-     "opex_mean": 41235.0,
-     "capex_mean": 233536.5,
+     "net_mean": 347057.0,
+     "care_spend_mean": 65965.0,
+     "care_net_mean": 328062.0,
+     "opex_mean": 46970.0,
+     "capex_mean": 213812.5,
      "spoiled_mean": 0.0
     },
     {
@@ -395,40 +395,40 @@
       14,
       21
      ],
-     "revenue_mean": 550036.5,
-     "revenue_median": 550036.5,
-     "revenue_p25": 549372.25,
-     "revenue_p75": 550700.75,
-     "milk_mean": 68584.0,
-     "beef_mean": 399951.0,
-     "rice_mean": 81501.5,
+     "revenue_mean": 541869.0,
+     "revenue_median": 541869.0,
+     "revenue_p25": 535641.0,
+     "revenue_p75": 548097.0,
+     "milk_mean": 128636.0,
+     "beef_mean": 336880.5,
+     "rice_mean": 76352.5,
      "stud_in_mean": 0.0,
-     "net_mean": 494501.5,
-     "care_spend_mean": 85910.0,
-     "care_net_mean": 464126.5,
-     "opex_mean": 55535.0,
-     "capex_mean": 402484.5,
+     "net_mean": 488739.0,
+     "care_spend_mean": 82255.0,
+     "care_net_mean": 459614.0,
+     "opex_mean": 53130.0,
+     "capex_mean": 388132.5,
      "spoiled_mean": 0.0
     }
    ],
-   "worth_end_mean": 242278.54230634906,
-   "worth_end_median": 242278.54230634906,
+   "worth_end_mean": 233401.42107811448,
+   "worth_end_median": 233401.42107811448,
    "herd_end_mean": 20.0,
    "slots_end_mean": 20.0,
-   "fields_end_mean": 10.5,
+   "fields_end_mean": 11.0,
    "tier_counts_end": [
-    24,
+    20,
     13,
-    2,
-    1
+    7,
+    0
    ],
    "type_counts_end": [
-    10,
-    17,
-    13
+    11,
+    18,
+    11
    ],
-   "revenue_total_mean": 958997.5,
-   "care_net_total_mean": 820530.0
+   "revenue_total_mean": 1031191.5,
+   "care_net_total_mean": 870906.5
   },
   "L": {
    "n": 1,
@@ -438,19 +438,19 @@
       0,
       7
      ],
-     "revenue_mean": 98311.0,
-     "revenue_median": 98311.0,
-     "revenue_p25": 98311.0,
-     "revenue_p75": 98311.0,
-     "milk_mean": 49367.0,
-     "beef_mean": 41616.0,
-     "rice_mean": 7328.0,
+     "revenue_mean": 89501.0,
+     "revenue_median": 89501.0,
+     "revenue_p25": 89501.0,
+     "revenue_p75": 89501.0,
+     "milk_mean": 39206.0,
+     "beef_mean": 42970.0,
+     "rice_mean": 7325.0,
      "stud_in_mean": 0.0,
-     "net_mean": 67401.0,
-     "care_spend_mean": 18530.0,
-     "care_net_mean": 79781.0,
-     "opex_mean": 30910.0,
-     "capex_mean": 46008.0,
+     "net_mean": 66291.0,
+     "care_spend_mean": 13280.0,
+     "care_net_mean": 76221.0,
+     "opex_mean": 23210.0,
+     "capex_mean": 44219.0,
      "spoiled_mean": 0.0
     },
     {
@@ -458,19 +458,19 @@
       7,
       14
      ],
-     "revenue_mean": 308045.0,
-     "revenue_median": 308045.0,
-     "revenue_p25": 308045.0,
-     "revenue_p75": 308045.0,
-     "milk_mean": 106858.0,
-     "beef_mean": 197330.0,
-     "rice_mean": 2947.0,
-     "stud_in_mean": 910.0,
-     "net_mean": 266695.0,
-     "care_spend_mean": 22685.0,
-     "care_net_mean": 285360.0,
-     "opex_mean": 41350.0,
-     "capex_mean": 193236.0,
+     "revenue_mean": 263562.0,
+     "revenue_median": 263562.0,
+     "revenue_p25": 263562.0,
+     "revenue_p75": 263562.0,
+     "milk_mean": 80053.0,
+     "beef_mean": 173635.0,
+     "rice_mean": 5504.0,
+     "stud_in_mean": 4370.0,
+     "net_mean": 216702.0,
+     "care_spend_mean": 15210.0,
+     "care_net_mean": 248352.0,
+     "opex_mean": 46860.0,
+     "capex_mean": 195025.0,
      "spoiled_mean": 0.0
     },
     {
@@ -478,40 +478,40 @@
       14,
       21
      ],
-     "revenue_mean": 350655.0,
-     "revenue_median": 350655.0,
-     "revenue_p25": 350655.0,
-     "revenue_p75": 350655.0,
-     "milk_mean": 146623.0,
-     "beef_mean": 196703.0,
-     "rice_mean": 3849.0,
-     "stud_in_mean": 3480.0,
-     "net_mean": 310455.0,
-     "care_spend_mean": 25040.0,
-     "care_net_mean": 325615.0,
-     "opex_mean": 40200.0,
+     "revenue_mean": 355022.0,
+     "revenue_median": 355022.0,
+     "revenue_p25": 355022.0,
+     "revenue_p75": 355022.0,
+     "milk_mean": 145842.0,
+     "beef_mean": 196954.0,
+     "rice_mean": 6536.0,
+     "stud_in_mean": 5690.0,
+     "net_mean": 296272.0,
+     "care_spend_mean": 27640.0,
+     "care_net_mean": 327382.0,
+     "opex_mean": 58750.0,
      "capex_mean": 219538.0,
      "spoiled_mean": 0.0
     }
    ],
-   "worth_end_mean": 158653.97299717332,
-   "worth_end_median": 158653.97299717332,
-   "herd_end_mean": 21.0,
-   "slots_end_mean": 21.0,
+   "worth_end_mean": 271507.82611357776,
+   "worth_end_median": 271507.82611357776,
+   "herd_end_mean": 20.0,
+   "slots_end_mean": 20.0,
    "fields_end_mean": 1.0,
    "tier_counts_end": [
-    18,
-    2,
+    14,
+    5,
     1,
     0
    ],
    "type_counts_end": [
-    10,
+    12,
     3,
-    8
+    5
    ],
-   "revenue_total_mean": 757011.0,
-   "care_net_total_mean": 690756.0
+   "revenue_total_mean": 708085.0,
+   "care_net_total_mean": 651955.0
   },
   "T": {
    "n": 1,
@@ -521,19 +521,19 @@
       0,
       7
      ],
-     "revenue_mean": 92396.0,
-     "revenue_median": 92396.0,
-     "revenue_p25": 92396.0,
-     "revenue_p75": 92396.0,
-     "milk_mean": 51809.0,
-     "beef_mean": 34145.0,
-     "rice_mean": 6442.0,
+     "revenue_mean": 92705.0,
+     "revenue_median": 92705.0,
+     "revenue_p25": 92705.0,
+     "revenue_p75": 92705.0,
+     "milk_mean": 52124.0,
+     "beef_mean": 34143.0,
+     "rice_mean": 6438.0,
      "stud_in_mean": 0.0,
-     "net_mean": 66996.0,
-     "care_spend_mean": 18035.0,
-     "care_net_mean": 74361.0,
-     "opex_mean": 25400.0,
-     "capex_mean": 40909.0,
+     "net_mean": 65605.0,
+     "care_spend_mean": 12565.0,
+     "care_net_mean": 80140.0,
+     "opex_mean": 27100.0,
+     "capex_mean": 53058.0,
      "spoiled_mean": 0.0
     },
     {
@@ -541,19 +541,19 @@
       7,
       14
      ],
-     "revenue_mean": 418909.0,
-     "revenue_median": 418909.0,
-     "revenue_p25": 418909.0,
-     "revenue_p75": 418909.0,
-     "milk_mean": 119931.0,
-     "beef_mean": 286795.0,
-     "rice_mean": 12183.0,
+     "revenue_mean": 423956.0,
+     "revenue_median": 423956.0,
+     "revenue_p25": 423956.0,
+     "revenue_p75": 423956.0,
+     "milk_mean": 97999.0,
+     "beef_mean": 313775.0,
+     "rice_mean": 12182.0,
      "stud_in_mean": 0.0,
-     "net_mean": 369499.0,
-     "care_spend_mean": 86360.0,
-     "care_net_mean": 332549.0,
-     "opex_mean": 49410.0,
-     "capex_mean": 207724.0,
+     "net_mean": 374886.0,
+     "care_spend_mean": 86275.0,
+     "care_net_mean": 337681.0,
+     "opex_mean": 49070.0,
+     "capex_mean": 279604.0,
      "spoiled_mean": 0.0
     },
     {
@@ -561,40 +561,40 @@
       14,
       21
      ],
-     "revenue_mean": 459305.0,
-     "revenue_median": 459305.0,
-     "revenue_p25": 459305.0,
-     "revenue_p75": 459305.0,
-     "milk_mean": 104208.0,
-     "beef_mean": 347734.0,
-     "rice_mean": 7363.0,
+     "revenue_mean": 513794.0,
+     "revenue_median": 513794.0,
+     "revenue_p25": 513794.0,
+     "revenue_p75": 513794.0,
+     "milk_mean": 71885.0,
+     "beef_mean": 433106.0,
+     "rice_mean": 8803.0,
      "stud_in_mean": 0.0,
-     "net_mean": 389365.0,
-     "care_spend_mean": 73410.0,
-     "care_net_mean": 385895.0,
-     "opex_mean": 69940.0,
-     "capex_mean": 398827.0,
+     "net_mean": 429784.0,
+     "care_spend_mean": 85920.0,
+     "care_net_mean": 427874.0,
+     "opex_mean": 84010.0,
+     "capex_mean": 314798.0,
      "spoiled_mean": 0.0
     }
    ],
-   "worth_end_mean": 329563.44455196336,
-   "worth_end_median": 329563.44455196336,
-   "herd_end_mean": 21.0,
-   "slots_end_mean": 21.0,
+   "worth_end_mean": 243885.93052755744,
+   "worth_end_median": 243885.93052755744,
+   "herd_end_mean": 22.0,
+   "slots_end_mean": 22.0,
    "fields_end_mean": 1.0,
    "tier_counts_end": [
-    9,
-    9,
-    2,
-    1
+    10,
+    7,
+    5,
+    0
    ],
    "type_counts_end": [
-    16,
-    4,
-    1
+    13,
+    2,
+    7
    ],
-   "revenue_total_mean": 970610.0,
-   "care_net_total_mean": 792805.0
+   "revenue_total_mean": 1030455.0,
+   "care_net_total_mean": 845695.0
   },
   "W": {
    "n": 1,
@@ -604,19 +604,19 @@
       0,
       7
      ],
-     "revenue_mean": 89294.0,
-     "revenue_median": 89294.0,
-     "revenue_p25": 89294.0,
-     "revenue_p75": 89294.0,
-     "milk_mean": 28386.0,
-     "beef_mean": 52803.0,
-     "rice_mean": 8105.0,
+     "revenue_mean": 75667.0,
+     "revenue_median": 75667.0,
+     "revenue_p25": 75667.0,
+     "revenue_p75": 75667.0,
+     "milk_mean": 24006.0,
+     "beef_mean": 43431.0,
+     "rice_mean": 8230.0,
      "stud_in_mean": 0.0,
-     "net_mean": 70194.0,
-     "care_spend_mean": 14000.0,
-     "care_net_mean": 75294.0,
-     "opex_mean": 19100.0,
-     "capex_mean": 46008.0,
+     "net_mean": 52467.0,
+     "care_spend_mean": 8060.0,
+     "care_net_mean": 67607.0,
+     "opex_mean": 23200.0,
+     "capex_mean": 44219.0,
      "spoiled_mean": 0.0
     },
     {
@@ -624,19 +624,19 @@
       7,
       14
      ],
-     "revenue_mean": 345116.0,
-     "revenue_median": 345116.0,
-     "revenue_p25": 345116.0,
-     "revenue_p75": 345116.0,
-     "milk_mean": 74540.0,
-     "beef_mean": 261458.0,
-     "rice_mean": 9118.0,
+     "revenue_mean": 351404.0,
+     "revenue_median": 351404.0,
+     "revenue_p25": 351404.0,
+     "revenue_p75": 351404.0,
+     "milk_mean": 110014.0,
+     "beef_mean": 230621.0,
+     "rice_mean": 10769.0,
      "stud_in_mean": 0.0,
-     "net_mean": 292616.0,
-     "care_spend_mean": 14020.0,
-     "care_net_mean": 331096.0,
-     "opex_mean": 52500.0,
-     "capex_mean": 280411.0,
+     "net_mean": 297534.0,
+     "care_spend_mean": 23860.0,
+     "care_net_mean": 327544.0,
+     "opex_mean": 53870.0,
+     "capex_mean": 190726.0,
      "spoiled_mean": 0.0
     },
     {
@@ -644,24 +644,24 @@
       14,
       21
      ],
-     "revenue_mean": 506548.0,
-     "revenue_median": 506548.0,
-     "revenue_p25": 506548.0,
-     "revenue_p75": 506548.0,
-     "milk_mean": 269632.0,
-     "beef_mean": 230047.0,
-     "rice_mean": 6869.0,
+     "revenue_mean": 413000.0,
+     "revenue_median": 413000.0,
+     "revenue_p25": 413000.0,
+     "revenue_p75": 413000.0,
+     "milk_mean": 206317.0,
+     "beef_mean": 199962.0,
+     "rice_mean": 6721.0,
      "stud_in_mean": 0.0,
-     "net_mean": 472308.0,
-     "care_spend_mean": 10115.0,
-     "care_net_mean": 496433.0,
-     "opex_mean": 34240.0,
-     "capex_mean": 139026.0,
+     "net_mean": 369530.0,
+     "care_spend_mean": 6905.0,
+     "care_net_mean": 406095.0,
+     "opex_mean": 43470.0,
+     "capex_mean": 219538.0,
      "spoiled_mean": 0.0
     }
    ],
-   "worth_end_mean": 1164623.5184651683,
-   "worth_end_median": 1164623.5184651683,
+   "worth_end_mean": 1061797.5071975368,
+   "worth_end_median": 1061797.5071975368,
    "herd_end_mean": 0.0,
    "slots_end_mean": 102.0,
    "fields_end_mean": 1.0,
@@ -676,8 +676,8 @@
     0,
     0
    ],
-   "revenue_total_mean": 940958.0,
-   "care_net_total_mean": 902823.0
+   "revenue_total_mean": 840071.0,
+   "care_net_total_mean": 801246.0
   },
   "Z": {
    "n": 1,
@@ -687,17 +687,17 @@
       0,
       7
      ],
-     "revenue_mean": 93569.0,
-     "revenue_median": 93569.0,
-     "revenue_p25": 93569.0,
-     "revenue_p75": 93569.0,
-     "milk_mean": 52951.0,
-     "beef_mean": 34297.0,
-     "rice_mean": 6321.0,
+     "revenue_mean": 93436.0,
+     "revenue_median": 93436.0,
+     "revenue_p25": 93436.0,
+     "revenue_p75": 93436.0,
+     "milk_mean": 52937.0,
+     "beef_mean": 34179.0,
+     "rice_mean": 6320.0,
      "stud_in_mean": 0.0,
-     "net_mean": 62369.0,
+     "net_mean": 62236.0,
      "care_spend_mean": 13000.0,
-     "care_net_mean": 80569.0,
+     "care_net_mean": 80436.0,
      "opex_mean": 31200.0,
      "capex_mean": 48781.0,
      "spoiled_mean": 0.0
@@ -707,17 +707,17 @@
       7,
       14
      ],
-     "revenue_mean": 214513.0,
-     "revenue_median": 214513.0,
-     "revenue_p25": 214513.0,
-     "revenue_p75": 214513.0,
-     "milk_mean": 31023.0,
-     "beef_mean": 176313.0,
-     "rice_mean": 7177.0,
+     "revenue_mean": 214491.0,
+     "revenue_median": 214491.0,
+     "revenue_p25": 214491.0,
+     "revenue_p75": 214491.0,
+     "milk_mean": 30999.0,
+     "beef_mean": 176324.0,
+     "rice_mean": 7168.0,
      "stud_in_mean": 0.0,
-     "net_mean": 187913.0,
+     "net_mean": 187891.0,
      "care_spend_mean": 40000.0,
-     "care_net_mean": 174513.0,
+     "care_net_mean": 174491.0,
      "opex_mean": 26600.0,
      "capex_mean": 120825.0,
      "spoiled_mean": 0.0
@@ -727,40 +727,40 @@
       14,
       21
      ],
-     "revenue_mean": 333884.0,
-     "revenue_median": 333884.0,
-     "revenue_p25": 333884.0,
-     "revenue_p75": 333884.0,
-     "milk_mean": 148905.0,
-     "beef_mean": 176499.0,
-     "rice_mean": 8480.0,
+     "revenue_mean": 300580.0,
+     "revenue_median": 300580.0,
+     "revenue_p25": 300580.0,
+     "revenue_p75": 300580.0,
+     "milk_mean": 107078.0,
+     "beef_mean": 186786.0,
+     "rice_mean": 6716.0,
      "stud_in_mean": 0.0,
-     "net_mean": 281244.0,
-     "care_spend_mean": 60000.0,
-     "care_net_mean": 273884.0,
-     "opex_mean": 52640.0,
+     "net_mean": 233280.0,
+     "care_spend_mean": 75000.0,
+     "care_net_mean": 225580.0,
+     "opex_mean": 67300.0,
      "capex_mean": 161112.0,
      "spoiled_mean": 0.0
     }
    ],
-   "worth_end_mean": 116003.89761943677,
-   "worth_end_median": 116003.89761943677,
-   "herd_end_mean": 20.0,
-   "slots_end_mean": 20.0,
+   "worth_end_mean": 156198.60832298666,
+   "worth_end_median": 156198.60832298666,
+   "herd_end_mean": 19.0,
+   "slots_end_mean": 19.0,
    "fields_end_mean": 1.0,
    "tier_counts_end": [
-    10,
-    6,
-    4,
+    5,
+    11,
+    3,
     0
    ],
    "type_counts_end": [
-    14,
-    4,
-    2
+    10,
+    5,
+    4
    ],
-   "revenue_total_mean": 641966.0,
-   "care_net_total_mean": 528966.0
+   "revenue_total_mean": 608507.0,
+   "care_net_total_mean": 480507.0
   }
  },
  "onboarding": {
@@ -2089,207 +2089,205 @@
   }
  ],
  "stud": {
-  "trades": 127,
-  "trades_player_listing": 4,
-  "trades_npc_listing": 123,
+  "trades": 103,
+  "trades_player_listing": 6,
+  "trades_npc_listing": 97,
   "by_price": {
-   "970_npc": 28,
-   "300_npc": 76,
+   "300_npc": 53,
+   "970_npc": 33,
+   "540_npc": 10,
+   "890": 2,
    "910": 1,
+   "2570": 1,
    "760_npc": 1,
-   "540_npc": 18,
-   "890": 1,
-   "2590": 2
+   "2590": 1,
+   "2210": 1
   },
-  "listings_open_end": 6,
-  "lender_income_mean": 6980.0,
-  "lender_income_share": 0.008049097186506116,
-  "lender_income_max": 6980.0,
-  "all_player_stud_income": 6980.0,
+  "listings_open_end": 8,
+  "lender_income_mean": 10060.0,
+  "lender_income_share": 0.012668653017431362,
+  "lender_income_max": 10060.0,
+  "all_player_stud_income": 10060.0,
   "max_trade_price": 2590.0
  },
  "shop": {
   "D": {
-   "A": 92.0,
-   "B": 13.0,
-   "C": 16.0
+   "A": 104.0,
+   "B": 10.0,
+   "C": 12.0
   },
   "B": {
-   "A": 86.0,
-   "B": 22.0,
-   "C": 15.0
+   "A": 77.0,
+   "B": 36.0,
+   "C": 25.0
   },
   "F": {
-   "A": 60.0,
-   "B": 26.0,
-   "C": 27.0
+   "A": 58.0,
+   "B": 23.0,
+   "C": 30.0
   },
   "C": {
-   "A": 43.0,
-   "B": 1.0,
+   "A": 49.0,
+   "B": 4.0,
    "C": 6.0
   },
   "T": {
-   "A": 42.0,
-   "B": 12.0,
-   "C": 11.0
+   "A": 45.0,
+   "B": 6.0,
+   "C": 9.0
   },
   "L": {
-   "A": 32.0,
-   "B": 5.0,
-   "C": 7.0
+   "A": 34.0,
+   "B": 3.0,
+   "C": 9.0
   },
   "Z": {
-   "A": 27.0,
-   "B": 7.0,
+   "A": 33.0,
+   "B": 11.0,
    "C": 17.0
   },
   "all": {
-   "A": 382.0,
-   "B": 86.0,
-   "C": 99.0
+   "A": 400.0,
+   "B": 93.0,
+   "C": 108.0
   }
  },
  "value": {
   "origin": {
    "C": {
-    "n": 72,
-    "mean": 9302.252447598921
+    "n": 81,
+    "mean": 8899.460770599979
    },
    "breed": {
-    "n": 194,
-    "mean": 10932.903634706407
+    "n": 200,
+    "mean": 10366.036334563209
    },
    "A": {
-    "n": 185,
-    "mean": 12239.091118295853
+    "n": 179,
+    "mean": 11485.070054741811
    },
    "stud": {
-    "n": 56,
-    "mean": 9917.906318768079
+    "n": 52,
+    "mean": 9365.174279270039
    },
    "B": {
-    "n": 36,
-    "mean": 12003.163956659208
+    "n": 49,
+    "mean": 9739.251483604618
    }
   },
   "kind": {
    "0F0": {
-    "n": 91,
-    "mean": 13528.942772550583
+    "n": 93,
+    "mean": 13976.752804999845
    },
    "1F0": {
-    "n": 48,
-    "mean": 7350.034817155108
+    "n": 34,
+    "mean": 6406.352102217857
    },
    "0F1": {
-    "n": 38,
-    "mean": 18836.72019145311
-   },
-   "2F0": {
-    "n": 36,
-    "mean": 10850.568955262832
+    "n": 32,
+    "mean": 18274.53106233437
    },
    "2F1": {
-    "n": 27,
-    "mean": 13262.75124804654
+    "n": 22,
+    "mean": 13615.757611026937
+   },
+   "2F0": {
+    "n": 42,
+    "mean": 10305.378370900335
    },
    "1M0": {
-    "n": 46,
-    "mean": 8234.565276945927
-   },
-   "2M0": {
-    "n": 54,
-    "mean": 11718.432628070785
-   },
-   "2F2": {
-    "n": 8,
-    "mean": 18519.72059613829
+    "n": 44,
+    "mean": 8115.548693081717
    },
    "0M0": {
-    "n": 67,
-    "mean": 3764.9006393399914
+    "n": 85,
+    "mean": 3716.706853775199
+   },
+   "2M0": {
+    "n": 46,
+    "mean": 10461.753178241748
    },
    "0M1": {
-    "n": 28,
-    "mean": 4992.550156142481
-   },
-   "0F2": {
-    "n": 14,
-    "mean": 26298.157241240817
-   },
-   "1M1": {
-    "n": 21,
-    "mean": 11562.471619422498
-   },
-   "1M2": {
-    "n": 8,
-    "mean": 17906.29277758273
+    "n": 34,
+    "mean": 4576.897817679602
    },
    "2M1": {
+    "n": 17,
+    "mean": 13876.273690292091
+   },
+   "0F2": {
     "n": 13,
-    "mean": 13989.962472022373
+    "mean": 23201.40254439435
    },
-   "2M2": {
-    "n": 3,
-    "mean": 16062.95013660806
-   },
-   "1F2": {
-    "n": 6,
-    "mean": 17353.304586040944
-   },
-   "0M2": {
-    "n": 8,
-    "mean": 7962.1953408593035
+   "1M1": {
+    "n": 23,
+    "mean": 11450.560568170848
    },
    "1F1": {
-    "n": 18,
-    "mean": 8663.893771781797
+    "n": 34,
+    "mean": 9223.371028409425
    },
-   "2F3": {
-    "n": 1,
-    "mean": 28780.591389888807
+   "2F2": {
+    "n": 6,
+    "mean": 21877.898061869648
+   },
+   "1M2": {
+    "n": 11,
+    "mean": 14994.361856814443
+   },
+   "1F2": {
+    "n": 3,
+    "mean": 17641.13474371558
    },
    "0M4": {
     "n": 2,
-    "mean": 1228.2733727158927
+    "mean": 1227.9792714491007
    },
    "1M4": {
     "n": 1,
-    "mean": 5499.781260493587
+    "mean": 5507.752285719153
    },
    "2M4": {
     "n": 1,
-    "mean": 7032.879431853402
+    "mean": 7022.691043622026
    },
    "1F4": {
-    "n": 1,
-    "mean": 5153.071682779201
-   },
-   "1F3": {
     "n": 2,
-    "mean": 27447.975075108705
+    "mean": 6075.91627282471
+   },
+   "2M2": {
+    "n": 3,
+    "mean": 23405.804720022596
+   },
+   "0M2": {
+    "n": 11,
+    "mean": 6610.091919285094
+   },
+   "0M3": {
+    "n": 1,
+    "mean": 10064.923354140632
    },
    "1M3": {
     "n": 1,
-    "mean": 30384.41206806978
+    "mean": 25699.83200898046
    }
   },
   "avg_price": {
-   "milk": 11.626956291565296,
-   "beef": 12.189573167450407,
-   "rice": 5.281147451181946
+   "milk": 11.627164561939455,
+   "beef": 12.189546232369672,
+   "rice": 5.281024467036997
   }
  },
  "beef_grades": {
-  "A": 439.0,
-  "B": 384.0,
-  "C": 81.0
+  "A": 425.0,
+  "B": 394.0,
+  "C": 101.0
  },
  "fields": {
   "D": 1.0,
   "B": 1.0,
-  "F": 10.5,
+  "F": 11.0,
   "C": 1.0,
   "T": 1.0,
   "L": 1.0,
@@ -2298,135 +2296,149 @@
  "care": {
   "D": {
    "n": 2,
-   "revenue": 1094449.0,
-   "sick_share": 0.0016299114719582068,
-   "feed_spend": 5572.5,
-   "feed_units": 1024.0,
-   "bonus_value": 15862.738328732603,
-   "feed_roi": 2.84661073642577,
-   "helper_spend": 44000.0,
-   "floor_spend": 90000.0,
-   "cure_spend": -0.0,
-   "care_spend_share": 0.12243603859110841,
-   "sick": 1.5,
-   "cures": 0.0,
-   "cleaned": 265.0,
+   "revenue": 940948.5,
+   "sick_share": 0.003548561937393757,
+   "feed_spend": 5462.5,
+   "feed_units": 996.5,
+   "bonus_value": 15023.73529765838,
+   "feed_roi": 2.750340557923731,
+   "helper_spend": 28000.0,
+   "floor_spend": 50000.0,
+   "cure_spend": 12500.0,
+   "robot_spend": 13125.0,
+   "robot_owners": 1.0,
+   "care_spend_share": 0.110128237624057,
+   "sick": 5.0,
+   "cures": 2.5,
+   "cleaned": 434.5,
    "hybrid": 0.0,
-   "rare_grown": 18.0,
+   "rare_grown": 19.0,
    "hybrid_share": 0.0
   },
   "B": {
    "n": 2,
-   "revenue": 1158051.0,
-   "sick_share": 5.745558666907457e-05,
-   "feed_spend": 40760.0,
-   "feed_units": 912.5,
-   "bonus_value": 93689.70801423401,
-   "feed_roi": 2.2985698727731605,
-   "helper_spend": 45000.0,
+   "revenue": 1118931.0,
+   "sick_share": 0.0019498786722513472,
+   "feed_spend": 39850.0,
+   "feed_units": 895.5,
+   "bonus_value": 94378.3606736099,
+   "feed_roi": 2.368340292938768,
+   "helper_spend": 24000.0,
    "floor_spend": 140000.0,
-   "cure_spend": -0.0,
-   "care_spend_share": 0.15975116812644694,
-   "sick": 0.5,
-   "cures": 0.0,
-   "cleaned": 200.0,
+   "cure_spend": 2500.0,
+   "robot_spend": 11625.0,
+   "robot_owners": 1.0,
+   "care_spend_share": 0.15919212176622152,
+   "sick": 3.0,
+   "cures": 0.5,
+   "cleaned": 412.0,
    "hybrid": 0.0,
-   "rare_grown": 11.0,
+   "rare_grown": 14.0,
    "hybrid_share": 0.0
   },
   "F": {
    "n": 2,
-   "revenue": 1129236.0,
-   "sick_share": 0.00011662113010654054,
-   "feed_spend": 30412.5,
-   "feed_units": 1019.0,
-   "bonus_value": 68400.89528744982,
-   "feed_roi": 2.249104653923545,
-   "helper_spend": 44000.0,
-   "floor_spend": 88000.0,
-   "cure_spend": -0.0,
-   "care_spend_share": 0.11689319150292764,
-   "sick": 1.0,
-   "cures": 0.0,
-   "cleaned": 334.0,
+   "revenue": 1196149.5,
+   "sick_share": 0.0006111752273626921,
+   "feed_spend": 32317.5,
+   "feed_units": 1081.0,
+   "bonus_value": 71137.81705126946,
+   "feed_roi": 2.201216587027755,
+   "helper_spend": 29000.0,
+   "floor_spend": 108000.0,
+   "cure_spend": 5000.0,
+   "robot_spend": 11250.0,
+   "robot_owners": 1.0,
+   "care_spend_share": 0.12811943657544478,
+   "sick": 2.5,
+   "cures": 1.0,
+   "cleaned": 390.5,
    "hybrid": 0.0,
-   "rare_grown": 10.5,
+   "rare_grown": 10.0,
    "hybrid_share": 0.0
   },
   "C": {
    "n": 1,
-   "revenue": 819368.0,
-   "sick_share": 0.0,
-   "feed_spend": 22190.0,
-   "feed_units": 741.0,
-   "bonus_value": 47336.37895981853,
-   "feed_roi": 2.1332302370355354,
-   "helper_spend": 42000.0,
-   "floor_spend": 88000.0,
+   "revenue": 1019897.0,
+   "sick_share": 2.7758186653179835e-05,
+   "feed_spend": 24265.0,
+   "feed_units": 814.0,
+   "bonus_value": 54904.72440023983,
+   "feed_roi": 2.26271273027982,
+   "helper_spend": 24000.0,
+   "floor_spend": 104000.0,
    "cure_spend": -0.0,
-   "care_spend_share": 0.1586588687866746,
-   "sick": 0.0,
+   "robot_spend": 8250.0,
+   "robot_owners": 1.0,
+   "care_spend_share": 0.13359192153717483,
+   "sick": 1.0,
    "cures": 0.0,
-   "cleaned": 205.0,
+   "cleaned": 319.0,
    "hybrid": 0.0,
-   "rare_grown": 7.0,
+   "rare_grown": 12.0,
    "hybrid_share": 0.0
   },
   "T": {
    "n": 1,
-   "revenue": 1229774.0,
-   "sick_share": 5.008538438608778e-05,
-   "feed_spend": 27500.0,
+   "revenue": 1322739.0,
+   "sick_share": 4.9842373931977994e-05,
+   "feed_spend": 27400.0,
    "feed_units": 922.0,
-   "bonus_value": 61835.65756537444,
-   "feed_roi": 2.2485693660136157,
-   "helper_spend": 46000.0,
+   "bonus_value": 62544.95251895726,
+   "feed_roi": 2.282662500691871,
+   "helper_spend": 34000.0,
    "floor_spend": 136000.0,
    "cure_spend": -0.0,
-   "care_spend_share": 0.1479946721918011,
+   "robot_spend": 10500.0,
+   "robot_owners": 1.0,
+   "care_spend_share": 0.136459271254571,
    "sick": 1.0,
    "cures": 0.0,
-   "cleaned": 205.0,
+   "cleaned": 300.0,
    "hybrid": 0.0,
-   "rare_grown": 11.0,
+   "rare_grown": 20.0,
    "hybrid_share": 0.0
   },
   "L": {
    "n": 1,
-   "revenue": 867178.0,
-   "sick_share": 0.0,
-   "feed_spend": 27585.0,
-   "feed_units": 920.0,
-   "bonus_value": 51889.48927719045,
-   "feed_roi": 1.8810762833855519,
-   "helper_spend": 46000.0,
+   "revenue": 794086.0,
+   "sick_share": 0.00205954569518275,
+   "feed_spend": 27250.0,
+   "feed_units": 910.0,
+   "bonus_value": 51462.12014411193,
+   "feed_roi": 1.8885181704261258,
+   "helper_spend": 22000.0,
    "floor_spend": -0.0,
-   "cure_spend": -0.0,
-   "care_spend_share": 0.05304562615749016,
-   "sick": 0.0,
-   "cures": 0.0,
-   "cleaned": 205.0,
+   "cure_spend": 5000.0,
+   "robot_spend": 7500.0,
+   "robot_owners": 1.0,
+   "care_spend_share": 0.04344617585500815,
+   "sick": 4.0,
+   "cures": 1.0,
+   "cleaned": 444.0,
    "hybrid": 0.0,
-   "rare_grown": 2.0,
+   "rare_grown": 5.0,
    "hybrid_share": 0.0
   },
   "Z": {
    "n": 1,
-   "revenue": 723407.0,
-   "sick_share": 0.01589488037238333,
+   "revenue": 697418.0,
+   "sick_share": 0.015023447623562457,
    "feed_spend": -0.0,
    "feed_units": 0.0,
    "bonus_value": 0.0,
    "feed_roi": null,
    "helper_spend": -0.0,
    "floor_spend": 3000.0,
-   "cure_spend": 120000.0,
-   "care_spend_share": 0.1700287666555618,
-   "sick": 39.0,
-   "cures": 24.0,
-   "cleaned": 998.0,
-   "hybrid": 9.0,
-   "rare_grown": 9.0,
+   "cure_spend": 150000.0,
+   "robot_spend": -0.0,
+   "robot_owners": 0.0,
+   "care_spend_share": 0.21938062969410024,
+   "sick": 49.0,
+   "cures": 30.0,
+   "cleaned": 994.0,
+   "hybrid": 11.0,
+   "rare_grown": 11.0,
    "hybrid_share": 1.0
   }
  },
@@ -2437,164 +2449,164 @@
    {
     "kind": "milk",
     "t_h": 501.0,
-    "units": 18518.45470348926,
-    "proceeds": 145562.1146198345,
-    "value_units": 16591.946805782256,
-    "price": 12.131821571907452,
-    "avg_discount": 0.27685565383666433
+    "units": 18453.283011882162,
+    "proceeds": 144685.9299303096,
+    "value_units": 16523.516529594803,
+    "price": 12.128132525454271,
+    "avg_discount": 0.27801215378687616
    },
    {
     "kind": "beef",
     "t_h": 501.0,
     "units": 2321.666666666667,
-    "proceeds": 29608.783494525444,
-    "value_units": 2605.763888888889,
-    "price": 11.4795372572391,
-    "avg_discount": 0.010168840344336294
+    "proceeds": 27592.312747905336,
+    "value_units": 2423.75,
+    "price": 11.480409601329418,
+    "avg_discount": 0.00838543156883198
    },
    {
     "kind": "milk",
     "t_h": 504.0,
     "units": 7076.8367399772,
-    "proceeds": 62340.066619137055,
+    "proceeds": 62494.81851985392,
     "value_units": 6390.82820202194,
-    "price": 11.222565778179026,
-    "avg_discount": 0.1308035188832044
+    "price": 11.230321736570405,
+    "avg_discount": 0.1292476209255603
    },
    {
     "kind": "beef",
     "t_h": 504.0,
     "units": 3048.3333333333335,
-    "proceeds": 34868.81598426713,
-    "value_units": 3174.097222222222,
-    "price": 11.150754807735684,
-    "avg_discount": 0.014826527260309308
+    "proceeds": 32207.976460332502,
+    "value_units": 2922.569444444445,
+    "price": 11.149684273906932,
+    "avg_discount": 0.011592502408419803
    },
    {
     "kind": "milk",
     "t_h": 507.0,
     "units": 8556.191184255804,
-    "proceeds": 82843.43932673751,
+    "proceeds": 83075.72196928234,
     "value_units": 7861.858042557589,
-    "price": 11.325290044232386,
-    "avg_discount": 0.06957024677418433
+    "price": 11.32695481672196,
+    "avg_discount": 0.06709857090726878
    },
    {
     "kind": "beef",
     "t_h": 507.0,
     "units": 2578.3333333333335,
-    "proceeds": 27023.67083526477,
-    "value_units": 2569.166666666667,
-    "price": 10.63455952635389,
-    "avg_discount": 0.01091741075075281
+    "proceeds": 28314.984358768987,
+    "value_units": 2689.5833333333335,
+    "price": 10.63244709116164,
+    "avg_discount": 0.009856613775131029
    },
    {
     "kind": "milk",
     "t_h": 510.0,
-    "units": 9637.90641036368,
-    "proceeds": 109706.76083654966,
-    "value_units": 9176.196394408975,
-    "price": 12.435522401265487,
-    "avg_discount": 0.03859437621870476
+    "units": 9703.078101970774,
+    "proceeds": 110669.15190510236,
+    "value_units": 9238.945931490018,
+    "price": 12.434845672860382,
+    "avg_discount": 0.03669512833942423
    },
    {
     "kind": "beef",
     "t_h": 510.0,
     "units": 3152.222222222222,
-    "proceeds": 36409.74069094352,
-    "value_units": 3279.513888888889,
-    "price": 11.25858344415522,
-    "avg_discount": 0.013892276308787088
+    "proceeds": 41207.54078173532,
+    "value_units": 3701.736111111111,
+    "price": 11.261021397324718,
+    "avg_discount": 0.011461796700255045
    },
    {
     "kind": "milk",
     "t_h": 513.0,
     "units": 18391.543395996094,
-    "proceeds": 217602.00639502236,
+    "proceeds": 217959.91148185334,
     "value_units": 18391.543395996094,
-    "price": 12.287860549082367,
-    "avg_discount": 0.03712824960736538
+    "price": 12.29130921497216,
+    "avg_discount": 0.035815152353866564
    },
    {
     "kind": "beef",
     "t_h": 513.0,
     "units": 2831.9444444444443,
-    "proceeds": 35516.3338445453,
-    "value_units": 3187.847222222222,
-    "price": 11.25042147947769,
-    "avg_discount": 0.009711268944684881
+    "proceeds": 31416.355247420626,
+    "value_units": 2820.4861111111113,
+    "price": 11.252302515045862,
+    "avg_discount": 0.010102028813332886
    },
    {
     "kind": "milk",
     "t_h": 516.0,
     "units": 2903.984999999999,
-    "proceeds": 29753.459862151696,
+    "proceeds": 29756.69954448139,
     "value_units": 2903.984999999999,
-    "price": 10.285951377065858,
-    "avg_discount": 0.003909865280794622
+    "price": 10.286363171928654,
+    "avg_discount": 0.003841287685489081
    },
    {
     "kind": "beef",
     "t_h": 516.0,
     "units": 3176.666666666667,
-    "proceeds": 40881.84337609026,
-    "value_units": 3551.666666666667,
-    "price": 11.61850914624824,
-    "avg_discount": 0.009286989205827823
+    "proceeds": 35769.3849315926,
+    "value_units": 3114.166666666667,
+    "price": 11.619597391992485,
+    "avg_discount": 0.01149575169488215
    },
    {
     "kind": "milk",
     "t_h": 519.0,
     "units": 4260.795,
-    "proceeds": 47883.7595681581,
+    "proceeds": 47901.146834314735,
     "value_units": 4260.795,
-    "price": 11.285261733390842,
-    "avg_discount": 0.004168255982674562
+    "price": 11.28805382578954,
+    "avg_discount": 0.004053063221835407
    },
    {
     "kind": "beef",
     "t_h": 519.0,
     "units": 2981.666666666667,
-    "proceeds": 32721.904336684744,
-    "value_units": 2733.1944444444443,
-    "price": 12.083741024085645,
-    "avg_discount": 0.009244179662734942
+    "proceeds": 41557.26276503248,
+    "value_units": 3480.1388888888887,
+    "price": 12.079107509329479,
+    "avg_discount": 0.011411597954620434
    },
    {
     "kind": "milk",
     "t_h": 522.0,
     "units": 2750.58,
-    "proceeds": 30953.155304739066,
+    "proceeds": 30967.25169968878,
     "value_units": 2750.58,
-    "price": 11.289186172004133,
-    "avg_discount": 0.0031770900698555593
+    "price": 11.293865891779834,
+    "avg_discount": 0.0031363574247315062
    },
    {
     "kind": "beef",
     "t_h": 522.0,
     "units": 3231.6666666666665,
-    "proceeds": 44364.455966481655,
-    "value_units": 3602.8472222222217,
-    "price": 12.441571896054578,
-    "avg_discount": 0.01027609434452248
+    "proceeds": 42023.91783739886,
+    "value_units": 3419.9305555555557,
+    "price": 12.438919092979758,
+    "avg_discount": 0.012137252940435439
    }
   ],
   "totals": {
    "milk": {
     "units": 72096.29243408203,
-    "proceeds": 726644.7625323299,
-    "value_units": 68327.73284076685,
-    "price_x_value": 811159.6120026327,
-    "avg_price": 10.634697396234793,
-    "avg_market_price": 11.871601446121227
+    "proceeds": 727510.6318848863,
+    "value_units": 68322.05210166045,
+    "price_x_value": 811194.5889126929,
+    "avg_price": 10.64825498511637,
+    "avg_market_price": 11.873100469899063
    },
    "beef": {
     "units": 23322.500000000004,
-    "proceeds": 281395.5485288028,
-    "value_units": 24704.097222222223,
-    "price_x_value": 284533.17322528403,
-    "avg_price": 11.390642855618193,
-    "avg_market_price": 11.51765112749541
+    "proceeds": 280089.7351301867,
+    "value_units": 24572.36111111111,
+    "price_x_value": 283193.08849914355,
+    "avg_price": 11.398568247620942,
+    "avg_market_price": 11.524862719484029
    }
   }
  }

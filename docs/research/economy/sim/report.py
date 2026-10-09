@@ -162,7 +162,7 @@ CARE_ALL = STRATS + ("Z",)
 
 def goal_care() -> dict:
     """各人數、各玩法（含 Z 懶得照顧）：病牛的時間比例、飼料回報（豆粕看 B）、懶得照顧少賺多少、
-    小幫手＋地板＋治療佔收入、稀有小牛變雜種的比例。各 seed 加總再算比例。"""
+    小幫手（打掃牛）＋地板＋治療＋掃地機佔收入、最後有掃地機的比例、稀有小牛變雜種的比例。各 seed 加總再算比例。"""
     out = {}
     for n in S.POP_SEEDS:
         runs = [d for d in base_runs(n) if "care" in d]
@@ -180,12 +180,16 @@ def goal_care() -> dict:
             rev, feed, rare = tot("revenue"), tot("feed_spend"), tot("rare_grown")
             row[k] = {
                 "revenue_mean": rev / sum(c["n"] for c in cs),
-                "care_net_mean": (rev - tot("helper_spend") - tot("floor_spend") - tot("cure_spend") - feed) / sum(c["n"] for c in cs),
+                "care_net_mean": (rev - tot("helper_spend") - tot("floor_spend") - tot("cure_spend") - tot("robot_spend") - feed)
+                / sum(c["n"] for c in cs),
                 "sick_share": statistics.fmean(c["sick_share"] for c in cs),
                 "feed_roi": tot("bonus_value") / feed if feed else None,
                 "feed_share": feed / rev if rev else None,
-                "care_spend_share": (tot("helper_spend") + tot("floor_spend") + tot("cure_spend")) / rev if rev else None,
+                "care_spend_share": (tot("helper_spend") + tot("floor_spend") + tot("cure_spend") + tot("robot_spend")) / rev
+                if rev else None,
                 "helper_share": tot("helper_spend") / rev if rev else None,
+                "robot_share": tot("robot_spend") / rev if rev else None,
+                "robot_owners": tot("robot_owners") / sum(c["n"] for c in cs),
                 "sick_per_player": tot("sick") / sum(c["n"] for c in cs),
                 "cures_per_player": tot("cures") / sum(c["n"] for c in cs),
                 "hybrid_share": tot("hybrid") / rare if rare else None,

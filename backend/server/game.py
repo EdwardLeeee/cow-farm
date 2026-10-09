@@ -1112,6 +1112,19 @@ class Game:
             raise GameError("rejected", "現在不能雇小幫手", 409)
         return {"days": days, "cost": int(round(cost)), "until": f.helper_until}
 
+    # ---- 大便掃地機：這次只有服務層（電腦假玩家用）；HTTP 端點、協定、錯誤碼在之後的伺服器 PR ----
+    def buy_robot(self, pid: int, model: int, now: float, rng: Optional[random.Random] = None) -> dict:
+        p = self.player(pid)
+        if not p.farm.buy_robot(model, now, self._rng(p, rng)):
+            raise GameError("rejected", "現在不能買這款掃地機", 409)
+        return {"model": model}
+
+    def repair_robot(self, pid: int, now: float, rng: Optional[random.Random] = None) -> dict:
+        p = self.player(pid)
+        if not p.farm.repair_robot(now, self._rng(p, rng)):
+            raise GameError("rejected", "現在不能修掃地機", 409)
+        return {"model": p.farm.robot}
+
     def buy_floor(self, pid: int, floor, now: float) -> dict:
         """買斷地板（軟墊地）。電腦假玩家傳索引。"""
         f = self.player(pid).farm
