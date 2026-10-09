@@ -46,7 +46,8 @@ class SexText extends StatelessWidget {
 
 TextStyle _chipText() => AppText.style(12, weight: FontWeight.w900, lineHeight: 18);
 
-/// .tier：稀有度（一般、優良、稀有、傳說；傳說是漸層加星星）。
+/// .tier.stars：稀有度（#170，第 15 輪 02-A「只有星星」）：一般 1、優良 2、稀有 3、傳說 4 顆星，特殊牛（[tier] 4）
+/// 5 顆彩虹星（第 16 輪 02-B）；底色照稀有度。名字不寫在標籤上，給螢幕閱讀器唸。
 class TierChip extends StatelessWidget {
   const TierChip(this.tier, {super.key, this.compact = false});
 
@@ -55,32 +56,89 @@ class TierChip extends StatelessWidget {
   /// 圖鑑格子裡的小號（.dex-cell .tier：高 20、框 1.5、左右 5）。
   final bool compact;
 
-  static const _colors = [Color(0xFFF1EADF), Color(0xFFCFEFC4), Color(0xFFCFE6FF)];
-
   @override
   Widget build(BuildContext context) {
-    final legend = tier >= 3;
-    return Container(
+    final t = tier.clamp(0, 4);
+    return _StarChip(
+      label: Strings.of(context).tierName(t),
+      stars: t == 4 ? [for (var k = 1; k <= 5; k++) 'starRainbow$k'] : List.filled(t + 1, 'star'),
+      color: switch (t) {
+        0 => const Color(0xFFF1EADF),
+        1 => const Color(0xFFCFEFC4),
+        2 => const Color(0xFFCFE6FF),
+        _ => null,
+      },
+      gradient: switch (t) {
+        3 => const LinearGradient(colors: [Color(0xFFFFE27A), Color(0xFFFFC4D6)]),
+        4 => const LinearGradient(colors: [Color(0xFFFFE1EA), Color(0xFFE3F0FF), Color(0xFFE6F7D8)]),
+        _ => null,
+      },
+      line: AppColors.ink,
+      compact: compact,
+    );
+  }
+}
+
+/// 一頭牛（或一個品種）的稀有度標籤（設計稿 kit.js 的 rarityChip）：雜種牛 1 顆灰星，其他照品種的稀有度
+/// （圖鑑有的品種照圖鑑，不然照伺服器給的 [tier]）。牛舍清單、名片、選牛卡、田地、借種都用這個。
+Widget rarityChip(String breed, int tier, {bool compact = false}) =>
+    breed == kHybrid ? MixStarChip(compact: compact) : TierChip(breedInfo(breed)?.tier ?? tier, compact: compact);
+
+/// .tier.stars.mix-star：雜種牛一律 1 顆灰星（使用者 2026-10-08），灰底灰框；螢幕閱讀器唸「雜種」。
+class MixStarChip extends StatelessWidget {
+  const MixStarChip({super.key, this.compact = false});
+
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) => _StarChip(
+    label: Strings.of(context).badgeMix,
+    stars: const ['starGray'],
+    color: const Color(0xFFEEE8E1),
+    line: const Color(0xFF8A7E72),
+    compact: compact,
+  );
+}
+
+/// .tier.stars：高 22、框 2、圓角 11、左右 6，星星 11、之間 1（小號：高 20、框 1.5、左右 5）。
+class _StarChip extends StatelessWidget {
+  const _StarChip({
+    required this.label,
+    required this.stars,
+    required this.line,
+    required this.compact,
+    this.color,
+    this.gradient,
+  });
+
+  final String label;
+  final List<String> stars;
+  final Color? color;
+  final Gradient? gradient;
+  final Color line;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    label: label,
+    container: true,
+    child: Container(
       height: compact ? 20 : 22,
-      padding: EdgeInsets.symmetric(horizontal: compact ? 5 : 7),
+      padding: EdgeInsets.symmetric(horizontal: compact ? 5 : 6),
       decoration: BoxDecoration(
-        color: legend ? null : _colors[tier.clamp(0, 2)],
-        gradient: legend ? const LinearGradient(colors: [Color(0xFFFFE27A), Color(0xFFFFC4D6)]) : null,
-        border: Border.all(color: AppColors.ink, width: compact ? 1.5 : 2),
-        borderRadius: BorderRadius.all(Radius.circular(compact ? 10 : 11)),
+        color: color,
+        gradient: gradient,
+        border: Border.all(color: line, width: compact ? 1.5 : 2),
+        borderRadius: const BorderRadius.all(Radius.circular(11)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (legend) ...[const AppIcon('sparkle', size: 12), const SizedBox(width: 2)],
-          Text(
-            Strings.of(context).tierName(tier.clamp(0, 3)),
-            style: compact ? AppText.style(12, weight: FontWeight.w900, lineHeight: 16) : _chipText(),
-          ),
+          for (final (i, star) in stars.indexed) ...[if (i > 0) const SizedBox(width: 1), AppIcon(star, size: 11)],
         ],
       ),
-    );
-  }
+    ),
+  );
 }
 
 /// .badge 的種類和底色；.badge.lock（空田）的字是 ink-2、框是停用的淡色。
@@ -133,7 +191,7 @@ List<Widget> cowChips(BuildContext context, Cow c) {
   return [
     UseChip(info?.type ?? c.type),
     SexText(bull: c.bull),
-    TierChip(info?.tier ?? c.tier),
+    rarityChip(c.breed, c.tier),
     if (c.stage == CowStage.calf) CowBadge(BadgeKind.calf, s.stageCalf),
     if (c.stage == CowStage.old) CowBadge(BadgeKind.old, s.stageOld),
     if (c.fieldIndex != null) CowBadge(BadgeKind.working, s.badgeWorking),

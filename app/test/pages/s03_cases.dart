@@ -512,7 +512,11 @@ final s03Cases = <PageCase>[
       final pop = find.byKey(const Key('cow-pop'));
       expect(pop, findsOneWidget);
       expect(find.descendant(of: pop, matching: find.text(_zh.cowName('strawberry', 12))), findsOneWidget);
-      expect(find.descendant(of: pop, matching: find.text(_zh.tierName(3))), findsOneWidget);
+      // 稀有度是星星（#170）：傳說 4 顆
+      expect(
+        find.descendant(of: pop, matching: find.byWidgetPredicate((w) => w is TierChip && w.tier == 3)),
+        findsOneWidget,
+      );
       expect(find.text(_zh.s03PopMilk(tier: _zh.tierName(3), n: '14')), findsOneWidget);
       expect(find.byKey(const Key('pop-detail')), findsOneWidget);
       // 前排放得下：照原本的放法，頭頂上方、尖角朝下對準牛頭（D30 不改 S03-06）
@@ -549,9 +553,13 @@ final s03Cases = <PageCase>[
       expect(find.text('${_zh.weight(v: '612')}$sep${_zh.s03MetaValue(v: '10,024')}'), findsOneWidget);
       // #8：乳牛、公、一般、老牛、已配種
       final row8 = find.byKey(const Key('cow-8'));
-      for (final t in [_zh.stageOld, _zh.badgeBred, _zh.tierName(0), _zh.bull]) {
+      for (final t in [_zh.stageOld, _zh.badgeBred, _zh.bull]) {
         expect(find.descendant(of: row8, matching: find.text(t)), findsOneWidget);
       }
+      expect(
+        find.descendant(of: row8, matching: find.byWidgetPredicate((w) => w is TierChip && w.tier == 0)),
+        findsOneWidget,
+      );
     },
   ),
   PageCase(
@@ -920,7 +928,8 @@ final s03Cases = <PageCase>[
                 SexText(bull: false),
               ]),
               const SizedBox(height: 8),
-              _badgeLine('稀有度', [for (var t = 0; t < 4; t++) TierChip(t)]),
+              // 稀有度是星星（#170）：一般 1～傳說 4 顆、特殊牛 5 顆彩虹星、雜種牛 1 顆灰星
+              _badgeLine('稀有度', [for (var t = 0; t < 5; t++) TierChip(t), const MixStarChip()]),
               const SizedBox(height: 8),
               _badgeLine('狀態', [
                 CowBadge(BadgeKind.calf, s.stageCalf),
@@ -937,9 +946,9 @@ final s03Cases = <PageCase>[
     crop: find.byKey(const Key('sheet')),
     check: (tester) {
       expect(find.byType(UseChip), findsNWidgets(3));
-      expect(find.byType(TierChip), findsNWidgets(4));
+      expect(find.byType(TierChip), findsNWidgets(5));
+      expect(find.byType(MixStarChip), findsOneWidget);
       expect(find.byType(CowBadge), findsNWidgets(5));
-      expect(find.text(_zh.tierName(3)), findsOneWidget);
       expect(find.text(_zh.badgeListed), findsOneWidget);
     },
   ),
