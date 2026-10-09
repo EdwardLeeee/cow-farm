@@ -1079,3 +1079,17 @@
 .grow-alert .bn-close { right: -4px; top: -4px; }
 .grow-alert .btn { flex: none; margin-top: 18px; }
 .ga-feed { display: inline-flex; align-items: center; gap: 1px; margin-left: 4px; color: var(--ink); font-weight: 900; vertical-align: middle; }
+
+/* ================= 圖鑑的配種表（使用者 2026-10-08 選第 15 輪 03-B「一對一列」；v0.3 第 13.2 節） ================= */
+.bp-list { display: flex; flex-direction: column; margin-top: 6px; }
+.bp-row { display: flex; align-items: center; gap: 2px; padding: 6px 0; border-top: 2px dashed var(--line-soft); }
+.bp-row:first-child { border-top: 0; }
+.bp-row.extra { margin-top: 4px; padding: 6px 4px; border-top: 0; border-radius: 12px; background: #FFF6D6; }
+.bp-pic { line-height: 0; }
+.bp-x { align-self: center; padding: 0 1px; font-size: 16px; font-weight: 900; line-height: 20px; color: var(--ink-2); }
+.bp-row .grow { display: flex; flex-direction: column; margin-left: 6px; min-width: 0; }
+.bp-row b { display: inline-flex; align-items: center; gap: 2px; font-size: 14px; line-height: 19px; }
+.bp-row.locked b { color: var(--ink-3); }
+.sx { font-style: normal; font-weight: 900; }
+.sx.m { color: #3B82C4; }
+.sx.f { color: #E0567E; }
