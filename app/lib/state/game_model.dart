@@ -10,6 +10,8 @@ import '../api/push.dart';
 import '../auth/sign_in.dart';
 import '../storage/token_store.dart';
 import '../ui/ranch/herd.dart';
+import 'grow_reveals.dart';
+import 'settings.dart';
 
 /// 手機上的單調時鐘（秒）。不受使用者改手機時間影響，只用來推算畫面上的時間與奶桶。
 typedef NowFn = double Function();
@@ -141,7 +143,9 @@ class GameModel extends ChangeNotifier {
     this.longOfflineAfter = const Duration(seconds: 60),
     this.signInPlatform = SignInPlatform.none,
     this.signIn,
-  }) : _now = now ?? monotonicClock() {
+    PrefsStore? prefs,
+  }) : _now = now ?? monotonicClock(),
+       _grows = GrowReveals(prefs ?? MemoryPrefsStore()) {
     push.connected.addListener(_onConnectedChanged);
     _pushSub = push.messages.listen(_onPush);
   }
@@ -181,6 +185,13 @@ class GameModel extends ChangeNotifier {
   Timer? _marketTimer;
   Timer? _maintTimer;
   bool _disposed = false;
+
+  /// 小牛長大揭曉（A-13、S03-25）：看過是小牛的牛記在手機上（[prefs]），長大了就排著等牧場頁揭曉。
+  final GrowReveals _grows;
+
+  /// 下一頭小牛長大（adult_at）的時候重抓 state（協定 2.3）。[start] 以後才排（測試不開計時器）。
+  Timer? _growTimer;
+  bool _started = false;
 
   // ---- 狀態 ----
   bool starting = false;
@@ -311,6 +322,8 @@ class GameModel extends ChangeNotifier {
   /// 啟動：先問伺服器是不是在維護（S16-01）；有 token 就拿牧場與行情、連 WebSocket、開始定時校正；
   /// 沒有 token 就停在「還沒有牧場」（S02 取名）。
   Future<void> start() async {
+    _started = true;
+    await _grows.loaded; // 先知道哪些牛看過是小牛，第一次收到 state 就能揭曉沒開 app 的時候長大的
     await _boot();
     _stateTimer ??= Timer.periodic(refreshEvery, (_) {
       if (needsRanch || authLost != null || maintenance != null) return;
@@ -455,6 +468,7 @@ class GameModel extends ChangeNotifier {
     busy = false;
     _deleteRequestId = null;
     ranchDeleted = true;
+    _grows.forget(state?.playerId);
     await _forgetRanch();
     _notify();
     return const ActionResult.ok(null);
@@ -486,6 +500,10 @@ class GameModel extends ChangeNotifier {
   /// 選好的公牛母牛、剛生的小牛、場景的位置都不能留給新牧場。
   void _clearRanchView() {
     state = null;
+    // 舊牧場還沒揭曉的小牛不能留到新牧場（手機上記的照牧場分開，不用清）
+    _grows.clear();
+    _growTimer?.cancel();
+    _growTimer = null;
     // 舊牧場還沒按「好」的升級慶祝（S11-01）、還沒按掉的備份提醒（S11-05）不能留到新牧場
     levelUp = null;
     backupRemind = false;
@@ -738,6 +756,7 @@ class GameModel extends ChangeNotifier {
 
   Future<void> _loadState() async {
     final token = api.token;
+    await _grows.loaded;
     final s = await api.getState();
     if (api.token != token) return; // 這段時間牧場換了（刪除）：舊牧場的資料不要
     _setState(s);
@@ -752,6 +771,38 @@ class GameModel extends ChangeNotifier {
     if (s.ranchName != null && s.ranchName!.isNotEmpty) ranchName = s.ranchName!;
     // 等級比上一次高：要慶祝（S11-01）。剛打開、剛開新牧場（之前沒有 state）不算；一次升好幾級只記最後那一級
     if (before != null && s.level > before) levelUp = (level: s.level, levelAt: s.levelProgress.levelAt);
+    _grows.track(s);
+    _scheduleGrowRefresh(s);
+  }
+
+  /// 下一頭要在牧場頁揭曉的牛（長大了、還沒揭曉；照長大的時間）。沒有是 null。
+  Cow? get grownCow => _grows.next(state);
+
+  /// 揭曉完了（一般的牛點一下，雜種牛按「好」）：換下一頭。
+  void dismissGrown(Cow cow) {
+    _grows.done(cow.id, state?.playerId);
+    _notify();
+  }
+
+  /// 在最早的那頭小牛長大的時候重抓 state（協定 2.3：伺服器不推播，app 在 adult_at 重抓）。平常 [refreshEvery] 也會抓，
+  /// 這裡讓揭曉不用多等那幾秒。
+  void _scheduleGrowRefresh(GameState s) {
+    _growTimer?.cancel();
+    _growTimer = null;
+    if (!_started || _disposed) return;
+    final now = gameNow;
+    double? next;
+    for (final c in s.cows) {
+      final at = c.adultAt;
+      if (c.stage == CowStage.calf && at != null && at > now && (next == null || at < next)) next = at;
+    }
+    if (next == null) return;
+    final scale = timeScale > 0 ? timeScale : 1;
+    // 晚 0.5 秒再抓：伺服器只算到它的 server_time，手機的時鐘快一點的話抓到的還是小牛（下次照樣會抓到）
+    _growTimer = Timer(Duration(milliseconds: ((next - now) / scale * 1000).ceil() + 500), () {
+      _growTimer = null;
+      refreshState();
+    });
   }
 
   /// 剛升級、還沒按「好」的慶祝（S11-01）：升到幾級、這一級的門檻（累積收入）。
@@ -1380,6 +1431,7 @@ class GameModel extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _growTimer?.cancel();
     _stateTimer?.cancel();
     _marketTimer?.cancel();
     _maintTimer?.cancel();

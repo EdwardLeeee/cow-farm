@@ -91,6 +91,22 @@ List<Map<String, dynamic>> designCows() => [
   designCow(14, 'jersey', bull: true, kg: 205, value: 3240),
 ];
 
+/// 設計稿 S03-25 的雜種牛（fixtures.js 的 MIX_COW）：#20 乳牛、母，小時候要吃苜蓿、沒吃到，長大變成雜種牛
+/// （伺服器照樣送原本的稀有度，畫面不顯示）。[calf] 是長大前、還是小牛的時候。
+Map<String, dynamic> mixCow({bool calf = false}) => calf
+    ? {
+        ...designCow(20, 'holstein', stage: 'calf'),
+        'need': ['alfalfa'],
+      }
+    : {
+        ...designCow(20, 'holstein', milk: 14, kg: 206, value: 1466),
+        'breed': 'hybrid',
+        'tier': 2,
+        'hybrid': true,
+        'need': ['alfalfa'],
+        'missed': ['alfalfa'],
+      };
+
 /// 設計稿 S03-01 的牧場：Lv 4（經驗 41%）、12,480 幣、牛舍 10／12、奶桶 36.4／42（每小時 42 瓶）、倉庫 225。
 Map<String, dynamic> ranchState({
   List<Map<String, dynamic>>? cows,
@@ -235,13 +251,20 @@ Future<GameModel> ranchModel({
   bool connected = true,
   SignInService? signIn,
   SignInPlatform signInPlatform = SignInPlatform.iphone,
+  PrefsStore? prefs,
 }) async {
   final a = api ?? FakeGameApi(state: state ?? ranchState(), market: market ?? ranchMarket());
   if (api != null) {
     a.stateJson = state ?? a.stateJson;
     a.marketJson = market ?? a.marketJson;
   }
-  final (m, _, _) = await loadedModel(api: a, connected: connected, signIn: signIn, signInPlatform: signInPlatform);
+  final (m, _, _) = await loadedModel(
+    api: a,
+    connected: connected,
+    signIn: signIn,
+    signInPlatform: signInPlatform,
+    prefs: prefs,
+  );
   return m;
 }
 
@@ -867,6 +890,38 @@ final s03Cases = <PageCase>[
       final pop = find.byKey(const Key('cow-pop'));
       expect(find.descendant(of: pop, matching: find.text(_zh.stageOld)), findsOneWidget);
       expect(find.text(_zh.weight(v: '268')), findsOneWidget);
+    },
+  ),
+  PageCase(
+    'S03-25',
+    '小牛長大揭曉：變成雜種牛（A-13 的結尾）',
+    // 設計稿：S03-01 的牧場，小乳牛 #20 長大了、變成雜種牛（設計稿的 #20 不算在牛舍 10／12 裡；app 的 #20 排在場景
+    // 右半邊，看不到）。先收到 #20 還是小牛的 state，下一次收到長大了的
+    (tester, lang) async {
+      final api = FakeGameApi(
+        state: ranchState(cows: [...designCows(), mixCow(calf: true)], penUsed: 10),
+        market: ranchMarket(),
+      );
+      final m = await ranchModel(api: api);
+      api.stateJson = ranchState(cows: [...designCows(), mixCow()], penUsed: 10);
+      await m.refreshState();
+      await pumpAppIn(tester, m, lang, prefs: swipeHintSeen);
+    },
+    check: (tester) {
+      expect(find.byKey(const Key('grow-reveal')), findsOneWidget);
+      expect(
+        tester.widget<Text>(find.byKey(const Key('grow-title'))).data,
+        _zh.animGrownUp(cow: _zh.calfName(CowType.dairy, 20)),
+      );
+      expect(find.text(_zh.cowName('hybrid', 20)), findsOneWidget);
+      final name = find.byKey(const Key('grow-name'));
+      expect(find.descendant(of: name, matching: find.byType(MixStarChip)), findsOneWidget);
+      expect(find.descendant(of: name, matching: find.text(_zh.badgeMix)), findsOneWidget);
+      expect(find.text(_zh.animMixGrown(feeds: _zh.feedList(['alfalfa']))), findsOneWidget);
+      expect(find.text(_zh.animMixHint(mult: '0.6')), findsOneWidget);
+      expect(find.byKey(const Key('grow-ok')), findsOneWidget);
+      expect(find.byKey(const Key('grow-skip')), findsNothing, reason: '雜種牛按「好」關，沒有「點一下跳過」');
+      expect(find.text('10 / 12'), findsOneWidget);
     },
   ),
   PageCase(
