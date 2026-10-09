@@ -33,6 +33,7 @@ from cowecon.farm import (
 from cowecon.params import DAY, HOUR, TZ_OFFSET_S
 
 from . import achievements as A
+from . import pairings as PAIRINGS
 from .breeds import ALL as ALL_BREEDS
 from .breeds import FEED_IDS, FEED_INDEX, FLOOR_IDS, FLOOR_INDEX
 from .breeds import HYBRID as HYBRID_BREED
@@ -145,9 +146,8 @@ class Player:
         # v0.3 C1：長大揭曉（Game.observe_care）
         self.grown_ids: Set[int] = set()  # 已經處理過長大揭曉的牛（只留還在牧場的）
         self.parents: Dict[int, List] = {}  # 真人配種、借種生的小牛 → [爸爸的基因, 爸爸是雜種, 媽媽的基因, 媽媽是雜種]
-        self.pairs: Dict[
-            str, float
-        ] = {}  # 配種表（C1b）："爸爸品種,媽媽品種,小牛品種" → 第一次長大的時間（畫面上的品種）
+        # 配種表（C1b）："爸爸品種,媽媽品種,小牛品種"（畫面上的品種）→ [第一次長大的時間, 配出過幾次]
+        self.pairs: Dict[str, List[float]] = {}
         self.clean_from: Optional[float] = created_at  # 成就 clean：從什麼時候起沒有牛生病（None = 現在有病牛）
 
     def found(self, breed: str, t: float) -> None:
@@ -262,7 +262,7 @@ class Player:
         # v0.3 C1（存檔格式 5；更舊的世界在載入前就被拒絕）
         p.grown_ids = set(state.get("grown_ids", ()))
         p.parents = {int(k): list(v) for k, v in state.get("parents", {}).items()}
-        p.pairs = dict(state.get("pairs", {}))
+        p.pairs = PAIRINGS.load(state.get("pairs", {}))  # C1b：[第一次的時間, 次數]（C1a 只記時間）
         p.clean_from = state.get("clean_from", created_at)
         return p
 
@@ -928,9 +928,7 @@ class Game:
                     p.unlock("pureBreed", t)  # 照品種的飼料養大一頭稀有以上的小牛
             par = p.parents.pop(c.cid, None)
             if par is not None and not c.hybrid:  # 變成雜種牛不算（企劃 13.2）
-                key = ",".join((shown_breed(par[0], par[1]), shown_breed(par[2], par[3]), child))
-                if key not in p.pairs or t < p.pairs[key]:
-                    p.pairs[key] = t
+                PAIRINGS.record(p.pairs, shown_breed(par[0], par[1]), shown_breed(par[2], par[3]), child, t)
         p.grown_ids = {c.cid for c in f.cows if c.grown}
         live = {c.cid for c in f.cows}
         if any(cid not in live for cid in p.parents):  # 理論上小牛不會在長大前離開；保險起見不留孤兒
