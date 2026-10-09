@@ -2,6 +2,8 @@
 // （荷斯坦、蓬蓬荷斯坦、娟珊、巧克力牛、草莓牛、台灣黃牛、高地牛、台灣水牛、安格斯、和牛）。
 // 設計稿的「現在」是 2026-10-02 12:00（手機時區），每一種都是兩天前（9 月 30 日）第一次發現；
 // 牧場裡的娟珊只留 #7 一頭（設計稿 S09-03「目前有 1 頭」）。S09-05（24 種全圖）不是 app 畫面（pages_test 的 notAppPageIds）。
+// 娟珊的配種表（S09-03、S09-08）照 s09.js 的 JERSEY_PAIRS：代表配法 4 組（假伺服器的 samplePairingsJson）、
+// 配出過 3 組（娟珊 × 娟珊 2 次、娟珊 × 荷斯坦 1 次，加上表上沒有的亮黑乳牛 × 娟珊 1 次）。
 import 'package:cowfarm/api/breeds.dart';
 import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
@@ -53,6 +55,13 @@ Map<String, dynamic> codexState({List<String> found = designCodexFound}) {
   };
 }
 
+/// 娟珊的配種表配出過的組合（設計稿 JERSEY_PAIRS 裡 got 不是 0 的；爸爸、媽媽分開算）。
+const designJerseyPairings = [
+  {'sire': 'jersey', 'dam': 'jersey', 'child': 'jersey', 'count': 2, 'found_at': t0 - 2 * 86400},
+  {'sire': 'jersey', 'dam': 'holstein', 'child': 'jersey', 'count': 1, 'found_at': t0 - 86400},
+  {'sire': 'glossBlack', 'dam': 'jersey', 'child': 'jersey', 'count': 1, 'found_at': t0 - 3600},
+];
+
 /// 打開紀錄分頁的圖鑑；[breed] 給了就打開那個品種的詳細。[tall] 是長頁（整頁一張）。
 Future<GameModel> showCodex(
   WidgetTester tester,
@@ -67,7 +76,7 @@ Future<GameModel> showCodex(
   if (breed != null) m.openCodex(breed);
   await pumpAppIn(tester, m, lang);
   await tester.pump();
-  if (tall) await growToFit(tester, find.byKey(const Key('codex')));
+  if (tall) await growToFit(tester, find.byKey(Key(breed == null ? 'codex' : 'codex-detail')));
   return m;
 }
 
@@ -120,10 +129,16 @@ final s09Cases = [
   ),
   PageCase(
     'S09-03',
-    '品種詳細（已發現）',
-    (tester, lang) => showCodex(tester, lang, breed: 'jersey').then((_) {}),
+    '品種詳細（已發現）：介紹、數值、怎麼配出來、配種表（長頁）',
+    (tester, lang) => showCodex(
+      tester,
+      lang,
+      breed: 'jersey',
+      tall: true,
+      state: {...codexState(), 'pairings': designJerseyPairings},
+    ).then((_) {}),
     check: (tester) {
-      expect(find.text(_zh.breedName('jersey')), findsOneWidget);
+      expect(tester.widget<Text>(find.byKey(const Key('codex-name'))).data, _zh.breedName('jersey'));
       expect(find.text('No.03'), findsOneWidget);
       expect(find.text(_zh.breedIntro('jersey')), findsOneWidget);
       expect(find.text('14 ${_zh.gPerHourMilk}'), findsOneWidget);
@@ -136,6 +151,39 @@ final s09Cases = [
         reason: '娟珊是淡色（B）',
       );
       expect(find.text(_zh.s09FirstFound(date: _zh.dateMdOnly(m: 9, d: 30), n: 1)), findsOneWidget);
+      // 配種表：代表配法 4 列照伺服器的順序，加上表上沒有的 1 列；亮了 3 列
+      expect(find.text(_zh.s09PairTitle), findsOneWidget);
+      expect(find.text(_zh.s09PairUnlocked(n: 3, total: 5)), findsOneWidget);
+      expect(find.text(_zh.s09PairHint(breed: _zh.breedName('jersey'))), findsOneWidget);
+      String rowText(int i) => [
+        for (final t in tester.widgetList<Text>(
+          find.descendant(of: find.byKey(Key('pair-row-$i')), matching: find.byType(Text)),
+        ))
+          t.data ?? t.textSpan?.toPlainText(),
+      ].join(' ');
+      final jersey = _zh.breedName('jersey'), holstein = _zh.breedName('holstein'), unknown = _zh.gUnknownBreed;
+      expect(rowText(0), '× ♂ $jersey ♀ $jersey ${_zh.s09PairCount(n: 2)}');
+      expect(rowText(1), '× ♂ $unknown ♀ $unknown ${_zh.s09PairNone}');
+      expect(rowText(2), '× ♂ $jersey ♀ $holstein ${_zh.s09PairCount(n: 1)}');
+      expect(rowText(3), '× ♂ $unknown ♀ $unknown ${_zh.s09PairNone}');
+      expect(
+        rowText(4),
+        '× ♂ ${_zh.breedName('glossBlack')} ♀ $jersey ${_zh.s09PairCount(n: 1)}${_zh.gSep}${_zh.s09PairExtra}',
+      );
+      expect(find.byKey(const Key('pair-row-5')), findsNothing);
+    },
+  ),
+  PageCase(
+    'S09-08',
+    '配種表：一種都還沒配出過',
+    // 設計稿：代表配法 4 列都是影子，沒有表上沒有的
+    (tester, lang) => showCodex(tester, lang, breed: 'jersey', tall: true).then((_) {}),
+    crop: find.byKey(const Key('pair-table')),
+    check: (tester) {
+      expect(find.text(_zh.s09PairUnlocked(n: 0, total: 4)), findsOneWidget);
+      expect(find.text(_zh.s09PairNone), findsNWidgets(4));
+      expect(find.text(_zh.gUnknownBreed), findsNWidgets(8));
+      expect(find.byKey(const Key('pair-row-4')), findsNothing);
     },
   ),
   PageCase(
@@ -151,6 +199,7 @@ final s09Cases = [
         find.text(_zh.s09UnknownBody(use: _zh.useName(breedInfo('goldenEar')!.type), tier: _zh.tierName(3))),
         findsOneWidget,
       );
+      expect(find.byKey(const Key('pair-table')), findsNothing, reason: '還沒發現的品種不放配種表（v0.3 第 13.2 節）');
     },
   ),
   PageCase(
@@ -167,6 +216,7 @@ final s09Cases = [
       expect(find.text('6.6 ${_zh.gPerHourRice}'), findsOneWidget);
       expect(find.text('×0.6'), findsOneWidget);
       expect(find.text(_zh.s09MixHowTitle), findsOneWidget);
+      expect(find.byKey(const Key('pair-table')), findsNothing, reason: '雜種牛沒有配種表');
       // 第一次發現的日期、牧場裡現在有幾頭雜種牛
       expect(find.text(_zh.s09FirstFound(date: _zh.dateMdOnly(m: 10, d: 3), n: 1)), findsOneWidget);
     },

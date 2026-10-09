@@ -595,11 +595,22 @@ class AppSheet extends StatelessWidget {
 /// 字型是 Noto Sans CJK 的 hhea（ascent 1.16、descent 0.288 字級）。
 /// 只排一行；[wrap] 的話，一行放不下（英文、泰文的窄手機）就照一般的字換行。
 class CssLine extends StatelessWidget {
-  const CssLine(this.span, {super.key, this.textKey, this.wrap = false, this.textAlign, this.ellipsis = false});
+  const CssLine(
+    this.span, {
+    super.key,
+    this.textKey,
+    this.wrap = false,
+    this.textAlign,
+    this.ellipsis = false,
+    this.struts = const [],
+  });
 
   final TextSpan span;
   final Key? textKey;
   final bool wrap;
+
+  /// 同一行裡沒有字、但也算行高的樣式（CSS 空的 inline 元素，例：圖鑑的「×1.3 <small></small>」）。
+  final List<TextStyle> struts;
 
   /// 放不下時用「…」截短（CSS 的 text-overflow: ellipsis；S21 的牧場名）。
   final bool ellipsis;
@@ -644,7 +655,12 @@ class CssLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (above, below) = metrics(span);
+    var (above, below) = metrics(span);
+    for (final s in struts) {
+      final (a, b) = metrics(TextSpan(text: ' ', style: s));
+      above = math.max(above, a);
+      below = math.max(below, b);
+    }
     Widget line() => SizedBox(
       height: above + below,
       child: Baseline(

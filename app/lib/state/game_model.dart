@@ -286,6 +286,11 @@ class GameModel extends ChangeNotifier {
   /// 圖鑑打開的品種（S09-03、S09-04）；null 是列表。
   String? codexBreed;
 
+  /// 圖鑑配種表的代表配法（協定 2.7 `GET /v1/codex/pairings`）：品種 → 4 組。固定資料，拿到一次就記著（換牧場也一樣）；
+  /// 還沒拿到（或拿不到）是 null，品種詳細先不放配種表。舊的伺服器沒有這個端點（404）是空的，不再問。
+  Map<String, List<BreedPair>>? codexPairings;
+  bool _pairingsLoading = false;
+
   /// 牧場場景裡每頭牛的位置：這次打開 app 期間同一頭牛一直在同一個位置（ceo 2026-10-02）。只是顯示用。
   final herdLayout = HerdLayout();
 
@@ -1107,6 +1112,8 @@ class GameModel extends ChangeNotifier {
     studLogOpen = false;
     codexBreed = null;
     _notify();
+    // 打開紀錄分頁就先拿配種表，點進品種詳細時已經有了
+    if (t == AppTab.records) loadCodexPairings();
   }
 
   /// 牧場資料（S21-01）開著：點頂列的頭像或名牌打開，返回關掉。整頁，沒有頂列和分頁列。
@@ -1215,6 +1222,29 @@ class GameModel extends ChangeNotifier {
   void openCodex(String breed) {
     codexBreed = breed;
     _notify();
+    loadCodexPairings();
+  }
+
+  /// 拿配種表的代表配法（[codexPairings]）。已經有了、正在拿就不再送；失敗了下次打開紀錄分頁、品種詳細再試。
+  Future<void> loadCodexPairings() async {
+    if (codexPairings != null || _pairingsLoading) return;
+    _pairingsLoading = true;
+    try {
+      final v = await _read(() async {
+        try {
+          return await api.codexPairings();
+        } on ApiException catch (e) {
+          if (e.status != 404) rethrow;
+          return const <String, List<BreedPair>>{};
+        }
+      });
+      if (v != null) {
+        codexPairings = v;
+        _notify();
+      }
+    } finally {
+      _pairingsLoading = false;
+    }
   }
 
   void closeCodex() {

@@ -5,6 +5,7 @@ import '../../theme/tokens.dart';
 import 'kit.dart';
 
 /// 一格：小字 [k]、大字 [v]，後面接小字單位 [unit]（「14 瓶／時」「3 / 12 塊」；沒有是 null）。
+/// [unit] 是空字串：設計稿有空的 `<small></small>`（圖鑑的「×1.3 <small></small>」），看不到字，但這一行照樣是 25 高。
 typedef KvCell = (String k, String v, String? unit);
 
 TextStyle _even(TextStyle s) => s.copyWith(leadingDistribution: TextLeadingDistribution.even);
@@ -59,7 +60,7 @@ class KvGrid extends StatelessWidget {
                 children: [
                   TextSpan(text: v),
                   // 「14 <small>瓶／時</small>」：空白是大字的，小字再往右 2
-                  if (unit != null) ...[
+                  if (unit != null && unit.isNotEmpty) ...[
                     TextSpan(
                       text: ' ',
                       style: value.copyWith(letterSpacing: 0.2 + 2),
@@ -68,6 +69,8 @@ class KvGrid extends StatelessWidget {
                   ],
                 ],
               ),
+              // 空的小字看不到，行高照算
+              struts: [if (unit != null && unit.isEmpty) unitStyle],
             ),
           ],
         ),

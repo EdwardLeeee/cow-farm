@@ -186,6 +186,9 @@ class HttpGameApi implements GameApi {
   Future<ShopInfo> shop() async => ShopInfo.fromJson(await _get('/v1/shop'));
 
   @override
+  Future<Map<String, List<BreedPair>>> codexPairings() async => codexPairingsFromJson(await _get('/v1/codex/pairings'));
+
+  @override
   Future<ShopBuyResult> shopBuy(String grade) async =>
       ShopBuyResult.fromJson(await _mutate('/v1/shop/buy', {'grade': grade}));
 
