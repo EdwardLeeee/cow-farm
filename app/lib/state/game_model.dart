@@ -10,6 +10,7 @@ import '../api/push.dart';
 import '../auth/sign_in.dart';
 import '../storage/token_store.dart';
 import '../ui/ranch/herd.dart';
+import '../ui/ranch/poop.dart';
 import 'grow_reveals.dart';
 import 'settings.dart';
 
@@ -287,6 +288,9 @@ class GameModel extends ChangeNotifier {
 
   /// 牧場場景裡每頭牛的位置：這次打開 app 期間同一頭牛一直在同一個位置（ceo 2026-10-02）。只是顯示用。
   final herdLayout = HerdLayout();
+
+  /// 牧場場景裡每坨大便的位置（清掉一坨時其他的不跳位）。只是顯示用。
+  final poopLayout = PoopLayout();
   String? detailCowKey;
   String? breedSireKey;
   String? breedDamKey;
@@ -522,6 +526,9 @@ class GameModel extends ChangeNotifier {
     breedDamKey = null;
     lastCalfKey = null;
     herdLayout.clear();
+    poopLayout.clear();
+    _cleaning.clear();
+    _unsent.clear();
     _offlineSince = null;
     _onlineBefore = false;
     _dropped = false;
@@ -1311,6 +1318,67 @@ class GameModel extends ChangeNotifier {
   }
 
   Future<ActionResult<Map<String, dynamic>>> collect() => _act(api.collect);
+
+  // ---- 清大便（v0.3 C1；協定 2.6 的 POST /v1/clean） ----
+  /// 畫面上已經拿掉、伺服器還沒回的大便（牛的 key → 幾坨；包含劃過去、手指還沒放開的）。
+  final Map<String, int> _cleaning = {};
+
+  /// 劃過去清掉、還沒送出的（手指放開才一次送）。
+  final Map<String, int> _unsent = {};
+
+  /// 這頭牛旁邊現在要畫幾坨（扣掉正在清的）。
+  int poopOf(Cow c) => max(0, c.poop - (_cleaning[c.key] ?? 0));
+
+  /// 全場現在有幾坨（扣掉正在清的；右上角的數字）。
+  int get poopTotal => state?.cows.fold<int>(0, (n, c) => n + poopOf(c)) ?? 0;
+
+  /// 清掉 [cow] 旁邊的一坨（點到、劃過去）：先從畫面拿掉（A-14、A-15 的減少動態版），[sendPoop] 才送出。
+  /// 斷線的時候不能清（跟停用的按鈕一樣）。
+  bool takePoop(Cow cow) {
+    if (!online || poopOf(cow) <= 0) return false;
+    _cleaning.update(cow.key, (n) => n + 1, ifAbsent: () => 1);
+    _unsent.update(cow.key, (n) => n + 1, ifAbsent: () => 1);
+    _notify();
+    return true;
+  }
+
+  /// 送出拿掉的大便（每頭牛清幾坨，一次送）。成功就換上回應的 state；失敗的話大便放回去。
+  /// 不鎖其他按鈕（點一坨、再點一坨不用等）。沒有要送的是 null。
+  Future<ActionResult<Map<String, dynamic>>?> sendPoop() async {
+    if (_unsent.isEmpty) return null;
+    final piles = Map.of(_unsent);
+    _unsent.clear();
+    ActionResult<Map<String, dynamic>> r;
+    try {
+      final res = await api.clean({for (final e in piles.entries) state?.cowById(e.key)?.id ?? e.key: e.value});
+      _httpOk = true;
+      // 拿掉正在清的、換上回應的 state 要在同一步（不然會多扣一次，或閃一下）
+      _release(piles);
+      if (res['state'] case final Map<String, dynamic> st) _setState(GameState.fromJson(st));
+      r = ActionResult.ok(res);
+    } on ApiException catch (e) {
+      _release(piles);
+      _handleApiError(e);
+      r = ActionResult.fail(ApiActionError(e));
+    } on NetworkException {
+      _release(piles);
+      _httpOk = false;
+      r = const ActionResult.fail(NetworkActionError());
+    }
+    _notify();
+    return r;
+  }
+
+  void _release(Map<String, int> piles) {
+    for (final e in piles.entries) {
+      final left = (_cleaning[e.key] ?? 0) - e.value;
+      if (left > 0) {
+        _cleaning[e.key] = left;
+      } else {
+        _cleaning.remove(e.key);
+      }
+    }
+  }
 
   Future<ActionResult<SellResult>> sell(Commodity c, double qty) async {
     final r = await _act(() => api.sell(c, qty));

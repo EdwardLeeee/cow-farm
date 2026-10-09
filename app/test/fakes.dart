@@ -461,6 +461,54 @@ class FakeGameApi implements GameApi {
     return {'avatar': breed};
   }
 
+  /// 清大便（協定 2.6）出錯；[cleanGate] 給了就等它完成才回（測試看回應到之前的畫面）。
+  Exception? cleanError;
+  Completer<void>? cleanGate;
+
+  @override
+  Future<Map<String, dynamic>> clean(Map<Object, int>? piles) async {
+    calls.add('clean:${piles == null ? 'all' : [for (final e in piles.entries) '${e.key}x${e.value}'].join(',')}');
+    if (cleanGate case final gate?) await gate.future;
+    if (cleanError != null) throw cleanError!;
+    var cleaned = 0;
+    final cows = <Map<String, dynamic>>[];
+    for (final c in (stateJson['cows'] as List? ?? const [])) {
+      final m = (c as Map).cast<String, dynamic>();
+      final has = (m['poop'] as num?)?.toInt() ?? 0;
+      final want = piles == null
+          ? has
+          : piles.entries.where((e) => '${e.key}' == '${m['id']}').fold<int>(0, (a, e) => a + e.value);
+      final n = want < has ? want : has;
+      cleaned += n;
+      cows.add({...m, 'poop': has - n});
+    }
+    final total = cows.fold<int>(0, (a, c) => a + ((c['poop'] as num?)?.toInt() ?? 0));
+    final poop = {'total': total, 'dirt': cows.isEmpty ? 0.0 : total / cows.length, 'safe_until': null};
+    stateJson = {...stateJson, 'cows': cows, 'poop': poop};
+    return {'cleaned': cleaned, 'poop': poop, 'coins': stateJson['coins'], 'state': stateJson};
+  }
+
+  /// 治療（協定 2.6）出錯。
+  Exception? cureError;
+
+  @override
+  Future<Map<String, dynamic>> cure(Object cowId) async {
+    calls.add('cure:$cowId');
+    if (cureError != null) throw cureError!;
+    final price = ((stateJson['economy'] as Map?)?['cure_price'] as num?) ?? 5000;
+    Map<String, dynamic>? cured;
+    final cows = [
+      for (final c in (stateJson['cows'] as List? ?? const []))
+        if ('${(c as Map)['id']}' == '$cowId')
+          cured = {...c.cast<String, dynamic>(), 'sick': false, 'sick_since': null}
+        else
+          c,
+    ];
+    final coins = ((stateJson['coins'] as num?) ?? 0) - price;
+    stateJson = {...stateJson, 'cows': cows, 'coins': coins};
+    return {'cow_id': cowId, 'cost': price, 'cow': cured, 'coins': coins, 'state': stateJson};
+  }
+
   @override
   Future<Map<String, dynamic>> fieldExpand() async {
     calls.add('field-expand');
