@@ -26,3 +26,37 @@ class AppMotion extends InheritedWidget {
   @override
   bool updateShouldNotify(AppMotion oldWidget) => oldWidget.enabled != enabled;
 }
+
+/// 減少動態版的「淡入 0.2 秒」（設計稿每個動畫的減少動態版）。手機開了「減少動態」時，Flutter 的 AnimationController
+/// 預設會把時間縮成 5%（AnimationBehavior.normal，0.2 秒變 0.01 秒），這裡照設計稿的時間播（preserve）。
+/// 換一個 key 就從頭淡入。
+class FadeIn extends StatefulWidget {
+  const FadeIn({super.key, this.duration = const Duration(milliseconds: 200), required this.child});
+
+  final Duration duration;
+  final Widget child;
+
+  @override
+  State<FadeIn> createState() => _FadeInState();
+}
+
+class _FadeInState extends State<FadeIn> with SingleTickerProviderStateMixin {
+  late final _fade = AnimationController(
+    vsync: this,
+    duration: widget.duration,
+    animationBehavior: AnimationBehavior.preserve,
+  )..forward();
+
+  @override
+  void dispose() {
+    _fade.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _fade,
+    builder: (context, child) => Opacity(opacity: _fade.value, child: child),
+    child: widget.child,
+  );
+}
