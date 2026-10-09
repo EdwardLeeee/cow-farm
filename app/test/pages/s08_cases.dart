@@ -40,7 +40,7 @@ Map<String, dynamic> breedState({List<Map<String, dynamic>>? cows, int penSlots 
     ...base,
     'economy': {
       ...base['economy'] as Map<String, dynamic>,
-      'calf_grow_h': [1, 2, 4, 8],
+      'calf_grow_h': [3, 3, 3, 3], // v0.3：所有小牛長大的時間一樣（#151、協定 2.3）
     },
     'codex': [
       for (final b in designFound) {'breed': b, 'found_at': t0 - 36000},
@@ -76,9 +76,9 @@ Map<String, dynamic> designPreviewJson({List<Map<String, dynamic>> blockers = co
 /// 新小牛：娟珊 #16（優良、母），剛出生 2.4 分鐘，再 1 小時 57.6 分長大（進度 2%，設計稿 S08-09）。
 Map<String, dynamic> designCalf() => {
   ...designCow(16, 'jersey', stage: 'calf'),
-  'born_at': t0 - 144,
-  'age_h': 0.04,
-  'adult_at': t0 + 7056,
+  'born_at': t0 - 120,
+  'age_h': 2 / 60,
+  'adult_at': t0 + (2 * 60 + 58) * 60,
 };
 
 /// 配好以後的牧場：娟珊 #14、荷斯坦 #3 配過種了，多了小牛 #16。[penSlots] 是牛舍格數。
@@ -276,7 +276,8 @@ final s08Cases = <PageCase>[
       expect(find.text(_zh.gUnknownBreed), findsNWidgets(2));
       expect(find.text(_zh.s08NotFound), findsNWidgets(2));
       expect(find.text(_zh.bullProbLine(v: '50%'), findRichText: true), findsOneWidget);
-      expect(find.text(_zh.s08GrowRange(v: _zh.s08HoursRange(a: 1, b: 4)), findRichText: true), findsOneWidget);
+      // v0.3：所有小牛長大的時間一樣（#151），只寫一個數字
+      expect(find.text(_zh.s08GrowRange(v: _zh.hours(h: 3)), findRichText: true), findsOneWidget);
       expect(_btn(tester).onPressed, isNotNull);
     },
   ),
@@ -332,10 +333,11 @@ final s08Cases = <PageCase>[
       await tapBreed(tester);
     },
     check: (tester) {
-      final calf = _zh.cowName('jersey', 16);
+      // 剛出生的小牛還不知道品種（#151）：「小乳牛 #16」；長大要 3 小時，剛出生 2 分鐘
+      final calf = _zh.calfName(CowType.dairy, 16);
       expect(find.text(_zh.breedDone(cow: calf)), findsOneWidget);
       expect(find.text(_zh.gNewCalf(cow: calf)), findsOneWidget);
-      expect(find.text(_zh.growUp(v: _zh.duration(h: 1, m: 58)), findRichText: true), findsOneWidget);
+      expect(find.text(_zh.growUp(v: _zh.duration(h: 2, m: 58)), findRichText: true), findsOneWidget);
       expect(_btn(tester).label, _zh.s08BredBtn);
       expect(_btn(tester).onPressed, isNull);
       // 剛配好的那一對照樣顯示成選好的、留在原來的位置

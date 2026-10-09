@@ -8,6 +8,7 @@ import 'package:cowfarm/api/models.dart';
 import 'package:cowfarm/l10n/format.dart';
 import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
+import 'package:cowfarm/ui/kit/cow_bits.dart';
 import 'package:cowfarm/ui/kit/kit.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -64,7 +65,7 @@ Map<String, dynamic> detailCow(int id, {int? field, bool listed = false, bool br
   ),
   15 => _detail(
     designCow(15, 'holstein', stage: 'calf'),
-    ageH: 18 / 60,
+    ageH: 2 + 18 / 60, // v0.3：所有小牛 3 小時長大（#151），出生 2 小時 18 分、還要 42 分
     origin: 'breed',
   ),
   7 => _detail(
@@ -299,8 +300,13 @@ final s04Cases = <PageCase>[
     '小牛：長大倒數',
     (tester, lang) => showCow(tester, lang, detailCow(15)),
     check: (tester) {
-      expect(kvValue(tester, _zh.s04Age), _zh.duration(m: 18));
+      expect(kvValue(tester, _zh.s04Age), _zh.duration(h: 2, m: 18));
       expect(kvValue(tester, _zh.s04GrowIn), _zh.duration(m: 42));
+      // 小牛還不知道品種（#151）：叫「小乳牛 #15」、不放稀有度，圖下面「長大才知道是什麼品種」
+      expect(find.text(_zh.calfName(CowType.dairy, 15)), findsOneWidget);
+      expect(find.byKey(const Key('calf-note')), findsOneWidget);
+      expect(find.text(_zh.s04CalfUnknown), findsOneWidget);
+      expect(find.byType(TierChip), findsNothing);
       expect(find.text(_zh.s04CalfHint), findsOneWidget);
       expect(_btn(tester, 'detail-breed').label, _zh.s04CantBreedYet);
       expect(_btn(tester, 'detail-ship').label, _zh.shipNotAdult);

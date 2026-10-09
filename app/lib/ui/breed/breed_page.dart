@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 
+import '../../api/breeds.dart';
 import '../../api/models.dart';
 import '../../l10n/format.dart';
 import '../../l10n/l10n.dart';
@@ -100,7 +101,7 @@ class _BreedPageState extends State<BreedPage> {
       _breeding = false;
       _done = (sire: sire.key, dam: dam.key, preview: p, calf: calf);
     });
-    if (calf != null) _showToast(ToastKind.ok, s.breedDone(cow: s.cowName(calf.breed, calf.number)));
+    if (calf != null) _showToast(ToastKind.ok, s.breedDone(cow: s.cowLabel(calf)));
     WidgetsBinding.instance.addPostFrameCallback((_) => _revealCalf());
   }
 
@@ -320,7 +321,7 @@ List<String> breedNotes(Strings s, GameModel m, {required BreedPreview? preview,
         final id = b.detail['cow_id'];
         final cow =
             (id == null ? null : st.cowById('$id')) ?? pair.where((c) => c.bred).firstOrNull ?? pair.firstOrNull;
-        out.add(s.s08AlreadyBred(cow: cow == null ? '' : s.cowName(cow.breed, cow.number)));
+        out.add(s.s08AlreadyBred(cow: cow == null ? '' : s.cowLabel(cow)));
       default:
         out.add(s.blockerText(b, gameNow: m.gameNow, timeScale: m.timeScale));
     }
@@ -468,7 +469,7 @@ class PickCard extends StatelessWidget {
                   children: [
                     faded(
                       CowPicture(
-                        breed: cow.breed,
+                        breed: cow.look,
                         bull: cow.bull,
                         calf: calf,
                         variant: cow.number,
@@ -481,7 +482,7 @@ class PickCard extends StatelessWidget {
                     // 名字放不下（英文、泰文）可以換兩行，卡片跟著變高（screens.css 第 2 條）
                     faded(
                       Text(
-                        s.cowName(cow.breed, cow.number),
+                        s.cowLabel(cow),
                         textAlign: TextAlign.center,
                         style: AppText.style(13, weight: FontWeight.w900, lineHeight: 18),
                       ),
@@ -953,7 +954,7 @@ class CalfCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = Strings.of(context);
     final m = context.watch<GameModel>();
-    final name = s.cowName(calf.breed, calf.number);
+    final name = s.cowLabel(calf);
     return AppCard(
       child: Row(
         children: [
@@ -974,7 +975,7 @@ class CalfCard extends StatelessWidget {
                 maxHeight: 84,
                 alignment: Alignment.topLeft,
                 child: CowPicture(
-                  breed: calf.breed,
+                  breed: calf.look,
                   bull: calf.bull,
                   calf: true,
                   variant: calf.number,
@@ -1008,7 +1009,12 @@ class CalfCard extends StatelessWidget {
                         spacing: 4,
                         runSpacing: 4,
                         crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [rarityChip(calf.breed, calf.tier), CowBadge(BadgeKind.calf, s.stageCalf)],
+                        // 剛出生的小牛還不知道品種（#151）：用途、公母、小牛，不放稀有度
+                        children: [
+                          UseChip(calf.type),
+                          SexText(bull: calf.bull),
+                          CowBadge(BadgeKind.calf, s.stageCalf),
+                        ],
                       ),
                     ),
                     Text.rich(

@@ -4,6 +4,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../api/breeds.dart';
 import '../../api/models.dart';
 import '../../l10n/format.dart';
 import '../../l10n/l10n.dart';
@@ -104,9 +105,9 @@ class _Gift extends StatelessWidget {
       ),
       child: Column(
         children: [
-          CowPicture(breed: cow.breed, bull: cow.bull, calf: calf, variant: id, width: 96, height: 96),
+          CowPicture(breed: cow.look, bull: cow.bull, calf: calf, variant: id, width: 96, height: 96),
           Text(
-            s.cowName(cow.breed, id),
+            s.cowLabel(cow),
             textAlign: TextAlign.center,
             style: AppText.style(15, weight: FontWeight.w900, lineHeight: 20),
           ),

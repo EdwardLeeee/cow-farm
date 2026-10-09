@@ -6,6 +6,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../api/breeds.dart';
 import '../../api/models.dart';
 import '../../theme/tokens.dart';
 import '../kit/cow_art.dart';
@@ -57,7 +58,7 @@ class _CowSpot {
     final art = CowArt.instance;
     if (art == null) return null;
     final (name, mirror) = art.pick(
-      breed: cow.breed,
+      breed: cow.look,
       bull: cow.bull,
       calf: cow.stage == CowStage.calf,
       front: false,

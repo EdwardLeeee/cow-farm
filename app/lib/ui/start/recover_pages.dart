@@ -280,7 +280,12 @@ class WelcomeBackPage extends StatelessWidget {
             (s.s14Level, s.level(lv: st?.level ?? 1), null),
             (s.s14Coins, fmt(st?.coins ?? 0), null),
             (s.s14Cows, fmt(st?.cows.length ?? 0), s.s14Head),
-            (s.subCodex, fmt(st?.codex.length ?? 0), '/ ${kCodexOrder.length}'),
+            // 雜種牛（"hybrid"）不算 24 種（協定 1.6）
+            (
+              s.subCodex,
+              fmt(kCodexOrder.where((b) => st?.codex.containsKey(b) ?? false).length),
+              '/ ${kCodexOrder.length}',
+            ),
           ],
         ),
         Text(s.s14WelcomeHint, style: KitText.hint()),

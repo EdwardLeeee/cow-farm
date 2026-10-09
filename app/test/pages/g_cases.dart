@@ -6,6 +6,7 @@ import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/theme/tokens.dart';
 import 'package:cowfarm/ui/breed/breed_page.dart';
 import 'package:cowfarm/ui/kit/cow_art.dart';
+import 'package:cowfarm/ui/kit/cow_bits.dart';
 import 'package:cowfarm/ui/kit/kit.dart';
 import 'package:cowfarm/ui/kit/meter.dart';
 import 'package:cowfarm/ui/kit/pull_refresh.dart';
@@ -18,10 +19,10 @@ import 's03_cases.dart';
 
 final _zh = Strings.forLang(AppLang.zhHant);
 
-/// 設計稿 G-08 的新小牛：草莓牛 #16（傳說），再 7 小時 42 分長大，進度 4%（時鐘倍率 1）。
+/// 設計稿 G-08 的新小牛（#151）：小乳牛 #16（母，還不知道品種），再 2 小時 42 分長大，進度 10%（時鐘倍率 1）。
 Map<String, dynamic> _designCalf() {
-  const left = (7 * 60 + 42) * 60.0;
-  return {...designCow(16, 'strawberry', stage: 'calf'), 'age_h': left * 0.04 / 0.96 / 3600, 'adult_at': t0 + left};
+  const left = (2 * 60 + 42) * 60.0;
+  return {...designCow(16, 'holstein', stage: 'calf'), 'age_h': left * 0.10 / 0.90 / 3600, 'adult_at': t0 + left};
 }
 
 /// .up-row：設施一列（名稱、效果，右邊一顆小按鈕），上面是 2px 的淡色虛線。
@@ -145,8 +146,9 @@ final gCases = [
     },
     crop: find.byKey(const Key('sheet')),
     check: (tester) {
-      expect(find.text(_zh.gNewCalf(cow: _zh.cowName('strawberry', 16))), findsOneWidget);
-      expect(find.textContaining(_zh.duration(h: 7, m: 42), findRichText: true), findsOneWidget);
+      expect(find.text(_zh.gNewCalf(cow: _zh.calfName(CowType.dairy, 16))), findsOneWidget);
+      expect(find.textContaining(_zh.duration(h: 2, m: 42), findRichText: true), findsOneWidget);
+      expect(find.byType(TierChip), findsNothing, reason: '小牛不放稀有度（#151）');
     },
   ),
   PageCase(

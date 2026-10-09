@@ -154,7 +154,7 @@ Map<String, dynamic> studCalf() => {
   ...designCow(16, 'chocolate', stage: 'calf'),
   'born_at': t0 - 120,
   'age_h': 2 / 60,
-  'adult_at': t0 + (3 * 60 + 58) * 60,
+  'adult_at': t0 + (2 * 60 + 58) * 60, // v0.3：所有小牛 3 小時長大（#151）
   'origin': 'stud',
 };
 
@@ -460,8 +460,8 @@ final s18Cases = <PageCase>[
       expect(find.text('37.5%'), findsOneWidget);
       expect(find.text('18.75%'), findsNothing, reason: '10% 以上寫一位小數');
       expect(find.text('18.8%'), findsOneWidget);
-      // 有傳說（8 小時）：照規則寫 1–8 小時（缺口清單 3-3；ceo 2026-10-02）
-      expect(find.text(_zh.s08GrowRange(v: _zh.s08HoursRange(a: 1, b: 8)), findRichText: true), findsOneWidget);
+      // v0.3：所有小牛長大的時間一樣（#151），只寫一個數字
+      expect(find.text(_zh.s08GrowRange(v: _zh.hours(h: 3)), findRichText: true), findsOneWidget);
       expect(_go(tester).label, _zh.borrow(price: '1,820'));
       expect(_go(tester).onPressed, isNotNull);
     },
@@ -522,8 +522,8 @@ final s18Cases = <PageCase>[
     },
     check: (tester) {
       expect(find.text(_zh.borrowed(price: '1,820')), findsOneWidget);
-      expect(find.text(_zh.gNewCalf(cow: _zh.cowName('chocolate', 16))), findsOneWidget);
-      expect(find.text(_zh.growUp(v: _zh.duration(h: 3, m: 58)), findRichText: true), findsOneWidget);
+      expect(find.text(_zh.gNewCalf(cow: _zh.calfName(CowType.dairy, 16))), findsOneWidget, reason: '還不知道品種（#151）');
+      expect(find.text(_zh.growUp(v: _zh.duration(h: 2, m: 58)), findRichText: true), findsOneWidget);
       expect(_go(tester).label, _zh.s18BorrowedBtn);
       expect(_go(tester).onPressed, isNull);
       expect(find.text('10,660'), findsOneWidget, reason: '頂列的金幣扣掉借種費');

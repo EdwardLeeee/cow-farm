@@ -86,6 +86,17 @@ class Strings extends GeneratedStrings {
   /// 「品種名 #編號」，例：荷斯坦 #12。
   String cowName(String breed, int id) => '${breedName(breed)} #$id';
 
+  /// 還不知道品種的小牛（v0.3 #151）：「小乳牛／小耕牛／小肉牛 #編號」。
+  String calfName(CowType type, int id) =>
+      '${byKey(switch (type) {
+        CowType.dairy => 'calf.dairy',
+        CowType.dual => 'calf.draft',
+        CowType.beef => 'calf.beef',
+      })} #$id';
+
+  /// 一頭牛的名字：小牛「小乳牛 #15」（長大才知道品種），雜種牛「雜種牛 #20」，其他「娟珊 #3」。
+  String cowLabel(Cow c) => c.revealed ? cowName(c.breed, c.number) : calfName(c.type, c.number);
+
   /// 特徵名：A 長毛、B 淡色、C 光澤。
   String traitName(String trait) => byKey('trait.$trait');
 

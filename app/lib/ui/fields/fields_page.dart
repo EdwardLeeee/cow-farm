@@ -684,7 +684,7 @@ class FieldCard extends StatelessWidget {
                 child: cow == null
                     ? const SizedBox.shrink()
                     : CowPicture(
-                        breed: cow.breed,
+                        breed: cow.look,
                         bull: cow.bull,
                         variant: cow.number,
                         width: 48,
@@ -699,7 +699,7 @@ class FieldCard extends StatelessWidget {
                   children: [
                     if (cow != null)
                       Text(
-                        s.cowName(cow.breed, cow.number),
+                        s.cowLabel(cow),
                         strutStyle: kDivStrut,
                         style: AppText.style(15, weight: FontWeight.w700, lineHeight: 20),
                       ),
@@ -827,7 +827,7 @@ class OxOption extends StatelessWidget {
               children: [
                 faded(
                   CowPicture(
-                    breed: cow.breed,
+                    breed: cow.look,
                     bull: cow.bull,
                     calf: cow.stage == CowStage.calf,
                     variant: cow.number,
@@ -843,7 +843,7 @@ class OxOption extends StatelessWidget {
                     children: [
                       faded(
                         Text(
-                          s.cowName(cow.breed, cow.number),
+                          s.cowLabel(cow),
                           strutStyle: kDivStrut,
                           style: AppText.style(15, weight: FontWeight.w700, lineHeight: 20),
                         ),

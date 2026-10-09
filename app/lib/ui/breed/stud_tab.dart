@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 
+import '../../api/breeds.dart';
 import '../../api/models.dart';
 import '../../l10n/format.dart';
 import '../../l10n/l10n.dart';
@@ -430,7 +431,7 @@ List<String> studNotes(
         coins = true;
         out.add(s.blockerText(b));
       case 'already_bred':
-        out.add(s.s08AlreadyBred(cow: dam == null ? '' : s.cowName(dam.breed, dam.number)));
+        out.add(s.s08AlreadyBred(cow: dam == null ? '' : s.cowLabel(dam)));
       default:
         out.add(s.blockerText(b, gameNow: m.gameNow, timeScale: m.timeScale));
     }
@@ -566,7 +567,8 @@ class StudRow extends StatelessWidget {
                     CowPicBox(
                       radius: 14,
                       child: CowPicture(
-                        breed: l.breed,
+                        // 雜種牛照用途的體型（#157）
+                        breed: lookOf(l.breed, l.type),
                         bull: true,
                         variant: _variant(l),
                         width: 60,
@@ -821,7 +823,7 @@ class _MyBullRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          CowPicture(breed: cow.breed, bull: true, variant: cow.number, width: 56, height: 56, pad: 3),
+          CowPicture(breed: cow.look, bull: true, variant: cow.number, width: 56, height: 56, pad: 3),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -829,7 +831,7 @@ class _MyBullRow extends StatelessWidget {
               children: [
                 // <b> 15px：一般字的 400 → 700；在 .grow（16px、行高 normal）裡，這一行照 div 的 24 高
                 Text(
-                  s.cowName(cow.breed, cow.number),
+                  s.cowLabel(cow),
                   strutStyle: kDivStrut,
                   style: AppText.style(15, weight: FontWeight.w700, lineHeight: 21),
                 ),

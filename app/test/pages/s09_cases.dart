@@ -43,7 +43,7 @@ Map<String, dynamic> codexState({List<String> found = designCodexFound}) {
     'economy': {
       ...base['economy'] as Map<String, dynamic>,
       'dairy_milk_per_h': 14.0,
-      'calf_grow_h': [1, 2, 4, 8],
+      'calf_grow_h': [3, 3, 3, 3], // v0.3：所有小牛長大的時間一樣（#151、協定 2.3）
       'peak_weight_kg': {'dairy': 250.0, 'dual': 450.0, 'beef': 800.0},
     },
     'codex': [
@@ -106,7 +106,7 @@ final s09Cases = [
       expect(find.text('14 ${_zh.gPerHourMilk}'), findsOneWidget);
       expect(find.text('250 ${_zh.gKg}'), findsOneWidget);
       expect(find.text('×1.3'), findsOneWidget);
-      expect(find.text('2 ${_zh.gHourUnit}'), findsOneWidget);
+      expect(find.text(_zh.s09CalfGrow), findsNothing, reason: '「小牛長大」那一格 v0.3 拿掉了（#151）');
       expect(
         find.text(_zh.s09HowTraits(use: _zh.s09HowDairy, traits: _zh.traitName('B'))),
         findsOneWidget,

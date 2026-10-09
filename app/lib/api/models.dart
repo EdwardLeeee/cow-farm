@@ -24,6 +24,9 @@ int _i(Object? v, [int def = 0]) {
 
 bool _b(Object? v) => v == true || v == 1 || v == 'true';
 
+/// 字串陣列（飼料代號等）；沒給或形狀不對是空的。
+List<String> _strs(Object? v) => v is List ? [for (final e in v) '$e'] : const [];
+
 Map<String, dynamic> _m(Object? v) => v is Map ? v.cast<String, dynamic>() : const {};
 
 List<dynamic> _l(Object? v) => v is List ? v : const [];
@@ -196,16 +199,24 @@ class Cow {
     this.gradeProbs,
     this.origin,
     this.studFee,
+    this.hybrid = false,
+    this.need = const [],
+    this.ate = const [],
+    this.missed = const [],
   });
 
   /// 伺服器給的原始 id（送回伺服器時原樣送）。畫面顯示「品種名 #id」。
   final Object id;
   final CowType type;
   final bool bull;
-  final int tier; // 0 一般、1 優良、2 稀有、3 傳說
+
+  /// 0 一般、1 優良、2 稀有、3 傳說。v0.3 C1：小牛送 null（這裡是 0，畫面不顯示，看 [revealed]）；
+  /// 雜種牛照樣是原本的稀有度，畫面一律 1 顆灰星（看 [hybrid]）。
+  final int tier;
   final CowStage stage;
 
   /// 品種代號（協定 1.6，跟 design/m2/src/cow/breeds.js 的 key 一樣）；名字查字串表。
+  /// v0.3 C1：小牛送 null（這裡是空字串，長大才揭曉）；雜種牛是 `hybrid`。
   final String breed;
   final double? ageH; // 遊戲小時
   final double milkPerH;
@@ -225,6 +236,18 @@ class Cow {
 
   /// 成年、沒配過種的公牛現在的借種費（S04-04 上架前就先顯示）；其他牛 null。
   final StudFee? studFee;
+
+  /// v0.3 C1（協定 2.3）：雜種牛（小時候沒吃齊指定的飼料，長大變的）。小牛是 false。
+  final bool hybrid;
+
+  /// v0.3 C1：小牛時期要吃到的飼料代號（稀有以上才有）、吃過的；雜種牛少吃了哪幾種。
+  final List<String> need;
+  final List<String> ate;
+  final List<String> missed;
+
+  /// 看得出品種了（v0.3 C1）：小牛的品種、稀有度長大才揭曉，伺服器送 null。小牛畫用途的一般品種、
+  /// 叫「小乳牛 #15」、不放稀有度（#151）。
+  bool get revealed => stage != CowStage.calf && breed.isNotEmpty;
 
   String get key => '$id';
 
@@ -274,6 +297,10 @@ class Cow {
       gradeProbs: j['grade_probs'] is Map ? _gradeMap(j['grade_probs']) : null,
       origin: j['origin'] as String?,
       studFee: StudFee.fromJson(j['stud_fee']),
+      hybrid: _b(j['hybrid']),
+      need: _strs(j['need']),
+      ate: _strs(j['ate']),
+      missed: _strs(j['missed']),
     );
   }
 }
@@ -326,10 +353,14 @@ class Lot {
     this.grade,
     this.quality,
     this.storageFactor,
+    this.hybrid = false,
   });
   final double qty;
   final double? freshness; // 0–1，只有牛奶有
   final int tier;
+
+  /// v0.3 C1（協定 2.3）：雜種牛的奶、肉（這時 [tier] 是 0，賣價乘 `economy.hybrid_mult`；牛肉的 [breed] 是 `hybrid`）。
+  final bool hybrid;
 
   /// 進倉庫的時間（遊戲時間）：牛奶 collected_at、牛肉 shipped_at、稻米 harvested_at。
   final double? at;
@@ -361,6 +392,7 @@ class Lot {
     grade: j['grade'] is String ? j['grade'] as String : null,
     quality: _dn(j['quality']),
     storageFactor: _dn(j['storage_factor']),
+    hybrid: _b(j['hybrid']),
   );
 }
 
@@ -485,6 +517,7 @@ class Economy {
     this.bullWeightMult,
     this.fieldCapH,
     this.renamePrice,
+    this.hybridMult,
   });
 
   /// 一般、優良、稀有、傳說：牛奶、牛肉的賣價倍率，也是耕牛的稻米產量倍率。
@@ -511,6 +544,9 @@ class Economy {
 
   /// 改名的價錢（S21；第一次免費，看 [RanchProfile.renames]）。協定 2.3 節 `economy.rename_price`，舊的伺服器沒有。
   final double? renamePrice;
+
+  /// v0.3 C1：雜種牛的倍數（牛奶、牛肉、稻米；取代 tier_mult）。舊的伺服器沒有。
+  final double? hybridMult;
 
   /// 稀有度 [tier] 的倍率；沒有就是 null（畫面不寫倍數）。
   double? tier(int tier) => tier >= 0 && tier < tierMult.length ? tierMult[tier] : null;
@@ -540,6 +576,7 @@ class Economy {
       bullWeightMult: _dn(j['bull_weight_mult']),
       fieldCapH: _dn(j['field_cap_h']),
       renamePrice: _dn(j['rename_price']),
+      hybridMult: _dn(j['hybrid_mult']),
     );
   }
 }

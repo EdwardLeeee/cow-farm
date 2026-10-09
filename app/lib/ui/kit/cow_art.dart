@@ -140,10 +140,11 @@ class CowPicture extends StatelessWidget {
         art?.pick(breed: breed, bull: bull, calf: calf, front: front, right: right, variant: variant) ?? ('', false);
     final m = art?.meta(name);
     if (m == null) return SizedBox(width: width, height: height);
-    // cowSVG：k = min((w − 2pad) / 牛的寬, (h − 2pad) / 牛的高)；牛的寬 = viewBox 寬 − 左右留邊
+    // cowSVG：k = min((w − 2pad) / 牛的寬, (h − 2pad) / 牛的高)；牛的寬 = viewBox 寬 − 左右留邊。
+    // 母小牛的高算到蝴蝶結頂（設計稿 kit.js：ch = max(牛的高, 蝴蝶結頂)；#151）：viewBox 上緣（扣掉留邊）就是那裡
     final k = [
       (width - pad * 2) / (m.w - CowArt.margin * 2),
-      (height - pad * 2) / m.height,
+      (height - pad * 2) / math.max(m.height, -(m.y0 + CowArt.margin)),
     ].reduce((a, b) => a < b ? a : b);
     Widget pic = SvgPicture.asset('assets/cows/svg/$name.svg', width: m.w * k, height: m.h * k, fit: BoxFit.fill);
     if (mirror) pic = Transform.flip(flipX: true, child: pic);

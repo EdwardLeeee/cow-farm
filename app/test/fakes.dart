@@ -41,8 +41,9 @@ Map<String, dynamic> _cow(
     'id': id,
     'type': type,
     'bull': bull,
-    'tier': tier,
-    'breed': kBreedsByType[CowType.parse(type)]![_bitsForTier[tier]],
+    // v0.3 C1（協定 2.3）：小牛的品種、稀有度長大才揭曉，伺服器送 null
+    'tier': adult ? tier : null,
+    'breed': adult ? kBreedsByType[CowType.parse(type)]![_bitsForTier[tier]] : null,
     'stage': stage,
     'born_at': t0 - (adult ? 36000 : 1800),
     'age_h': adult ? 10.0 : 0.5,
@@ -65,6 +66,10 @@ Map<String, dynamic> _cow(
     'stud_fee': bull && adult && !bred
         ? {'price': ((weight * 1.1 / 10).round() * 10), 'per_kg': 1.1, 'kg': weight, 'at_max': false}
         : null,
+    'hybrid': false,
+    'need': const <String>[],
+    'ate': const <String>[],
+    'missed': const <String>[],
   };
 }
 

@@ -6,6 +6,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../api/breeds.dart';
 import '../../api/models.dart';
 import '../../l10n/format.dart';
 import '../../l10n/l10n.dart';
@@ -90,7 +91,11 @@ class _ShopPageState extends State<ShopPage> {
       context: context,
       barrierColor: Colors.transparent, // 暗幕由 AppDialog 自己畫
       useSafeArea: false,
-      builder: (context) => DrawnDialog(grade: grade, cow: cow),
+      builder: (context) => DrawnDialog(
+        grade: grade,
+        cow: cow,
+        tierProbs: _info?.grades.where((x) => x.grade == grade).firstOrNull?.tierProbs,
+      ),
     );
   }
 
@@ -678,12 +683,16 @@ class _UpRowLayout extends StatelessWidget {
   );
 }
 
-/// 抽到的結果（S19-05）：抽到的小牛（大圖）、名字、用途、公母、稀有度；多久長大。
+/// 抽到的結果（S19-05）：抽到的小牛（大圖）、名字、用途、公母、小牛；長大可能是哪個稀有度（這個等級公開的機率）；
+/// 多久長大。v0.3（#151）：抽到的也是小牛，長大才揭曉品種：照用途的一般品種畫、叫「小耕牛 #17」、不放稀有度。
 class DrawnDialog extends StatelessWidget {
-  const DrawnDialog({super.key, required this.grade, required this.cow});
+  const DrawnDialog({super.key, required this.grade, required this.cow, this.tierProbs});
 
   final String grade;
   final Cow cow;
+
+  /// 這個等級公開的稀有度機率（一般、優良、稀有、傳說）；拿不到是 null（不顯示那一段）。
+  final List<double>? tierProbs;
 
   @override
   Widget build(BuildContext context) {
@@ -719,7 +728,7 @@ class DrawnDialog extends StatelessWidget {
               borderRadius: const BorderRadius.all(AppRadii.r18),
             ),
             child: CowPicture(
-              breed: cow.breed,
+              breed: cow.look,
               bull: cow.bull,
               calf: cow.stage == CowStage.calf,
               variant: id,
@@ -730,7 +739,7 @@ class DrawnDialog extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 8, bottom: 4),
             child: Text(
-              s.cowName(cow.breed, id),
+              s.cowLabel(cow),
               textAlign: TextAlign.center,
               style: AppText.style(20, weight: FontWeight.w900),
             ),
@@ -742,6 +751,35 @@ class DrawnDialog extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: cowChips(context, cow),
           ),
+          // .draw-odds：「長大可能是：」，下面每個稀有度的星星標籤＋機率（隔 3），一排放不下就換行（左右 8、上下 4）
+          if (tierProbs case final odds? when !cow.revealed && odds.isNotEmpty)
+            Padding(
+              key: const Key('draw-odds'),
+              padding: const EdgeInsets.only(top: 8),
+              child: Column(
+                children: [
+                  Text(s.s19DrawnOdds, textAlign: TextAlign.center, style: KitText.hint()),
+                  const SizedBox(height: 4),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 8,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      for (final (i, p) in odds.indexed)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TierChip(i),
+                            const SizedBox(width: 3),
+                            Text(probText(p), softWrap: false, style: AppText.number(13, lineHeight: 19)),
+                          ],
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           if (hint != null)
             Padding(
               padding: const EdgeInsets.only(top: 6),
