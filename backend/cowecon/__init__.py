@@ -5,7 +5,7 @@
 """
 
 from .params import COMMODITY_IDS, DAY, DEFAULT, ENGINE_VERSION, HOUR, MINUTE, EconomyParams, with_overrides
-from .market import Exchange, ImpactState, Market, MarketEvent, SaleResult
+from .market import Exchange, FeedMarket, FeedTrade, ImpactState, Market, MarketEvent, SaleResult
 from .farm import (
     BeefLot,
     Cow,
@@ -34,6 +34,8 @@ __all__ = [
     "EconomyParams",
     "with_overrides",
     "Exchange",
+    "FeedMarket",
+    "FeedTrade",
     "ImpactState",
     "Market",
     "MarketEvent",

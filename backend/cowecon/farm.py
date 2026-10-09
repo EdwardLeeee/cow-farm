@@ -42,7 +42,7 @@ import random
 from itertools import product
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
-from .market import ImpactState, Market, SaleResult
+from .market import FeedMarket, FeedTrade, ImpactState, Market, SaleResult
 from .params import DAY, HOUR, CareParams, EconomyParams, FarmParams
 
 N_LOCI = 4
@@ -760,6 +760,9 @@ class Farm:
         self.rice_lots: List[RiceLot] = []  # v0.2：收成後放在倉庫、還沒賣的稻米
         self.fields: List[Field] = [Field(now) for _ in range(fp.field_start)]
         self.impact = {cid: ImpactState() for cid in params.commodity_ids}
+        for fid in params.care.feed_ids:  # v0.3 B：飼料市場的買進、賣回各一份（每位玩家計入壓力的上限、滑價）
+            self.impact[f"{fid}:buy"] = ImpactState()
+            self.impact[f"{fid}:sell"] = ImpactState()
         self._next_cid = 1
         self.first_breed_used = False
         self.n_sales = 0  # 賣過幾次（牛奶、牛肉、稻米）；教學與任務用
@@ -1279,7 +1282,8 @@ class Farm:
 
     # ---- 飼料（v0.3 第 2 節）----
     def buy_feed(self, k: int, n: int, now: float, price: Optional[float] = None) -> bool:
-        """買 n 份第 k 種飼料（price = 每份的價格；None = 參數的固定價。飼料市場在 PR B）。每種最多 feed_cap 份。"""
+        """用固定價買 n 份第 k 種飼料（price = 每份的價格；None = 基本價）。每種最多 feed_cap 份。
+        v0.3 B 起遊戲照市價買（buy_feed_market）；這個留給測試和沒有飼料市場的情境。"""
         cp = self.p.care
         if not (0 <= k < len(cp.feed_kg)) or n < 1 or self.feeds[k] + n > cp.feed_cap:
             return False
@@ -1290,6 +1294,39 @@ class Farm:
         self.feeds[k] += n
         self._record(now, "feed_buy", -cost, float(n))
         return True
+
+    def quote_feed_buy(self, k: int, n: int, market: "FeedMarket", now: float) -> "FeedTrade":
+        """照市價買 n 份第 k 種飼料要花多少（含滑價；不改狀態）。"""
+        return market.quote_buy(self.impact[f"{self.p.care.feed_ids[k]}:buy"], n, now)
+
+    def buy_feed_market(self, k: int, n: int, market: "FeedMarket", now: float) -> Optional["FeedTrade"]:
+        """跟飼料市場買 n 份第 k 種飼料（v0.3 B）：市價 ×（1 + 滑價），算進全服的買進量。每種最多 feed_cap 份；
+        錢不夠或放不下就不買（回傳 None，什麼都不變）。"""
+        cp = self.p.care
+        if not (0 <= k < len(cp.feed_kg)) or n < 1 or self.feeds[k] + n > cp.feed_cap:
+            return None
+        if self.coins < self.quote_feed_buy(k, n, market, now).amount:
+            return None
+        res = market.execute_buy(self.impact[f"{cp.feed_ids[k]}:buy"], n, now)
+        self.coins -= res.amount
+        self.feeds[k] += n
+        self._record(now, "feed_buy", -res.amount, float(n))
+        return res
+
+    def quote_feed_sell(self, k: int, n: int, market: "FeedMarket", now: float) -> "FeedTrade":
+        """賣回 n 份第 k 種飼料拿多少（市價 ×（1 − 手續費）× 滑價；不改狀態）。"""
+        return market.quote_sell(self.impact[f"{self.p.care.feed_ids[k]}:sell"], n, now)
+
+    def sell_feed_market(self, k: int, n: int, market: "FeedMarket", now: float) -> Optional["FeedTrade"]:
+        """把倉庫裡 n 份第 k 種飼料賣回飼料市場（v0.3 B）：算進全服的賣回量（壓低價格）。份數不夠就不賣。"""
+        cp = self.p.care
+        if not (0 <= k < len(cp.feed_kg)) or n < 1 or self.feeds[k] < n:
+            return None
+        res = market.execute_sell(self.impact[f"{cp.feed_ids[k]}:sell"], n, now)
+        self.coins += res.amount
+        self.feeds[k] -= n
+        self._record(now, "feed_sell", res.amount, float(n))
+        return res
 
     def feed_block(self, cow: Cow, k: int, now: float) -> Optional[str]:
         """不能餵的原因（None = 可以）：no_feed 倉庫沒有、full 吃飽冷卻中、listed 上架借種中（借種費的加成停在上架那一刻）、
@@ -1909,6 +1946,9 @@ class Farm:
         f.impact = {k: ImpactState.from_dict(v) for k, v in d["impact"].items()}
         for cid in params.commodity_ids:
             f.impact.setdefault(cid, ImpactState())
+        for fid in params.care.feed_ids:
+            f.impact.setdefault(f"{fid}:buy", ImpactState())
+            f.impact.setdefault(f"{fid}:sell", ImpactState())
         f._next_cid = d["next_cid"]
         f.first_breed_used = d["first_breed_used"]
         f.n_sales = d["n_sales"]

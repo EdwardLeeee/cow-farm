@@ -389,11 +389,88 @@ FEED_IDS: Tuple[str, ...] = ("grass", "hay", "oats", "alfalfa", "corn", "soy")
 
 
 @dataclass(frozen=True)
+class FeedMarketParams:
+    """飼料市場（v0.3 B，企劃第 3 節；ceo 2026-10-09 核准）：六種飼料各一個全服市價，參數共用，
+    基本價是 CareParams.feed_price，代號是 CareParams.feed_ids。跟牛奶、牛肉、稻米分開（Exchange.feeds），
+    亂數、新聞也分開，所以那三種的行情一點都不受影響。
+
+    價格跟牛奶等一樣分三層（D33）：log(新聞以外) = 時段 + 雜訊 x + 壓力 y，軟邊界、硬邊界只管這部分；乘上新聞倍數
+    （飼料只有一般、大事件，FEED_EVENTS）；總價格最後夾在 price_lo–price_hi（ceo：0.5–2.0 倍。飼料沒有超級事件，
+    太便宜會讓「便宜買飼料灌小牛」的套利成立，太貴會卡住新手）。
+
+    壓力兩邊：e =（全服買進量 − 賣回量）÷ 平常的買進量 − 1。買得比平常多（e > 0）往上推 hot_per_h·e；沒人買
+    （−1 ≤ e < 0）慢慢往下 cold_per_h·e；賣回的比平常的買進還多（e < −1）再往下 hot_per_h·(−1 − e)。
+    長期存在的壓力被吸收（pressure_absorb_s），長期平均回到基本價。
+    買很多會滑價（越買越貴，跟賣出的滑價對稱）；賣回 = 市價 ×（1 − sell_fee）× 滑價。每位玩家計入壓力的量有上限，
+    買進、賣回各算各的。所有時間都是真實時間，跟 tick 大小無關（跟 Market 一樣）。"""
+
+    # 時段波動（比牛奶小）
+    intraday_amp: float = 0.03
+    intraday_peak_hour: float = 18.0
+    weekly_amp: float = 0.02
+    weekly_peak_day: float = 5.0
+    # 雜訊
+    noise_half_life_s: float = 12 * HOUR
+    noise_sd: float = 0.05
+    # 壓力
+    pressure_half_life_s: float = 3 * HOUR
+    pressure_absorb_s: float = 48 * HOUR
+    hot_per_h: float = 0.10
+    cold_per_h: float = 0.01
+    excess_clip: float = 1.5  # e 夾在 [−1 − excess_clip, excess_clip]
+    flow_tau_s: float = 30 * MINUTE
+    online_tau_s: float = 30 * MINUTE
+    ref_tau_s: float = 24 * HOUR
+    ref_warmup_s: float = 2 * HOUR
+    npc_online_equiv: float = 2.0  # 電腦飼料商 = 幾位線上玩家的買進量；人少時由它補足
+    online_surge_cap: float = 3.0
+    ref_flow_prior: float = 20.0  # 開服時平常的買進量預設值（份／小時）
+    # 每位玩家的影響上限（買進、賣回各一份）
+    player_cap_frac: float = 0.25
+    player_cap_window_s: float = 1 * HOUR
+    # 滑價
+    slip_kappa: float = 0.3
+    slip_qmax: float = 1.0
+    slip_window_s: float = 1 * HOUR
+    slip_typical_mult: float = 10.0
+    slip_decay_s: float = 1 * HOUR
+    order_size_prior: float = 10.0
+    order_size_tau_s: float = 12 * HOUR
+    order_size_update_cap: float = 5.0
+    # 賣回的手續費（企劃第 3 節起點 25%）
+    sell_fee: float = 0.25
+    # 邊界（基本價倍數）
+    soft_lo: float = 0.7
+    soft_hi: float = 1.5
+    soft_half_life_s: float = 20 * MINUTE
+    hard_lo: float = 0.6
+    hard_hi: float = 1.8
+    price_lo: float = 0.5
+    price_hi: float = 2.0
+    ma_window_s: float = 24 * HOUR
+
+
+# 飼料新聞（v0.3 B；ceo 2026-10-03：只有一般和大事件，不出超級大事件、黑天鵝）：一則只作用在一種飼料，
+# 六種加起來每天約 3 則。級別機率照牛奶等的一般：大事件的比例。新聞倍數相乘的上下限跟總價格一樣 0.5–2.0。
+FEED_EVENTS = EventParams(
+    rate_per_day=3.0,
+    targets=tuple(((fid,), 1.0 / len(FEED_IDS)) for fid in FEED_IDS),
+    tiers=(
+        ("normal", 0.825, 0.05, 0.15, 0.5),
+        ("big", 0.175, 0.25, 0.40, 0.5),
+    ),
+    total_cap_up=2.0,
+    total_cap_down=0.5,
+)
+
+
+@dataclass(frozen=True)
 class CareParams:
     # --- 飼料（第 2 節；ceo 2026-10-03：每次長固定公斤數，不用百分比）---
+    feed_ids: Tuple[str, ...] = FEED_IDS
     feed_names: Tuple[str, ...] = ("牧草", "乾草", "燕麥", "苜蓿", "玉米", "豆粕")
     feed_kg: Tuple[float, ...] = (1.0, 1.5, 2.0, 3.0, 5.0, 8.0)  # 吃一份長幾公斤（越貴長越多）
-    feed_price: Tuple[float, ...] = (5.0, 10.0, 15.0, 20.0, 30.0, 45.0)  # 幣／份。PR A 用這個固定價買；飼料市場在 PR B
+    feed_price: Tuple[float, ...] = (5.0, 10.0, 15.0, 20.0, 30.0, 45.0)  # 幣／份：飼料市場的基本價（v0.3 B 起照市價買）
     bonus_max_kg: float = 60.0  # 每頭牛的飼料加成最多幾公斤，不會減少
     # 加成跟著年紀長出來：體重 = 照年紀的體重 + 加成 ×（成年後的年紀 ÷ 長到最壯的時間，最多 1）。剛成年時加成還沒長出來，
     # 「買 C 級小牛、灌飼料、一長大就出貨」才不會變成套利（固定公斤的話市價 1.36 倍就回本）。
@@ -491,6 +568,8 @@ class EconomyParams:
     farm: FarmParams = field(default_factory=FarmParams)
     onboarding: OnboardingParams = field(default_factory=OnboardingParams)
     care: CareParams = field(default_factory=CareParams)
+    feedmarket: FeedMarketParams = field(default_factory=FeedMarketParams)  # v0.3 B：飼料市場（六種共用）
+    feed_events: EventParams = FEED_EVENTS  # v0.3 B：飼料新聞（另一個新聞產生器）
 
     def commodity(self, cid: str) -> CommodityParams:
         if cid not in self.commodity_ids:
