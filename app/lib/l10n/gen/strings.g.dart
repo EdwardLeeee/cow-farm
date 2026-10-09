@@ -151,6 +151,9 @@ const Map<String, List<String>> kPlaceholders = {
   's09.howNoTrait': ['use'],
   's09.howTraits': ['traits', 'use'],
   's09.no': ['n'],
+  's09.pairUnlocked': ['n', 'total'],
+  's09.pairHint': ['breed'],
+  's09.pairCount': ['n'],
   's09.firstFound': ['date', 'n'],
   'date.mdOnly': ['d', 'm'],
   's09.unknownBody': ['tier', 'use'],
@@ -693,6 +696,12 @@ const Map<String, String> _zhHant = {
   's09.notFoundYet': '還沒發現',
   's09.no': 'No.{n}',
   's09.howTitle': '怎麼配出來',
+  's09.pairTitle': '配種表',
+  's09.pairUnlocked': '解鎖 {n} / {total}',
+  's09.pairHint': '用這一對爸媽的品種配出{breed}（長大揭曉那一刻），這一列就會亮起來',
+  's09.pairCount': '配出過 {n} 次',
+  's09.pairNone': '還沒配出過',
+  's09.pairExtra': '表上沒有的配法',
   's09.firstFound': '第一次發現：{date}　・　目前有 {n} 頭',
   'date.mdOnly': '{m} 月 {d} 日',
   's09.unknownTitle': '還沒發現這個品種',
@@ -1497,6 +1506,12 @@ const Map<String, String> _en = {
   's09.notFoundYet': 'Not found yet',
   's09.no': 'No.{n}',
   's09.howTitle': 'How to breed it',
+  's09.pairTitle': 'Breeding table',
+  's09.pairUnlocked': 'Unlocked {n} / {total}',
+  's09.pairHint': 'Breed a {breed} from this pair (counted when it grows up) to light up the row',
+  's09.pairCount': 'Bred {n} times',
+  's09.pairNone': 'Not bred yet',
+  's09.pairExtra': 'Not on the list',
   's09.firstFound': 'First found: {date} · Owned: {n}',
   'date.mdOnly': '{m}/{d}',
   's09.unknownTitle': 'Breed not found yet',
@@ -2300,6 +2315,12 @@ const Map<String, String> _th = {
   's09.notFoundYet': 'ยังไม่พบ',
   's09.no': 'No.{n}',
   's09.howTitle': 'ผสมให้ได้อย่างไร',
+  's09.pairTitle': 'ตารางผสมพันธุ์',
+  's09.pairUnlocked': 'ปลดล็อก {n} / {total}',
+  's09.pairHint': 'ผสมได้{breed}จากพ่อแม่คู่นี้ (นับตอนโตแล้ว) แถวนี้จะสว่างขึ้น',
+  's09.pairCount': 'ผสมได้ {n} ครั้ง',
+  's09.pairNone': 'ยังไม่เคยผสมได้',
+  's09.pairExtra': 'นอกตาราง',
   's09.firstFound': 'พบครั้งแรก: {date} · ตอนนี้มี {n} ตัว',
   'date.mdOnly': '{d}/{m}',
   's09.unknownTitle': 'ยังไม่พบสายพันธุ์นี้',
@@ -4123,6 +4144,24 @@ abstract class GeneratedStrings {
 
   /// `s09.howTitle`：怎麼配出來
   String get s09HowTitle => table['s09.howTitle']!;
+
+  /// `s09.pairTitle`：配種表
+  String get s09PairTitle => table['s09.pairTitle']!;
+
+  /// `s09.pairUnlocked`：解鎖 {n} / {total}
+  String s09PairUnlocked({required Object n, required Object total}) => fill('s09.pairUnlocked', {'n': n, 'total': total});
+
+  /// `s09.pairHint`：用這一對爸媽的品種配出{breed}（長大揭曉那一刻），這一列就會亮起來
+  String s09PairHint({required Object breed}) => fill('s09.pairHint', {'breed': breed});
+
+  /// `s09.pairCount`：配出過 {n} 次
+  String s09PairCount({required Object n}) => fill('s09.pairCount', {'n': n});
+
+  /// `s09.pairNone`：還沒配出過
+  String get s09PairNone => table['s09.pairNone']!;
+
+  /// `s09.pairExtra`：表上沒有的配法
+  String get s09PairExtra => table['s09.pairExtra']!;
 
   /// `s09.firstFound`：第一次發現：{date}　・　目前有 {n} 頭
   String s09FirstFound({required Object date, required Object n}) => fill('s09.firstFound', {'date': date, 'n': n});
