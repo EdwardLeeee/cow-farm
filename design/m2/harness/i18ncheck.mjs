@@ -1,6 +1,6 @@
 // 字串表檢查（不開瀏覽器）：node harness/i18ncheck.mjs
 // 1. 24 種牛的名字、介紹、特徵名（breed.*、trait.*）跟 src/cow/breeds.js 一樣（breeds.js 是 node 端出牛圖用的繁中來源）
-// 2. 新聞標題（news.<商品>_<漲跌>.<序號>）跟 backend/cowecon/params.py 的 HEADLINES 一樣；
+// 2. 新聞標題（news.<商品>_<漲跌>.<序號>）跟 backend/cowecon/params.py 的 HEADLINES、FEED_HEADLINES（飼料）一樣；
 //    「幫我想一個」的詞庫（namegen.*，ceo 2026-10-01）繁中跟 backend/server/data/ranch_words.json 一樣
 // 3. 程式裡 t('…')、T('…') 用到的 key 都在 zh-Hant.json；列出沒用到的 key（用變數組出來的 key 前綴另外算）
 // 4. 其他語言（en.json、th.json…）：缺哪些 key（畫面會用繁中）、多了哪些、佔位符 {x} 跟繁中不一樣的、空字串
@@ -24,16 +24,14 @@ for (const [k0, b] of Object.entries(BREEDS)) {
 }
 for (const [k, v] of Object.entries(TRAIT_NAME)) if (zh[`trait.${k}`] !== v) errs.push(`trait.${k} 跟 breeds.js 不一樣`);
 
-// 2. 新聞標題（params.py 的 HEADLINES：{"milk+": ("…", …), …}）
+// 2. 新聞標題（params.py 的 HEADLINES：{"milk+": ("…", …), …}；飼料新聞在 FEED_HEADLINES：{"oats+": ("…", …), …}）
 const PARAMS = join(ROOT, '../../backend/cowecon/params.py');
 let headlines = 0;
 if (existsSync(PARAMS)) {
   const src = readFileSync(PARAMS, 'utf8');
-  const block = src.slice(src.search(/^HEADLINES\b/m));
-  const body = block.slice(block.indexOf('{'), block.indexOf('\n}') + 2);
-  const kinds = new Set(); // params.py 有標題的商品
+  const dict = (name) => { const i = src.search(new RegExp(`^${name}\\b`, 'm')); if (i < 0) return ''; const block = src.slice(i); return block.slice(block.indexOf('{'), block.indexOf('\n}') + 2); };
+  const body = dict('HEADLINES') + dict('FEED_HEADLINES');
   for (const m of body.matchAll(/"(\w+)([+-])"\s*:\s*\(([^)]*)\)/g)) {
-    kinds.add(m[1]);
     const items = [...m[3].matchAll(/"((?:[^"\\]|\\.)*)"/g)].map((x) => x[1]);
     items.forEach((s, i) => {
       const key = `news.${m[1]}_${m[2] === '+' ? 'up' : 'down'}.${i + 1}`;
@@ -41,16 +39,8 @@ if (existsSync(PARAMS)) {
       if (zh[key] !== s) errs.push(`${key} 跟 params.py 不一樣：${zh[key]} ≠ ${s}`);
     });
   }
-  // 飼料新聞（飼料市場在 C2）：字串先進字串表，params.py 還沒有那種飼料的標題時先列出來、不算錯；加進去以後就照上面逐則比對。
-  // 飼料代號照 backend/server/breeds.py 的 FEED_IDS（app 查 news.<代碼>，代碼的商品是 HEADLINES 的 key，所以 key 要用這組代號）
-  const FEEDS_PY = join(ROOT, '../../backend/server/breeds.py');
-  const feedIds = existsSync(FEEDS_PY) ? [...((readFileSync(FEEDS_PY, 'utf8').match(/^FEED_IDS\b[^=]*=\s*\(([^)]*)\)/m) || [])[1] || '').matchAll(/"(\w+)"/g)].map((x) => x[1]) : [];
-  const commodity = (k) => k.slice('news.'.length).replace(/_(up|down)\.\d+$/, '');
-  const news = Object.keys(zh).filter((k) => /^news\.\w+_(up|down)\.\d+$/.test(k));
-  const later = news.filter((k) => !kinds.has(commodity(k)) && feedIds.includes(commodity(k)));
-  const extra = news.length - later.length - headlines;
+  const extra = Object.keys(zh).filter((k) => /^news\.\w+_(up|down)\.\d+$/.test(k)).length - headlines;
   if (extra) errs.push(`zh-Hant.json 多了 ${extra} 則 params.py 沒有的新聞標題`);
-  if (later.length) console.log(`飼料新聞 ${later.length} 則（${[...new Set(later.map(commodity))].join('、')}）：params.py 還沒有，飼料市場（C2）加進去以後才比對`);
 } else console.log(`（找不到 ${PARAMS}，跳過新聞標題檢查）`);
 
 // 2b. 取名詞庫：繁中照 ranch_words.json 的順序
