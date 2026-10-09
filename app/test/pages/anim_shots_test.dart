@@ -3,7 +3,8 @@
 // A-11 牛舍滿 40 頭一起走（場景左半、往右滑到底的右半，各一輪 4 秒；其他 32 個位置的走法，ceo 2026-10-03）、
 // A-01 收奶（按下「收奶」以後 1.4 秒：奶桶 36.4 瓶全部進倉庫，130 → 166 瓶）、
 // A-02 成交（賣 130 瓶牛奶、1,924 幣：12,480 → 14,404；賣出面板捲到最上面，跟設計稿一樣）、
-// A-05 升級（牧場頁，累積收入 7,500 跨過 Lv5 的門檻）、A-08 收成稻米（田地頁，倉庫 184 → 361 公斤）。
+// A-05 升級（牧場頁，累積收入 7,500 跨過 Lv5 的門檻）、A-08 收成稻米（田地頁，倉庫 184 → 361 公斤）、
+// A-13 小牛長大（減少動態的最後一格）。
 // 390 寬、每點 2 像素（跟設計稿的動畫一樣只出 390），寫到 SHOTS_DIR/anim/<動畫 ID>/<第幾格>.png。
 // 只在本機拍，CI 不跑（沒給 SHOTS 就整個跳過）。在 app/ 底下：
 //   flutter test --dart-define=SHOTS=1 --dart-define=SHOTS_DIR=build/shots/<PR 編號> test/pages/anim_shots_test.dart
@@ -246,5 +247,28 @@ void main() {
       if (i > 0) await tester.pump(_frame);
       await _save(tester, 'A-10', i);
     }
+  });
+
+  // A-13 小牛長大：發光、白光一閃還沒做，現在開著動畫也跟減少動態版一樣淡入 0.2 秒。拍減少動態那張的「之後」：
+  // 小乳牛 #16 長大成娟珊 #16（設計稿的 #16 不算在牛舍 10／12 裡；app 的 #16 排在場景右半邊，看不到）
+  testWidgets('A-13 小牛長大：減少動態的最後一格（小乳牛 #16 → 娟珊 #16）', (tester) async {
+    final api = FakeGameApi(
+      state: ranchState(
+        cows: [
+          ...designCows(),
+          designCow(16, 'holstein', stage: 'calf'),
+        ],
+        penUsed: 10,
+      ),
+      market: ranchMarket(),
+    );
+    final m = await ranchModel(api: api);
+    api.stateJson = ranchState(cows: [...designCows(), designCow(16, 'jersey')], penUsed: 10);
+    await m.refreshState();
+    tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    await _ranch(tester, model: m);
+    await tester.pump(const Duration(milliseconds: 250));
+    await _save(tester, 'A-13', 0);
   });
 }

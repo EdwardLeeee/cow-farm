@@ -817,6 +817,7 @@ Future<(GameModel, FakeGameApi, FakePush)> loadedModel({
   SignInService? signIn,
   SignInPlatform signInPlatform = SignInPlatform.iphone,
   TokenStore? tokens,
+  PrefsStore? prefs,
 }) async {
   final a = api ?? FakeGameApi();
   final p = FakePush(connected: connected);
@@ -829,6 +830,7 @@ Future<(GameModel, FakeGameApi, FakePush)> loadedModel({
     uiTick: uiTick,
     signInPlatform: signIn == null ? SignInPlatform.none : signInPlatform,
     signIn: signIn,
+    prefs: prefs,
   );
   await m.refreshState(); // token 還沒設時不會動作
   a.token = 'tok';

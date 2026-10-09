@@ -27,6 +27,7 @@ import '../widgets/action_button.dart';
 import '../widgets/ticker_builder.dart';
 import 'coach_card.dart';
 import 'dock.dart';
+import 'grow_reveal.dart';
 import 'pen_list.dart';
 import 'ranch_game.dart';
 import 'scene.dart';
@@ -224,9 +225,11 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
     // 空牧場在很矮的手機（320×568）放不下「去商店」卡片：面板收成一條，卡片才不會疊到奶桶（m3-backlog）
     final shortScreen = mq.size.height < 700;
     final collapsed = settings.dockCollapsed || (empty && shortScreen);
-    final bigNews = _bigNews(m, settings);
+    // 小牛長大揭曉（A-13 的最後一格、S03-25）：一頭一頭來，揭曉的時候大新聞、引導卡先不出
+    final grown = m.grownCow;
+    final bigNews = grown == null ? _bigNews(m, settings) : null;
     // 新手引導卡（S11-03）：大新聞、空牧場的卡片開著時先不出（一次一張）
-    final coach = bigNews == null && st.cows.isNotEmpty ? coachToShow(m, settings) : null;
+    final coach = grown == null && bigNews == null && st.cows.isNotEmpty ? coachToShow(m, settings) : null;
     final collectButton = AppButton(
       s.collect,
       key: const Key('collect'),
@@ -397,6 +400,14 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
                 child: ToastPill(_toast!.text, kind: _toast!.kind, action: _toast!.action, key: const Key('toast')),
               ),
             ),
+          ),
+        // 蓋在最上面（暗幕連頂列、分頁列一起蓋）；換一頭就從頭淡入
+        if (grown != null)
+          GrowReveal(
+            key: ValueKey(('grow', grown.id)),
+            cow: grown,
+            mult: st.economy?.hybridMult,
+            onDone: () => m.dismissGrown(grown),
           ),
       ],
     );

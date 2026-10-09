@@ -18,13 +18,16 @@ Future<void> main() async {
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   registerFontLicenses();
   // 先讀語言設定，第一個畫面就用對的語言。
-  final settings = SettingsController(SharedPrefsStore());
+  final prefs = SharedPrefsStore();
+  final settings = SettingsController(prefs);
   await settings.load();
   await CowArt.load(); // 牛的圖的量測（cows.json），畫第一頭牛之前要有
   final base = resolveApiBase();
   // Apple／Google 登入只在設好 client ID 的手機建置有（config.dart；網頁版、沒設的建置是 none）
   final signInPlatform = resolveSignInPlatform();
   final model = GameModel(
+    // 小牛長大揭曉：看過是小牛的牛記在手機上（A-13：沒開 app 的時候長大的，下次打開牧場頁時揭曉）
+    prefs: prefs,
     api: HttpGameApi(base: base),
     push: WsPushClient(base: base),
     tokens: createTokenStore(),
