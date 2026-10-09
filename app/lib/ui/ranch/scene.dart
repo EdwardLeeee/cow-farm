@@ -112,6 +112,9 @@ class RanchScene extends StatefulWidget {
     this.onTapPoop,
     this.onSwipePoop,
     this.onSwipeEnd,
+    this.poopFx = const [],
+    this.onPoopFxCount,
+    this.onPoopFxDone,
   });
 
   final List<SceneCow> cows;
@@ -139,6 +142,11 @@ class RanchScene extends StatefulWidget {
   final ValueChanged<ScenePoop>? onSwipePoop;
   final VoidCallback? onSwipeEnd;
 
+  /// 點一下清掉、還在播 A-14 的那幾坨（[PoopCleanFx]，跟著場景捲）：第 0.3 秒叫 [onPoopFxCount]，播完叫 [onPoopFxDone]。
+  final List<PoopFx> poopFx;
+  final ValueChanged<PoopFx>? onPoopFxCount;
+  final ValueChanged<PoopFx>? onPoopFxDone;
+
   /// 後面（上面）的先畫，同一排從左到右（scene.js：依 depth、y 排序）。
   static List<SceneCow> paintOrder(List<SceneCow> cows) =>
       [...cows]..sort((a, b) => a.slot.y != b.slot.y ? a.slot.y.compareTo(b.slot.y) : a.slot.x.compareTo(b.slot.x));
@@ -160,8 +168,11 @@ class _RanchSceneState extends State<RanchScene> {
   Offset? _last;
 
   /// 一坨大便畫在螢幕上的範圍。
-  static Rect _poopRect(ScenePoop p, SceneFit fit) {
-    final r = poopRect(kPoopSpots[p.spot]);
+  static Rect _poopRect(ScenePoop p, SceneFit fit) => _spotRect(p.spot, fit);
+
+  /// 第 [spot] 個位置的大便畫在螢幕上的範圍。
+  static Rect _spotRect(int spot, SceneFit fit) {
+    final r = poopRect(kPoopSpots[spot]);
     final tl = fit.map(r.left, r.top);
     return Rect.fromLTWH(tl.dx, tl.dy, r.width * fit.k, r.height * fit.k);
   }
@@ -215,6 +226,19 @@ class _RanchSceneState extends State<RanchScene> {
                   key: ValueKey('poop-${p.spot}'),
                   rect: _poopRect(p, fit),
                   child: SvgPicture.asset('assets/ui/icons/poop.svg', fit: BoxFit.fill, excludeFromSemantics: true),
+                ),
+              // A-14：點掉的那一坨淡掉、波紋、小星星（中心在大便底部中間往上 8，設計稿的 poopAt）
+              for (final f in widget.poopFx)
+                Positioned.fill(
+                  key: ValueKey('poop-fx-${f.id}'),
+                  child: IgnorePointer(
+                    child: PoopCleanFx(
+                      poop: _spotRect(f.spot, fit),
+                      origin: fit.map(kPoopSpots[f.spot].dx, kPoopSpots[f.spot].dy) - const Offset(0, 8),
+                      onCount: () => widget.onPoopFxCount?.call(f),
+                      onDone: () => widget.onPoopFxDone?.call(f),
+                    ),
+                  ),
                 ),
             ],
           ),
