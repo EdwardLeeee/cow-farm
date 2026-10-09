@@ -158,6 +158,11 @@ class FloorRentReq(FloorReq):
     days: Any
 
 
+class RobotBuyReq(_Req):
+    model: Any  # 掃地機的代號（協定 1.6 節）
+    request_id: str
+
+
 # ---- v0.2 ----
 class ShopBuyReq(_Req):
     grade: Literal["A", "B", "C"]
@@ -775,6 +780,28 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
             req.request_id,
             lambda now: g.use_floor(p.pid, g._floor_index(req.floor), now),
             lambda res, st: {"floor": res["floor"], "floors": st["floor"]},
+        )
+
+    @app.post("/v1/robot/buy")
+    async def robot_buy(req: RobotBuyReq, p: Player = Depends(current)):
+        g = server.game
+        return await care_action(
+            p,
+            "robot_buy",
+            req.request_id,
+            lambda now: g.buy_robot(p.pid, g._robot_index(req.model), now),
+            lambda res, st: {"model": res["model"], "cost": res["cost"], "robot": st["robot"], "poop": st["poop"]},
+        )
+
+    @app.post("/v1/robot/repair")
+    async def robot_repair(req: ActionReq, p: Player = Depends(current)):
+        g = server.game
+        return await care_action(
+            p,
+            "robot_repair",
+            req.request_id,
+            lambda now: g.repair_robot(p.pid, now),
+            lambda res, st: {"model": res["model"], "cost": res["cost"], "robot": st["robot"], "poop": st["poop"]},
         )
 
     # ---- 行情與排行榜 ----

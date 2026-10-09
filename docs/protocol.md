@@ -65,7 +65,7 @@ PR 3–10 都做完了（2026-10-02）。每個 PR 合併時更新這張表的�
 
 ### 1.3 會改變狀態的請求：`request_id`
 
-- 下面這些**必須**帶 `request_id`（UUID 字串）：`POST /v1/collect`、`/v1/sell`、`/v1/ship`、`/v1/breed`、`/v1/upgrade`、`/v1/shop/buy`、`/v1/field/assign`、`/v1/field/recall`、`/v1/field/harvest`、`/v1/field/expand`、`/v1/stud/list`、`/v1/stud/unlist`、`/v1/stud/borrow`、`/v1/ranch/rename`、`/v1/ranch/avatar`，以及 2.6 節的照顧動作：`/v1/feed`、`/v1/feed/all`、`/v1/feed/buy`、`/v1/clean`、`/v1/cure`、`/v1/helper`、`/v1/floor/buy`、`/v1/floor/rent`、`/v1/floor/use`。
+- 下面這些**必須**帶 `request_id`（UUID 字串）：`POST /v1/collect`、`/v1/sell`、`/v1/ship`、`/v1/breed`、`/v1/upgrade`、`/v1/shop/buy`、`/v1/field/assign`、`/v1/field/recall`、`/v1/field/harvest`、`/v1/field/expand`、`/v1/stud/list`、`/v1/stud/unlist`、`/v1/stud/borrow`、`/v1/ranch/rename`、`/v1/ranch/avatar`，以及 2.6 節的照顧動作：`/v1/feed`、`/v1/feed/all`、`/v1/feed/buy`、`/v1/clean`、`/v1/cure`、`/v1/helper`、`/v1/floor/buy`、`/v1/floor/rent`、`/v1/floor/use`、`/v1/robot/buy`、`/v1/robot/repair`。
 - `POST /v1/session` 可以帶（建議帶），規則見 2.1 節。帳號的綁定、換回、找回、刪除也可以帶，規則不一樣，見 5.0 節。
 - 每個「使用者動作」產生一個新的 UUID；網路逾時要重送時，**用同一個 request_id** 重送。
 - request_id 要用**安全亂數**產生的 UUID v4（Dart `uuid` 套件的 v4 預設用 `Random.secure`）。建立牧場（2.1 節）在 10 分鐘內只憑 request_id 重送，就會拿到那個牧場的新 token，所以 request_id 在這段時間等於這個請求的憑證：app、伺服器、反向代理都**不能把 request_id 和請求本文寫進日誌**（當機回報、除錯紀錄也一樣）。
@@ -128,6 +128,9 @@ PR 3–10 都做完了（2026-10-02）。每個 PR 合併時更新這張表的�
 | 409 | `floor_owned` | 買地板：已經有這種地板了 | `floor` | `unknownError` | C1 |
 | 409 | `floor_rented` | 租地板：已經租了另一種，到期以後才能租這種 | `floor`（租著的那種）、`until` | `unknownError` | C1 |
 | 409 | `floor_locked` | 換地板：沒有這種地板（沒買、沒租，或租約到期了） | `floor` | `unknownError` | C1 |
+| 409 | `robot_owned` | 買掃地機：已經有這一款（壞了用 `POST /v1/robot/repair` 修） | `model` | `unknownError` | 掃地機 |
+| 409 | `no_robot` | 修掃地機：還沒有掃地機 | | `unknownError` | 掃地機 |
+| 409 | `robot_working` | 修掃地機：還在動，壞了才能修 | `model` | `unknownError` | 掃地機 |
 | 409 | `max_days` | 雇打掃牛、租地板：預付超過上限（現在起算最多 7 天，含還沒到期的） | `max_days` | `unknownError` | C1 |
 | 409 | `no_free_field` | 派牛時沒指定田號，而且沒有空田 | | `err.no_free_field` | |
 | 409 | `field_occupied` | 這塊田已經有牛 | `field`、`cow_id` | `err.field_occupied` | |
@@ -215,6 +218,8 @@ app 怎麼顯示：
 | `soy` | 豆粕 | 8 公斤 |
 
 地板代號：`dirt` 泥土地（開局就有）、`hay_bed` 乾草床（租）、`meadow` 青草地（租）、`cushion` 軟墊地（買斷）。
+
+大便掃地機的代號：`basic` 基本款（乳牛紋圓盤）、`sturdy` 耐用款（透明圓頂）。
 
 每公斤、價錢、地板的倍數都在 `state.economy`（2.3 節），app 不要寫死。
 
@@ -366,6 +371,7 @@ app 怎麼顯示：
  "poop": {"total": 3, "dirt": 0.75, "safe_until": 1791216000.0},
  "floor": {"current": "dirt", "owned": ["dirt"], "rented": null, "rent_until": null},
  "helper": {"until": null},
+ "robot": {"model": "basic", "working": false, "since": 1791131100.0, "broken_at": 1791190100.0},
  "account": {"links": []},
  "maintenance": null
 }
@@ -389,6 +395,7 @@ app 怎麼顯示：
 | `poop` | object | v0.3 C1：`total` 全場還沒清的大便（坨，= `cows[].poop` 加起來）、`dirt` 髒的程度（= total ÷ 牛的頭數；超過 `economy.sick_dirt_free` 才會生病）、`safe_until` 新手保護（開牧場 24 遊戲小時內不會生病）到什麼時候，過了是 null |
 | `floor` | object | v0.3 C1：`current` 正在用的地板、`owned` 買斷的（含開局的 `dirt`）、`rented` 租著的那種（沒租或到期是 null）、`rent_until` 租到什麼時候。租約到期那一刻正在用的話自動換回 `dirt` |
 | `helper` | object | v0.3 C1：打掃牛（使用者 2026-10-09 把「打掃小幫手」改名，規則一樣；欄位名照舊叫 `helper`）`until` 雇到什麼時候；沒雇或到期是 null。雇用期間每 `economy.helper_clean_min` 遊戲分鐘清掉全部大便 |
+| `robot` | object | 大便掃地機（2.6 節）：`model` 哪一款（沒有是 null）、`working` 有沒有在動、`since` 這次開始動（買來、修好）的時間、`broken_at` 壞掉的時間。**什麼時候會壞玩家看不到**：還在動的時候 `broken_at` 是 null，壞了才給（那時就停了）。沒有掃地機時 `working` false、其他都是 null |
 | `account` | object | PR 9：`links[]` 綁定的帳號 `{"provider": "apple"｜"google", "linked_at_real"}`。空陣列 = 還沒備份（頂列齒輪的小點 G-10、S13-01「還沒備份」） |
 | `maintenance` | object／null | PR 8：維護預告或維護中（第 6 節）；沒有是 null |
 | `profile` | object | S21 牧場資料（D34）：`avatar` 頭像的品種代號（沒選過是 null，app 畫荷斯坦）、`renames` 改過幾次名（0 = 下次改名免費，之後每次 `economy.rename_price` 幣）。改名、換頭像見 2.5 節 |
@@ -506,6 +513,8 @@ v2 拿掉的：`type_name`、`tier_name`、`ready_at`、`breed_ready`（看 `can
 | `floors[]` | 每種地板 `{"id", "speed", "late_speed", "sick_mult", "price", "rent_per_day"}`：`speed` 長到最壯之前年紀走多快、`late_speed` 過了最壯以後、`sick_mult` 生病速度的倍數、`price` 買斷的價錢（不能買是 null）、`rent_per_day` 租一天的價錢（不能租是 null） |
 | `floor_rent_max_days`、`helper_max_days` | 最多一次預付幾天 |
 | `helper_per_day`、`helper_clean_min` | 打掃牛一天的價錢、每幾遊戲分鐘清一次 |
+| `robots[]` | 大便掃地機每一款 `{"id", "price", "repair", "mtbf_days"}`：買價、修理費、平均幾天（遊戲時間）壞一次 |
+| `robot_clean_min` | 掃地機在動的時候，每幾遊戲分鐘清掉全部大便（比打掃牛慢） |
 | `cure_price` | 治療一頭的價錢 |
 | `sick_beef_mult` | 病牛出貨，牛肉只剩這個比例（0.1） |
 | `poop_every_h`、`poop_max_per_cow` | 每頭牛（小牛也算）每幾遊戲小時拉一坨、最多累積幾坨 |
@@ -577,7 +586,7 @@ v2 拿掉的：`type_name`、`tier_name`、`ready_at`、`breed_ready`（看 `can
 - 兩個都照 1.3 節：同一個 `request_id` 重送回同一個結果，只改一次、只扣一次錢。
 - 排行榜、借種的主人和對方等牧場物件（1.6 節）都會帶新的名字和 `avatar`。
 
-### 2.6 照顧：餵食、清大便、治療、打掃牛、地板（v0.3 C1）
+### 2.6 照顧：餵食、清大便、治療、打掃牛、掃地機、地板（v0.3 C1）
 
 企劃 `docs/design/v0.3-care.md`。數字都在 `state.economy`（2.3 節）。全部要帶 `request_id`（1.3 節），回應都附 `coins`、`state`。
 
@@ -588,6 +597,8 @@ v2 拿掉的：`type_name`、`tier_name`、`ready_at`、`breed_ready`（看 `can
 | `POST /v1/feed/buy` 買飼料 | `{"feed": "soy", "qty": 10, "request_id": "<uuid>"}` | `feed`、`qty`、`cost`、`feeds` | `not_enough_coins`、`feed_cap`、`bad_request`（`qty` 不是 ≥ 1 的整數） |
 | `POST /v1/clean` 清大便 | `{"piles": [{"cow_id": 3, "n": 2}], "request_id": "<uuid>"}`；不給 `piles` = 全部清 | `cleaned`（清了幾坨）、`poop`（同 `state.poop`） | `cow_not_found`、`bad_request` |
 | `POST /v1/cure` 治療 | `{"cow_id": 3, "request_id": "<uuid>"}` | `cow_id`、`cost`、`cow` | `cow_not_found`、`cow_not_sick`、`not_enough_coins` |
+| `POST /v1/robot/buy` 買掃地機 | `{"model": "basic", "request_id": "<uuid>"}` | `model`、`cost`、`robot`（同 `state.robot`）、`poop` | `robot_owned`、`not_enough_coins`、`bad_request`（不是掃地機的代號） |
+| `POST /v1/robot/repair` 修掃地機 | `{"request_id": "<uuid>"}` | `model`、`cost`（修理費）、`robot`、`poop` | `no_robot`、`robot_working`、`not_enough_coins` |
 | `POST /v1/helper` 雇打掃牛 | `{"days": 3, "request_id": "<uuid>"}` | `days`、`cost`、`helper`（同 `state.helper`）、`poop` | `max_days`、`not_enough_coins`、`bad_request` |
 | `POST /v1/floor/buy` 買地板 | `{"floor": "cushion", "request_id": "<uuid>"}` | `floor`、`cost`、`floors`（同 `state.floor`） | `floor_owned`、`not_enough_coins`、`bad_request`（不是地板代號，或這種只能租） |
 | `POST /v1/floor/rent` 租地板 | `{"floor": "meadow", "days": 2, "request_id": "<uuid>"}` | `floor`、`days`、`cost`、`until`、`floors` | `floor_rented`、`max_days`、`not_enough_coins`、`bad_request`（這種不能租） |
@@ -600,6 +611,12 @@ v2 拿掉的：`type_name`、`tier_name`、`ready_at`、`breed_ready`（看 `can
 - **清大便**：免費。`piles` 是 app 劃過去清掉的每頭牛幾坨（同一頭出現幾次就加起來；比那頭牛現有的多就清到 0）；不給就全部清。
 - **治療**：一頭 `cure_price` 幣，馬上好。
 - **打掃牛**（原本叫打掃小幫手，2026-10-09 改名；端點、欄位名照舊用 `helper`）：一天 `helper_per_day` 幣，接在還沒到期的後面，從現在起算最多 `helper_max_days` 天。雇用那一刻先清一次，之後每 `helper_clean_min` 遊戲分鐘清掉全部大便。
+- **大便掃地機**（使用者 2026-10-09 選兩款）：一次買斷（`economy.robots[].price`）。在動的時候每 `robot_clean_min` 遊戲分鐘清掉全部大便。
+  - 會隨機壞掉：每次開始動（買來、修好）那一刻先清一次，再抽一個壞掉的時間，平均 `mtbf_days` 天；玩家看不到。
+  - 壞了就停（`robot.working` false、`broken_at` 是壞掉的時間），付修理費（`repair`）才再動，不用重買。
+  - 一次只有一台：買另一款就換掉舊的，舊的不退錢（app 買之前要提醒）。同一款不能再買（`robot_owned`）。
+  - 牛多、常上線的人買掃地機划算；常常不在的人壞了沒人修，雇打掃牛划算。兩個可以同時用。
+  - 什麼時候壞掉沒辦法事先知道，跟病牛一樣，下次抓 `state` 才看得到；伺服器不推播。app 看到 `robot.model` 不是 null、`robot.working` 是 false，就提醒玩家去修，例如右上角的大便數旁邊放一個小圖示（ceo 2026-10-09）。
 - **地板**：牛舍一次鋪一種，全部的牛一起受影響（`economy.floors[]` 的倍數）。
   - 買斷的（`cushion`）隨時免費換回來用。
   - 長快的（`hay_bed`、`meadow`）按天租：接在還沒到期的後面，最多預付 `floor_rent_max_days` 天；同時只能租一種。
@@ -1286,3 +1303,4 @@ app 啟動時先打這個（還沒有 token 也能打），再決定要不要顯
   - 3.8 節更正：小牛長大時間 v0.3 起每頭一樣（`economy.calf_grow_h`）。
 - 2026-10-09：v0.3 C1b 圖鑑的配種表（2.7 節）：`GET /v1/codex/pairings`（每個品種 4 組代表配法 `{sire, dam}`）、`state.pairings[]`（配出過的組合 `{sire, dam, child, count, found_at}`）。爸爸媽媽分開算、長大揭曉才算、雜種牛不算、只算配種和借種。只加不改，存檔格式不變。
 - 2026-10-09：使用者把「打掃小幫手」改名「打掃牛」（規則一樣），協定的文字跟著改，端點和欄位名照舊用 `helper`。2.6 節寫明「全部餵一樣的」app 第一版不用（端點留給電腦假玩家），第一版的餵法是丟飼料（app 照落點挑牛，送 `POST /v1/feed`）。
+- 2026-10-09：大便掃地機（使用者選兩款：`basic` 基本款、`sturdy` 耐用款）：`POST /v1/robot/buy`、`POST /v1/robot/repair`；`state.robot`；`economy.robots[]`、`robot_clean_min`；1.4 節加 `robot_owned`、`no_robot`、`robot_working`。只加不改，存檔格式不變（舊牧場讀回來沒有掃地機）。

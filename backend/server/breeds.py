@@ -30,6 +30,8 @@ FEED_IDS: Tuple[str, ...] = ("grass", "hay", "oats", "alfalfa", "corn", "soy")
 FEED_INDEX: Dict[str, int] = {k: i for i, k in enumerate(FEED_IDS)}
 FLOOR_IDS: Tuple[str, ...] = tuple(DEFAULT.care.floor_ids)  # 泥土地、乾草床、青草地、軟墊地
 FLOOR_INDEX: Dict[str, int] = {k: i for i, k in enumerate(FLOOR_IDS)}
+ROBOT_IDS: Tuple[str, ...] = tuple(DEFAULT.care.robot_ids)  # 大便掃地機：基本款、耐用款
+ROBOT_INDEX: Dict[str, int] = {k: i for i, k in enumerate(ROBOT_IDS)}
 
 
 def breed_id(ctype: int, mask: int) -> str:
