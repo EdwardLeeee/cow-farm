@@ -68,7 +68,8 @@ def test_feed_rules_and_errors():
     old = adult(p, HOLSTEIN, False, now, age_h=FP.peak_age_h[0] + 1)  # 過了最壯
     young = adult(p, ANGUS, True, now, age_h=1)
     assert code_of(game.feed, p.pid, young.cid, OATS, now).code == "out_of_feed"
-    assert game.buy_feed(p.pid, OATS, 3, now)["cost"] == int(CP.feed_price[OATS] * 3)
+    quote = p.farm.quote_feed_buy(OATS, 3, game.ex.feeds["oats"], now)  # v0.3 B：照市價（含滑價）
+    assert game.buy_feed(p.pid, OATS, 3, now)["cost"] == int(round(quote.amount))
     assert code_of(game.buy_feed, p.pid, OATS, CP.feed_cap, now).code == "feed_cap"
     assert code_of(game.buy_feed, p.pid, "oats", 0, now).code == "bad_request"
     e = code_of(game.feed, p.pid, old.cid, OATS, now)
@@ -260,8 +261,10 @@ def test_http_feed_reveal_hybrid_milk_and_beef(h):
     assert e["detail"] == {"feed": "oats"}
     err(h.post("/v1/feed", tok, {"cow_id": good.cid, "feed": "pizza", "request_id": new_rid()}), 400, "bad_request")
     coins = st["coins"]
+    price = st["feed_quotes"]["oats"]  # v0.3 B：現在的市價
     r = h.post("/v1/feed/buy", tok, {"feed": "oats", "qty": 3, "request_id": new_rid()}).json()
-    assert r["cost"] == int(CP.feed_price[OATS] * 3) and r["feeds"]["oats"] == 3 and r["coins"] == coins - r["cost"]
+    assert 3 * price <= r["cost"] <= 3 * price * (1 + DEFAULT.feedmarket.slip_kappa) + 1  # 市價 ×（1 + 滑價）
+    assert r["feeds"]["oats"] == 3 and abs(r["coins"] - (coins - r["cost"])) <= 1
     h.post("/v1/feed/buy", tok, {"feed": "soy", "qty": 1, "request_id": new_rid()})
     rid = new_rid()
     r = h.post("/v1/feed", tok, {"cow_id": good.cid, "feed": "oats", "request_id": rid}).json()

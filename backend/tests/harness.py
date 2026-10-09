@@ -123,6 +123,7 @@ AMOUNT_KINDS = (
     "helper",
     "floor",
     "robot",
+    "feed_sell",
 )
 QTY_KINDS = (
     "milk",
@@ -148,8 +149,9 @@ QTY_KINDS = (
     "bonus_kg",
     "hybrid",
     "rare_grown",
+    "feed_sell",
 )
-REVENUE_KINDS = ("milk", "beef", "rice", "stud_in")  # 收入 = 賣出收入 + 借種收入
+REVENUE_KINDS = ("milk", "beef", "rice", "stud_in", "feed_sell")  # 收入 = 賣出 + 借種收入 + 賣回飼料（照研究模擬）
 CARE_KINDS = ("floor", "helper", "feed_buy", "cure", "robot")  # v0.3 照顧花費（照研究模擬的 sim/world.py）
 
 

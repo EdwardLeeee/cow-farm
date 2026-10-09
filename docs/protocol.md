@@ -386,6 +386,7 @@ app 怎麼顯示：
 | `stud` | object | `listings` 自己上架的借種（形狀同 `GET /v1/stud` 的 `listings[]`）、`income` 借種收入累計（幣） |
 | `economy` | object | 經濟倍數，直接讀伺服器的參數（`params.py`），app 不要寫死：`tier_mult`（一般、優良、稀有、傳說：牛奶、牛肉的賣價倍率，也是耕牛的稻米產量倍率；S05「優良牛奶 ×1.3」、S09 品種卡）、`beef_grade_mult`（牛肉評級 A／B／C 的賣價倍率）、`ox_rice_per_h`（壯年一般耕牛每遊戲小時的稻米公斤數；某頭牛 = 這個 × `tier_mult` × 年齡曲線，現在的值看 `cows[].rice_per_h`）、`dairy_milk_per_h`（壯年母乳牛每遊戲小時產幾瓶；× 年齡曲線，稀有度不影響產量、只影響賣價；S09-03「產奶 14 瓶／時」）、`calf_grow_h`（小牛長大要幾遊戲小時，依稀有度 0–3；S08-06、S09-03。v0.3 起四個數字一樣，看倒數猜不到稀有度）、`peak_weight_kg`（母牛的最佳體重，依用途，key 同 `cows[].type`：`dairy`、`dual`、`beef`；S09-03）、`bull_weight_mult`（公牛的體重 = 母牛 × 這個）、`field_cap_h`（一塊田最多存這頭耕牛**壯年**幾小時的產量：`fields[].capacity` = `ox_rice_per_h` × `tier_mult` × 這個，不乘年齡曲線。過了壯年、產量變少的耕牛要更久才長滿，例：產量剩 4 成時要 8 ÷ 0.4 = 20 小時；S17「最多存 8 小時的量」）。牛奶賣價 = 市價 × `tier_mult` × 新鮮度；牛肉 = 市價 × `beef_grade_mult` × `tier_mult` × 存放折價。**這些只是給畫面顯示的說明數字**：帳一律由伺服器算，app 不能拿它們自己算成交價或收入（手機不算帳；要價格用 `POST /v1/sell/quote`、`GET /v1/ship/preview`） |
 | `feeds` | object | v0.3 C1：倉庫裡每種飼料幾份（key 是飼料代號，1.6 節）。不會壞、不佔倉庫容量，每種最多 `economy.feed_cap` 份 |
+| `feed_quotes` | object | 飼料市場（v0.3 B）：每種飼料現在的市價（幣／份，未含滑價；key 是飼料代號）。全服共用、會漲跌，基本價在 `economy.feeds[].price`。買的時候照這個價再加滑價（2.6 節） |
 | `poop` | object | v0.3 C1：`total` 全場還沒清的大便（坨，= `cows[].poop` 加起來）、`dirt` 髒的程度（= total ÷ 牛的頭數；超過 `economy.sick_dirt_free` 才會生病）、`safe_until` 新手保護（開牧場 24 遊戲小時內不會生病）到什麼時候，過了是 null |
 | `floor` | object | v0.3 C1：`current` 正在用的地板、`owned` 買斷的（含開局的 `dirt`）、`rented` 租著的那種（沒租或到期是 null）、`rent_until` 租到什麼時候。租約到期那一刻正在用的話自動換回 `dirt` |
 | `helper` | object | v0.3 C1：打掃牛（使用者 2026-10-09 把「打掃小幫手」改名，規則一樣；欄位名照舊叫 `helper`）`until` 雇到什麼時候；沒雇或到期是 null。雇用期間每 `economy.helper_clean_min` 遊戲分鐘清掉全部大便 |
@@ -499,7 +500,7 @@ v2 拿掉的：`type_name`、`tier_name`、`ready_at`、`breed_ready`（看 `can
 | 欄位 | 說明 |
 |---|---|
 | `hybrid_mult` | 雜種牛的倍數（牛奶、牛肉、稻米；取代 `tier_mult`） |
-| `feeds[]` | 每種飼料 `{"id", "kg", "price"}`：每份長幾公斤、買一份的價錢（幣；C1 是固定價，飼料市場在之後的版本） |
+| `feeds[]` | 每種飼料 `{"id", "kg", "price"}`：每份長幾公斤、基本價（幣／份）。v0.3 B 起照市價買：現在的價錢看 `state.feed_quotes`，會在基本價的 0.5–2 倍之間漲跌 |
 | `feed_cap` | 每種飼料倉庫最多幾份 |
 | `feed_cooldown_h`、`calf_feed_cooldown_h` | 吃飽冷卻（遊戲小時）：成牛、小牛。照現實的遊戲時間，地板不影響 |
 | `feed_bonus_max_kg` | 飼料加成最多幾公斤 |
@@ -596,7 +597,9 @@ v2 拿掉的：`type_name`、`tier_name`、`ready_at`、`breed_ready`（看 `can
 - **餵食**：一份飼料餵一頭牛一次，長固定公斤數（`economy.feeds[].kg`），加成最多 `economy.feed_bonus_max_kg`。吃完冷卻 `feed_cooldown_h`（小牛 `calf_feed_cooldown_h`）。小牛時期吃的算進 `ate`（指定的飼料各吃過一次就算數）；過了最壯不能餵（`feed_no_effect`，`reason: "past_peak"`），上架借種中的公牛也不能餵（`cow_listed`）。病牛可以餵。
 - **全部餵一樣的**（企劃 2.2）：現在能吃這種飼料的牛各餵一份；份數不夠先餵小牛、再照編號。一頭都餵不到回 `nothing_to_feed`，什麼都不扣。**app 第一版不做這個按鈕**（使用者 2026-10-09：「先不要，我覺得讓用戶一頭一頭喂比較好玩」，D35 補充 8）；端點留著，電腦假玩家用得到。
 - **丟飼料**（app 第一版的餵法，D35 補充 8）：玩家把飼料丟在地上，最近、而且能吃的那頭牛走過來吃。app 照落點挑出那頭牛（看 `cows[].feed_block` 是 null 的），再送 `POST /v1/feed` 和它的 `cow_id`；伺服器照一般的餵食算帳。挑到的牛剛好不能吃（例如兩次請求之間吃飽了）會回 409，app 照錯誤碼顯示。
-- **買飼料**：固定價（`economy.feeds[].price` × `qty`）；每種最多 `feed_cap` 份，超過回 `feed_cap`，什麼都不買。
+- **買飼料**（v0.3 B 起照市價）：花費 = 市價（`state.feed_quotes`）× `qty` ×（1 + 滑價），一次買很多會越買越貴；回應的 `cost` 是實際扣的錢（整數）。每種最多 `feed_cap` 份，超過回 `feed_cap`，什麼都不買。
+  - 飼料市場：六種飼料各一個全服市價，買的人多就漲、慢慢回到基本價；有自己的新聞（只有一般、大事件，例「燕麥奶爆紅，燕麥被搶購」）。總價格夾在基本價的 0.5–2 倍。
+  - 飼料分頁（行情、新聞）、賣回飼料（扣 25% 手續費）、行情推播在之後的版本（C2）。
 - **清大便**：免費。`piles` 是 app 劃過去清掉的每頭牛幾坨（同一頭出現幾次就加起來；比那頭牛現有的多就清到 0）；不給就全部清。
 - **治療**：一頭 `cure_price` 幣，馬上好。
 - **打掃牛**（原本叫打掃小幫手，2026-10-09 改名；端點、欄位名照舊用 `helper`）：一天 `helper_per_day` 幣，接在還沒到期的後面，從現在起算最多 `helper_max_days` 天。雇用那一刻先清一次，之後每 `helper_clean_min` 遊戲分鐘清掉全部大便。
@@ -1289,3 +1292,4 @@ app 啟動時先打這個（還沒有 token 也能打），再決定要不要顯
 - 2026-10-09：v0.3 C1b 圖鑑的配種表（2.7 節）：`GET /v1/codex/pairings`（每個品種 4 組代表配法 `{sire, dam}`）、`state.pairings[]`（配出過的組合 `{sire, dam, child, count, found_at}`）。爸爸媽媽分開算、長大揭曉才算、雜種牛不算、只算配種和借種。只加不改，存檔格式不變。
 - 2026-10-09：使用者把「打掃小幫手」改名「打掃牛」（規則一樣），協定的文字跟著改，端點和欄位名照舊用 `helper`。2.6 節寫明「全部餵一樣的」app 第一版不用（端點留給電腦假玩家），第一版的餵法是丟飼料（app 照落點挑牛，送 `POST /v1/feed`）。
 - 2026-10-10：3.4 節 `GET /v1/ship/preview` 加 `expected_value_cured`（病牛治好以後的期望值，不是病牛是 null）；2.3 節長大揭曉的動畫編號改成 A-13（原本誤寫 A-04）。只加不改。
+- 2026-10-09：v0.3 B 飼料市場：`POST /v1/feed/buy` 改成照市價（含滑價）算 `cost`；`state` 加 `feed_quotes`（每種飼料現在的市價）；`economy.feeds[].price` 寫明是基本價。只加不改，存檔格式不變（舊世界讀回來飼料市場從基本價開始）。

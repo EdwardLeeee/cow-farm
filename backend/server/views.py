@@ -405,6 +405,8 @@ def state_view(game: Game, p: Player, now: float, clock) -> dict:
         "achievements": achievements_view(game, p, now),
         # v0.3 C1 照顧（協定 2.3、2.6 節）
         "feeds": {k: f.feeds[i] for i, k in enumerate(FEED_IDS)},
+        # v0.3 B：飼料現在的市價（每份，未含滑價）；買的時候照這個價再加滑價（協定 2.6 節）
+        "feed_quotes": {k: r6(game.ex.feeds[k].price) for k in FEED_IDS},
         "poop": poop_view(f, now),
         "floor": floor_view(f, now),
         "helper": {"until": f.helper_until if f.helper_until > now else None},
@@ -489,7 +491,7 @@ def care_economy(cp) -> dict:
     return {
         "feeds": [
             {"id": k, "kg": cp.feed_kg[i], "price": ci(cp.feed_price[i])} for i, k in enumerate(FEED_IDS)
-        ],  # price：買一份的價錢（固定價；飼料市場在 C2）
+        ],  # price：基本價（v0.3 B 起照市價買，現在的價錢看 state.feed_quotes）
         "feed_cap": cp.feed_cap,
         "feed_cooldown_h": cp.feed_cooldown_s / HOUR,
         "calf_feed_cooldown_h": cp.calf_feed_cooldown_s / HOUR,

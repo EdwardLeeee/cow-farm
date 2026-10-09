@@ -573,6 +573,16 @@ class FeedMarket:
         else:
             self.pending_sell += c[1]
 
+    def undo_contribution(self, c: Sequence[float]) -> None:
+        """apply_contribution 的反向（伺服器存檔失敗、動作要退回時用）。"""
+        if c[0] > 0:
+            self.pending_buy -= c[1]
+            self.pending_actual -= c[2]
+            self.pending_ord_w -= c[3]
+            self.pending_ord_wq -= c[4]
+        else:
+            self.pending_sell -= c[1]
+
     # ---- 每個 tick ----
     def step(self, now: float, online_count: float, event_log: float) -> None:
         fp = self.fp

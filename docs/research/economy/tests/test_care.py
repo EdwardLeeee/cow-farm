@@ -228,14 +228,15 @@ class TestFeed(unittest.TestCase):
 
     def test_no_calf_arbitrage_with_max_feed_and_fastest_floor(self):
         """「買 C 級小牛、灌最貴的飼料、一長大就出貨」：最快的地板（2 小時長大）、小牛冷卻 45 分鐘（餵 3 次）、成年那一刻
-        再餵 1 次，價格用總價格上限 2.2 倍、照實際評級機率，期望收入也低於 C 級價格 + 飼料錢。
+        再餵 1 次，牛肉用總價格上限 2.2 倍、照實際評級機率，期望收入也低於 C 級價格 + 飼料錢。
+        v0.3 B 起飼料照市價買：飼料用最低價（飼料市場的 price_lo，基本價 0.5 倍；ceo 2026-10-09）也一樣不成立。
         加成如果不跟著年紀長出來（直接加 32 公斤），1.48 倍市價就回本，這個測試會失敗。"""
         speed = max(CP.floor_speed)
         grow_h = FP.tier_growth_h[0] / speed
         n_calf = int(grow_h * HOUR // CP.calf_feed_cooldown_s) + (1 if grow_h * HOUR % CP.calf_feed_cooldown_s else 0)
         n_feeds = n_calf + 1
         bonus = min(CP.bonus_max_kg, n_feeds * CP.feed_kg[SOY])
-        cost = FP.shop_grade_price[2] + n_feeds * CP.feed_price[SOY]
+        cost = FP.shop_grade_price[2] + n_feeds * CP.feed_price[SOY] * DEFAULT.feedmarket.price_lo
         price = DEFAULT.beef.base_price * 2.2
         ev = 0.0
         for (t, bull, mask), p in shop_grade_distribution(FP, "C").items():

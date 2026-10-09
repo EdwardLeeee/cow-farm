@@ -27,14 +27,16 @@ BOT_TUNABLES = {k: getattr(B, k) for k in (
     "BUCKET_TARGET_H", "DAIRY_SHIP_FRAC", "RARE_KEEP_FRAC", "PEAK_H", "BULL_WAIT_MAX_H", "HOLD_THR", "HOLD_FRESH_SELL",
     "HOLD_WH_TARGET_H", "HOLD_MIN_COWS", "STUD_RELIST_H", "PANIC_SHIP_AGE_H", "TRACK_PLAYERS", "SHOP_CHOICE_SCALE",
     "SICK_P_DAY", "HELPER_AHEAD_D", "LAZY_CLEAN_H", "CURE_PROD_H", "FLOOR_GAIN", "ROBOT_SICK_PER_BREAK", "ROBOT_PAYBACK_D",
+    "SPEC_BUY_RATIO", "SPEC_SELL_MARGIN",
 )}
 
 AMOUNT_KINDS = ("milk", "beef", "rice", "calf", "breed", "expand", "bucket", "warehouse", "fresh", "field", "stud_in", "stud_out",
-                "feed_buy", "cure", "helper", "floor", "robot")
+                "feed_buy", "cure", "helper", "floor", "robot", "feed_sell")
 QTY_KINDS = ("milk", "beef", "rice", "collect", "spoiled", "harvest", "breed", "stud_in", "stud_out",
              "grade_A", "grade_B", "grade_C", "shop_A", "shop_B", "shop_C",
-             "feed_buy", "feed", "clean", "sick", "cure", "bonus_kg", "hybrid", "rare_grown")
-REVENUE_KINDS = ("milk", "beef", "rice", "stud_in")  # 收入 = 賣出收入 + 借種收入
+             "feed_buy", "feed", "clean", "sick", "cure", "bonus_kg", "hybrid", "rare_grown", "feed_sell")
+# 收入 = 賣出收入 + 借種收入 + 賣回飼料（v0.3 B；照顧好的六種玩法不賣回，只有 Y 飼料投機有）
+REVENUE_KINDS = ("milk", "beef", "rice", "stud_in", "feed_sell")
 # v0.3 照顧的花費。玩法週收入差距的目標用「收入 − 照顧花費」比（使用者 2026-10-08 選的口徑；只算收入的照舊列出當參考）
 CARE_KINDS = ("floor", "helper", "feed_buy", "cure", "robot")
 

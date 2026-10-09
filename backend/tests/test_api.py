@@ -143,6 +143,7 @@ def test_session_and_state_fields(h):
         "poop",
         "floor",
         "helper",
+        "feed_quotes",
     ):
         assert k in st, k
     assert st["coins"] == OB.start_coins and isinstance(st["coins"], int)

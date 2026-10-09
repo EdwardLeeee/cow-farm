@@ -13,6 +13,7 @@
 - T 抓時機派：牛奶、稻米、牛肉都先存著，價格 ≥ 24 小時均價（或快變差）才賣。
 - L 出借公牛派：自己的公牛都上架借種（價位看稀有度，一天沒人借就降一檔），自己的母牛向別人借種。
 - Z 懶得照顧（v0.3）：照 D 經營，但每天只清一次大便、不雇小幫手、不餵飼料（量照顧的懲罰有多大）；地板買軟墊地。
+- Y 飼料投機（v0.3 B）：照 D 經營，另外低買高賣飼料（spec_trade，說明見研究模擬的 sim/bots.py）。
 - W 大戶（只給情境測試）：囤貨前照 D 經營；囤貨時換成大牧場，囤 48 小時後一次倒出／分批／一直囤。
 
 v0.3 照顧（除了 Z，每種玩法都會）：每次上線先清大便、處理病牛（值得就治療，不值得就出貨）；新手保護過後，
@@ -57,7 +58,7 @@ from cowecon.params import DAY, HOUR, MINUTE, EconomyParams
 
 from .game import Game, GameError
 
-STRATEGIES = ("D", "B", "F", "C", "T", "L", "Z", "W")
+STRATEGIES = ("D", "B", "F", "C", "T", "L", "Z", "Y", "W")
 STRATEGY_NAMES = {
     "D": "乳牛派",
     "B": "肉牛派",
@@ -66,10 +67,11 @@ STRATEGY_NAMES = {
     "T": "抓時機派",
     "L": "出借公牛派",
     "Z": "懶得照顧",
+    "Y": "飼料投機",
     "W": "大戶",
 }
 CARE_STRATEGIES = ("D", "B", "F", "C", "T", "L")  # 照顧好的六種玩法（週收入差距的目標只看這六種）
-PLAYER_STRATEGIES = CARE_STRATEGIES + ("Z",)
+PLAYER_STRATEGIES = CARE_STRATEGIES + ("Z", "Y")
 
 BUCKET_TARGET_H = 6.0  # 奶桶至少放得下幾小時產量
 DAIRY_SHIP_FRAC = 0.8  # 產奶（耕田）掉到八成以下就出貨
@@ -88,6 +90,8 @@ HELPER_AHEAD_D = 2.0  # 小幫手預付到幾天後（不到就再加一天）
 LAZY_CLEAN_H = 24.0  # Z：隔多久才清一次大便
 ROBOT_SICK_PER_BREAK = 0.015  # 掃地機壞掉到修好之前每頭牛平均生病幾次（研究模擬量的，見 sim/bots.py）
 ROBOT_PAYBACK_D = 14.0  # 買掃地機：每天省下的錢要在幾天內把買價省回來
+SPEC_BUY_RATIO = 0.65  # Y：飼料跌到基本價的幾成以下才買（研究模擬的 sim/bots.py）
+SPEC_SELL_MARGIN = 1.05  # Y：賣回的錢要比平均成本多幾成才賣
 CURE_PROD_H = 24.0  # 估治療值不值得：治好後多算幾小時的產量
 # 長快地板每頭牛每天多賺多少淨收入（乾草床, 青草地），電腦玩家照這個挑地板（研究模擬量的，見 sim/bots.py）
 FLOOR_GAIN: Dict[str, Tuple[float, float]] = {
@@ -98,6 +102,7 @@ FLOOR_GAIN: Dict[str, Tuple[float, float]] = {
     "T": (510.0, 1010.0),
     "L": (280.0, 610.0),
     "Z": (390.0, 840.0),
+    "Y": (370.0, 990.0),
     "W": (0.0, 0.0),
 }
 
@@ -124,6 +129,7 @@ PROFILES: Dict[str, dict] = {
     "T": {**_BASE, "pref": (1.25, 1.0, 1.0), "hold": True, "feed": CORN},
     "L": {**_BASE, "pref": (1.0, 1.0, 1.0), "rarity": 0.2, "lend": True, "feed": CORN},
     "Z": {**_BASE, "pref": (1.25, 1.0, 1.0), "care": "lazy", "feed": None},
+    "Y": {**_BASE, "pref": (1.25, 1.0, 1.0), "feed": GRASS, "spec": True},
     "W": {**_BASE, "pref": (1.25, 1.0, 1.0), "feed": None},
 }
 
@@ -155,6 +161,7 @@ class Bot:
         "worth",
         "last_clean",
         "care_return_at",
+        "spec",
     )
 
     def __init__(
@@ -179,6 +186,7 @@ class Bot:
         self.worth = None
         self.last_clean = joined_at  # Z：上次清大便的時間
         self.care_return_at = 0.0  # 已經排好回來餵小牛的時間
+        self.spec = [[0, 0.0] for _ in range(len(game.params.care.feed_kg))]  # Y：每種飼料投機買的 [份數, 總成本]
 
     @property
     def farm(self) -> Farm:
@@ -682,6 +690,36 @@ def feed_pass(b: Bot, ctx, now: float) -> None:
         ctx.schedule(b.care_return_at, b.pid, "care_return", 2 * MINUTE)
 
 
+def spec_trade(b: Bot, now: float) -> None:
+    """Y 飼料投機（說明見研究模擬的 sim/bots.py）：投機買的那批漲夠了就全部賣回；新聞開始以後跌夠了就買到倉庫上限。"""
+    g = b.game
+    f = b.farm
+    cp = f.p.care
+    ex = g.ex
+    for k, fid in enumerate(cp.feed_ids):
+        units, cost = b.spec[k]
+        m = ex.feeds[fid]
+        if units > 0 and f.feeds[k] >= units:
+            q = f.quote_feed_sell(k, units, m, now)
+            if q.amount >= cost * SPEC_SELL_MARGIN and _try(g.sell_feed, b.pid, k, units, now) is not None:
+                b.spec[k] = [0, 0.0]
+                continue
+    news = {ev.targets[0] for ev in ex.feed_started(now)}
+    reserve = f.fp.shop_grade_price[-1]
+    for k, fid in enumerate(cp.feed_ids):
+        m = ex.feeds[fid]
+        if fid not in news or m.price > m.base_price * SPEC_BUY_RATIO:
+            continue
+        n = cp.feed_cap - f.feeds[k]
+        while n > 0 and f.coins < f.quote_feed_buy(k, n, m, now).amount + reserve:
+            n //= 2
+        if n > 0:
+            res = _try(g.buy_feed, b.pid, k, n, now)
+            if res is not None:
+                b.spec[k][0] += n
+                b.spec[k][1] += res["amount"]
+
+
 def care_return(b: Bot, ctx, now: float) -> None:
     """回來餵稀有小牛（只餵）。"""
     feed_pass(b, ctx, now)
@@ -746,6 +784,9 @@ def manage(b: Bot, ctx, now: float) -> None:
     expand_and_fill(b, now)
     # 7. 餵飼料
     feed_pass(b, ctx, now)
+    # 8. Y：飼料投機（v0.3 B）
+    if prof.get("spec"):
+        spec_trade(b, now)
 
 
 def tutorial_step(b: Bot, ctx, now: float) -> None:

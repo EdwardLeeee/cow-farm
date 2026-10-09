@@ -1037,8 +1037,29 @@ class Game:
         p.unlock("healer", now)  # 治好一頭病牛
         return {"cow_id": c.cid, "cost": int(round(cost))}
 
+    def _capture_feed(self, pid: int, fid: str, res, sign: int, now: float, market_t: float, m) -> None:
+        """飼料的成交也記進成交紀錄（v0.3 B）：當機重啟時照順序把對飼料市場的貢獻加回去（commodity = 飼料代號）。
+        coins：買是負的（花的錢）、賣回是正的；不算收入（等級、週收入照舊只看賣牛奶、牛肉、稻米和借種）。"""
+        self.trade_seq += 1
+        self.captured.append(
+            {
+                "seq": self.trade_seq,
+                "player_id": pid,
+                "commodity": fid,
+                "qty": res.units,
+                "proceeds": sign * res.amount,
+                "coins": sign * int(round(res.amount)),
+                "price": res.price,
+                "discount": res.avg_slip,
+                "t": now,
+                "market_t": market_t,
+                "contrib": list(m.last_contribution) if m.last_contribution else None,
+            }
+        )
+
     def buy_feed(self, pid: int, kind, n, now: float) -> dict:
-        """用固定價買飼料（params 的 feed_price；飼料市場在 C2）。kind：飼料代號或索引（電腦假玩家用索引）。"""
+        """跟飼料市場買（v0.3 B）：市價 ×（1 + 滑價），算進全服的買進量。kind：飼料代號或索引（電腦假玩家用索引）。
+        回傳 cost（整數，畫面用）和 amount（實際扣的錢，未取整）。"""
         p = self.player(pid)
         f = p.farm
         cp = f.p.care
@@ -1048,11 +1069,38 @@ class Game:
             raise GameError(
                 "feed_cap", "倉庫放不下這麼多飼料", 409, {"feed": FEED_IDS[k], "cap": cp.feed_cap, "have": f.feeds[k]}
             )
-        cost = cp.feed_price[k] * n
-        self._coins(f, cost)
-        if not f.buy_feed(k, n, now):
+        m = self.ex.feeds[FEED_IDS[k]]
+        self._coins(f, f.quote_feed_buy(k, n, m, now).amount)
+        market_t = self.ex.t
+        res = f.buy_feed_market(k, n, m, now)
+        if res is None:
             raise GameError("rejected", "現在不能買飼料", 409)
-        return {"feed": FEED_IDS[k], "kind": k, "n": n, "cost": int(round(cost))}
+        self._capture_feed(pid, FEED_IDS[k], res, -1, now, market_t, m)
+        return {
+            "feed": FEED_IDS[k],
+            "kind": k,
+            "n": n,
+            "cost": int(round(res.amount)),
+            "amount": res.amount,
+            "price": res.price,
+        }
+
+    def sell_feed(self, pid: int, kind, n, now: float) -> dict:
+        """把飼料賣回飼料市場（v0.3 B）：市價 ×（1 − 手續費）× 滑價，算進全服的賣回量。這次只有電腦假玩家
+        （飼料投機）用；HTTP 端點在 C2。"""
+        p = self.player(pid)
+        f = p.farm
+        k = kind if isinstance(kind, int) and not isinstance(kind, bool) else self._feed_index(kind)
+        n = self._int_arg(n, "qty")
+        if f.feeds[k] < n:
+            raise GameError("out_of_feed", "倉庫沒有這麼多飼料", 409, {"feed": FEED_IDS[k]})
+        m = self.ex.feeds[FEED_IDS[k]]
+        market_t = self.ex.t
+        res = f.sell_feed_market(k, n, m, now)
+        if res is None:
+            raise GameError("rejected", "現在不能賣回飼料", 409)
+        self._capture_feed(pid, FEED_IDS[k], res, 1, now, market_t, m)
+        return {"feed": FEED_IDS[k], "kind": k, "n": n, "amount": res.amount, "price": res.price}
 
     def _feed_check(self, p: Player, c: Cow, k: int, now: float) -> None:
         f = p.farm

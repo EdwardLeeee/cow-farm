@@ -64,6 +64,8 @@ TUNABLES = (
     "FLOOR_GAIN",
     "ROBOT_SICK_PER_BREAK",
     "ROBOT_PAYBACK_D",
+    "SPEC_BUY_RATIO",
+    "SPEC_SELL_MARGIN",
 )
 
 
