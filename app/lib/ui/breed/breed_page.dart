@@ -8,7 +8,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 
-import '../../api/breeds.dart';
 import '../../api/models.dart';
 import '../../l10n/format.dart';
 import '../../l10n/l10n.dart';
@@ -425,7 +424,7 @@ class PickCard extends StatelessWidget {
     final line = disabled ? AppColors.disabledLine : AppColors.ink;
     final calf = cow.stage == CowStage.calf;
     final meta = switch (off) {
-      null || PickOff.other => TierChip(breedInfo(cow.breed)?.tier ?? cow.tier),
+      null || PickOff.other => rarityChip(cow.breed, cow.tier),
       PickOff.listed => CowBadge(BadgeKind.listed, s.badgeListed),
       PickOff.bred => CowBadge(BadgeKind.bred, s.badgeBred),
       PickOff.working => CowBadge(BadgeKind.working, s.badgeWorking),
@@ -1009,10 +1008,7 @@ class CalfCard extends StatelessWidget {
                         spacing: 4,
                         runSpacing: 4,
                         crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          TierChip(breedInfo(calf.breed)?.tier ?? calf.tier),
-                          CowBadge(BadgeKind.calf, s.stageCalf),
-                        ],
+                        children: [rarityChip(calf.breed, calf.tier), CowBadge(BadgeKind.calf, s.stageCalf)],
                       ),
                     ),
                     Text.rich(

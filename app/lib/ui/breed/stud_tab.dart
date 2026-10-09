@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 
-import '../../api/breeds.dart';
 import '../../api/models.dart';
 import '../../l10n/format.dart';
 import '../../l10n/l10n.dart';
@@ -600,7 +599,7 @@ class StudRow extends StatelessWidget {
                             spacing: 4,
                             runSpacing: 4,
                             crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [UseChip(l.type), TierChip(breedInfo(l.breed)?.tier ?? l.tier)],
+                            children: [UseChip(l.type), rarityChip(l.breed, l.tier)],
                           ),
                           const SizedBox(height: 2),
                           // .sr-owner：主人：［電腦］名字 #編號；太長只截名字，「電腦」和 #編號一定看得到（S18-13）
@@ -750,7 +749,7 @@ class MyBullsCard extends StatelessWidget {
               _MyBullRow(
                 key: Key('my-bull-${c.key}'),
                 cow: c,
-                meta: TierChip(breedInfo(c.breed)?.tier ?? c.tier),
+                meta: rarityChip(c.breed, c.tier),
                 fee: s.s18FeeLabel(price: '\u0000'),
                 price: c.studFee?.price,
                 button: AppButton(

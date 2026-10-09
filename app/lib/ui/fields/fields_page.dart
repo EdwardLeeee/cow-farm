@@ -715,7 +715,7 @@ class FieldCard extends StatelessWidget {
                             maxWidth: double.infinity,
                             alignment: Alignment.centerLeft,
                             fit: OverflowBoxFit.deferToChild,
-                            child: TierChip(breedInfo(cow.breed)?.tier ?? cow.tier),
+                            child: rarityChip(cow.breed, cow.tier),
                           ),
                         Text(s.fieldRate(v: rateText(rate)), style: KitText.hint()),
                       ],
@@ -789,7 +789,7 @@ class OxOption extends StatelessWidget {
     final hint = KitText.hint();
     final chips = switch (off) {
       null || OxOff.other => [
-        TierChip(breedInfo(cow.breed)?.tier ?? cow.tier),
+        rarityChip(cow.breed, cow.tier),
         if (off == null) Text(s.fieldRate(v: rateText(cow.ricePerH)), style: hint),
       ],
       OxOff.working => [CowBadge(BadgeKind.working, s.s17InField(n: (cow.fieldIndex ?? 0) + 1))],

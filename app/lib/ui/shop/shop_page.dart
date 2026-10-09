@@ -381,12 +381,22 @@ class _ProbGrid extends StatelessWidget {
       ),
       softWrap: false,
     );
-    Widget values(List<Widget> items) => Wrap(spacing: 12, runSpacing: 2, children: items);
+    // .pg-star：稀有度那一行是星星標籤＋機率（隔 4）
+    Widget star(int tier, double p) => Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TierChip(tier),
+        const SizedBox(width: 4),
+        Text(probText(p), softWrap: false, style: AppText.number(14, lineHeight: 20)),
+      ],
+    );
+    Widget values(List<Widget> items) =>
+        Wrap(spacing: 12, runSpacing: 2, crossAxisAlignment: WrapCrossAlignment.center, children: items);
     final key = AppText.style(12, weight: FontWeight.w900, color: AppColors.ink2, lineHeight: 20);
     final rows = [
       (s.probType, values([for (final t in CowType.values) item(s.useName(t), odds.typeProbs[t] ?? 0)])),
       (s.probSex, values([item(s.bull, odds.bullProb), item(s.cow, 1 - odds.bullProb)])),
-      (s.probTier, values([for (final (i, p) in odds.tierProbs.indexed) item(s.tierName(i.clamp(0, 3)), p)])),
+      (s.probTier, values([for (final (i, p) in odds.tierProbs.indexed) star(i, p)])),
     ];
     return Container(
       key: const Key('prob-grid'),
