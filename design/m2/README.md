@@ -123,6 +123,7 @@
   - 新的 key 用「畫面.用途」，例：`s02.suggest`、`s13.backup.title`；幾個畫面共用的用 `g.`；錯誤碼的文案是 `err.<錯誤碼>`（`scope.md` 第 7 節）。
   - 24 種牛：`breed.<品種>.name`、`breed.<品種>.intro`，特徵名 `trait.A`–`trait.C`，跟 `src/cow/breeds.js` 一樣（`harness/i18ncheck.mjs` 會檢查）。
   - 新聞標題：`news.<商品>_<漲跌>.<序號>`，跟 `backend/cowecon/params.py` 的 `HEADLINES` 一樣（也會檢查）。
+    - 飼料新聞（D35，飼料市場在 C2）：商品是 `backend/server/breeds.py` 的 `FEED_IDS`（`grass`、`hay`、`oats`、`alfalfa`、`corn`、`soy`），利多、利空各 2 則。字串先進字串表；`HEADLINES` 還沒有那種飼料時，i18ncheck 只列出則數、不算錯，加進去以後一樣逐則比對。`HEADLINES` 的 key 要用這組代號（`"oats+"`，不是 `cowecon` 裡的 `oat`），app 才查得到。
 - 文字裡不放 HTML：要換行的地方寫 `\n`；數字加粗之類的，用佔位符把整段塞進去（例：`期望收入 約 {v} 幣`）。
 - 不是 app 的字、不翻譯：狀態名稱、橘色註解、動畫分鏡的說明、「手機一個畫面到這裡」、「系統鍵盤（不畫）」、錯誤碼表的錯誤碼；頁面上標 `data-note`。語言選單裡的「繁體中文／English／ไทย」每種語言都用自己的文字寫，標 `data-keep`。
 - 玩家取的牧場名、電腦牧場的名字是資料，不在字串表裡。
