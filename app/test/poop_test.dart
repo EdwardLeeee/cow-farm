@@ -83,6 +83,20 @@ void main() {
     expect(ranchGame(tester).cowRect(3), cow, reason: '劃過去清大便，場景沒有被拖動');
   });
 
+  testWidgets('同一格畫面裡手指經過同一坨兩次（畫面還沒重畫）：只算一次，旁邊那坨不會跟著不見', (tester) async {
+    // 12 坨：#3 有 2 坨（第 2、3 個位置）
+    final (_, api) = await _showPoop(tester, 12);
+    final g = await tester.startGesture(tester.getCenter(_poop(3)));
+    await g.moveBy(const Offset(20, 0));
+    await g.moveBy(const Offset(2, 0)); // 中間沒有重畫：場景裡第 3 個位置的大便還在
+    await g.up();
+    await tester.pump();
+    await tester.pump();
+    expect(api.calls.where((c) => c.startsWith('clean')).toList(), ['clean:3x1']);
+    expect(dirtText(tester), '${zh.s03Poop} 11');
+    expect(_poop(2), findsOneWidget, reason: '#3 的另一坨沒有被劃到（空出來的第 3 個位置補上還沒畫的那坨）');
+  });
+
   testWidgets('從草地上開始劃：照樣是拖動場景，大便不會被清掉', (tester) async {
     final (_, api) = await _showPoop(tester, 9);
     final cow = ranchGame(tester).cowRect(3)!;

@@ -51,11 +51,12 @@ class ScenePoop {
 class PoopLayout {
   final _byCow = <String, List<int>>{};
 
-  /// 這一坨清掉了（點到、劃過去）：那個位置空出來。
-  void take(int spot) {
+  /// 這一坨清掉了（點到、劃過去）：那個位置空出來。那個位置本來就是空的（同一格畫面裡被劃到兩次、連點兩下）回 false。
+  bool take(int spot) {
     for (final l in _byCow.values) {
-      l.remove(spot);
+      if (l.remove(spot)) return true;
     }
+    return false;
   }
 
   /// [cows] 每頭現在要畫幾坨（[count]，已經扣掉正在清的）。多出來的先拿掉最後放的，少的放進最前面的空位；
