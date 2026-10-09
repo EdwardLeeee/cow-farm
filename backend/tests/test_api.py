@@ -144,6 +144,7 @@ def test_session_and_state_fields(h):
         "floor",
         "helper",
         "feed_quotes",
+        "robot",
     ):
         assert k in st, k
     assert st["coins"] == OB.start_coins and isinstance(st["coins"], int)
@@ -183,6 +184,11 @@ def test_session_and_state_fields(h):
         "floor_rent_max_days": CP.floor_rent_max_days,
         "helper_per_day": int(CP.helper_price_per_day),
         "helper_max_days": CP.helper_max_days,
+        "robots": [
+            {"id": "basic", "price": 3000, "repair": 750, "mtbf_days": 1.0},
+            {"id": "sturdy", "price": 12000, "repair": 3000, "mtbf_days": 3.0},
+        ],
+        "robot_clean_min": 60.0,
         "helper_clean_min": 30.0,
         "cure_price": int(CP.cure_price),
         "sick_beef_mult": CP.sick_beef_mult,
@@ -197,6 +203,7 @@ def test_session_and_state_fields(h):
     assert st["poop"] == {"total": 0, "dirt": 0.0, "safe_until": st["server_time"] + CP.newbie_safe_s}
     assert st["floor"] == {"current": "dirt", "owned": ["dirt"], "rented": None, "rent_until": None}
     assert st["helper"] == {"until": None}
+    assert st["robot"] == {"model": None, "working": False, "since": None, "broken_at": None}
     cows = {c["id"]: c for c in st["cows"]}
     assert len(cows) == 2
     for c in cows.values():

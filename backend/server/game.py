@@ -35,7 +35,7 @@ from cowecon.params import DAY, HOUR, TZ_OFFSET_S
 from . import achievements as A
 from . import pairings as PAIRINGS
 from .breeds import ALL as ALL_BREEDS
-from .breeds import FEED_IDS, FEED_INDEX, FLOOR_IDS, FLOOR_INDEX
+from .breeds import FEED_IDS, FEED_INDEX, FLOOR_IDS, FLOOR_INDEX, ROBOT_IDS, ROBOT_INDEX
 from .breeds import HYBRID as HYBRID_BREED
 from .breeds import breed_id, shown_breed
 
@@ -1160,18 +1160,39 @@ class Game:
             raise GameError("rejected", "現在不能雇小幫手", 409)
         return {"days": days, "cost": int(round(cost)), "until": f.helper_until}
 
-    # ---- 大便掃地機：這次只有服務層（電腦假玩家用）；HTTP 端點、協定、錯誤碼在之後的伺服器 PR ----
-    def buy_robot(self, pid: int, model: int, now: float, rng: Optional[random.Random] = None) -> dict:
+    # ---- 大便掃地機（協定 2.6 節）----
+    @staticmethod
+    def _robot_index(model) -> int:
+        if not isinstance(model, str) or model not in ROBOT_INDEX:
+            raise GameError("bad_request", "model 要是掃地機的代號（協定 1.6 節）", 400, {"fields": ["model"]})
+        return ROBOT_INDEX[model]
+
+    def buy_robot(self, pid: int, model, now: float, rng: Optional[random.Random] = None) -> dict:
+        """買掃地機（一次只有一台：已經有另一款就換掉，舊的不退錢）。model：代號或索引（電腦假玩家用索引）。"""
         p = self.player(pid)
-        if not p.farm.buy_robot(model, now, self._rng(p, rng)):
+        f = p.farm
+        cp = f.p.care
+        m = model if isinstance(model, int) and not isinstance(model, bool) else self._robot_index(model)
+        if f.robot == m:
+            raise GameError("robot_owned", "已經有這款掃地機（壞了要修）", 409, {"model": ROBOT_IDS[m]})
+        self._coins(f, cp.robot_price[m])
+        if not f.buy_robot(m, now, self._rng(p, rng)):
             raise GameError("rejected", "現在不能買這款掃地機", 409)
-        return {"model": model}
+        return {"model": ROBOT_IDS[m], "cost": int(round(cp.robot_price[m]))}
 
     def repair_robot(self, pid: int, now: float, rng: Optional[random.Random] = None) -> dict:
+        """修好壞掉的掃地機（修理費看款式），馬上開始動。"""
         p = self.player(pid)
-        if not p.farm.repair_robot(now, self._rng(p, rng)):
+        f = p.farm
+        if f.robot < 0:
+            raise GameError("no_robot", "還沒有掃地機", 409)
+        if f.robot_working(now):
+            raise GameError("robot_working", "掃地機還在動，壞了才能修", 409, {"model": ROBOT_IDS[f.robot]})
+        cost = f.p.care.robot_repair[f.robot]
+        self._coins(f, cost)
+        if not f.repair_robot(now, self._rng(p, rng)):
             raise GameError("rejected", "現在不能修掃地機", 409)
-        return {"model": p.farm.robot}
+        return {"model": ROBOT_IDS[f.robot], "cost": int(round(cost))}
 
     def buy_floor(self, pid: int, floor, now: float) -> dict:
         """買斷地板（軟墊地）。電腦假玩家傳索引。"""

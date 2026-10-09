@@ -36,7 +36,7 @@ from cowecon.farm import (
 from cowecon.params import FEED_HEADLINES, HEADLINES, HOUR
 
 from . import achievements as A
-from .breeds import FEED_IDS, FLOOR_IDS, feed_ids, shown_breed
+from .breeds import FEED_IDS, FLOOR_IDS, ROBOT_IDS, feed_ids, shown_breed
 from .breeds import HYBRID as HYBRID_BREED
 from .breeds import ORDER as BREED_ORDER
 from .game import TYPE_WIRE, Game, Player, level_threshold, ship_value, stud_fee_view
@@ -410,6 +410,7 @@ def state_view(game: Game, p: Player, now: float, clock) -> dict:
         "poop": poop_view(f, now),
         "floor": floor_view(f, now),
         "helper": {"until": f.helper_until if f.helper_until > now else None},
+        "robot": robot_view(f, now),
     }
 
 
@@ -433,6 +434,20 @@ def floor_view(f: Farm, now: float) -> dict:
         "owned": [k for i, k in enumerate(FLOOR_IDS) if (f.floors >> i) & 1],
         "rented": FLOOR_IDS[f.rented] if rented else None,
         "rent_until": f.rent_until if rented else None,
+    }
+
+
+def robot_view(f: Farm, now: float) -> dict:
+    """大便掃地機：model 哪一款（沒有是 null）、working 有沒有在動、since 這次開始動（買來、修好）的時間、
+    broken_at 壞掉的時間（還沒壞是 null：什麼時候會壞玩家看不到，壞了才知道）。"""
+    if f.robot < 0:
+        return {"model": None, "working": False, "since": None, "broken_at": None}
+    working = f.robot_working(now)
+    return {
+        "model": ROBOT_IDS[f.robot],
+        "working": working,
+        "since": f.robot_from,
+        "broken_at": None if working else f.robot_until,
     }
 
 
@@ -508,6 +523,11 @@ def care_economy(cp) -> dict:
             for i, k in enumerate(FLOOR_IDS)
         ],
         "floor_rent_max_days": cp.floor_rent_max_days,
+        "robots": [
+            {"id": k, "price": ci(cp.robot_price[i]), "repair": ci(cp.robot_repair[i]), "mtbf_days": cp.robot_mtbf_d[i]}
+            for i, k in enumerate(ROBOT_IDS)
+        ],
+        "robot_clean_min": cp.robot_clean_s / 60,
         "helper_per_day": ci(cp.helper_price_per_day),
         "helper_max_days": cp.helper_max_days,
         "helper_clean_min": cp.helper_clean_s / 60,

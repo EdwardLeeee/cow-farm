@@ -394,3 +394,39 @@ def test_http_floors(h):
     }
     r = h.post("/v1/floor/use", tok, {"floor": "cushion", "request_id": new_rid()}).json()
     assert r["floors"]["current"] == "cushion"
+
+
+def test_http_robot(h):
+    """大便掃地機（協定 2.6 節）：買、在動時看不到什麼時候壞、壞了才給 broken_at、修理、換款、錯誤碼。"""
+    tok = h.session()["token"]
+    p = give(h, tok, coins=100_000)
+    err(h.post("/v1/robot/repair", tok, {"request_id": new_rid()}), 409, "no_robot")
+    err(h.post("/v1/robot/buy", tok, {"model": "turbo", "request_id": new_rid()}), 400, "bad_request")
+    h.advance(CP.poop_every_s, tick=False)
+    assert state(h, tok)["poop"]["total"] == 2
+    rid = new_rid()
+    r = h.post("/v1/robot/buy", tok, {"model": "basic", "request_id": rid}).json()
+    assert r["model"] == "basic" and r["cost"] == int(CP.robot_price[0]) and r["coins"] == 100_000 - r["cost"]
+    assert r["robot"] == {"model": "basic", "working": True, "since": r["server_time"], "broken_at": None}
+    assert r["poop"]["total"] == 0  # 買來那一刻先清一次
+    assert h.post("/v1/robot/buy", tok, {"model": "basic", "request_id": rid}).json() == r  # 重送只扣一次
+    e = err(h.post("/v1/robot/buy", tok, {"model": "basic", "request_id": new_rid()}), 409, "robot_owned")
+    assert e["detail"] == {"model": "basic"}
+    e = err(h.post("/v1/robot/repair", tok, {"request_id": new_rid()}), 409, "robot_working")
+    assert e["detail"] == {"model": "basic"}
+    until = p.farm.robot_until  # 白箱：抽好的壞掉時間（玩家看不到）
+    assert until > r["server_time"]
+    h.advance(until - h.clock.now() + CP.poop_every_s, tick=False)
+    st = state(h, tok)
+    assert st["robot"] == {"model": "basic", "working": False, "since": r["server_time"], "broken_at": until}
+    give(h, tok, coins=0)
+    err(h.post("/v1/robot/repair", tok, {"request_id": new_rid()}), 409, "not_enough_coins")
+    give(h, tok, coins=10_000)
+    r2 = h.post("/v1/robot/repair", tok, {"request_id": new_rid()}).json()
+    assert r2["cost"] == int(CP.robot_repair[0]) and r2["coins"] == 10_000 - r2["cost"]
+    assert r2["robot"]["working"] and r2["robot"]["since"] == r2["server_time"] and r2["poop"]["total"] == 0
+    r3 = h.post("/v1/robot/buy", tok, {"model": "sturdy", "request_id": new_rid()})
+    err(r3, 409, "not_enough_coins")
+    give(h, tok, coins=20_000)
+    r3 = h.post("/v1/robot/buy", tok, {"model": "sturdy", "request_id": new_rid()}).json()  # 換款，舊的不退錢
+    assert r3["robot"]["model"] == "sturdy" and r3["coins"] == 20_000 - int(CP.robot_price[1])
