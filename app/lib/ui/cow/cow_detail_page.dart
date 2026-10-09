@@ -16,6 +16,7 @@ import '../../theme/tokens.dart';
 import '../kit/app_icon.dart';
 import '../kit/cow_art.dart';
 import '../kit/cow_bits.dart';
+import '../kit/fly.dart';
 import '../kit/frame.dart';
 import '../kit/grade.dart';
 import '../kit/kit.dart';
@@ -1032,19 +1033,83 @@ class _GradeRow extends StatelessWidget {
 }
 
 /// S20 出貨評級結果（整頁，沒有頂列和分頁列）：放射光、大字評級、三箱牛肉、放進倉庫多少、現在全部賣掉約多少。
-/// 揭曉動畫（A-10）、卡車（A-03）在第 6 步做；這裡是動畫的最後一格。
-class ShipResultPage extends StatelessWidget {
+/// 開著動畫時先播 A-10 評級揭曉（設計稿 anims.js 的 A10，1.5 秒，頁面淡入以後才開始）：A、B、C 輪流越轉越慢，第 0.9 秒停在
+/// 這次的評級、彈一下、光線放射，第 1.0 秒起三箱牛肉掉進來，1.2–1.45 秒字和按鈕淡入。點一下跳過（直接到最後一格）。
+/// 減少動態（或沒開動畫）：直接是 S20。
+class ShipResultPage extends StatefulWidget {
   const ShipResultPage({super.key, required this.cow, required this.result});
 
   final Cow cow;
   final ShipResult result;
 
   @override
-  Widget build(BuildContext context) {
+  State<ShipResultPage> createState() => _ShipResultPageState();
+}
+
+class _ShipResultPageState extends State<ShipResultPage> with SingleTickerProviderStateMixin {
+  /// A-10 的長度（秒）。
+  static const _dur = 1.5;
+
+  /// A-10 輪流到哪一格換下一個字（秒），第 0.9 秒停住。
+  static const _ticks = [0, 0.08, 0.16, 0.25, 0.35, 0.47, 0.61, 0.76, 0.9];
+
+  late final _reveal = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500));
+
+  /// 播 A-10（開著動畫）；null 是還沒決定。
+  bool? _play;
+  Animation<double>? _route;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_play != null) return;
+    _play = AppMotion.read(context);
+    if (_play != true) return;
+    // 頁面淡入（卡車的白光接著結果頁淡入）以後才開始
+    final route = ModalRoute.of(context)?.animation;
+    if (route == null || route.isCompleted) {
+      _reveal.forward();
+    } else {
+      _route = route..addStatusListener(_routeDone);
+    }
+  }
+
+  void _routeDone(AnimationStatus status) {
+    if (status != AnimationStatus.completed) return;
+    _route?.removeStatusListener(_routeDone);
+    _route = null;
+    if (mounted) _reveal.forward();
+  }
+
+  @override
+  void dispose() {
+    _route?.removeStatusListener(_routeDone);
+    _reveal.dispose();
+    super.dispose();
+  }
+
+  /// 點一下跳過：直接到最後一格。
+  void _skip() {
+    _reveal.stop();
+    _reveal.value = 1;
+  }
+
+  @override
+  Widget build(BuildContext context) => _play == true
+      ? AnimatedBuilder(animation: _reveal, builder: (context, _) => _page(context, _reveal.value * _dur))
+      : _page(context, null);
+
+  /// 第 [t] 秒的樣子（A-10）；null 是 S20 的靜態樣子。
+  Widget _page(BuildContext context, double? t) {
     final s = Strings.of(context);
     final m = context.read<GameModel>();
     final pad = MediaQuery.paddingOf(context);
+    final cow = widget.cow, result = widget.result;
     final g = result.grade ?? 'B';
+    // A-10：前 0.9 秒照 _ticks 輪流（順序是 A → B → C 循環，最後一格剛好是這次的評級），之後停在這次的評級
+    const cycle = ['A', 'B', 'C'];
+    final shown = t == null || t >= 0.9 ? g : cycle[(cycle.indexOf(g) + _ticks.where((x) => t >= x).length) % 3];
+    final playing = t != null && t < _dur;
     // s20.gradeFormat：{grade} 前後的字用小字（繁中「A 級」，英文、泰文「Grade A」「เกรด A」）
     final parts = s.s20GradeFormat(grade: '\u0000').split('\u0000').map((p) => p.trim()).toList();
     final pre = parts.first, post = parts.length > 1 ? parts[1] : '';
@@ -1056,14 +1121,30 @@ class ShipResultPage extends StatelessWidget {
     final line = _even(AppText.style(16, weight: FontWeight.w700, lineHeight: 24));
     final big = _even(AppText.number(20, lineHeight: 29));
     final small = _even(AppText.style(20, weight: FontWeight.w900, lineHeight: 29));
+    // A-10：字和按鈕 1.2–1.45 秒淡入
+    Widget later(Widget child) => t == null ? child : Opacity(opacity: animSeg(t, 1.2, 1.45), child: child);
     // 上下留一樣多（安全區比較大的那邊），卡片才會在整個畫面的正中間
     final v = math.max(pad.top, pad.bottom);
-    return Material(
+    final page = Material(
       key: const Key('ship-result'),
       color: AppColors.cream,
       child: Stack(
         children: [
-          Positioned.fill(child: CustomPaint(painter: _Burst(g))),
+          // .burst：A-10 第 0.9–1.05 秒淡入、0.9–1.3 秒從 0.4 倍放大到 1 倍，一直轉（每秒 20 度）
+          Positioned.fill(
+            child: t == null
+                ? CustomPaint(painter: _Burst(g))
+                : Opacity(
+                    opacity: animSeg(t, 0.9, 1.05),
+                    child: Transform.rotate(
+                      angle: t * 20 * math.pi / 180,
+                      child: Transform.scale(
+                        scale: 0.4 + 0.6 * animOutCubic(animSeg(t, 0.9, 1.3)),
+                        child: CustomPaint(painter: _Burst(g)),
+                      ),
+                    ),
+                  ),
+          ),
           Center(
             child: SingleChildScrollView(
               padding: EdgeInsets.fromLTRB(20, v, 20, v),
@@ -1076,91 +1157,136 @@ class ShipResultPage extends StatelessWidget {
                       style: AppText.style(14, weight: FontWeight.w900, color: AppColors.ink2, lineHeight: 20),
                     ),
                     const SizedBox(height: 8),
-                    // .grade-big：116×116、框 4、圓角 32、下陰影 6、上面留 12；字母和前後的小字對齊基線
-                    Container(
-                      key: const Key('grade-big'),
-                      width: 116,
-                      height: 116,
-                      padding: const EdgeInsets.only(top: 12),
-                      alignment: Alignment.topCenter,
-                      decoration: BoxDecoration(
-                        color: kGradeColors[g],
-                        border: Border.all(color: AppColors.ink, width: 4),
-                        borderRadius: const BorderRadius.all(Radius.circular(32)),
-                        boxShadow: AppShadows.solid(6),
-                      ),
-                      // 英文「Grade B」比框寬：跟 CSS 一樣置中、左右超出（不裁、不縮）
-                      child: OverflowBox(
-                        maxWidth: double.infinity,
+                    // .grade-big：116×116、框 4、圓角 32、下陰影 6、上面留 12；字母和前後的小字對齊基線。
+                    // A-10：輪流時 0.92 倍，停住時彈一下（0.9–1.05 秒最大 1.18 倍）
+                    Transform.scale(
+                      scale: t == null ? 1 : (t < 0.9 ? 0.92 : 1 + 0.18 * math.sin(math.pi * animSeg(t, 0.9, 1.05))),
+                      child: Container(
+                        key: const Key('grade-big'),
+                        width: 116,
+                        height: 116,
+                        padding: const EdgeInsets.only(top: 12),
                         alignment: Alignment.topCenter,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                            if (pre.isNotEmpty) ...[Text(pre, style: small), const SizedBox(width: 4)],
-                            Text(g, style: _even(AppText.number(72, lineHeight: 80))),
-                            if (post.isNotEmpty) ...[const SizedBox(width: 2), Text(post, style: small)],
-                          ],
+                        decoration: BoxDecoration(
+                          color: kGradeColors[shown],
+                          border: Border.all(color: AppColors.ink, width: 4),
+                          borderRadius: const BorderRadius.all(Radius.circular(32)),
+                          boxShadow: AppShadows.solid(6),
+                        ),
+                        // 英文「Grade B」比框寬：跟 CSS 一樣置中、左右超出（不裁、不縮）
+                        child: OverflowBox(
+                          maxWidth: double.infinity,
+                          alignment: Alignment.topCenter,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                              if (pre.isNotEmpty) ...[Text(pre, style: small), const SizedBox(width: 4)],
+                              Text(
+                                shown,
+                                key: const Key('grade-letter'),
+                                style: _even(AppText.number(72, lineHeight: 80)),
+                              ),
+                              if (post.isNotEmpty) ...[const SizedBox(width: 2), Text(post, style: small)],
+                            ],
+                          ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 12),
-                    // .boxes：三箱牛肉，左右兩箱各斜 6°
+                    // .boxes：三箱牛肉，左右兩箱各斜 6°。A-10：第 1.0 秒起一箱晚 0.08 秒從上面 80 掉下來（outBack）
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         for (var i = 0; i < 3; i++) ...[
                           if (i > 0) const SizedBox(width: 2),
-                          Transform.rotate(angle: (i - 1) * 6 * math.pi / 180, child: const AppIcon('beef', size: 56)),
+                          Builder(
+                            builder: (context) {
+                              final k = t == null ? 1.0 : animSeg(t, 1.0 + i * 0.08, 1.3 + i * 0.08);
+                              return Opacity(
+                                key: Key('gift-$i'),
+                                opacity: k > 0 ? 1 : 0,
+                                child: Transform.translate(
+                                  offset: Offset(0, (1 - animOutBack(k)) * -80),
+                                  child: Transform.rotate(
+                                    angle: (i - 1) * 6 * math.pi / 180,
+                                    child: const AppIcon('beef', size: 56),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                         ],
                       ],
                     ),
                     const SizedBox(height: 6),
-                    Text.rich(
-                      TextSpan(
-                        style: line,
-                        children: fillSpans(s.s20KgIn(kg: '\u0000'), big, fmt(result.beefQty ?? 0)),
+                    later(
+                      Text.rich(
+                        TextSpan(
+                          style: line,
+                          children: fillSpans(s.s20KgIn(kg: '\u0000'), big, fmt(result.beefQty ?? 0)),
+                        ),
+                        key: const Key('ship-kg-in'),
                       ),
-                      key: const Key('ship-kg-in'),
                     ),
                     const SizedBox(height: 6),
-                    Text.rich(
-                      TextSpan(
-                        style: line,
-                        children: fillSpans(s.s20SellAll(v: '\u0000'), big, fmt(result.valueEstimate ?? 0)),
+                    later(
+                      Text.rich(
+                        TextSpan(
+                          style: line,
+                          children: fillSpans(s.s20SellAll(v: '\u0000'), big, fmt(result.valueEstimate ?? 0)),
+                        ),
+                        key: const Key('ship-sell-all'),
                       ),
-                      key: const Key('ship-sell-all'),
                     ),
                     const SizedBox(height: 6),
-                    Text(tip, textAlign: TextAlign.center, style: KitText.hint()),
+                    later(Text(tip, textAlign: TextAlign.center, style: KitText.hint())),
                     const SizedBox(height: 14),
-                    BtnRow(
-                      children: [
-                        AppButton(
-                          s.s20GoMarket,
-                          key: const Key('ship-go-market'),
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            m.selectMarket(Commodity.beef);
-                            m.selectTab(AppTab.market);
-                          },
-                        ),
-                        AppButton(
-                          s.ok,
-                          key: const Key('ship-result-ok'),
-                          kind: ButtonKind.primary,
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
-                      ],
+                    later(
+                      BtnRow(
+                        children: [
+                          AppButton(
+                            s.s20GoMarket,
+                            key: const Key('ship-go-market'),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                              m.selectMarket(Commodity.beef);
+                              m.selectTab(AppTab.market);
+                            },
+                          ),
+                          AppButton(
+                            s.ok,
+                            key: const Key('ship-result-ok'),
+                            kind: ButtonKind.primary,
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
             ),
           ),
+          // 點一下跳過（分頁列上方 22，設計稿的 .skip-hint）；播完就拿掉（跟 S20 一樣）
+          if (playing)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: pad.bottom + FrameSizes.tab + 22,
+              child: Center(child: SkipHint(s.animSkip, key: const Key('reveal-skip'))),
+            ),
         ],
       ),
+    );
+    if (!playing) return page;
+    // 播的時候點哪裡都是跳過（按鈕還看不到，不能按）
+    return GestureDetector(
+      key: const Key('reveal'),
+      behavior: HitTestBehavior.opaque,
+      onTap: _skip,
+      child: IgnorePointer(child: page),
     );
   }
 }
