@@ -34,7 +34,7 @@ from cowecon.farm import (
 )
 from cowecon.params import HEADLINES
 from server.breeds import ALL as ALL_BREEDS
-from server.breeds import BREEDS, breed_id
+from server.breeds import BREEDS, FEED_IDS, FLOOR_IDS, breed_id
 from server.game import TYPE_WIRE, Game, GameError, week_id, week_start
 from server.names import load_words, station_words
 
@@ -42,6 +42,7 @@ TIER_NAMES = {t[0] for t in DEFAULT.events.tiers}  # D33：新聞的級別 norma
 
 FP = DEFAULT.farm
 OB = DEFAULT.onboarding
+CP = DEFAULT.care
 
 
 @pytest.fixture
@@ -138,6 +139,10 @@ def test_session_and_state_fields(h):
         "fields",
         "rice",
         "stud",
+        "feeds",
+        "poop",
+        "floor",
+        "helper",
     ):
         assert k in st, k
     assert st["coins"] == OB.start_coins and isinstance(st["coins"], int)
@@ -152,7 +157,8 @@ def test_session_and_state_fields(h):
     assert st["rice"] == {"in_fields": 0.0, "stock": 0.0, "per_hour": 0.0}
     assert set(st["stud"]) == {"listings", "income"} and st["stud"]["listings"] == []  # D26：不再選價位
     economy = {  # S05、S09 的倍數：直接讀 params，app 不寫死
-        "tier_mult": list(FP.tier_mult)[:4],  # 一般～傳說；引擎的第 5 格是雜種牛（C1 另外給）
+        "tier_mult": list(FP.tier_mult)[:4],  # 一般～傳說；引擎的第 5 格是雜種牛（hybrid_mult）
+        "hybrid_mult": FP.tier_mult[4],
         "beef_grade_mult": dict(zip("ABC", FP.beef_grade_mult)),
         "ox_rice_per_h": FP.rice_per_h[1],
         "dairy_milk_per_h": FP.milk_per_h[0],
@@ -161,8 +167,35 @@ def test_session_and_state_fields(h):
         "bull_weight_mult": FP.bull_weight_mult,
         "field_cap_h": FP.field_cap_h,
         "rename_price": 1000,  # S21：第二次起改名的價錢
+        # v0.3 C1 照顧
+        "feeds": [{"id": k, "kg": CP.feed_kg[i], "price": int(CP.feed_price[i])} for i, k in enumerate(FEED_IDS)],
+        "feed_cap": CP.feed_cap,
+        "feed_cooldown_h": 4.0,
+        "calf_feed_cooldown_h": 0.75,
+        "feed_bonus_max_kg": CP.bonus_max_kg,
+        "floors": [
+            {"id": "dirt", "speed": 1.0, "late_speed": 1.0, "sick_mult": 1.0, "price": None, "rent_per_day": None},
+            {"id": "hay_bed", "speed": 1.25, "late_speed": 1.0, "sick_mult": 1.0, "price": None, "rent_per_day": 8000},
+            {"id": "meadow", "speed": 1.5, "late_speed": 1.0, "sick_mult": 1.0, "price": None, "rent_per_day": 20000},
+            {"id": "cushion", "speed": 1.0, "late_speed": 0.75, "sick_mult": 0.5, "price": 3000, "rent_per_day": None},
+        ],
+        "floor_rent_max_days": CP.floor_rent_max_days,
+        "helper_per_day": int(CP.helper_price_per_day),
+        "helper_max_days": CP.helper_max_days,
+        "helper_clean_min": 30.0,
+        "cure_price": int(CP.cure_price),
+        "sick_beef_mult": CP.sick_beef_mult,
+        "poop_every_h": 3.0,
+        "poop_max_per_cow": CP.poop_max_per_cow,
+        "sick_rate_per_h": CP.sick_rate_per_h,
+        "sick_dirt_free": CP.sick_dirt_free,
     }
     assert st["economy"] == economy
+    assert [f["id"] for f in economy["floors"]] == list(FLOOR_IDS) == list(CP.floor_ids)
+    assert st["feeds"] == {k: 0 for k in FEED_IDS}
+    assert st["poop"] == {"total": 0, "dirt": 0.0, "safe_until": st["server_time"] + CP.newbie_safe_s}
+    assert st["floor"] == {"current": "dirt", "owned": ["dirt"], "rented": None, "rent_until": None}
+    assert st["helper"] == {"until": None}
     cows = {c["id"]: c for c in st["cows"]}
     assert len(cows) == 2
     for c in cows.values():
@@ -184,22 +217,41 @@ def test_session_and_state_fields(h):
             "can_breed",
             "can_ship",
             "grade_probs",
+            "hybrid",
+            "need",
+            "ate",
+            "missed",
+            "feed_bonus_kg",
+            "fed_until",
+            "feed_block",
+            "poop",
+            "sick",
+            "sick_since",
         ):
             assert k in c, k
         for k in ("type_name", "tier_name", "ready_at", "breed_ready"):  # 協定 v2：不送中文、拿掉 v0.1 欄位
             assert k not in c, k
         assert c["bred"] is False and c["working"] is False and c["listed"] is None
+        assert c["hybrid"] is False and c["missed"] == [] and c["sick"] is False and c["poop"] == 0
     calf = next(c for c in cows.values() if c["bull"])
     assert calf["stage"] == "calf" and calf["type"] == TYPE_WIRE[OB.starter_calf_type]
     assert calf["adult_at"] == st["server_time"] + OB.starter_calf_remaining_s and calf["grade_probs"] is None
+    assert calf["breed"] is None and calf["tier"] is None  # v0.3：小牛長大才揭曉品種
     cow = next(c for c in cows.values() if not c["bull"])
-    # 圖鑑：開局的兩頭牛一建立牧場就算發現（協定 2.3 節），每頭牛的 breed 跟用途、稀有度一致
+    # 圖鑑：長大那一刻才算發現（v0.3）。開局的成牛一建立牧場就算，小公牛長大時再算
     p = h.server.game.players[st["player_id"]]
-    for c in cows.values():
-        g = p.farm.cow_by_id(c["id"]).g
-        assert c["breed"] == BREEDS[cow_type(g)][rare_mask(g)] and c["type"] == TYPE_WIRE[cow_type(g)]
-    assert {e["breed"] for e in st["codex"]} == {c["breed"] for c in cows.values()}
-    assert all(e["found_at"] == p.created_at for e in st["codex"]) and cow["breed"] in BREEDS[0]
+    g = p.farm.cow_by_id(cow["id"]).g
+    assert cow["breed"] == BREEDS[cow_type(g)][rare_mask(g)] and cow["type"] == TYPE_WIRE[cow_type(g)]
+    assert st["codex"] == [{"breed": cow["breed"], "found_at": p.created_at}] and cow["breed"] in BREEDS[0]
+    h.advance(OB.starter_calf_remaining_s, tick=False)
+    st = state(h, s["token"])  # GET 不存檔，但長大揭曉照樣算進去（found_at = 長大的時間）
+    g = p.farm.cow_by_id(calf["id"]).g
+    calf = next(c for c in st["cows"] if c["id"] == calf["id"])
+    assert calf["breed"] == BREEDS[cow_type(g)][rare_mask(g)] and calf["tier"] == tier_of(g)
+    assert {e["breed"]: e["found_at"] for e in st["codex"]} == {
+        cow["breed"]: p.created_at,
+        calf["breed"]: calf["adult_at"],
+    } or calf["breed"] == cow["breed"]
 
 
 def test_session_name_rules(h):
@@ -430,29 +482,37 @@ def test_shop_buy_uses_engine_draw(h):
     for grade in ("A", "B", "C", "A", "C"):
         g, bull = shop_draw(FP, grade, next_rng(h, p.pid))
         r = h.post("/v1/shop/buy", tok, {"grade": grade, "request_id": new_rid()}).json()
-        assert (
-            r["cow"]["type"] == TYPE_WIRE[cow_type(g)] and r["cow"]["bull"] == bull and r["cow"]["tier"] == tier_of(g)
-        )
+        assert r["cow"]["type"] == TYPE_WIRE[cow_type(g)] and r["cow"]["bull"] == bull
         assert r["cost"] == int(FP.shop_grade_price[FP.shop_grade_names.index(grade)]) and r["cow"]["origin"] == grade
-        assert r["cow"]["breed"] == BREEDS[cow_type(g)][rare_mask(g)]
+        assert r["cow"]["stage"] == "calf" and r["cow"]["breed"] is None and r["cow"]["tier"] is None  # 長大才揭曉
+        assert p.farm.cow_by_id(r["cow"]["id"]).g == g
 
 
 def test_codex_records_first_found_time(h):
-    """圖鑑記品種和第一次發現的時間：抽到新品種會加一格，同品種再出現不改時間；收藏榜 = 發現幾種。"""
+    """圖鑑記品種和第一次發現的時間（v0.3：長大揭曉那一刻）：抽到的小牛長大才加一格，同品種再長大不改時間；
+    沒吃指定飼料的稀有小牛長成雜種牛，圖鑑多一格 "hybrid"（不算 24 種）；收藏榜 = 24 種裡發現幾種。"""
     tok = h.session()["token"]
     p = give(h, tok, coins=10_000_000, slots=40)
+    h.advance(OB.starter_calf_remaining_s, tick=False)
     before = {e["breed"]: e["found_at"] for e in state(h, tok)["codex"]}
-    seen = dict(before)
     for _ in range(12):
         h.advance(60, tick=False)
         r = h.post("/v1/shop/buy", tok, {"grade": "A", "request_id": new_rid()}).json()
-        seen.setdefault(r["cow"]["breed"], r["server_time"])
+        assert r["cow"]["breed"] is None
+    assert {e["breed"]: e["found_at"] for e in state(h, tok)["codex"]} == before  # 小牛還沒長大
+    h.advance(FP.tier_growth_h[0] * 3600, tick=False)
+    seen = dict(before)
+    for c in sorted(p.farm.cows, key=lambda c: c.adult_at):  # 長大的時間；雜種牛（沒吃指定飼料）是 "hybrid"
+        b = "hybrid" if p.farm._reveal_vt(c) == 4 else BREEDS[cow_type(c.g)][rare_mask(c.g)]
+        seen.setdefault(b, c.adult_at)
     codex = state(h, tok)["codex"]
     assert {e["breed"]: e["found_at"] for e in codex} == seen  # 第一次的時間不會被後來的同品種蓋掉
     assert [e["found_at"] for e in codex] == sorted(e["found_at"] for e in codex)  # 先發現的在前
-    assert all(e["breed"] in ALL_BREEDS for e in codex) and len(seen) > len(before)
+    assert all(e["breed"] in ALL_BREEDS or e["breed"] == "hybrid" for e in codex) and len(seen) > len(before)
+    h.post("/v1/collect", tok, {"request_id": new_rid()})  # 動作才存檔；收藏榜看存下來的
+    assert {b: t for b, t in p.codex.items()} == seen
     lb = h.get("/v1/leaderboard", tok, kind="collection").json()
-    assert lb["me"]["score"] == len(seen) == len(p.codex)
+    assert lb["me"]["score"] == len([b for b in seen if b != "hybrid"]) == p.codex_count()
 
 
 def test_shop_sampling_matches_probabilities():
@@ -662,6 +722,7 @@ def test_field_capacity_and_per_hour_when_full(h):
     p = give(h, tok, coins=1_000_000, slots=10)
     now = h.clock.now()
     rare = Cow(p.farm._new_id(), make_genotype(1, [(1, 1), (1, 1), (0, 0)]), True, now, FP, adult_at=now)  # 稀有耕牛
+    rare.grown, rare.vt = True, rare.tier  # 已經長大揭曉、沒變雜種（v0.3）
     p.farm.cows.append(rare)
     assert rare.tier == 2
     r = h.post("/v1/field/assign", tok, {"cow_id": rare.cid, "field": 0, "request_id": new_rid()}).json()

@@ -32,7 +32,7 @@ from . import bots as B
 from . import views as V
 from .clock import GameClock
 from .config import Config
-from .breeds import breed_of_genes
+from .breeds import breed_of_genes, shown_breed
 from .game import Game, GameError, Player, week_id, week_start
 from . import accounts as A
 from . import ranchname
@@ -73,8 +73,9 @@ def check_ranch_name(raw: str) -> str:
 
 # 伺服器的存檔格式（跟經濟引擎的版本分開算）。不一樣就拒絕啟動，原型階段不做搬移（ceo 2026-10-02）。
 # 2：v0.2（沒有這個欄位的舊世界）；3：協定 v2 的 24 品種圖鑑（品種代號 → 第一次發現的時間）；
-# 4：借種費依體重自動算（D26：借種上架改存公牛長大的時間，不存價位）。
-WORLD_FORMAT = 4
+# 4：借種費依體重自動算（D26：借種上架改存公牛長大的時間，不存價位）；
+# 5：v0.3 照顧（C1）：全部牧場開照顧規則、圖鑑長大才算發現、記配種的爸媽。
+WORLD_FORMAT = 5
 
 
 def _sign_in_failed(reason: str) -> GameError:
@@ -835,6 +836,7 @@ class GameServer:
             seq0 = game.trade_seq
             t = self.clock.now() if now is None else now
             try:
+                game.settle(pid, t)  # 先結算（長大揭曉、生病記在發生的那一刻；出貨、治療之前的也記得到）
                 result = fn(t)
             except GameError:
                 game.take_captured()  # 服務層先檢查後修改：檢查不過時什麼都沒改
@@ -843,6 +845,7 @@ class GameServer:
                 self._undo(pid, backup, stud_backup, game.take_captured(), seq0)
                 raise
             try:
+                game.observe_care(p, t)  # 動作改到的（治好病牛、出貨病牛：成就 clean 從這一刻重新算）
                 game.observe_achievements(p, t)  # 等級、總資產的成就（S21）
             except Exception:
                 self._undo(pid, backup, stud_backup, game.take_captured(), seq0)
@@ -915,7 +918,7 @@ class GameServer:
             "borrower_id": ev["borrower"],
             "listing_id": ev["listing_id"],
             "bull_cow_id": None if station else ev["cow_id"],
-            "bull_breed": breed_of_genes(ev["g"]),
+            "bull_breed": shown_breed(ev["g"], ev.get("hybrid", False)),  # 雜種公牛記 "hybrid"
             "calf_id": ev["calf_id"],
             "calf_breed": breed_of_genes(ev["calf_g"]),
             "price": int(round(ev["price"])),
@@ -943,7 +946,7 @@ class GameServer:
                     "t": r["t"],
                     "price": r["price"],
                     "bull": {"id": r["bull_cow_id"] if out else None, "breed": r["bull_breed"]},
-                    "calf": None if out else {"id": r["calf_id"], "breed": r["calf_breed"]},
+                    "calf": None if out else {"id": r["calf_id"], "breed": self._calf_breed(me, r, now)},
                     "ranch": ranch,
                 }
             )
@@ -953,6 +956,15 @@ class GameServer:
             "income_total": int(round(me.stud_income)),
             "entries": entries,
         }
+
+    @staticmethod
+    def _calf_breed(me: Player, r: dict, now: float) -> Optional[str]:
+        """借種生的小牛現在的品種（協定 4.6 節）：還沒長大是 null、雜種牛是 "hybrid"；
+        已經不在牧場（長大後出貨了）的照借種時記的品種。"""
+        c = me.farm.cow_by_id(r["calf_id"]) if r["calf_id"] is not None else None
+        if c is None:
+            return r["calf_breed"]
+        return V.cow_breed(me.farm, c, now)
 
     async def _notify_stud(self, ev: dict) -> None:
         """有人借了你的公牛：推播給主人（在線的話）。"""
@@ -965,7 +977,7 @@ class GameServer:
             "event": "borrowed",
             **V.time_fields(self.clock, self.clock.now()),
             "listing_id": ev["listing_id"],
-            "cow": {"id": ev["cow_id"], "breed": breed_of_genes(ev["g"])},
+            "cow": {"id": ev["cow_id"], "breed": shown_breed(ev["g"], ev.get("hybrid", False))},
             "price": int(round(ev["price"])),
             "borrower": V.ranch_ref(borrower) if borrower is not None else None,
         }
@@ -1180,7 +1192,7 @@ class GameServer:
                 if kind == "networth":
                     score = game.net_worth(p, now)
                 elif kind == "collection":
-                    score = float(len(p.codex))
+                    score = float(p.codex_count())  # 雜種牛不算
                 else:
                     score = p.weekly_income(now)
                 rows.append((score, p.pid))

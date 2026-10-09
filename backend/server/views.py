@@ -12,8 +12,10 @@ from typing import Dict, List, Optional, Tuple
 
 from cowecon.farm import (
     DAIRY,
+    HYBRID,
     OX,
     Cow,
+    Farm,
     beef_grade_probs,
     beef_quality,
     beef_storage_factor,
@@ -26,6 +28,7 @@ from cowecon.farm import (
     freshness,
     is_milker,
     milk_frac,
+    required_feeds,
     rice_factor,
     stud_fee,
     wh_cap,
@@ -33,8 +36,9 @@ from cowecon.farm import (
 from cowecon.params import HEADLINES, HOUR
 
 from . import achievements as A
+from .breeds import FEED_IDS, FLOOR_IDS, feed_ids, shown_breed
+from .breeds import HYBRID as HYBRID_BREED
 from .breeds import ORDER as BREED_ORDER
-from .breeds import breed_of_genes
 from .game import TYPE_WIRE, Game, Player, level_threshold, ship_value, stud_fee_view
 from .names import name_words, station_words
 
@@ -69,16 +73,34 @@ def grade_dict(probs) -> dict:
     return {g: round(x, 6) for g, x in zip(GRADE_NAMES, probs)}
 
 
+def cow_vt(f: Farm, c: Cow) -> int:
+    """價值等級（雜種牛是 HYBRID）：已經揭曉的照牛身上的；成年了、還沒結算的照揭曉的規則算（不改狀態）。"""
+    return c.vt if c.grown else f._reveal_vt(c)
+
+
+def cow_breed(f: Farm, c: Cow, now: float) -> Optional[str]:
+    """畫面上的品種（協定 1.6 節）：小牛還看不出來是 null（企劃 v0.3 第 1 節），雜種牛是 "hybrid"。"""
+    if not c.is_adult(now):
+        return None
+    return shown_breed(c.g, cow_vt(f, c) == HYBRID)
+
+
 def cow_view(game: Game, p: Player, c: Cow, now: float) -> dict:
-    fp = p.farm.fp
+    f = p.farm
+    fp = f.fp
     adult = c.is_adult(now)
     working = c.field >= 0
+    vt = cow_vt(f, c) if adult else c.tier
+    hybrid = adult and vt == HYBRID
+    sick = f.is_sick(c, now)
+    need = [FEED_IDS[k] for k in sorted(required_feeds(f.p.care, c.g))]
+    ate = feed_ids(c.fed)
     return {
         "id": c.cid,
         "type": TYPE_WIRE[c.ctype],
         "bull": c.bull,
-        "tier": c.tier,
-        "breed": breed_of_genes(c.g),
+        "tier": c.tier if adult else None,  # 小牛長大才揭曉（v0.3 C1）；雜種牛照樣是原本的稀有度
+        "breed": cow_breed(f, c, now),
         "stage": cow_stage(p, c, now),
         "born_at": c.born_at,
         "adult_at": c.adult_at,
@@ -93,16 +115,29 @@ def cow_view(game: Game, p: Player, c: Cow, now: float) -> dict:
         "working": working,
         "field": c.field if working else None,
         "listed": c.listed,
-        "can_breed": c.can_breed_now(now),
+        "can_breed": c.can_breed_now(now) and not sick,
         "can_ship": adult and not c.is_busy(),
-        "can_work": c.ctype == OX and adult and not c.is_busy(),
+        "can_work": c.ctype == OX and adult and not c.is_busy() and not sick,
         "rice_per_h": r2(cow_rice_rate(fp, c, now)) if c.ctype == OX else 0.0,
         "grade_probs": grade_dict(beef_grade_probs(fp, c, now)) if adult else None,
         "origin": c.origin or None,
         # D26：成年、沒配過種的公牛現在的借種費（上架前就先算好給 S04-04）；其他牛 null
-        "stud_fee": stud_fee_view(fp, c.vt, *stud_fee(fp, c.ctype, c.vt, c.adult_at, now, c.speed, c.bonus))
+        "stud_fee": stud_fee_view(fp, vt, *stud_fee(fp, c.ctype, vt, c.adult_at, now, c.speed, c.bonus))
         if c.bull and adult and not c.bred
         else None,
+        # v0.3 C1（協定 2.3 節）
+        "hybrid": hybrid,
+        "need": need,  # 小牛時期要吃到的飼料（稀有以上的品種才有；一般、優良是空的＝什麼都可以吃）
+        "ate": ate,  # 小牛時期吃過的飼料
+        "missed": [k for k in need if k not in ate] if hybrid else [],  # 雜種牛：少吃了哪幾種
+        "feed_bonus_kg": r2(c.bonus),
+        "fed_until": c.fed_until if c.fed_until > now else None,
+        "feed_block": game.feed_status(p, c, now),
+        "poop": c.poop,
+        "sick": sick,
+        "sick_since": c.sick_since
+        if c.sick_since is not None
+        else ((f._pending_sick(now) or {}).get(c.cid) if sick else None),
     }
 
 
@@ -113,7 +148,8 @@ def bucket_view(p: Player, now: float) -> dict:
     boost_until = f.created_at + ob.newbie_boost_s
     return {
         "qty": r6(sum(by_tier)),
-        "by_tier": [r6(x) for x in by_tier[:4]],  # 一般～傳說；雜種牛的奶（引擎的第 5 格）在 C1 另外給，qty 是總數
+        "by_tier": [r6(x) for x in by_tier[:4]],  # 一般～傳說；qty 是總數（含雜種牛的奶）
+        "hybrid": r6(by_tier[HYBRID]),  # v0.3 C1：雜種牛的奶
         "capacity": r2(f.bucket_capacity()),
         "per_hour": r6(f.milk_rate(now)),  # 已含新手期加倍
         "boost": {"mult": ob.newbie_boost_mult, "until": boost_until} if now < boost_until else None,
@@ -131,7 +167,10 @@ def warehouse_view(p: Player, now: float) -> dict:
         milk_lots.append(
             {
                 "qty": r6(l.qty),
-                "tier": l.tier,
+                "tier": 0
+                if l.tier == HYBRID
+                else l.tier,  # 雜種牛的奶：tier 送 0、hybrid true（倍數看 economy.hybrid_mult）
+                "hybrid": l.tier == HYBRID,
                 "collected_at": l.t,
                 "freshness": round(fr, 4),
                 "fresh_until": l.t + full_h * HOUR,
@@ -143,8 +182,9 @@ def warehouse_view(p: Player, now: float) -> dict:
         beef_lots.append(
             {
                 "qty": r6(l.qty),
-                "tier": l.tier,
-                "breed": breed_of_genes(l.genes) if l.genes is not None else None,  # 舊存檔的批次沒有基因
+                "tier": 0 if l.tier == HYBRID else l.tier,
+                "hybrid": l.tier == HYBRID,
+                "breed": shown_breed(l.genes, l.tier == HYBRID) if l.genes is not None else None,
                 "cow_id": l.cow_id,
                 "shipped_at": l.t,
                 "quality": round(f.beef_lot_mult(l, now) / fp.tier_mult[l.tier], 4),
@@ -295,11 +335,14 @@ def station_ref(game: Game, listing_id: int) -> dict:
 
 def listing_view(game: Game, lst, me: Optional[int], now: float) -> dict:
     owner = game.players.get(lst.owner) if lst.owner is not None else None
+    bull = owner.farm.cow_by_id(lst.cow_id) if owner is not None else None
     return {
         "id": lst.lid,
-        "breed": breed_of_genes(lst.g),
+        "breed": shown_breed(lst.g, lst.vt == HYBRID),
         "type": TYPE_WIRE[lst.ctype],
         "tier": lst.tier,
+        "hybrid": lst.vt == HYBRID,  # v0.3 C1
+        "sick": bull is not None and owner.farm.is_sick(bull, now),  # 主人治好以前不能借
         "owner": ranch_ref(owner) if owner is not None else station_ref(game, lst.lid),
         "is_mine": lst.owner is not None and lst.owner == me,
         "cow_id": lst.cow_id if lst.owner is not None else None,
@@ -310,7 +353,7 @@ def listing_view(game: Game, lst, me: Optional[int], now: float) -> dict:
 
 def codex_view(p: Player) -> List[dict]:
     """圖鑑：已發現的品種與第一次發現的時間，先發現的在前。"""
-    rows = sorted(p.codex.items(), key=lambda x: (x[1], BREED_ORDER[x[0]]))
+    rows = sorted(p.codex.items(), key=lambda x: (x[1], BREED_ORDER.get(x[0], len(BREED_ORDER))))
     return [{"breed": b, "found_at": t} for b, t in rows]
 
 
@@ -346,16 +389,44 @@ def state_view(game: Game, p: Player, now: float, clock) -> dict:
             "listings": [listing_view(game, l, p.pid, now) for l in game.stud.owner_listings(p.pid)],
             "income": int(round(p.stud_income)),
         },
-        "economy": economy_view(f.fp),
+        "economy": economy_view(f.fp, f.p.care),
         "profile": {"avatar": p.avatar, "renames": p.renames},  # S21 牧場資料（D34）
         "achievements": achievements_view(game, p, now),
+        # v0.3 C1 照顧（協定 2.3、2.6 節）
+        "feeds": {k: f.feeds[i] for i, k in enumerate(FEED_IDS)},
+        "poop": poop_view(f, now),
+        "floor": floor_view(f, now),
+        "helper": {"until": f.helper_until if f.helper_until > now else None},
+    }
+
+
+def poop_view(f: Farm, now: float) -> dict:
+    """大便：total 全場還沒清的（坨）、dirt 髒的程度（= total ÷ 牛的頭數；超過 economy.sick_dirt_free 才會生病）、
+    safe_until 新手保護（不會生病）到什麼時候，過了是 null。"""
+    total = sum(c.poop for c in f.cows)
+    safe_until = f.created_at + f.p.care.newbie_safe_s
+    return {
+        "total": total,
+        "dirt": round(total / len(f.cows), 4) if f.cows else 0.0,
+        "safe_until": safe_until if now < safe_until else None,
+    }
+
+
+def floor_view(f: Farm, now: float) -> dict:
+    """地板：current 正在用的、owned 買斷的（含開局的泥土地）、rented 租著的（沒有或到期是 null）、rent_until。"""
+    rented = f.rented and now < f.rent_until
+    return {
+        "current": FLOOR_IDS[f.floor],
+        "owned": [k for i, k in enumerate(FLOOR_IDS) if (f.floors >> i) & 1],
+        "rented": FLOOR_IDS[f.rented] if rented else None,
+        "rent_until": f.rent_until if rented else None,
     }
 
 
 def achievements_view(game: Game, p: Player, now: float) -> List[dict]:
     """成就（S21；server/achievements.py）：18 個，順序跟設計稿 BADGES 一樣。時間都是遊戲時間（同 codex[].found_at）。
     一般的 {key, unlocked_at}；有計數的再加 progress、goal；分階段的 {key, progress, tiers[{goal, unlocked_at}]}。"""
-    found = sorted(p.codex.values())
+    found = sorted(t for b, t in p.codex.items() if b != HYBRID_BREED)  # 雜種牛不算 24 種
     progress = {
         "gradeA": p.ach_n.get("gradeA", 0.0),
         "popularBull": p.ach_n.get("popularBull", 0.0),
@@ -384,11 +455,12 @@ def achievements_view(game: Game, p: Player, now: float) -> List[dict]:
     return out
 
 
-def economy_view(fp) -> dict:
-    """S05「優良牛奶 ×1.3」、S09 品種卡用的倍數（協定 2.3 節）：直接讀 params，app 不寫死經濟參數。"""
+def economy_view(fp, cp) -> dict:
+    """S05「優良牛奶 ×1.3」、S09 品種卡用的倍數（協定 2.3 節）：直接讀 params（fp 牧場、cp 照顧），app 不寫死經濟參數。"""
     return {
-        # 一般、優良、稀有、傳說：牛奶、牛肉的賣價倍率，也是耕牛的稻米產量倍率（引擎的第 5 格是雜種牛，C1 另外給）
+        # 一般、優良、稀有、傳說：牛奶、牛肉的賣價倍率，也是耕牛的稻米產量倍率
         "tier_mult": list(fp.tier_mult[:4]),
+        "hybrid_mult": fp.tier_mult[HYBRID],  # v0.3 C1：雜種牛（牛奶、牛肉、稻米都乘這個）
         "beef_grade_mult": dict(zip(GRADE_NAMES, fp.beef_grade_mult)),
         "ox_rice_per_h": fp.rice_per_h[OX],  # 壯年耕牛每遊戲小時的稻米公斤數（× tier_mult × 年齡曲線）
         "dairy_milk_per_h": fp.milk_per_h[DAIRY],  # 壯年母乳牛每遊戲小時產奶瓶數（× 年齡曲線；稀有度不影響產量）
@@ -397,6 +469,41 @@ def economy_view(fp) -> dict:
         "bull_weight_mult": fp.bull_weight_mult,  # 公牛的體重 = 母牛 × 這個
         "rename_price": A.RENAME_PRICE,  # S21：第二次起改名的價錢（第一次免費，看 profile.renames）
         "field_cap_h": fp.field_cap_h,  # 一塊田最多存這頭耕牛壯年幾小時的量（fields[].capacity 不乘年齡曲線）
+        **care_economy(cp),
+    }
+
+
+def care_economy(cp) -> dict:
+    """v0.3 C1 照顧的數字（協定 2.3 節 economy）：直接讀 params（CareParams）。"""
+    return {
+        "feeds": [
+            {"id": k, "kg": cp.feed_kg[i], "price": ci(cp.feed_price[i])} for i, k in enumerate(FEED_IDS)
+        ],  # price：買一份的價錢（固定價；飼料市場在 C2）
+        "feed_cap": cp.feed_cap,
+        "feed_cooldown_h": cp.feed_cooldown_s / HOUR,
+        "calf_feed_cooldown_h": cp.calf_feed_cooldown_s / HOUR,
+        "feed_bonus_max_kg": cp.bonus_max_kg,
+        "floors": [
+            {
+                "id": k,
+                "speed": cp.floor_speed[i],
+                "late_speed": cp.floor_late_speed[i],
+                "sick_mult": cp.floor_sick_mult[i],
+                "price": ci(cp.floor_price[i]) if cp.floor_price[i] > 0 else None,
+                "rent_per_day": ci(cp.floor_rent_per_day[i]) if cp.floor_rent_per_day[i] > 0 else None,
+            }
+            for i, k in enumerate(FLOOR_IDS)
+        ],
+        "floor_rent_max_days": cp.floor_rent_max_days,
+        "helper_per_day": ci(cp.helper_price_per_day),
+        "helper_max_days": cp.helper_max_days,
+        "helper_clean_min": cp.helper_clean_s / 60,
+        "cure_price": ci(cp.cure_price),
+        "sick_beef_mult": cp.sick_beef_mult,
+        "poop_every_h": cp.poop_every_s / HOUR,
+        "poop_max_per_cow": cp.poop_max_per_cow,
+        "sick_rate_per_h": cp.sick_rate_per_h,
+        "sick_dirt_free": cp.sick_dirt_free,
     }
 
 

@@ -26,18 +26,18 @@ ACHIEVEMENTS: Tuple[Tuple[str, Union[None, int, Tuple[int, ...]]], ...] = (
     ("popularBull", 10),  # 自己的公牛被借走 10 次
     ("rice", 1000),  # 累計收成 1,000 公斤稻米
     ("codex", (5, 12, 24)),  # 發現 5／12／24 種牛（解鎖時間 = 第 N 種的 codex.found_at）
-    ("legend", None),  # 擁有一頭傳說牛
+    ("legend", None),  # 擁有一頭傳說牛（v0.3：長大揭曉、沒變雜種那一刻）
     ("level", (10, 20)),  # 升到 Lv 10／20
     ("rich", (100_000, 1_000_000)),  # 總資產（= 排行榜的 networth）到 10 萬／100 萬幣
     ("tailwind", None),  # 在超級大事件期間賣出東西（那種商品正在超級大事件裡）
     ("weekChamp", None),  # 某一週收入排行榜第 1 名（那一週結束、週一 00:00 重算時記）
-    ("pureBreed", None),  # 15–18：D35 的新玩法（v0.3）做好以後才有，先一律還沒解鎖
-    ("healer", None),
-    ("clean", None),
-    ("trucks", None),
+    ("pureBreed", None),  # 照品種的飼料養大一頭稀有以上的小牛（長大沒變雜種；開局送的不算）
+    ("healer", None),  # 治好一頭病牛
+    ("clean", None),  # 連續 7 天沒有牛生病（從開牧場起算；解鎖時間 = 滿 7 天那一刻）
+    ("trucks", None),  # 卡車收藏家：v0.3 PR D 做好以後才有，先一律還沒解鎖
 )
 GOALS: Dict[str, Union[None, int, Tuple[int, ...]]] = dict(ACHIEVEMENTS)
-NOT_YET = frozenset({"pureBreed", "healer", "clean", "trucks"})  # v0.3 才接上
+NOT_YET = frozenset({"trucks"})  # 卡車造型（v0.3 PR D）才接上
 
 RENAME_PRICE = int(
     DEFAULT.care.rename_price

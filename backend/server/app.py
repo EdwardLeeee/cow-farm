@@ -25,6 +25,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from cowecon.farm import HYBRID
+
 from . import views as V
 from .config import Config
 from .game import GameError, Player, ship_value
@@ -116,6 +118,43 @@ class RenameReq(_Req):
 class AvatarReq(_Req):
     breed: Any  # 品種代號；在服務層檢查
     request_id: str
+
+
+# ---- v0.3 C1 照顧（協定 2.6 節） ----
+class FeedReq(_Req):
+    cow_id: Any
+    feed: Any  # 飼料代號（協定 1.6 節）；在服務層檢查
+    request_id: str
+
+
+class FeedAllReq(_Req):
+    feed: Any
+    request_id: str
+
+
+class FeedBuyReq(_Req):
+    feed: Any
+    qty: Any  # 份數（整數 ≥ 1）
+    request_id: str
+
+
+class CleanReq(_Req):
+    piles: Any = None  # [{"cow_id", "n"}]：app 劃過去清掉的；沒給 = 全部清
+    request_id: str
+
+
+class HelperReq(_Req):
+    days: Any
+    request_id: str
+
+
+class FloorReq(_Req):
+    floor: Any  # 地板代號（協定 1.6 節）
+    request_id: str
+
+
+class FloorRentReq(FloorReq):
+    days: Any
 
 
 # ---- v0.2 ----
@@ -244,7 +283,9 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
 
     def state_of(p: Player, now: float) -> dict:
         # game.player：驗過 token 之後牧場剛被刪除時回 401（協定 5.6），不是 KeyError 變成 500
-        st = V.state_view(server.game, server.game.player(p.pid), now, server.clock)
+        # preview：結算到 now 的複本（不存檔）。長大揭曉、圖鑑、成就、大便、病牛跟下一個動作會存的一樣（v0.3 C1）
+        g = server.game
+        st = V.state_view(g, g.preview(g.player(p.pid), now), now, server.clock)
         st["maintenance"] = server.maintenance_view()  # 維護預告（協定 6.1 節）；沒有是 null
         st["account"] = server.account_view(p.pid)  # 綁定的帳號（協定 2.3 節）
         return st
@@ -441,7 +482,8 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
                 "grade_probs": V.grade_dict(res["grade_probs"]),
                 "beef": {
                     "qty": V.r6(lot.qty),
-                    "tier": lot.tier,
+                    "tier": 0 if lot.tier == HYBRID else lot.tier,
+                    "hybrid": lot.tier == HYBRID,
                     "shipped_at": lot.t,
                     "grade": grade,
                     "grade_mult": f.fp.beef_grade_mult[lot.grade] if grade else None,
@@ -496,7 +538,7 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
     async def ship_preview(cow_id: int = Query(...), p: Player = Depends(current)):
         g = server.game
         now = server.clock.now()
-        pl = g.player(p.pid)
+        pl = g.preview(g.player(p.pid), now)  # 結算到 now 的複本：長大揭曉（雜種牛）、生病都算進去
         c = g._cow(pl, cow_id)
         blockers = []
         try:
@@ -508,7 +550,7 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
 
         probs = beef_grade_probs(fp, c, now)
         by_grade = {
-            gn: round(ship_value(g, pl, c, now, fp.beef_grade_mult[i] * fp.tier_mult[c.tier]))
+            gn: round(ship_value(g, pl, c, now, fp.beef_grade_mult[i] * fp.tier_mult[c.vt]))
             for i, gn in enumerate(V.GRADE_NAMES)
         }
         return {
@@ -516,6 +558,8 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
             "cow_id": c.cid,
             "weight_kg": V.r2(beef_weight(fp, c, now)),
             "tier": c.tier,
+            "hybrid": c.hybrid,  # v0.3 C1：雜種牛（value_by_grade 已經乘 hybrid_mult）
+            "sick": pl.farm.is_sick(c, now),  # 病牛：value_by_grade、expected_value 已經乘 sick_beef_mult
             "grade_probs": V.grade_dict(probs),
             "grade_mult": dict(zip(V.GRADE_NAMES, fp.beef_grade_mult)),
             "value_by_grade": by_grade,
@@ -602,6 +646,129 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
 
         return await server.run_action(
             p.pid, lambda now: g.set_avatar(p.pid, req.breed, now), _rid(req.request_id), "ranch_avatar", respond
+        )
+
+    # ---- v0.3 C1 照顧（協定 2.6 節）----
+    async def care_action(p: Player, endpoint: str, request_id: str, fn, extra):
+        """照顧動作：extra(res, st) 給這個動作自己的回應欄位，另外都附 coins、state。"""
+
+        def respond(res, now):
+            st = state_of(p, now)
+            return {**base(now), **extra(res, st), "coins": st["coins"], "state": st}
+
+        return await server.run_action(p.pid, fn, _rid(request_id), endpoint, respond)
+
+    def cow_in(st: dict, cid: int) -> dict:
+        return next(c for c in st["cows"] if c["id"] == cid)
+
+    @app.post("/v1/feed")
+    async def feed(req: FeedReq, p: Player = Depends(current)):
+        g = server.game
+        return await care_action(
+            p,
+            "feed",
+            req.request_id,
+            lambda now: g.feed(p.pid, req.cow_id, g._feed_index(req.feed), now),
+            lambda res, st: {
+                "cow_id": res["cow_id"],
+                "feed": res["feed"],
+                "cow": cow_in(st, res["cow_id"]),
+                "feeds": st["feeds"],
+            },
+        )
+
+    @app.post("/v1/feed/all")
+    async def feed_all(req: FeedAllReq, p: Player = Depends(current)):
+        g = server.game
+        return await care_action(
+            p,
+            "feed_all",
+            req.request_id,
+            lambda now: g.feed_all(p.pid, req.feed, now),
+            lambda res, st: {"feed": res["feed"], "fed": res["fed"], "feeds": st["feeds"]},
+        )
+
+    @app.post("/v1/feed/buy")
+    async def feed_buy(req: FeedBuyReq, p: Player = Depends(current)):
+        g = server.game
+        return await care_action(
+            p,
+            "feed_buy",
+            req.request_id,
+            lambda now: g.buy_feed(p.pid, g._feed_index(req.feed), req.qty, now),
+            lambda res, st: {"feed": res["feed"], "qty": res["n"], "cost": res["cost"], "feeds": st["feeds"]},
+        )
+
+    @app.post("/v1/clean")
+    async def clean(req: CleanReq, p: Player = Depends(current)):
+        g = server.game
+        return await care_action(
+            p,
+            "clean",
+            req.request_id,
+            lambda now: g.clean(p.pid, now, g.parse_piles(req.piles)),
+            lambda res, st: {"cleaned": res["cleaned"], "poop": st["poop"]},
+        )
+
+    @app.post("/v1/cure")
+    async def cure(req: CowActionReq, p: Player = Depends(current)):
+        g = server.game
+        return await care_action(
+            p,
+            "cure",
+            req.request_id,
+            lambda now: g.cure(p.pid, req.cow_id, now),
+            lambda res, st: {"cow_id": res["cow_id"], "cost": res["cost"], "cow": cow_in(st, res["cow_id"])},
+        )
+
+    @app.post("/v1/helper")
+    async def helper(req: HelperReq, p: Player = Depends(current)):
+        g = server.game
+        return await care_action(
+            p,
+            "helper",
+            req.request_id,
+            lambda now: g.hire_helper(p.pid, req.days, now),
+            lambda res, st: {"days": res["days"], "cost": res["cost"], "helper": st["helper"], "poop": st["poop"]},
+        )
+
+    @app.post("/v1/floor/buy")
+    async def floor_buy(req: FloorReq, p: Player = Depends(current)):
+        g = server.game
+        return await care_action(
+            p,
+            "floor_buy",
+            req.request_id,
+            lambda now: g.buy_floor(p.pid, g._floor_index(req.floor), now),
+            lambda res, st: {"floor": res["floor"], "cost": res["cost"], "floors": st["floor"]},
+        )
+
+    @app.post("/v1/floor/rent")
+    async def floor_rent(req: FloorRentReq, p: Player = Depends(current)):
+        g = server.game
+        return await care_action(
+            p,
+            "floor_rent",
+            req.request_id,
+            lambda now: g.rent_floor(p.pid, g._floor_index(req.floor), req.days, now),
+            lambda res, st: {
+                "floor": res["floor"],
+                "days": res["days"],
+                "cost": res["cost"],
+                "until": res["until"],
+                "floors": st["floor"],
+            },
+        )
+
+    @app.post("/v1/floor/use")
+    async def floor_use(req: FloorReq, p: Player = Depends(current)):
+        g = server.game
+        return await care_action(
+            p,
+            "floor_use",
+            req.request_id,
+            lambda now: g.use_floor(p.pid, g._floor_index(req.floor), now),
+            lambda res, st: {"floor": res["floor"], "floors": st["floor"]},
         )
 
     # ---- 行情與排行榜 ----
