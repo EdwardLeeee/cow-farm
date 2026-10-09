@@ -561,6 +561,12 @@ def robot_daily_cost(cp, m: int, n_cows: int) -> float:
     return (cp.robot_repair[m] + n_cows * ROBOT_SICK_PER_BREAK * cp.cure_price) / cp.robot_mtbf_d[m]
 
 
+def robot_rng(b: Bot, now: float) -> random.Random:
+    """掃地機壞掉的時間用的亂數：由這位玩家（編號、taste）和現在的時間導出，跟玩家自己的亂數分開。
+    掃地機的運氣就不會打亂玩家其他的隨機決定（比較有沒有掃地機、不同參數時，其他的事照同一條路走），也不必另外存檔。"""
+    return random.Random(f"robot:{b.pid}:{b.taste!r}:{now!r}")
+
+
 def robot_care(b: Bot, now: float) -> None:
     """掃地機（說明見研究模擬的 sim/bots.py）：照划算與否買（或換另一款）、壞了照划算與否修。"""
     f = b.farm
@@ -579,13 +585,13 @@ def robot_care(b: Bot, now: float) -> None:
         if v > best_v:
             best, best_v = m, v
     if best >= 0 and f.coins >= cp.robot_price[best] + reserve:
-        _try(b.game.buy_robot, b.pid, best, now, rng=b.rng)
+        _try(b.game.buy_robot, b.pid, best, now, rng=robot_rng(b, now))
         return
     if f.robot >= 0 and not f.robot_working(now):
         m = f.robot
         save = (alt - n * ROBOT_SICK_PER_BREAK * cp.cure_price / cp.robot_mtbf_d[m]) * cp.robot_mtbf_d[m]
         if save >= cp.robot_repair[m] and f.coins >= cp.robot_repair[m] + reserve:
-            _try(b.game.repair_robot, b.pid, now, rng=b.rng)
+            _try(b.game.repair_robot, b.pid, now, rng=robot_rng(b, now))
 
 
 def hire_helper(b: Bot, now: float) -> None:
