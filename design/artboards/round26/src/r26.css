@@ -192,3 +192,6 @@ body { background: #FFF9EF; }
 .fbar-b.bare26 .fb-name b { -webkit-text-stroke: 3px #FFFFFF; }
 .fb-item.back26 .sk-n { background: #3E8E2F; box-shadow: 0 0 0 3px #CFEFC2; }
 .fbar-b.bare26 { position: relative; }
+/* 第 26 輪：有底板的飼料列上面多留一點空間，「小牛想吃」才不會被底板上緣切掉 */
+.fbar-b:not(.bare26) { padding-top: 17px; }
+.fbar-b:not(.bare26) .want-tag { top: -14px; }

@@ -305,7 +305,7 @@ function ranch26({ herd = HERD23, extra = '', bar = {}, bare = false, overlays =
   let html = ranchPage(ctx0(), { herd, overlays, pop });
   html = html.replace(/(<div class="scene">[\s\S]*?)(<\/svg>\s*<\/div>)/, (m, a, b) => a + extra + b);
   const fb = feedBar26(bar, bare);
-  if (bare) html = html.replace(/<div class="dock-row">[\s\S]*?<\/article>\s*<\/div>\s*<\/section>/, '</section>').replace('<section class="dock">', `<section class="dock">${fb}`);
+  if (bare) html = html.replace(/<div class="dock-row">[\s\S]*?<\/article>\s*<\/div>\s*<\/section>/, '</section>').replace('<article class="card bucket-card', `${fb}<article class="card bucket-card`);
   else html = html.replace(/<div class="dock-row">[\s\S]*?<\/article>\s*<\/div>\s*<\/section>/, `${fb}</section>`);
   return html.replace('<div class="dock-head">', `<div class="dock-head">${whPill}`);
 }
@@ -340,23 +340,25 @@ const HERD10 = [
   { id: 14, breed: 'jersey', sex: 'bull', seed: 85, x: 92, y: 344, facing: 'right', depth: 0 },
   { id: 21, breed: 'yellow', sex: 'cow', seed: 41, x: 214, y: 340, facing: 'left', depth: 0 },
   { id: 8, breed: 'holstein', sex: 'bull', seed: 23, x: 330, y: 344, facing: 'left', depth: 0 },
-  { id: 3, breed: 'holstein', x: 52, y: 430, facing: 'right', depth: 1, milk: true },
-  { id: 15, breed: 'holstein', sex: 'cow', age: 'calf', seed: 31, x: 158, y: 418, facing: 'right', depth: 1 },
-  { id: 7, breed: 'jersey', x: 262, y: 430, facing: 'left', depth: 1, milk: true },
-  { id: 22, breed: 'angus', sex: 'cow', seed: 17, x: 368, y: 432, facing: 'left', depth: 1 },
-  { id: 12, breed: 'strawberry', x: 104, y: 530, facing: 'right', depth: 2, milk: true },
-  { id: 23, breed: 'yellow', sex: 'bull', seed: 9, x: 222, y: 540, facing: 'left', depth: 2 },
-  { id: 11, breed: 'wagyu', x: 334, y: 548, facing: 'left', depth: 2 },
+  { id: 3, breed: 'holstein', x: 52, y: 420, facing: 'right', depth: 1, milk: true },
+  { id: 15, breed: 'holstein', sex: 'cow', age: 'calf', seed: 31, x: 158, y: 410, facing: 'right', depth: 1 },
+  { id: 7, breed: 'jersey', x: 262, y: 420, facing: 'left', depth: 1, milk: true },
+  { id: 22, breed: 'angus', sex: 'cow', seed: 17, x: 368, y: 422, facing: 'left', depth: 1 },
+  { id: 12, breed: 'strawberry', x: 100, y: 506, facing: 'right', depth: 2, milk: true },
+  { id: 23, breed: 'yellow', sex: 'cow', seed: 9, x: 214, y: 512, facing: 'left', depth: 2 },
+  { id: 11, breed: 'wagyu', x: 322, y: 516, facing: 'left', depth: 2 },
 ];
 const allHungry = (v, herd = HERD10) => { const an = sceneOf(herd).anchors; return herd.map((h, i) => hungry26(v, an[h.id].head, (i % 3) * 1.5)).join(''); };
 
 // ---------- 01 丟飼料（拿掉遠近、圓圈底） ----------
 const FEED26 = 'corn'; // 飼料列 B 一進來就看得到的那一種（玉米 +5 公斤）
-const SLOT26 = [349, 670]; // 飼料列 B 玉米那個袋子的中心（手機座標；量的：平常 [350, 675]、按住浮起來 [349, 667]）
+const SCROLL26 = 84; // 丟飼料時飼料列往右滑了多少：玉米整袋露出來（沒滑的時候玉米被右邊的箭頭蓋住一半）
+const SLOT26 = [265, 670]; // 那時玉米袋的中心（手機座標；量的：沒滑時平常 [350, 675]、按住浮起來 [349, 667]，再減掉 SCROLL26）
+const WANT_SCROLL = 120; // 小牛想吃豆粕：滑到豆粕整袋露出來
 function throwScene26(t, which, v = 'A') {
   const F = sceneOf(HERD23).fit;
   const D = which === 1 ? D1 : D2, Dp = F.map(D);
-  let herd = HERD23, extra = '', ov = '', fin = '', bar = { lift: '', used: '' };
+  let herd = HERD23, extra = '', ov = '', fin = '', bar = { lift: '', used: '', scroll: SCROLL26 };
   if (t < 0.5) { bar.lift = FEED26; fin = finger(SLOT26[0] + 4, SLOT26[1] + 4); }
   else if (t < 1.3) { const u = (t - 0.5) / 0.8, e = u * u * (3 - 2 * u); const x = lerp(SLOT26[0], Dp[0], e), y = lerp(SLOT26[1], Dp[1] - 10, e) - Math.sin(e * Math.PI) * 60; bar.lift = FEED26; bar.used = FEED26; ov += drag26(FEED26, x, y); fin = finger(x + 8, y + 18); }
   else bar.used = FEED26;
@@ -387,11 +389,11 @@ function throwCells26(which) {
   if (which === 1) {
     const an0 = sceneOf(HERD23).anchors, c7 = HERD23.find((h) => h.id === 7), E7 = eatPos(c7, D1);
     const herdSkip = herdWith(7, { x: lerp(c7.x, E7.x, 0.55), y: lerp(c7.y, E7.y, 0.55), facing: E7.facing });
-    const skip = ranch26({ herd: herdSkip, extra: feedOnGround(FEED26, ...D1), bar: { used: FEED26 }, overlays: hungry26('A', sceneOf(herdSkip).anchors[7].head) });
+    const skip = ranch26({ herd: herdSkip, extra: feedOnGround(FEED26, ...D1), bar: { used: FEED26, scroll: SCROLL26 }, overlays: hungry26('A', sceneOf(herdSkip).anchors[7].head) });
     const cf = HERD23.find((h) => h.id === 15), DC = [cf.x - 52, cf.y - 4];
-    const calfScene = ranch26({ extra: feedOnGround('soy', ...DC), bar: { used: 'soy', want: 'soy', scroll: 84 }, overlays: wantBubble(calf, an0[15]) + finger(sceneOf(HERD23).fit.map(DC)[0] + 4, sceneOf(HERD23).fit.map(DC)[1] - 4) });
+    const calfScene = ranch26({ extra: feedOnGround('soy', ...DC), bar: { used: 'soy', want: 'soy', scroll: WANT_SCROLL }, overlays: wantBubble(calf, an0[15]) + finger(sceneOf(HERD23).fit.map(DC)[0] + 4, sceneOf(HERD23).fit.map(DC)[1] - 4) });
     return [
-      { cap: '1 按住一種飼料', note: '從飼料列按住一袋（這裡是玉米，剩 5 份）；肚子餓的牛頭上有碗', html: throwScene26(0.3, 1) },
+      { cap: '1 按住一種飼料', note: '飼料列往右滑到玉米（剩 5 份），按住那一袋；肚子餓的牛頭上有碗', html: throwScene26(0.3, 1) },
       { cap: '2 拖到牧場地上放開', note: '拖的時候只有飼料本身（沒有圓圈底）；落地揚起一點灰塵', html: throwScene26(1.45, 1) },
       { cap: '3 最近、肚子餓的那頭走過來', note: '草莓牛最近、頭上有碗，就走過來', html: throwScene26(2.75, 1) },
       { cap: '4 吃掉：+5 公斤', note: '吃飽了，頭上的碗不見', html: throwScene26(4.6, 1) },
@@ -414,11 +416,11 @@ const BOARDS = [
     const fr = (bare, o, ov = '') => ranch26({ bar: o, bare, overlays: ov });
     return board({ id: 'R26-02-飼料列-B-兩版比較-390', title: '02 飼料列　B 兩版比較：原本（有底板）、沒有底板（浮在奶桶上方）', sub: SUB26, cols: 3, width: boardWidth(3), cells: [
       { cap: 'B 原本：平常', note: '飼料列在奶桶面板下面，白色底板，左右滑看其他的', html: fr(false, {}) },
-      { cap: 'B 原本：按住一袋', note: '那一袋浮起來、轉一下，拖出去就是丟飼料', html: fr(false, { lift: FEED26 }) },
-      { cap: 'B 原本：小牛想吃的那一袋', note: '滑到豆粕，「小牛想吃」', html: fr(false, { want: 'soy', scroll: 84 }, want) },
-      { cap: 'B 沒有底板：平常', note: '袋子直接浮在牧場上，在奶桶面板上方；字加白邊才看得清楚', html: fr(true, {}) },
-      { cap: 'B 沒有底板：按住一袋', note: '', html: fr(true, { lift: FEED26 }) },
-      { cap: 'B 沒有底板：小牛想吃的那一袋', note: '', html: fr(true, { want: 'soy', scroll: 84 }, want) },
+      { cap: 'B 原本：按住一袋', note: '往右滑到玉米，按住那一袋：浮起來、轉一下，拖出去就是丟飼料', html: fr(false, { lift: FEED26, scroll: SCROLL26 }) },
+      { cap: 'B 原本：小牛想吃的那一袋', note: '滑到豆粕，「小牛想吃」', html: fr(false, { want: 'soy', scroll: WANT_SCROLL }, want) },
+      { cap: 'B 沒有底板：平常', note: '袋子直接浮在牧場上，緊貼在奶桶面板上方（「倉庫」「收起」那排在袋子上面）；字加白邊才看得清楚', html: fr(true, {}) },
+      { cap: 'B 沒有底板：按住一袋', note: '', html: fr(true, { lift: FEED26, scroll: SCROLL26 }) },
+      { cap: 'B 沒有底板：小牛想吃的那一袋', note: '', html: fr(true, { want: 'soy', scroll: WANT_SCROLL }, want) },
     ], notes: ['沒有底板的版本：牧場看起來比較大、比較乾淨；袋子蓋在草地和牛上面，字要加白邊才看得清楚。', '兩版的袋子、份數、公斤數、「小牛想吃」都一樣，只差有沒有底板、放在奶桶的上面還是下面。'] }); } },
   ...Object.keys(HUNGRY).map((v) => ({ id: `R26-04-${v}`, render: () => { const H = HUNGRY[v], an0 = sceneOf(HERD23).anchors;
     const big = `<div class="cool-sheet"><div class="cs-st"><span class="cs-big">${H.svg().replace(/width="\d+" height="\d+"/, 'width="96" height="104"')}</span><b>肚子餓了</b></div><div class="cs-st"><span class="cs-big"><span class="cs-gone">（沒有圖示）</span></span><b>吃飽了／長到最壯</b></div></div>`;
@@ -436,7 +438,7 @@ function r2699() {
   const row = (title, cells) => `<div class="ov-row"><div class="ov-title">${title}</div><div class="ov-cells">${cells.join('')}</div></div>`;
   const an0 = sceneOf(HERD23).anchors;
   const body = row('01 丟飼料（拿掉遠近、圓圈底）', [cell('拖的時候只有飼料', mini(throwScene26(1.0, 1))), cell('最近、肚子餓的走過來', mini(throwScene26(2.75, 1))), cell('沒有牛餓：飛回去', mini(throwScene26(4.0, 2)))])
-    + row('02 飼料列 B（選一種）', [cell('原本（有底板）', mini(ranch26({ bar: { want: 'soy', scroll: 84 }, overlays: wantBubble(calf, an0[15]) }))), cell('沒有底板（浮在奶桶上方）', mini(ranch26({ bare: true, bar: { want: 'soy', scroll: 84 }, overlays: wantBubble(calf, an0[15]) })))])
+    + row('02 飼料列 B（選一種）', [cell('原本（有底板）', mini(ranch26({ bar: { want: 'soy', scroll: WANT_SCROLL }, overlays: wantBubble(calf, an0[15]) }))), cell('沒有底板（浮在奶桶上方）', mini(ranch26({ bare: true, bar: { want: 'soy', scroll: WANT_SCROLL }, overlays: wantBubble(calf, an0[15]) })))])
     + row('04 肚子餓的圖示（選一種）：10 頭都餓了的樣子', Object.keys(HUNGRY).map((v) => cell(`${v}　${HUNGRY[v].name}`, `<div class="ov-cool">${HUNGRY[v].svg().replace(/width="\d+" height="\d+"/, 'width="56" height="60"')}</div>` + mini(ranch26({ herd: HERD10, overlays: allHungry(v) })))));
   return { html: `<div class="board" style="width:${PAD * 2 + 3 * sw + 2 * 28 + 10}px"><div class="b-label">R26-99-總覽對照</div><div class="b-title">第 26 輪：丟飼料、飼料列 B 兩版、肚子餓的圖示</div>
     <div class="b-sub">倉庫定案用面板的小鈕（B）。02、04 每一項選一種；各自的分鏡見 R26-01、02、04；丟飼料動起來的樣子見 R26-01 的兩個 GIF。</div>${body}</div>` };
