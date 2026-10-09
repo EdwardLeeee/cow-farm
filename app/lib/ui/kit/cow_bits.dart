@@ -259,11 +259,14 @@ class CowPicBox extends StatelessWidget {
 
 /// .card.cow-row：牛的小圖（正面）、名字、標籤、一行說明，右邊一個箭頭。整張卡可以點（G-13：浮起，按下往下 3）。
 class CowRow extends StatelessWidget {
-  const CowRow({super.key, required this.cow, required this.meta, this.onTap});
+  const CowRow({super.key, required this.cow, required this.meta, this.onTap, this.extra});
 
   final Cow cow;
   final String meta;
   final VoidCallback? onTap;
+
+  /// 說明下面再多一塊（cowRow 的 extra：小牛的飼料集點，S03-33）。
+  final Widget? extra;
 
   @override
   Widget build(BuildContext context) {
@@ -323,6 +326,7 @@ class CowRow extends StatelessWidget {
                         style: AppText.style(12, weight: FontWeight.w700, color: AppColors.ink2, lineHeight: 17),
                       ),
                     ],
+                    ?extra,
                   ],
                 ),
               ),

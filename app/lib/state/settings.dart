@@ -54,6 +54,7 @@ class SettingsController extends ChangeNotifier {
   static const backupSeenKey = 'cowfarm_backup_seen';
   static const coachSeenKey = 'cowfarm_coach_seen';
   static const backupRemindKey = 'cowfarm_backup_remind';
+  static const growAlertKey = 'cowfarm_grow_alert_seen';
 
   AppLang? _chosenLang;
   bool? _upIsRed;
@@ -64,6 +65,7 @@ class SettingsController extends ChangeNotifier {
   bool _backupSeen = false;
   Set<String> _coachSeen = {};
   Set<String> _backupReminded = {};
+  List<String> _growAlertSeen = [];
 
   /// 打開 app 時讀一次（main.dart 在 runApp 之前呼叫，第一個畫面就是對的語言）。
   Future<void> load() async {
@@ -80,6 +82,8 @@ class SettingsController extends ChangeNotifier {
     _coachSeen = coach == null || coach.isEmpty ? {} : coach.split(',').toSet();
     final reminded = await _store.getString(backupRemindKey);
     _backupReminded = reminded == null || reminded.isEmpty ? {} : reminded.split(',').toSet();
+    final grow = await _store.getString(growAlertKey);
+    _growAlertSeen = grow == null || grow.isEmpty ? [] : grow.split(',');
     notifyListeners();
   }
 
@@ -159,6 +163,19 @@ class SettingsController extends ChangeNotifier {
     if (!_coachSeen.add('$card@${playerId ?? 0}')) return;
     notifyListeners();
     await _store.setString(coachSeenKey, _coachSeen.join(','));
+  }
+
+  /// 快長大的提醒卡（S03-32）每頭小牛只跳一次：按 × 或「去餵食」都算看過。照牧場分開記（「牛的編號@牧場編號」），
+  /// 留最近 100 頭。
+  bool growAlertSeen(Object cowId, int? playerId) => _growAlertSeen.contains('$cowId@${playerId ?? 0}');
+
+  Future<void> markGrowAlertSeen(Object cowId, int? playerId) async {
+    final k = '$cowId@${playerId ?? 0}';
+    if (_growAlertSeen.contains(k)) return;
+    _growAlertSeen = [..._growAlertSeen, k];
+    if (_growAlertSeen.length > 100) _growAlertSeen = _growAlertSeen.sublist(_growAlertSeen.length - 100);
+    notifyListeners();
+    await _store.setString(growAlertKey, _growAlertSeen.join(','));
   }
 
   /// 大新聞提示（S03-15）每則只跳出一次：記住最近 50 則看過的新聞 id。

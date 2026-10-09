@@ -534,35 +534,6 @@ class PickEmpty extends StatelessWidget {
   );
 }
 
-/// 2px 的虛線圓角框（CSS 的 border: 2px dashed）：每段 6、間隔約 6，照周長平均分配。
-class DashedBorder extends CustomPainter {
-  const DashedBorder({required this.color, required this.radius, this.width = 2});
-
-  final Color color;
-  final double radius;
-  final double width;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rrect = RRect.fromRectAndRadius((Offset.zero & size).deflate(width / 2), Radius.circular(radius - width / 2));
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = width;
-    final dash = width * 3;
-    for (final metric in (Path()..addRRect(rrect)).computeMetrics()) {
-      final n = math.max(1, (metric.length / (dash * 2)).round());
-      final step = metric.length / n;
-      for (var i = 0; i < n; i++) {
-        canvas.drawPath(metric.extractPath(i * step, i * step + dash), paint);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(DashedBorder old) => old.color != color || old.radius != radius || old.width != width;
-}
-
 /// 機率卡的狀態：還沒選好、計算中（S08-04）、失敗（S08-05）、斷線（S08-11）、有結果（S08-06）。
 enum OutcomeState { none, quoting, failed, offline, ok }
 

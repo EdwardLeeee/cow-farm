@@ -726,3 +726,48 @@ class DashedTopLine extends CustomPainter {
   @override
   bool shouldRepaint(DashedTopLine oldDelegate) => false;
 }
+
+/// 虛線圓角框（CSS 的 border: dashed）。預設每段 3 倍線寬、間隔約一樣長，照周長平均分配（配種頁的 2px 淡色框）。
+/// [chrome]：照 Chrome（Blink 的 StrokeData）的畫法：線寬 3 以上每段 2 倍線寬、間隔 1 倍（細的 3 倍、2 倍），
+/// 整圈的段數取最接近的整數，間隔平均分配（集點卡的框和圈，量過設計稿：3px 的框每段約 6、間隔約 3）。
+class DashedBorder extends CustomPainter {
+  const DashedBorder({required this.color, required this.radius, this.width = 2, this.chrome = false});
+
+  final Color color;
+  final double radius;
+  final double width;
+  final bool chrome;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rrect = RRect.fromRectAndRadius((Offset.zero & size).deflate(width / 2), Radius.circular(radius - width / 2));
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = width;
+    for (final metric in (Path()..addRRect(rrect)).computeMetrics()) {
+      final len = metric.length;
+      final double dash;
+      final double step;
+      if (chrome) {
+        dash = width * (width >= 3 ? 2 : 3);
+        final gap = width * (width >= 3 ? 1 : 2);
+        // SelectBestDashGap（封閉的路徑）：段數取 floor 或 floor + 1，間隔比較接近 [gap] 的那個
+        final lo = math.max(1, (len / (dash + gap)).floor()), hi = lo + 1;
+        final gapLo = (len - lo * dash) / lo, gapHi = (len - hi * dash) / hi;
+        final n = gapHi <= 0 || (gapLo - gap).abs() < (gapHi - gap).abs() ? lo : hi;
+        step = len / n;
+      } else {
+        dash = width * 3;
+        step = len / math.max(1, (len / (dash * 2)).round());
+      }
+      for (var at = 0.0; at < len - 0.01; at += step) {
+        canvas.drawPath(metric.extractPath(at, at + dash), paint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(DashedBorder old) =>
+      old.color != color || old.radius != radius || old.width != width || old.chrome != chrome;
+}
