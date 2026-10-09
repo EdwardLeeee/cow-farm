@@ -28,6 +28,7 @@ import '../widgets/ticker_builder.dart';
 import 'coach_card.dart';
 import 'dock.dart';
 import 'grow_reveal.dart';
+import 'poop.dart';
 import 'pen_list.dart';
 import 'ranch_game.dart';
 import 'scene.dart';
@@ -123,6 +124,25 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
       milkShown: fx.milk + (data.warehouse.milkTotal - fx.milk) * gain,
       draining: drain > 0 && drain < 1,
     );
+  }
+
+  /// 清掉一坨大便：先從畫面拿掉（位置空出來，其他的不跳位），斷線的時候不能清。
+  void _takePoop(ScenePoop p) {
+    final m = context.read<GameModel>();
+    if (!m.online || m.poopOf(p.cow) <= 0) return;
+    m.poopLayout.take(p.spot);
+    m.takePoop(p.cow);
+  }
+
+  /// 送出清掉的大便（點一下馬上送，劃過去的手指放開才送）；失敗的話大便放回去，跳一般的錯誤提示。
+  Future<void> _sendPoop() async {
+    final m = context.read<GameModel>();
+    final s = Strings.of(context, listen: false);
+    final r = await m.sendPoop();
+    final err = r?.error;
+    if (!mounted || err == null) return;
+    if (err case ApiActionError(:final error) when error.maintenance || error.unauthorized) return;
+    _showToast(_Toast(actionErrorKind(err), actionErrorTextWith(s, m, err)));
   }
 
   Future<void> _collect() async {
@@ -241,6 +261,11 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
     );
     final top = safe.top + FrameSizes.hud;
     final news = m.market?.news.firstOrNull;
+    // 大便（v0.3 第 5 節）：場景裡每一坨的位置（記住，清掉一坨時其他的不跳位）、右上角的數字（扣掉正在清的）。
+    // 髒的程度 = 大便 ÷ 牛的頭數，超過會生病的門檻就變紅（S03-27）
+    final poops = m.poopLayout.place(st.cows, m.poopOf);
+    final poopTotal = m.poopTotal;
+    final dirty = st.cows.isNotEmpty && poopTotal / st.cows.length > (st.economy?.sickDirtFree ?? 0.5);
     final showSwipeHint = !settings.swipeHintSeen && !empty;
 
     return AppFrame(
@@ -258,6 +283,14 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
         // 點一頭牛：轉正面、跳出小名片；再點一次或點空地就收起來
         onTapCow: (c) => setState(() => _popId = _popId == c.id ? null : c.id),
         onTapEmpty: _popId == null ? null : () => setState(() => _popId = null),
+        // 清大便：點一下清一坨（A-14），從大便上開始劃、劃過的都清掉（A-15）；都是減少動態版（直接消失）
+        poops: poops,
+        onTapPoop: (p) {
+          _takePoop(p);
+          _sendPoop();
+        },
+        onSwipePoop: _takePoop,
+        onSwipeEnd: _sendPoop,
       ),
       underlays: [if (bubbleCow != null) _BubbleAnchor(cows: cows, cow: bubbleCow, pan: _pan, game: _game)],
       body: [
@@ -274,6 +307,13 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
           top: top + 58,
           child: _PenPill(used: st.pen.used, slots: st.pen.slots),
         ),
+        // .dirty：右上角的大便數，跟牛欄膠囊同一列（有大便才出現）
+        if (poopTotal > 0)
+          Positioned(
+            right: 12,
+            top: top + 62,
+            child: DirtPill(count: poopTotal, bad: dirty),
+          ),
         if (empty)
           Positioned(
             left: 24,

@@ -209,6 +209,17 @@ class HttpGameApi implements GameApi {
   Future<Map<String, dynamic>> setAvatar(String breed) => _mutate('/v1/ranch/avatar', {'breed': breed});
 
   @override
+  Future<Map<String, dynamic>> clean(Map<Object, int>? piles) => _mutate('/v1/clean', {
+    if (piles != null)
+      'piles': [
+        for (final e in piles.entries) {'cow_id': e.key, 'n': e.value},
+      ],
+  });
+
+  @override
+  Future<Map<String, dynamic>> cure(Object cowId) => _mutate('/v1/cure', {'cow_id': cowId});
+
+  @override
   Future<StudMarket> stud() async => StudMarket.fromJson(await _get('/v1/stud'));
 
   @override

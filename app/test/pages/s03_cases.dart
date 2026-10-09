@@ -107,6 +107,14 @@ Map<String, dynamic> mixCow({bool calf = false}) => calf
         'missed': ['alfalfa'],
       };
 
+/// 設計稿的 10 頭牛，旁邊一共 [n] 坨大便：照牛的編號一頭一坨分下去（場景裡排在設計稿的第 0–(n − 1) 個位置）。
+List<Map<String, dynamic>> poopCows(int n) {
+  final herd = designCows()..sort((a, b) => (a['id'] as int).compareTo(b['id'] as int));
+  return [
+    for (var i = 0; i < herd.length; i++) {...herd[i], 'poop': n ~/ herd.length + (i < n % herd.length ? 1 : 0)},
+  ];
+}
+
 /// 設計稿 S03-01 的牧場：Lv 4（經驗 41%）、12,480 幣、牛舍 10／12、奶桶 36.4／42（每小時 42 瓶）、倉庫 225。
 Map<String, dynamic> ranchState({
   List<Map<String, dynamic>>? cows,
@@ -145,7 +153,17 @@ Map<String, dynamic> ranchState({
       'ox_rice_per_h': 11.0,
       'field_cap_h': 8.0,
       'hybrid_mult': 0.6, // v0.3 C1：雜種牛的倍數（協定 2.3）
+      // v0.3 C1 照顧（協定 2.3、2.6）
+      'cure_price': 5000,
+      'sick_beef_mult': 0.1,
+      'poop_max_per_cow': 4,
+      'sick_dirt_free': 0.5,
     },
+    // 全場的大便 = 每頭牛的 poop 加起來；髒的程度 = 大便 ÷ 牛的頭數（協定 2.3）
+    'poop': () {
+      final total = herd.fold<int>(0, (n, c) => n + ((c['poop'] as num?)?.toInt() ?? 0));
+      return {'total': total, 'dirt': herd.isEmpty ? 0.0 : total / herd.length, 'safe_until': null};
+    }(),
     'pen': {
       'slots': penSlots,
       'used': penUsed ?? herd.length,
@@ -267,6 +285,10 @@ Future<GameModel> ranchModel({
   );
   return m;
 }
+
+/// 右上角的大便數（「大便 9」）。
+String dirtText(WidgetTester tester) =>
+    tester.widget<Text>(find.byKey(const Key('dirt-count'))).textSpan!.toPlainText();
 
 /// 名片的位置（ranch_page.dart 的 RenderPopPlacer）：從名片往上找。
 RenderPopPlacer popPlacer(WidgetTester tester) {
@@ -890,6 +912,41 @@ final s03Cases = <PageCase>[
       final pop = find.byKey(const Key('cow-pop'));
       expect(find.descendant(of: pop, matching: find.text(_zh.stageOld)), findsOneWidget);
       expect(find.text(_zh.weight(v: '268')), findsOneWidget);
+    },
+  ),
+  PageCase(
+    'S03-26',
+    '牧場有大便：右上角出現大便數',
+    (tester, lang) async => pumpAppIn(
+      tester,
+      await ranchModel(state: ranchState(cows: poopCows(4))),
+      lang,
+      prefs: swipeHintSeen,
+    ),
+    check: (tester) {
+      expect(dirtText(tester), '${_zh.s03Poop} 4');
+      expect(find.text(_zh.s03PoopDanger), findsNothing, reason: '4 ÷ 10 頭 = 0.4，還不會生病');
+      // 設計稿的第 0–3 個位置
+      for (var i = 0; i < 9; i++) {
+        expect(find.byKey(Key('poop-$i')), i < 4 ? findsOneWidget : findsNothing, reason: '第 $i 個位置');
+      }
+    },
+  ),
+  PageCase(
+    'S03-27',
+    '太髒了：大便數變紅「會生病」',
+    (tester, lang) async => pumpAppIn(
+      tester,
+      await ranchModel(state: ranchState(cows: poopCows(9))),
+      lang,
+      prefs: swipeHintSeen,
+    ),
+    check: (tester) {
+      expect(dirtText(tester), '${_zh.s03Poop} 9');
+      expect(find.text(_zh.s03PoopDanger), findsOneWidget, reason: '9 ÷ 10 頭 = 0.9 > 0.5');
+      for (var i = 0; i < 9; i++) {
+        expect(find.byKey(Key('poop-$i')), findsOneWidget, reason: '第 $i 個位置');
+      }
     },
   ),
   PageCase(

@@ -203,6 +203,9 @@ class Cow {
     this.need = const [],
     this.ate = const [],
     this.missed = const [],
+    this.poop = 0,
+    this.sick = false,
+    this.sickSince,
   });
 
   /// 伺服器給的原始 id（送回伺服器時原樣送）。畫面顯示「品種名 #id」。
@@ -244,6 +247,13 @@ class Cow {
   final List<String> need;
   final List<String> ate;
   final List<String> missed;
+
+  /// v0.3 C1（協定 2.3）：這頭牛旁邊還沒清的大便（坨），最多 `economy.poop_max_per_cow`。
+  final int poop;
+
+  /// v0.3 C1：生病了（不產奶、不耕田、不能配種上架借種；出貨牛肉只剩 `economy.sick_beef_mult`）、從什麼時候。
+  final bool sick;
+  final double? sickSince;
 
   /// 看得出品種了（v0.3 C1）：小牛的品種、稀有度長大才揭曉，伺服器送 null。小牛畫用途的一般品種、
   /// 叫「小乳牛 #15」、不放稀有度（#151）。
@@ -301,6 +311,9 @@ class Cow {
       need: _strs(j['need']),
       ate: _strs(j['ate']),
       missed: _strs(j['missed']),
+      poop: _i(j['poop']),
+      sick: _b(j['sick']),
+      sickSince: _dn(j['sick_since']),
     );
   }
 }
@@ -518,6 +531,10 @@ class Economy {
     this.fieldCapH,
     this.renamePrice,
     this.hybridMult,
+    this.curePrice,
+    this.sickBeefMult,
+    this.poopMaxPerCow,
+    this.sickDirtFree,
   });
 
   /// 一般、優良、稀有、傳說：牛奶、牛肉的賣價倍率，也是耕牛的稻米產量倍率。
@@ -548,6 +565,13 @@ class Economy {
   /// v0.3 C1：雜種牛的倍數（牛奶、牛肉、稻米；取代 tier_mult）。舊的伺服器沒有。
   final double? hybridMult;
 
+  /// v0.3 C1（協定 2.3、2.6）：治療一頭的價錢、病牛出貨牛肉剩的比例、每頭牛最多幾坨大便、
+  /// 髒的程度（大便 ÷ 牛的頭數）超過多少才會生病。舊的伺服器沒有。
+  final double? curePrice;
+  final double? sickBeefMult;
+  final int? poopMaxPerCow;
+  final double? sickDirtFree;
+
   /// 稀有度 [tier] 的倍率；沒有就是 null（畫面不寫倍數）。
   double? tier(int tier) => tier >= 0 && tier < tierMult.length ? tierMult[tier] : null;
 
@@ -577,6 +601,10 @@ class Economy {
       fieldCapH: _dn(j['field_cap_h']),
       renamePrice: _dn(j['rename_price']),
       hybridMult: _dn(j['hybrid_mult']),
+      curePrice: _dn(j['cure_price']),
+      sickBeefMult: _dn(j['sick_beef_mult']),
+      poopMaxPerCow: j['poop_max_per_cow'] is num ? (j['poop_max_per_cow'] as num).toInt() : null,
+      sickDirtFree: _dn(j['sick_dirt_free']),
     );
   }
 }
@@ -675,6 +703,7 @@ class GameState {
     this.economy,
     this.profile = const RanchProfile(),
     this.achievements,
+    this.poop = const PoopInfo(),
   });
 
   final double serverTime; // 遊戲時間 Unix 秒
@@ -711,6 +740,9 @@ class GameState {
   /// 成就徽章（S21，18 個）。舊的伺服器沒有，是 null（牧場資料頁不放徽章卡，免得全部顯示成還沒解鎖）。
   final List<Achievement>? achievements;
 
+  /// v0.3 C1：全場還沒清的大便（協定 2.3 `state.poop`）。舊的伺服器沒有：0 坨。
+  final PoopInfo poop;
+
   /// 綁定、解除以後換掉 [accountLinks]（協定 5.2、5.4 的回應只有 account），其他照舊，等下一次 state 校正。
   GameState withAccountLinks(List<AccountLink> links) => GameState(
     serverTime: serverTime,
@@ -736,6 +768,7 @@ class GameState {
     economy: economy,
     profile: profile,
     achievements: achievements,
+    poop: poop,
   );
 
   double? gradePrice(String grade) {
@@ -789,8 +822,22 @@ class GameState {
       economy: Economy.fromJson(j['economy']),
       profile: RanchProfile.fromJson(j['profile']),
       achievements: Achievement.listFrom(j['achievements']),
+      poop: PoopInfo.fromJson(_m(j['poop'])),
     );
   }
+}
+
+/// `state.poop`（v0.3 C1，協定 2.3）：全場還沒清的大便 [total]（坨，= 每頭牛的 `poop` 加起來）、髒的程度 [dirt]
+/// （= total ÷ 牛的頭數；超過 `economy.sick_dirt_free` 才會生病）、新手保護到什麼時候 [safeUntil]（過了是 null）。
+class PoopInfo {
+  const PoopInfo({this.total = 0, this.dirt = 0, this.safeUntil});
+
+  final int total;
+  final double dirt;
+  final double? safeUntil;
+
+  factory PoopInfo.fromJson(Map<String, dynamic> j) =>
+      PoopInfo(total: _i(j['total']), dirt: _d(j['dirt']), safeUntil: _dn(j['safe_until']));
 }
 
 // ---------------------------------------------------------------------------

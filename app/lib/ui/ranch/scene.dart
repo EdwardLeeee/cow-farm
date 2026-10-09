@@ -12,6 +12,7 @@ import '../../api/models.dart';
 import '../kit/cow_art.dart';
 import '../kit/motion.dart';
 import 'herd.dart';
+import 'poop.dart';
 import 'ranch_game.dart';
 
 /// 場景的寬度：兩個螢幕寬（scene.js 的 WIDE）。一個螢幕 390×844。
@@ -106,6 +107,10 @@ class RanchScene extends StatefulWidget {
     this.onPanEnd,
     this.onTapCow,
     this.onTapEmpty,
+    this.poops = const [],
+    this.onTapPoop,
+    this.onSwipePoop,
+    this.onSwipeEnd,
   });
 
   final List<SceneCow> cows;
@@ -123,6 +128,16 @@ class RanchScene extends StatefulWidget {
   /// 點到場景的空地（不是牛）。
   final VoidCallback? onTapEmpty;
 
+  /// 場景裡的大便（v0.3 第 5 節）：畫在牛的上面（設計稿把大便放在牛後面才畫）。
+  final List<ScenePoop> poops;
+
+  /// 點到一坨大便（A-14）。比點牛優先。
+  final ValueChanged<ScenePoop>? onTapPoop;
+
+  /// 手指從一坨大便上開始劃（A-15）：劃過的每一坨各叫一次；手指放開叫 [onSwipeEnd]。從別的地方開始劃是拖動場景。
+  final ValueChanged<ScenePoop>? onSwipePoop;
+  final VoidCallback? onSwipeEnd;
+
   /// 後面（上面）的先畫，同一排從左到右（scene.js：依 depth、y 排序）。
   static List<SceneCow> paintOrder(List<SceneCow> cows) =>
       [...cows]..sort((a, b) => a.slot.y != b.slot.y ? a.slot.y.compareTo(b.slot.y) : a.slot.x.compareTo(b.slot.x));
@@ -135,6 +150,44 @@ class _RanchSceneState extends State<RanchScene> {
   RanchGame? _own;
 
   RanchGame get _game => widget.game ?? (_own ??= RanchGame());
+
+  /// 手指按下的地方（拖動開始時看是不是按在大便上）。
+  Offset? _down;
+
+  /// 這一次是劃過去清大便（不是拖動場景）；[_last] 是上一次手指的位置。
+  bool _sweeping = false;
+  Offset? _last;
+
+  /// 一坨大便畫在螢幕上的範圍。
+  static Rect _poopRect(ScenePoop p, SceneFit fit) {
+    final r = poopRect(kPoopSpots[p.spot]);
+    final tl = fit.map(r.left, r.top);
+    return Rect.fromLTWH(tl.dx, tl.dy, r.width * fit.k, r.height * fit.k);
+  }
+
+  /// [point] 上的那坨大便：離大便中間 22 點以內（點得到的範圍 44 點）算點到，最近的那坨。
+  ScenePoop? _poopAt(Offset point, SceneFit fit) {
+    ScenePoop? best;
+    var bestD = double.infinity;
+    for (final p in widget.poops) {
+      final d = (_poopRect(p, fit).center - point).distance;
+      if (d <= math.max(22, 22 * fit.k) && d < bestD) {
+        best = p;
+        bestD = d;
+      }
+    }
+    return best;
+  }
+
+  /// 劃過去：從 [from] 到 [to] 每 6 點看一次，經過的大便各清一次（手指移得快也不會漏掉）。
+  void _sweep(Offset from, Offset to, SceneFit fit) {
+    final steps = math.max(1, ((to - from).distance / 6).ceil());
+    final hit = <int>{};
+    for (var i = 1; i <= steps; i++) {
+      final p = _poopAt(Offset.lerp(from, to, i / steps)!, fit);
+      if (p != null && hit.add(p.spot)) widget.onSwipePoop?.call(p);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -155,32 +208,74 @@ class _RanchSceneState extends State<RanchScene> {
                 child: SvgPicture.asset('assets/ui/scenes/ranch.svg', fit: BoxFit.fill, excludeFromSemantics: true),
               ),
               Positioned.fill(child: GameWidget(game: game)),
+              // 大便（底部中間對準位置、寬 19；跟著場景捲）
+              for (final p in widget.poops)
+                Positioned.fromRect(
+                  key: ValueKey('poop-${p.spot}'),
+                  rect: _poopRect(p, fit),
+                  child: SvgPicture.asset('assets/ui/icons/poop.svg', fit: BoxFit.fill, excludeFromSemantics: true),
+                ),
             ],
           ),
         );
         final onTapCow = widget.onTapCow, onTapEmpty = widget.onTapEmpty, onPan = widget.onPan;
         final onPanStart = widget.onPanStart, onPanEnd = widget.onPanEnd;
-        if (onPan == null && onTapCow == null && onTapEmpty == null) return scene;
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          // 點到牛（現在的位置，前面的優先）就是點牛，不然是點空地
-          onTapUp: onTapCow == null && onTapEmpty == null
-              ? null
-              : (d) {
-                  final cow = game.cowAt(d.localPosition);
-                  if (cow != null && onTapCow != null) {
-                    onTapCow(cow);
-                  } else if (cow == null) {
-                    onTapEmpty?.call();
-                  }
-                },
-          onHorizontalDragStart: onPanStart == null ? null : (_) => onPanStart(),
-          onHorizontalDragUpdate: onPan == null
-              ? null
-              : (d) => onPan((widget.pan - d.delta.dx / fit.k).clamp(0.0, kMaxPan)),
-          // 手指往左甩（速度是負的）場景往右捲
-          onHorizontalDragEnd: onPanEnd == null ? null : (d) => onPanEnd(-d.velocity.pixelsPerSecond.dx / fit.k),
-          child: scene,
+        final onTapPoop = widget.onTapPoop, onSwipePoop = widget.onSwipePoop;
+        if (onPan == null && onTapCow == null && onTapEmpty == null && onTapPoop == null && onSwipePoop == null) {
+          return scene;
+        }
+        return Listener(
+          onPointerDown: (e) => _down = e.localPosition,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            // 點到大便就清掉那一坨；點到牛（現在的位置，前面的優先）就是點牛，不然是點空地
+            onTapUp: (d) {
+              if (onTapPoop != null) {
+                if (_poopAt(d.localPosition, fit) case final p?) return onTapPoop(p);
+              }
+              final cow = game.cowAt(d.localPosition);
+              if (cow != null && onTapCow != null) {
+                onTapCow(cow);
+              } else if (cow == null) {
+                onTapEmpty?.call();
+              }
+            },
+            // 手指按在大便上開始劃：劃過去清大便（A-15），場景不動；不然是拖動場景
+            onHorizontalDragStart: (d) {
+              final down = _down ?? d.localPosition;
+              _sweeping = onSwipePoop != null && _poopAt(down, fit) != null;
+              if (_sweeping) {
+                _last = down;
+                _sweep(down, d.localPosition, fit);
+                _last = d.localPosition;
+              } else {
+                onPanStart?.call();
+              }
+            },
+            onHorizontalDragUpdate: (d) {
+              if (_sweeping) {
+                _sweep(_last ?? d.localPosition, d.localPosition, fit);
+                _last = d.localPosition;
+              } else {
+                onPan?.call((widget.pan - d.delta.dx / fit.k).clamp(0.0, kMaxPan));
+              }
+            },
+            // 手指往左甩（速度是負的）場景往右捲
+            onHorizontalDragEnd: (d) {
+              if (_sweeping) {
+                _sweeping = false;
+                widget.onSwipeEnd?.call();
+              } else {
+                onPanEnd?.call(-d.velocity.pixelsPerSecond.dx / fit.k);
+              }
+            },
+            onHorizontalDragCancel: () {
+              if (!_sweeping) return;
+              _sweeping = false;
+              widget.onSwipeEnd?.call();
+            },
+            child: scene,
+          ),
         );
       },
     );
