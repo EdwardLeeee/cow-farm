@@ -209,7 +209,7 @@ const A05 = {
   keys: [[0, '累積收入跨過門檻'], [0.25, '升級卡彈出來'], [0.55, '等級數字從 4 翻成 5'], [0.9, '彩帶落下'], [1.3, '停住，按「好」關掉']],
   reduced: '不彈、不翻、沒有彩帶：升級卡直接出現（淡入 0.2 秒），等級直接是 5。設施升級：那一列直接換成新的數字。',
   base: (ctx) => ranchPage(ctx, { hud: { level: 4, xp: 100 }, overlays: `<div class="backdrop"></div><div class="lv-wrap"><div class="confetti">${Array.from({ length: 26 }, (_, i) => { const c = ['#FFD45E', '#FF9784', '#A9DBFF', '#BDE8A6', '#FFD0DE'][i % 5]; return `<i style="left:${(i * 37) % 100}%;background:${c}"></i>`; }).join('')}</div>
-    <section class="lv-card card"><div class="lv-ribbon" data-free>${T('s11.ribbon')}</div><div class="lv-big"><span>${T('s11.lv')}</span><span class="lv-roll"><b class="num old">4</b><b class="num new">5</b></span></div><p class="lv-sub">${T('s11.earned', { v: fmt(7500) })}</p><p class="hint" style="text-align:center">${T('s11.hint')}</p><div class="btn-row" style="margin-top:14px;width:100%">${btn(T('ok'), { kind: 'primary' })}</div></section></div>` }),
+    <section class="lv-card card"><div class="lv-ribbon" data-free>${T('s11.ribbon')}</div><div class="lv-big"><span>${T('s11.lv')}</span><span class="lv-roll"><b class="num size" aria-hidden="true">5</b><b class="num old">4</b><b class="num new">5</b></span></div><p class="lv-sub">${T('s11.earned', { v: fmt(7500) })}</p><p class="hint" style="text-align:center">${T('s11.hint')}</p><div class="btn-row" style="margin-top:14px;width:100%">${btn(T('ok'), { kind: 'primary' })}</div></section></div>` }),
   frame(root, t) {
     const bd = root.querySelector('.backdrop'), card = root.querySelector('.lv-card');
     bd.style.opacity = seg(t, 0, 0.2);
@@ -219,12 +219,14 @@ const A05 = {
     root.querySelector('.hud .lv').textContent = f >= 0.5 ? 'Lv 5' : 'Lv 4';
     root.querySelector('.hud .xp i').style.width = f >= 0.5 ? '0%' : '100%';
     root.querySelector('.lv-roll .old').style.transform = `translateY(${-f * 90}px)`;
+    root.querySelector('.lv-roll .old').style.visibility = f >= 1 ? 'hidden' : ''; // 翻完就藏起來（clip-path 已經切掉看不到，但量測會把它算成超出卡片）
     root.querySelector('.lv-roll .new').style.transform = `translateY(${(1 - f) * 90}px)`;
+    // 彩紙從上面落下，最後停在 S11-01 的位置和角度（top = y%、rotate(r)，跟 s10.js 的 levelUp 一樣；2026-10-08 cow-app 量到以前停得比 S11-01 低約 100）
     [...root.querySelectorAll('.confetti i')].forEach((c, i) => {
-      const d = seg(t, 0.35 + (i % 7) * 0.04, 1.3);
-      c.style.top = `${-10 + d * (40 + (i * 53) % 46)}%`;
+      const d = seg(t, 0.35 + (i % 7) * 0.04, 1.3), y = (i * 53) % 46, r = (i * 29) % 90;
+      c.style.top = `${y - 60 * (1 - d)}%`;
       c.style.opacity = t < 0.35 ? 0 : 1;
-      c.style.transform = `rotate(${(i * 29) % 90 + d * 240}deg)`;
+      c.style.transform = `rotate(${r + (1 - d) * 240}deg)`;
     });
   },
 };
