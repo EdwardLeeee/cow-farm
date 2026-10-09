@@ -11,7 +11,14 @@ TextStyle _even(TextStyle s) => s.copyWith(leadingDistribution: TextLeadingDistr
 
 /// .kv：[columns] 欄、間距 8；同一排的格子一樣高（CSS grid）。大字 .kv .v 是 17px，.kv3 是 16px（[valueSize]）。
 class KvGrid extends StatelessWidget {
-  const KvGrid({super.key, required this.cells, this.columns = 2, this.valueSize = 17, this.cellKeys = const {}});
+  const KvGrid({
+    super.key,
+    required this.cells,
+    this.columns = 2,
+    this.valueSize = 17,
+    this.cellKeys = const {},
+    this.valueColors = const {},
+  });
 
   final List<KvCell> cells;
   final int columns;
@@ -19,6 +26,9 @@ class KvGrid extends StatelessWidget {
 
   /// 第幾格掛什麼 key（例：A-08 稻穗飛進「倉庫稻米」那一格）。
   final Map<int, Key> cellKeys;
+
+  /// 第幾格的大字換顏色（例：病牛的「產奶：停止」是橘字，screens.css 的 .sick-v）。
+  final Map<int, Color> valueColors;
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +55,7 @@ class KvGrid extends StatelessWidget {
             // 有單位的那一行在 Chrome 是 25 高（小字往下多佔 3），沒有是 22
             CssLine(
               TextSpan(
-                style: value,
+                style: valueColors[i] == null ? value : value.copyWith(color: valueColors[i]),
                 children: [
                   TextSpan(text: v),
                   // 「14 <small>瓶／時</small>」：空白是大字的，小字再往右 2

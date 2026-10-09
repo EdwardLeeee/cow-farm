@@ -115,6 +115,22 @@ List<Map<String, dynamic>> poopCows(int n) {
   ];
 }
 
+/// 設計稿的病牛（fixtures.js 的 sickOf；v0.3 第 5 節）：生病了、不產奶、不能配種，出貨估值只剩一成
+/// （協定 2.3：伺服器的 ship_value 已經乘進去，四捨五入到整數）。
+Map<String, dynamic> sickCow(Map<String, dynamic> c) => {
+  ...c,
+  'sick': true,
+  'sick_since': t0 - 600,
+  'milk_per_h': 0.0,
+  'milk_frac': 0.0,
+  'ship_value': ((c['ship_value'] as num) * 0.1).roundToDouble(),
+  'can_breed': false,
+  'can_work': false,
+};
+
+/// 設計稿 S03-28、29 的牧場：9 坨大便，#3 荷斯坦生病了。
+List<Map<String, dynamic>> sickHerd() => [for (final c in poopCows(9)) c['id'] == 3 ? sickCow(c) : c];
+
 /// 設計稿 S03-01 的牧場：Lv 4（經驗 41%）、12,480 幣、牛舍 10／12、奶桶 36.4／42（每小時 42 瓶）、倉庫 225。
 Map<String, dynamic> ranchState({
   List<Map<String, dynamic>>? cows,
@@ -947,6 +963,70 @@ final s03Cases = <PageCase>[
       for (var i = 0; i < 9; i++) {
         expect(find.byKey(Key('poop-$i')), findsOneWidget, reason: '第 $i 個位置');
       }
+    },
+  ),
+  PageCase(
+    'S03-28',
+    '有病牛：轉正面、臉色發青、頭上溫度計',
+    (tester, lang) async => pumpAppIn(
+      tester,
+      await ranchModel(state: ranchState(cows: sickHerd())),
+      lang,
+      prefs: swipeHintSeen,
+    ),
+    check: (tester) {
+      expect(ranchGame(tester).artOf(3), endsWith('_sick'), reason: '轉正面、臉色發青的圖');
+      expect(ranchGame(tester).artOf(7), isNot(endsWith('_sick')));
+      expect(dirtText(tester), '${_zh.s03Poop} 9');
+    },
+  ),
+  PageCase(
+    'S03-29',
+    '點病牛：名片寫「生病了」、按鈕換成治療',
+    (tester, lang) async {
+      await pumpAppIn(
+        tester,
+        await ranchModel(state: ranchState(cows: sickHerd())),
+        lang,
+        prefs: swipeHintSeen,
+      );
+      await tapSceneCow(tester, 3);
+      await tester.pump();
+    },
+    check: (tester) {
+      final pop = find.byKey(const Key('cow-pop'));
+      expect(tester.getSize(pop).width, 236, reason: '病牛的名片寬 236');
+      expect(find.descendant(of: pop, matching: find.byType(SickBadge)), findsOneWidget);
+      expect(find.text(_zh.s03SickNoMilk), findsOneWidget);
+      expect(find.text(_zh.s03SickShip), findsOneWidget);
+      expect(find.text(_zh.treat(price: '5,000')), findsOneWidget);
+      expect(find.byKey(const Key('pop-detail')), findsNothing);
+    },
+  ),
+  PageCase(
+    'S03-30',
+    '牛舍清單：病牛那一列',
+    // 設計稿：病牛 #3、娟珊 #7 兩列
+    (tester, lang) async {
+      final cows = [
+        for (final c in designCows())
+          if (c['id'] == 3) sickCow(c) else if (c['id'] == 7) c,
+      ];
+      await pumpAppIn(
+        tester,
+        await ranchModel(state: ranchState(cows: cows)),
+        lang,
+        prefs: swipeHintSeen,
+      );
+      await openPenList(tester);
+    },
+    crop: find.byKey(const Key('pen-rows')),
+    check: (tester) {
+      final rows = find.byKey(const Key('pen-rows'));
+      expect(find.descendant(of: rows, matching: find.byType(CowRow)), findsNWidgets(2));
+      expect(find.descendant(of: rows, matching: find.byType(SickBadge)), findsOneWidget);
+      expect(find.text(_zh.s03SickNoMilk), findsOneWidget);
+      expect(find.text('${_zh.milkRate(v: '14')}${_zh.gSep}${_zh.weight(v: '196')}'), findsOneWidget);
     },
   ),
   PageCase(

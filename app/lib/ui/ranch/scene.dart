@@ -41,7 +41,7 @@ class SceneFit {
   Offset map(double x, double y) => Offset((x - pan) * k + ox, y * k + oy);
 }
 
-/// 場景裡的一頭牛。[front]：轉正面（奶桶滿了的產奶牛、被點到的牛；D11）。
+/// 場景裡的一頭牛。[front]：轉正面（奶桶滿了的產奶牛、被點到的牛；D11；病牛一律正面，v0.3 第 5 節）。
 class SceneCow {
   const SceneCow(this.cow, this.slot, {this.front = false});
   final Cow cow;
@@ -78,6 +78,7 @@ class CowPlacement {
       front: c.front,
       right: c.slot.right,
       variant: id,
+      sick: cow.sick,
     );
     final m = art.meta(name);
     if (m == null) return null;

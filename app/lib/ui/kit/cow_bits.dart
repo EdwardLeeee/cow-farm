@@ -187,7 +187,7 @@ class CowBadge extends StatelessWidget {
   );
 }
 
-/// 一頭牛的標籤（設計稿 cowListRow 的 chips）：用途、公母、稀有度，加上小牛、老牛、工作中、上架中、已配種。
+/// 一頭牛的標籤（設計稿 cowListRow 的 chips）：用途、公母、稀有度，加上小牛、老牛、工作中、上架中、已配種、生病了。
 List<Widget> cowChips(BuildContext context, Cow c) {
   final s = Strings.of(context);
   final info = breedInfo(c.breed);
@@ -201,7 +201,34 @@ List<Widget> cowChips(BuildContext context, Cow c) {
     if (c.fieldIndex != null) CowBadge(BadgeKind.working, s.badgeWorking),
     if (c.listed) CowBadge(BadgeKind.listed, s.badgeListed),
     if (c.bred) CowBadge(BadgeKind.bred, s.badgeBred),
+    if (c.sick) const SickBadge(),
   ];
+}
+
+/// .badge.sick（v0.3 第 5 節；kit.js 的 sickBadge）：前面一個溫度計（13）、「生病了」，淡紅底。
+/// 牛舍清單、點牛的名片、牛的詳細、出貨確認、田地都用這個。
+class SickBadge extends StatelessWidget {
+  const SickBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) => Container(
+    key: const Key('badge-sick'),
+    height: 22,
+    padding: const EdgeInsets.symmetric(horizontal: 7),
+    decoration: BoxDecoration(
+      color: const Color(0xFFFFE1DC),
+      border: Border.all(color: AppColors.ink, width: 2),
+      borderRadius: const BorderRadius.all(Radius.circular(11)),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const AppIcon('thermo', size: 13),
+        const SizedBox(width: 1),
+        Text(Strings.of(context).badgeSick, softWrap: false, style: _chipText()),
+      ],
+    ),
+  );
 }
 
 /// 牛的小圖框（kit.css 的 .cow-row .pic、screens.css 的 .sr-pic）：[size]×[size]、淺綠底、框 2。
@@ -270,6 +297,8 @@ class CowRow extends StatelessWidget {
                   width: 60,
                   height: 60,
                   pad: 3,
+                  // 病牛的小圖也是臉色發青、頭上溫度計（S03-30）
+                  sick: cow.sick,
                 ),
               ),
               const SizedBox(width: 10),
