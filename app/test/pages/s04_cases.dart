@@ -80,6 +80,21 @@ Map<String, dynamic> detailCow(int id, {int? field, bool listed = false, bool br
     origin: 'C',
     probs: [0.262, 0.469, 0.269],
   ),
+  // 設計稿 S04-17 的雜種牛（fixtures.js 的 MIX_COW）：雜種牛 #20，乳牛、母，小時候沒吃到苜蓿；
+  // 伺服器照樣送原本的稀有度（稀有），畫面不顯示
+  20 => _detail(
+    {
+      ...designCow(20, 'holstein', milk: 14, kg: 206, value: 1466),
+      'breed': 'hybrid',
+      'tier': 2,
+      'hybrid': true,
+      'need': ['alfalfa'],
+      'missed': ['alfalfa'],
+    },
+    ageH: 3 + 20 / 60,
+    origin: 'breed',
+    probs: [0.397, 0.441, 0.162],
+  ),
   _ => throw ArgumentError.value(id, 'id'),
 };
 
@@ -414,6 +429,21 @@ final s04Cases = <PageCase>[
       for (final k in ['detail-assign', 'detail-breed', 'detail-ship']) {
         expect(_btn(tester, k).onPressed, isNull, reason: k);
       }
+    },
+  ),
+  PageCase(
+    'S04-17',
+    '雜種牛：小時候沒吃到指定的飼料',
+    (tester, lang) => showCow(tester, lang, detailCow(20)),
+    check: (tester) {
+      expect(find.text(_zh.cowName('hybrid', 20)), findsOneWidget);
+      expect(find.byType(MixStarChip), findsOneWidget, reason: '灰星');
+      expect(find.text(_zh.badgeMix), findsOneWidget, reason: '「雜種」標籤');
+      expect(find.byType(TierChip), findsNothing, reason: '不顯示原本的稀有度');
+      expect(find.byKey(const Key('mix-note')), findsOneWidget);
+      expect(find.text(_zh.s04MixNote(feeds: _zh.feedList(['alfalfa']), mult: '0.6')), findsOneWidget);
+      expect(_btn(tester, 'detail-breed').onPressed, isNotNull, reason: '可以配種、出貨，跟一般的牛一樣');
+      expect(_btn(tester, 'detail-ship').onPressed, isNotNull);
     },
   ),
 ];

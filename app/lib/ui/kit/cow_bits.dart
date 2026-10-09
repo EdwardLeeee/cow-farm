@@ -154,6 +154,9 @@ enum BadgeKind {
   /// .badge.new：還沒發現過的品種（S08-06）。
   newBreed(AppColors.yellow),
 
+  /// .badge.mix：雜種牛（v0.3 #157；S04-17、S09-06／07 的「雜種」）。
+  mix(Color(0xFFE6DED4)),
+
   /// .badge.lock：空田（S17）。
   lock(AppColors.disabledBg, fg: AppColors.ink2, line: AppColors.disabledLine);
 

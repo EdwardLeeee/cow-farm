@@ -328,16 +328,23 @@ class _MilkLot extends StatelessWidget {
     // 快壞了：新鮮度低於 30%（ceo 2026-10-01）
     final bad = fresh < 0.3;
     final tier = lot.tier.clamp(0, 3);
-    final mult = context.read<GameModel>().state?.economy?.tier(tier);
+    final economy = context.read<GameModel>().state?.economy;
+    // 雜種牛的奶（#157、S05-06）：灰星、「雜種牛奶 ×0.6」（倍數讀 economy.hybrid_mult）
+    final mult = lot.hybrid ? economy?.hybridMult : economy?.tier(tier);
     final collected = s.s05CollectedAgo(ago: ago.of(lot.at, days: false));
     return _Lot(
       key: bad ? const Key('lot-bad') : null,
       bad: bad,
       top: [
         ..._qty('milk', lot.qty, s.unitMilk),
-        TierChip(tier),
+        lot.hybrid ? const MixStarChip() : TierChip(tier),
         // 稀有度的賣價倍數（×1.3）由伺服器給（協定 2.3 的 economy）；舊的伺服器沒有就只寫「優良牛奶」
-        _lotName([s.s05MilkName(tier: s.tierName(tier)), if (mult != null) '×${mult.toStringAsFixed(1)}'].join(' ')),
+        _lotName(
+          [
+            lot.hybrid ? s.s05MixMilk : s.s05MilkName(tier: s.tierName(tier)),
+            if (mult != null) '×${mult.toStringAsFixed(1)}',
+          ].join(' '),
+        ),
       ],
       badge: bad ? CowBadge(BadgeKind.full, s.s05Spoiling) : null,
       below: [
@@ -404,7 +411,8 @@ class _BeefLot extends StatelessWidget {
       top: [
         ..._qty('beef', lot.qty, s.unitBeef),
         if (grade != null) GradeChip(grade),
-        TierChip(lot.tier.clamp(0, 3)),
+        // 雜種牛的肉（#157、S05-06）：灰星；「雜種牛 #21 出貨」（批次的 breed 是 hybrid）
+        lot.hybrid ? const MixStarChip() : TierChip(lot.tier.clamp(0, 3)),
         if (lot.storageFactor != null) _lotName(s.s05Stored(pct: (lot.storageFactor! * 100).round())),
       ],
       below: [

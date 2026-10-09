@@ -1,6 +1,7 @@
 // S05 倉庫（設計稿 boards/S05-倉庫）的畫面狀態。假資料照 design/m2/src/js/fixtures.js 的 WAREHOUSE：
 // 牛奶 4 批（1、15、30、67 小時前收，最舊那批 27% 快壞了）、牛肉 2 批、稻米 2 批，倉庫第 1 級、容量 225。
 import 'package:cowfarm/l10n/l10n.dart';
+import 'package:cowfarm/ui/kit/cow_bits.dart';
 import 'package:cowfarm/ui/kit/kit.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -180,6 +181,44 @@ final s05Cases = <PageCase>[
     check: (tester) {
       expect(find.byKey(const Key('lot-bad')), findsOneWidget);
       expect(find.text('27%'), findsOneWidget);
+    },
+  ),
+  PageCase(
+    'S05-06',
+    '有雜種牛的牛奶、牛肉',
+    // 設計稿：牛奶 3 批（中間一批雜種牛奶 18 瓶、6 小時前收），牛肉 2 批（雜種牛 #21 的 412 公斤 B 級、1 小時前），稻米 1 批
+    (tester, lang) => showWarehouse(
+      tester,
+      lang,
+      warehouseState(
+        milk: [
+          milkLot(60, 0, 1.0, 1),
+          {...milkLot(18, 0, 0.95, 6), 'hybrid': true},
+          milkLot(48, 1, 0.82, 15),
+        ],
+        beef: [
+          {
+            'qty': 412.0,
+            'tier': 0,
+            'hybrid': true,
+            'breed': 'hybrid',
+            'cow_id': 21,
+            'shipped_at': t0 - 1 * _h,
+            'grade': 'B',
+            'quality': 0.6,
+            'storage_factor': 1.0,
+          },
+          designBeefLots()[1],
+        ],
+        rice: designRiceLots().sublist(1),
+      ),
+      tall: true,
+    ),
+    check: (tester) {
+      // 雜種的批次：灰星、「雜種牛奶 ×0.6」、「雜種牛 #21 出貨」
+      expect(find.byType(MixStarChip), findsNWidgets(2));
+      expect(find.text('${_zh.s05MixMilk} ×0.6'), findsOneWidget);
+      expect(find.textContaining(_zh.s05ShippedFrom(cow: _zh.cowName('hybrid', 21))), findsOneWidget);
     },
   ),
 ];

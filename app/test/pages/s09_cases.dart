@@ -5,6 +5,7 @@
 import 'package:cowfarm/api/breeds.dart';
 import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
+import 'package:cowfarm/ui/kit/cow_bits.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -59,8 +60,9 @@ Future<GameModel> showCodex(
   List<String> found = designCodexFound,
   String? breed,
   bool tall = false,
+  Map<String, dynamic>? state,
 }) async {
-  final m = await ranchModel(state: codexState(found: found));
+  final m = await ranchModel(state: state ?? codexState(found: found));
   m.selectTab(AppTab.records);
   if (breed != null) m.openCodex(breed);
   await pumpAppIn(tester, m, lang);
@@ -70,6 +72,22 @@ Future<GameModel> showCodex(
 }
 
 final _zh = Strings.forLang(AppLang.zhHant);
+
+/// S09-06 的牧場：圖鑑多一筆雜種牛（10 月 3 日），牧場裡有一頭雜種牛。
+Map<String, dynamic> _hybridCodexState() {
+  final st = codexState();
+  return {
+    ...st,
+    'cows': [
+      ...(st['cows'] as List),
+      {...designCow(20, 'holstein', milk: 14, kg: 206, value: 1466), 'breed': 'hybrid', 'tier': 2, 'hybrid': true},
+    ],
+    'codex': [
+      ...(st['codex'] as List),
+      {'breed': kHybrid, 'found_at': t0 + 86400},
+    ],
+  };
+}
 
 final s09Cases = [
   PageCase(
@@ -82,16 +100,21 @@ final s09Cases = [
       for (final b in kCodexOrder) {
         expect(find.byKey(Key('codex-$b')), findsOneWidget, reason: b);
       }
-      expect(find.text(_zh.gUnknownBreed), findsNWidgets(14));
+      // 14 種沒發現，加上最下面「其他」的雜種牛那一格（還沒長出過，#157）
+      expect(find.text(_zh.gUnknownBreed), findsNWidgets(15));
       expect(find.text(_zh.breedName('jersey')), findsOneWidget);
+      expect(find.text(_zh.s09Other), findsOneWidget);
+      expect(find.text(_zh.s09OtherHint(n: 24)), findsOneWidget);
+      expect(find.byKey(const Key('codex-hybrid')), findsOneWidget);
     },
   ),
   PageCase(
     'S09-02',
     '全部發現',
-    (tester, lang) => showCodex(tester, lang, found: kCodexOrder).then((_) {}),
+    // 設計稿：雜種牛那一格也是發現了的樣子（不算在 24 種裡）
+    (tester, lang) => showCodex(tester, lang, found: [...kCodexOrder, kHybrid]).then((_) {}),
     check: (tester) {
-      expect(find.text('24 / 24'), findsOneWidget);
+      expect(find.text('24 / 24'), findsOneWidget, reason: '雜種牛不算在 24 種裡');
       expect(find.text(_zh.s09AllFound(n: 24)), findsOneWidget);
     },
   ),
@@ -128,6 +151,36 @@ final s09Cases = [
         find.text(_zh.s09UnknownBody(use: _zh.useName(breedInfo('goldenEar')!.type), tier: _zh.tierName(3))),
         findsOneWidget,
       );
+    },
+  ),
+  PageCase(
+    'S09-06',
+    '雜種牛的詳細（已發現）',
+    // 設計稿：10 月 3 日第一次長出雜種牛、牧場裡有 1 頭（雜種牛 #20）
+    (tester, lang) => showCodex(tester, lang, breed: kHybrid, state: _hybridCodexState()).then((_) {}),
+    check: (tester) {
+      expect(find.text(_zh.breedName(kHybrid)), findsOneWidget);
+      expect(find.byType(MixStarChip), findsOneWidget);
+      expect(find.text(_zh.badgeMix), findsOneWidget);
+      expect(find.text(_zh.byKey('breed.mix.intro')), findsOneWidget);
+      // 產奶照舊（14），耕田、賣價乘 0.6（11 × 0.6 = 6.6）
+      expect(find.text('6.6 ${_zh.gPerHourRice}'), findsOneWidget);
+      expect(find.text('×0.6'), findsOneWidget);
+      expect(find.text(_zh.s09MixHowTitle), findsOneWidget);
+      // 第一次發現的日期、牧場裡現在有幾頭雜種牛
+      expect(find.text(_zh.s09FirstFound(date: _zh.dateMdOnly(m: 10, d: 3), n: 1)), findsOneWidget);
+    },
+  ),
+  PageCase(
+    'S09-07',
+    '雜種牛的詳細（還沒發現）',
+    (tester, lang) => showCodex(tester, lang, breed: kHybrid).then((_) {}),
+    check: (tester) {
+      expect(find.text(_zh.gUnknownBreed), findsOneWidget);
+      expect(find.text(_zh.s09NotFoundYet), findsOneWidget);
+      expect(find.text(_zh.s09UnknownTitle), findsOneWidget);
+      expect(find.text(_zh.s09MixHow), findsOneWidget);
+      expect(find.byKey(const Key('codex-first')), findsNothing);
     },
   ),
 ];

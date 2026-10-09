@@ -94,6 +94,9 @@ class Strings extends GeneratedStrings {
         CowType.beef => 'calf.beef',
       })} #$id';
 
+  /// 飼料名（協定 1.6 的飼料代號：grass、hay、oats、alfalfa、corn、soy），幾種用「、」連起來（設計稿 i18n.js 的 feedList）。
+  String feedList(List<String> codes) => [for (final c in codes) byKey('feed.$c')].join(gListSep);
+
   /// 一頭牛的名字：小牛「小乳牛 #15」（長大才知道品種），雜種牛「雜種牛 #20」，其他「娟珊 #3」。
   String cowLabel(Cow c) => c.revealed ? cowName(c.breed, c.number) : calfName(c.type, c.number);
 

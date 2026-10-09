@@ -38,7 +38,12 @@ class RecordsPage extends StatelessWidget {
       onSelect: (i) => m.selectRecords(rank: i == 1),
     );
     if (m.recordsRank) return RankPage(seg: seg);
-    if (m.codexBreed case final breed?) return CodexDetailPage(key: ValueKey('codex-$breed'), breed: breed);
+    if (m.codexBreed case final breed?) {
+      // 雜種牛（「其他」那一格，#157）：S09-06、S09-07
+      return breed == kHybrid
+          ? const MixDetailPage(key: ValueKey('codex-$kHybrid'))
+          : CodexDetailPage(key: ValueKey('codex-$breed'), breed: breed);
+    }
     return CodexPage(seg: seg);
   }
 }
@@ -70,6 +75,9 @@ class CodexPage extends StatelessWidget {
             const SizedBox(height: 12),
             _UseSection(use: use, codex: codex, onOpen: m.openCodex, s: s),
           ],
+          // 「其他」：雜種牛一格（不算在 24 種裡，也不算完成度；#157）
+          const SizedBox(height: 12),
+          _OtherSection(found: codex.containsKey(kHybrid), onOpen: () => m.openCodex(kHybrid), s: s),
         ],
       ),
     );
@@ -260,6 +268,271 @@ class DexCell extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 「其他」那一區（#157；設計稿 s09.js 的 mixTile）：小標「其他」＋「不算在 24 種裡，也不算完成度」，
+/// 下面一格整排寬的雜種牛：三種體型並排、名字、灰星、「3 種體型」。還沒長出過雜種牛是剪影。
+/// 寬度小於 390（screens.css 的 @media (max-width: 389px)）名字換到三頭牛下面、置中。
+class _OtherSection extends StatelessWidget {
+  const _OtherSection({required this.found, required this.onOpen, required this.s});
+
+  final bool found;
+  final VoidCallback onOpen;
+  final Strings s;
+
+  @override
+  Widget build(BuildContext context) {
+    final narrow = MediaQuery.sizeOf(context).width < 390;
+    final line = found ? AppColors.ink : DexCell._unknownLine;
+    final pics = Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        for (final look in kMixLook.values)
+          found
+              ? CowPicture(breed: look, width: 70, height: 62, pad: 2)
+              : CowSilhouette.dark(breed: look, width: 70, height: 62, pad: 2),
+      ],
+    );
+    final text = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: narrow ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+      children: [
+        Text(
+          found ? s.breedName(kHybrid) : s.gUnknownBreed,
+          style: AppText.style(
+            15,
+            weight: FontWeight.w900,
+            color: found ? AppColors.ink : AppColors.ink2,
+            lineHeight: 20,
+          ),
+        ),
+        const SizedBox(height: 2),
+        const MixStarChip(compact: true),
+        const SizedBox(height: 2),
+        Text(s.s09MixBodies, style: KitText.hint()),
+      ],
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // .sec-title：「其他」（.use 的字）、小字說明
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          child: Row(
+            children: [
+              Text(s.s09Other, style: AppText.style(12, weight: FontWeight.w900, lineHeight: 18)),
+              const SizedBox(width: 6),
+              Flexible(
+                child: Text(s.s09OtherHint(n: kCodexOrder.length), style: KitText.hint()),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        // .dex-cell.dex-mix-tile：整排寬，三頭牛和字並排（隔 10）、置中；框、陰影、按下的樣子跟一般的格子一樣
+        Semantics(
+          container: true,
+          button: true,
+          child: Pressable(
+            key: const Key('codex-hybrid'),
+            lift: 3,
+            onTap: onOpen,
+            builder: (context, look) => PressTint(
+              tint: look.tint,
+              borderRadius: const BorderRadius.all(AppRadii.r14),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(10, 4, 10, 6),
+                decoration: BoxDecoration(
+                  color: found ? Colors.white : DexCell._unknownBg,
+                  border: Border.all(color: line, width: 2),
+                  borderRadius: const BorderRadius.all(AppRadii.r14),
+                  boxShadow: [BoxShadow(color: line, offset: Offset(0, look.shadow))],
+                ),
+                child: narrow
+                    ? Column(children: [pics, const SizedBox(height: 2), text])
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [pics, const SizedBox(width: 10), text],
+                      ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// 雜種牛的詳細（#157；設計稿 s09.js 的 mixDetail）：S09-06 已發現、S09-07 還沒發現。
+/// 三種體型的正面並排（下面寫用途）、沒有編號；灰星和「雜種」標籤；一句話介紹；產奶、耕田、賣價倍數（耕田和倍數乘
+/// economy.hybrid_mult）；「怎麼會長成雜種牛」；第一次發現的日期。還沒發現：剪影、「還沒發現這個品種」、怎麼會長成雜種牛。
+class MixDetailPage extends StatelessWidget {
+  const MixDetailPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final m = context.watch<GameModel>();
+    final s = Strings.of(context);
+    final st = m.state!;
+    final foundAt = st.codex[kHybrid];
+    final found = foundAt != null;
+    final e = st.economy;
+    final mult = e?.hybridMult;
+    final ox = e?.oxRicePerH;
+    final milk = e?.dairyMilkPerH;
+    final how = Text(s.s09MixHow, style: KitText.hint().copyWith(color: AppColors.ink));
+    return AppFrame(
+      tab: AppTab.records,
+      contentPadding: EdgeInsets.zero,
+      content: ListView(
+        key: const Key('codex-detail'),
+        padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
+        children: [
+          // .page-head：返回、名字和標籤（灰星、「雜種」；還沒發現加「還沒發現」），沒有編號
+          Row(
+            children: [
+              CircleIconButton(icon: 'back', label: s.back, onTap: m.closeCodex),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      found ? s.breedName(kHybrid) : s.gUnknownBreed,
+                      key: const Key('codex-name'),
+                      style: AppText.style(20, weight: FontWeight.w900, lineHeight: 26),
+                    ),
+                    const SizedBox(height: 3),
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        const MixStarChip(),
+                        CowBadge(BadgeKind.mix, s.badgeMix),
+                        if (!found) CowBadge(BadgeKind.lock, s.s09NotFoundYet),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _MixHero(found: found),
+          if (found) ...[
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: Text(
+                s.byKey('breed.mix.intro'),
+                style: AppText.style(16, weight: FontWeight.w700, lineHeight: 24),
+              ),
+            ),
+            const SizedBox(height: 12),
+            KvGrid(
+              key: const Key('codex-kv'),
+              cells: [
+                (s.s09MilkCow, milk == null ? '–' : rateText(milk), s.gPerHourMilk),
+                (s.gPlow, ox == null || mult == null ? '–' : rateText(ox * mult), s.gPerHourRice),
+                (s.s09Mult, mult == null ? '–' : '×${mult.toStringAsFixed(1)}', null),
+              ],
+            ),
+            const SizedBox(height: 12),
+            AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CardTitle(s.s09MixHowTitle, color: AppColors.pink, icon: 'heart', iconSize: 16),
+                  const SizedBox(height: 6),
+                  how,
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              s.s09FirstFound(
+                date: () {
+                  final at = m.realLocalTime(foundAt);
+                  return s.dateMdOnly(m: at.month, d: at.day);
+                }(),
+                n: st.cows.where((c) => c.hybrid).length,
+              ),
+              key: const Key('codex-first'),
+              style: KitText.hint(),
+            ),
+          ] else ...[
+            const SizedBox(height: 12),
+            AppCard(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
+                child: Column(
+                  children: [
+                    Text(
+                      s.s09UnknownTitle,
+                      textAlign: TextAlign.center,
+                      style: AppText.style(17, weight: FontWeight.w900, lineHeight: 24),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      s.s09MixHow,
+                      textAlign: TextAlign.center,
+                      style: AppText.style(14, weight: FontWeight.w700, color: AppColors.ink2, lineHeight: 21),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// .card.dex-hero 的 .mix-pics：三種體型的正面（88×92）並排（隔 2）、靠下，下面寫用途；還沒發現是深色剪影、沒有用途。
+class _MixHero extends StatelessWidget {
+  const _MixHero({required this.found});
+
+  final bool found;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    key: const Key('codex-hero'),
+    decoration: BoxDecoration(
+      border: Border.all(color: AppColors.ink, width: AppSizes.border),
+      borderRadius: const BorderRadius.all(AppRadii.r18),
+      boxShadow: AppShadows.solid(4),
+    ),
+    child: ClipRRect(
+      borderRadius: const BorderRadius.all(Radius.circular(18 - AppSizes.border)),
+      child: DecoratedBox(
+        decoration: const BoxDecoration(gradient: kHeroGradient),
+        child: Padding(
+          padding: const EdgeInsets.only(top: 10, bottom: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              for (final (i, e) in kMixLook.entries.indexed) ...[
+                if (i > 0) const SizedBox(width: 2),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    found
+                        ? CowPicture(breed: e.value, width: 88, height: 92, pad: 3)
+                        : CowSilhouette.dark(breed: e.value, width: 88, height: 92, pad: 3),
+                    if (found) ...[const SizedBox(height: 2), UseChip(e.key)],
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 /// 品種詳細（S09-03 已發現、S09-04 還沒發現）。
