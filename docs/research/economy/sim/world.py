@@ -26,17 +26,17 @@ START_EPOCH = 1791129600.0  # 2026-10-05（週一）00:00 台灣時間
 BOT_TUNABLES = {k: getattr(B, k) for k in (
     "BUCKET_TARGET_H", "DAIRY_SHIP_FRAC", "RARE_KEEP_FRAC", "PEAK_H", "BULL_WAIT_MAX_H", "HOLD_THR", "HOLD_FRESH_SELL",
     "HOLD_WH_TARGET_H", "HOLD_MIN_COWS", "STUD_RELIST_H", "PANIC_SHIP_AGE_H", "TRACK_PLAYERS", "SHOP_CHOICE_SCALE",
-    "SICK_P_DAY", "HELPER_AHEAD_D", "LAZY_CLEAN_H", "CURE_PROD_H", "FLOOR_GAIN",
+    "SICK_P_DAY", "HELPER_AHEAD_D", "LAZY_CLEAN_H", "CURE_PROD_H", "FLOOR_GAIN", "ROBOT_SICK_PER_BREAK", "ROBOT_PAYBACK_D",
 )}
 
 AMOUNT_KINDS = ("milk", "beef", "rice", "calf", "breed", "expand", "bucket", "warehouse", "fresh", "field", "stud_in", "stud_out",
-                "feed_buy", "cure", "helper", "floor")
+                "feed_buy", "cure", "helper", "floor", "robot")
 QTY_KINDS = ("milk", "beef", "rice", "collect", "spoiled", "harvest", "breed", "stud_in", "stud_out",
              "grade_A", "grade_B", "grade_C", "shop_A", "shop_B", "shop_C",
              "feed_buy", "feed", "clean", "sick", "cure", "bonus_kg", "hybrid", "rare_grown")
 REVENUE_KINDS = ("milk", "beef", "rice", "stud_in")  # 收入 = 賣出收入 + 借種收入
 # v0.3 照顧的花費。玩法週收入差距的目標用「收入 − 照顧花費」比（使用者 2026-10-08 選的口徑；只算收入的照舊列出當參考）
-CARE_KINDS = ("floor", "helper", "feed_buy", "cure")
+CARE_KINDS = ("floor", "helper", "feed_buy", "cure", "robot")
 
 
 class Ledger:
@@ -341,7 +341,7 @@ def stud_summary(w: World) -> dict:
 
 def care_summary(w: World) -> dict:
     """v0.3 照顧，各玩法每位玩家平均（整段模擬）：病牛的時間佔牛的時間、飼料花費和多賣的錢（回報倍數）、
-    小幫手／地板／治療的花費和佔收入、生病和治療的次數、稀有小牛長大時變雜種的比例。
+    小幫手（打掃牛）／地板／治療／掃地機的花費和佔收入、最後有掃地機的比例、生病和治療的次數、稀有小牛長大時變雜種的比例。
 
     飼料多賣的錢 = 出貨時體重裡的飼料加成（公斤 × 評級 × 稀有度倍率）× 整段的牛肉平均價（不含滑價，估計）。"""
     end = w.t0 + w.n_days * DAY
@@ -367,12 +367,13 @@ def care_summary(w: World) -> dict:
         rev = sum(b.ledger.revenue_days(0, w.n_days) for b in bs) / n
         feed = spend("feed_buy")
         bonus_value = qty("bonus_kg") * avg_beef
-        care = spend("helper") + spend("floor") + spend("cure")
+        care = spend("helper") + spend("floor") + spend("cure") + spend("robot")
         out[s] = {
             "n": n, "revenue": rev, "sick_share": sick_s / cow_s if cow_s else 0.0,
             "feed_spend": feed, "feed_units": qty("feed_buy"), "bonus_value": bonus_value,
             "feed_roi": bonus_value / feed if feed else None,
             "helper_spend": spend("helper"), "floor_spend": spend("floor"), "cure_spend": spend("cure"),
+            "robot_spend": spend("robot"), "robot_owners": sum(1 for b in bs if b.farm.robot >= 0) / n,
             "care_spend_share": care / rev if rev else None,
             "sick": qty("sick"), "cures": qty("cure"), "cleaned": qty("clean"),
             "hybrid": qty("hybrid"), "rare_grown": qty("rare_grown"),

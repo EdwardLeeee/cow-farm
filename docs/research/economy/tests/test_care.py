@@ -1,4 +1,5 @@
-"""v0.3 照顧規則（docs/design/v0.3-care.md、決定 D35）：長大才揭曉與雜種牛、飼料、地板、大便與生病、治療、打掃小幫手、存檔。"""
+"""v0.3 照顧規則（docs/design/v0.3-care.md、決定 D35）：長大才揭曉與雜種牛、飼料、地板、大便與生病、治療、打掃牛（小幫手）、
+大便掃地機、存檔。"""
 
 import json
 import math
@@ -294,6 +295,115 @@ class TestPoopAndHelper(unittest.TestCase):
         f.advance(T0 + 10 * DAY)
         self.assertEqual(f.poop_total(T0 + 10 * DAY), 0)
         self.assertTrue(all(c.thr is None and c.sick_since is None for c in f.cows))
+
+
+class TestRobot(unittest.TestCase):
+    """大便掃地機（使用者 2026-10-09 選兩款）：一次買斷，每 60 分鐘清全部；隨機壞掉，壞了就停，付修理費才再動。"""
+
+    class _U:
+        """假的亂數：random() 固定回傳 u（壞掉的時間 = −ln(1 − u) × 平均天數）。"""
+
+        def __init__(self, u):
+            self.u = u
+
+        def random(self):
+            return self.u
+
+    def test_params(self):
+        self.assertEqual(CP.robot_ids, ("basic", "sturdy"))
+        self.assertEqual(CP.robot_price, (3000.0, 12000.0))
+        self.assertEqual(CP.robot_mtbf_d, (1.0, 3.0))
+        self.assertEqual(CP.robot_repair, (750.0, 3000.0))
+        self.assertEqual(CP.robot_clean_s, 60 * MINUTE)
+
+    def test_buy_cleans_every_hour_until_broken(self):
+        f = farm()
+        f.coins = 10_000
+        u = 1.0 - math.exp(-0.5)  # 半天後壞掉
+        self.assertTrue(f.buy_robot(0, T0 + 5 * HOUR, self._U(u)))
+        self.assertEqual(f.coins, 10_000 - CP.robot_price[0])
+        self.assertAlmostEqual(f.robot_until, T0 + 5 * HOUR + 0.5 * DAY, places=6)
+        self.assertEqual(f.poop_total(T0 + 5 * HOUR), 0)  # 買來那一刻先清一次
+        self.assertEqual(f.poop_total(T0 + 6 * HOUR), 0)  # 6:00 拉的，6:00 也清
+        add_cow(f, 0, now=T0 + 6 * HOUR + 10 * MINUTE)  # 9:10 拉第一坨，10:00 清（每 60 分鐘，比打掃牛慢）
+        self.assertEqual(f.poop_total(T0 + 9 * HOUR + 59 * MINUTE), 1)
+        self.assertEqual(f.poop_total(T0 + 10 * HOUR), 0)
+        self.assertTrue(f.robot_working(T0 + 17 * HOUR - 1))
+        self.assertFalse(f.robot_working(f.robot_until))
+        self.assertGreater(f.poop_total(T0 + 17 * HOUR + 4 * HOUR), 0)  # 壞了就不清
+        self.assertFalse(f.buy_robot(0, T0 + DAY, self._U(u)))  # 同一款不能再買（壞了要修）
+
+    def test_repair_and_switch_model(self):
+        f = farm()
+        f.coins = 20_000
+        self.assertTrue(f.buy_robot(0, T0, self._U(1.0 - math.exp(-1.0))))  # 1 天後壞掉
+        self.assertFalse(f.repair_robot(T0 + HOUR, self._U(0.5)))  # 還在動，不能修
+        self.assertTrue(f.repair_robot(T0 + DAY + HOUR, self._U(1.0 - math.exp(-2.0))))
+        self.assertEqual(f.coins, 20_000 - CP.robot_price[0] - CP.robot_repair[0])
+        self.assertEqual(f.robot_from, T0 + DAY + HOUR)
+        self.assertAlmostEqual(f.robot_until, T0 + 3 * DAY + HOUR, places=6)
+        self.assertEqual(f.poop_total(T0 + DAY + HOUR), 0)  # 修好那一刻先清一次
+        self.assertTrue(f.buy_robot(1, T0 + 2 * DAY, self._U(0.5)))  # 換耐用款（舊的不退錢）
+        self.assertEqual((f.robot, f.coins), (1, 20_000 - CP.robot_price[0] - CP.robot_repair[0] - CP.robot_price[1]))
+        self.assertAlmostEqual(f.robot_until, T0 + 2 * DAY - math.log(0.5) * 3 * DAY, places=6)
+        f.coins = 0
+        self.assertFalse(f.buy_robot(0, T0 + 9 * DAY, self._U(0.5)))  # 錢不夠
+        self.assertFalse(f.repair_robot(T0 + 9 * DAY, self._U(0.5)))
+
+    def test_mean_time_between_breaks(self):
+        """壞掉的時間是指數分布：平均 robot_mtbf_d 天。"""
+        for m in range(len(CP.robot_ids)):
+            f = farm()
+            rng = random.Random(m)
+            gaps = []
+            for _ in range(4000):
+                f.coins = 1e7
+                f.robot = m
+                f._robot_start(T0, rng)
+                gaps.append((f.robot_until - T0) / DAY)
+            self.assertAlmostEqual(sum(gaps) / len(gaps), CP.robot_mtbf_d[m], delta=0.05 * CP.robot_mtbf_d[m])
+
+    def test_robot_prevents_sickness_while_working(self):
+        f = farm()
+        for c in range(20):
+            add_cow(f, 0, now=T0 + c * 7 * MINUTE)
+        self.assertTrue(f.buy_robot(1, T0 + HOUR, self._U(1.0 - math.exp(-10.0))))  # 30 天都不壞
+        f.advance(T0 + 5 * DAY)
+        self.assertEqual(sum(c.sick_since is not None for c in f.cows), 0)
+
+    def test_independent_of_settle_steps_with_robot(self):
+        def run(step):
+            rng = random.Random(4)
+            f = Farm(DEFAULT, T0, rng, care=True)
+            f.coins, f.slots = 1e7, 40
+            for _ in range(12):
+                f.buy_shop("C", T0, rng)
+            f.buy_robot(0, T0 + DAY + 2 * HOUR, rng)
+            t = T0 + DAY + 2 * HOUR
+            while t < T0 + 4 * DAY:
+                t = min(T0 + 4 * DAY, t + step)
+                f.advance(t)
+            return f
+
+        fs = [run(s) for s in (HOUR, 7 * MINUTE, 31 * HOUR)]
+        for f in fs[1:]:
+            self.assertEqual([c.poop for c in f.cows], [c.poop for c in fs[0].cows])
+            self.assertEqual([c.sick_since is None for c in f.cows], [c.sick_since is None for c in fs[0].cows])
+            self.assertAlmostEqual(f.hazard, fs[0].hazard, places=9)
+
+    def test_save_round_trip(self):
+        f = farm()
+        f.buy_robot(1, T0 + HOUR, random.Random(1))
+        d = json.loads(json.dumps(f.to_dict()))
+        self.assertEqual((d["robot"], d["robot_from"]), (1, T0 + HOUR))
+        g = Farm.from_dict(DEFAULT, d)
+        self.assertEqual(g.to_dict(), d)
+        f.advance(T0 + 3 * DAY)
+        g.advance(T0 + 3 * DAY)
+        self.assertEqual(g.to_dict(), f.to_dict())
+        for k in ("robot", "robot_from", "robot_until"):
+            del d[k]
+        self.assertEqual(Farm.from_dict(DEFAULT, d).robot, -1)  # 舊存檔：沒有掃地機
 
 
 class TestSickness(unittest.TestCase):

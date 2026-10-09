@@ -62,6 +62,8 @@ TUNABLES = (
     "LAZY_CLEAN_H",
     "CURE_PROD_H",
     "FLOOR_GAIN",
+    "ROBOT_SICK_PER_BREAK",
+    "ROBOT_PAYBACK_D",
 )
 
 

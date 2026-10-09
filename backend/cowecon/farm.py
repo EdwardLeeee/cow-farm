@@ -28,7 +28,8 @@ v0.3 照顧（docs/design/v0.3-care.md、決定 D35；參數在 CareParams）
 - 大便與生病：每頭牛照自己的時鐘（poop_at）每 poop_every_s 拉一坨，最多 poop_max_per_cow 坨。髒的程度 = 大便 ÷ 牛數，
   每頭牛的風險率 = sick_rate_per_h ×（髒 − sick_dirt_free）。牧場記一條累積風險（hazard），每頭牛出生（或治好）時抽一個
   Exp(1) 門檻，累積風險多出門檻就生病；事件之間風險率是常數，生病的時間精確反推。所以跟上線幾次、tick 多大都無關。
-  病牛不產奶、不耕田、不能配種上架借種，出貨牛肉只剩一成；治療 cure_price。打掃小幫手每 helper_clean_s 清全部。
+  病牛不產奶、不耕田、不能配種上架借種，出貨牛肉只剩一成；治療 cure_price。打掃牛（程式裡叫 helper）每 helper_clean_s
+  清全部；大便掃地機（robot）每 robot_clean_s 清全部，隨機壞掉（買來、修好時抽壞掉的時間），壞了要付修理費。
 - 照顧規則開關（Farm.care）：大便、生病、變雜種只在開著時發生。舊存檔讀進來是關的。研究模擬和伺服器的電腦玩家開，
   真人的牧場到 v0.3 C1（協定和按鈕都好了）才開。餵食、地板、小幫手不受開關影響。
 """
@@ -736,6 +737,9 @@ class Farm:
         "rent_until",
         "helper_from",
         "helper_until",
+        "robot",
+        "robot_from",
+        "robot_until",
         "stats",
     )
 
@@ -800,6 +804,9 @@ class Farm:
         self.rent_until = 0.0
         self.helper_from = 0.0  # 這次雇用小幫手從什麼時候開始（每 helper_clean_s 清一次的起點）
         self.helper_until = 0.0
+        self.robot = -1  # 大便掃地機：第幾款（CareParams.robot_ids 的索引；-1 = 沒有）
+        self.robot_from = 0.0  # 這次開始動（買來、修好）的時間：每 robot_clean_s 清一次的起點
+        self.robot_until = 0.0  # 壞掉的時間（開始動時抽的；玩家看不到，到了才知道）
         if care:
             for c in self.cows:  # 亂數用在開局兩頭牛的基因之後
                 self._arm(c, rng)
@@ -1036,6 +1043,7 @@ class Farm:
         """從 care_t 到 now 的大便與生病，不改狀態：回傳 (每頭牛的大便, 牧場的累積風險, {牛的編號: 生病的時間})。
 
         髒的程度只在事件時改變：某頭牛拉大便（poop_at + k × poop_every_s）、小幫手清（helper_from + k × helper_clean_s）、
+        掃地機清（robot_from + k × robot_clean_s，壞掉以後停）、
         新手保護結束。事件之間每頭牛的風險率是常數，累積風險是分段的直線，生病的時間在那一段裡精確反推。
         剛好在 now 的事件算進這次（下次從 now 之後的事件開始）。"""
         cows = self.cows
@@ -1058,6 +1066,8 @@ class Farm:
         total = sum(poop)
         hs = cp.helper_clean_s
         hk = max(1, math.floor((t - self.helper_from) / hs) + 1) if self.helper_until > t else 0
+        rs = cp.robot_clean_s
+        rk = max(1, math.floor((t - self.robot_from) / rs) + 1) if self.robot >= 0 and self.robot_until > t else 0
         safe_end = self.created_at + cp.newbie_safe_s
         rate_s = cp.sick_rate_per_h / HOUR
         # 還沒生病、會生病的牛，照「累積風險到多少會生病」排好
@@ -1071,6 +1081,12 @@ class Farm:
                 tm = self.helper_from + hk * hs
                 if tm > self.helper_until:
                     hk = 0
+                elif tm < t1:
+                    t1 = tm
+            if rk:
+                tm = self.robot_from + rk * rs
+                if tm > self.robot_until:
+                    rk = 0
                 elif tm < t1:
                     t1 = tm
             if t < safe_end < t1:
@@ -1087,15 +1103,21 @@ class Farm:
                         pi += 1
                     H = H1
             t = t1
-            # t 這一刻的事件：先拉大便，再讓小幫手清
+            # t 這一刻的事件：先拉大便，再讓小幫手、掃地機清
             while heap and heap[0][0] <= t:
                 _, i, k = heapq.heappop(heap)
                 poop[i] += 1
                 total += 1
                 if poop[i] < cap:
                     heapq.heappush(heap, (cows[i].poop_at + (k + 1) * P, i, k + 1))
+            cleaned = False
             if hk and self.helper_from + hk * hs <= t:
                 hk += 1
+                cleaned = True
+            if rk and self.robot_from + rk * rs <= t:
+                rk += 1
+                cleaned = True
+            if cleaned:
                 if total:
                     in_heap = {i for _, i, _ in heap}
                     for i, c in enumerate(cows):
@@ -1207,6 +1229,41 @@ class Farm:
         self.coins -= cost
         self.helper_until = until
         self._record(now, "helper", -cost, float(days))
+        return True
+
+    # ---- 大便掃地機 ----
+    def robot_working(self, now: float) -> bool:
+        """有掃地機、而且 now 還沒壞。"""
+        return self.robot >= 0 and now < self.robot_until
+
+    def _robot_start(self, now: float, rng: random.Random) -> None:
+        """開始動（買來、修好）：那一刻先清一次，抽壞掉的時間（指數分布，平均 robot_mtbf_d 天；用掉 rng 一個亂數）。"""
+        self.robot_from = now
+        self.robot_until = now - math.log(1.0 - rng.random()) * self.p.care.robot_mtbf_d[self.robot] * DAY
+        for c in self.cows:
+            c.poop = 0
+
+    def buy_robot(self, m: int, now: float, rng: random.Random) -> bool:
+        """買第 m 款掃地機（一次只有一台：已經有另一款就換掉，舊的不退錢）。已經有同一款就不能買（壞了用 repair_robot）。"""
+        cp = self.p.care
+        if not (0 <= m < len(cp.robot_price)) or m == self.robot or self.coins < cp.robot_price[m]:
+            return False
+        self.advance(now)
+        self.coins -= cp.robot_price[m]
+        self.robot = m
+        self._robot_start(now, rng)
+        self._record(now, "robot", -cp.robot_price[m], 1.0)
+        return True
+
+    def repair_robot(self, now: float, rng: random.Random) -> bool:
+        """修好壞掉的掃地機（robot_repair），馬上開始動、重新抽壞掉的時間。"""
+        cp = self.p.care
+        if self.robot < 0 or self.coins < cp.robot_repair[self.robot] or self.robot_working(now):
+            return False
+        self.advance(now)
+        self.coins -= cp.robot_repair[self.robot]
+        self._robot_start(now, rng)
+        self._record(now, "robot", -cp.robot_repair[self.robot], 0.0)
         return True
 
     def set_care(self, on: bool, now: float, rng: random.Random) -> None:
@@ -1820,6 +1877,9 @@ class Farm:
             "rent_until": self.rent_until,
             "helper_from": self.helper_from,
             "helper_until": self.helper_until,
+            "robot": self.robot,
+            "robot_from": self.robot_from,
+            "robot_until": self.robot_until,
         }
 
     @classmethod
@@ -1869,6 +1929,9 @@ class Farm:
         f.rent_until = d.get("rent_until", 0.0)
         f.helper_from = d.get("helper_from", 0.0)
         f.helper_until = d.get("helper_until", 0.0)
+        f.robot = d.get("robot", -1)
+        f.robot_from = d.get("robot_from", 0.0)
+        f.robot_until = d.get("robot_until", 0.0)
         f.log = None
         f.track = None
         f.stats = None
