@@ -67,6 +67,13 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
 
   /// 被點到的牛（S03-06：轉正面、跳出小名片）。
   Object? _popId;
+
+  /// A-14 點一下清大便：還在播的那幾坨（[PoopCleanFx]）。[_poopFxPending] 是還沒到第 0.3 秒的：右上角的數字還算著它們，
+  /// 到了才少 1、跳一下（[_dirtBump]）。
+  final _poopFx = <PoopFx>[];
+  final _poopFxPending = <int>{};
+  var _poopFxId = 0;
+  var _dirtBump = 0;
   _Toast? _toast;
   Timer? _toastTimer;
 
@@ -145,13 +152,26 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
     _showToast(_Toast(actionErrorKind(err), actionErrorTextWith(s, m, err)));
   }
 
-  /// 清掉一坨大便：先從畫面拿掉（位置空出來，其他的不跳位），斷線的時候不能清。
-  void _takePoop(ScenePoop p) {
+  /// 清掉一坨大便：先從畫面拿掉（位置空出來，其他的不跳位），斷線的時候不能清。清掉了回 true。
+  bool _takePoop(ScenePoop p) {
     final m = context.read<GameModel>();
-    if (!m.online || m.poopOf(p.cow) <= 0) return;
+    if (!m.online || m.poopOf(p.cow) <= 0) return false;
     // 場景的大便下一格畫面才更新：同一格裡被劃到兩次（或連點兩下）的，第二次不算
-    if (!m.poopLayout.take(p.spot)) return;
-    m.takePoop(p.cow);
+    if (!m.poopLayout.take(p.spot)) return false;
+    return m.takePoop(p.cow);
+  }
+
+  /// 點一下清一坨（A-14）：開著動畫就在原位播淡掉、波紋、小星星，數字晚 0.3 秒才少；減少動態版直接消失、數字直接變少。
+  void _tapPoop(ScenePoop p) {
+    if (!_takePoop(p)) return;
+    if (AppMotion.read(context)) {
+      final fx = PoopFx(_poopFxId++, p.spot);
+      setState(() {
+        _poopFx.add(fx);
+        _poopFxPending.add(fx.id);
+      });
+    }
+    _sendPoop();
   }
 
   /// 送出清掉的大便（點一下馬上送，劃過去的手指放開才送）；失敗的話大便放回去，跳一般的錯誤提示。
@@ -161,6 +181,13 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
     final r = await m.sendPoop();
     final err = r?.error;
     if (!mounted || err == null) return;
+    // 沒清成：大便放回去了，還在播的 A-14 收掉（數字也不再晚一步）
+    if (_poopFx.isNotEmpty) {
+      setState(() {
+        _poopFx.clear();
+        _poopFxPending.clear();
+      });
+    }
     if (err case ApiActionError(:final error) when error.maintenance || error.unauthorized) return;
     _showToast(_Toast(actionErrorKind(err), actionErrorTextWith(s, m, err)));
   }
@@ -290,7 +317,8 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
     // 大便（v0.3 第 5 節）：場景裡每一坨的位置（記住，清掉一坨時其他的不跳位）、右上角的數字（扣掉正在清的）。
     // 髒的程度 = 大便 ÷ 牛的頭數，超過會生病的門檻就變紅（S03-27）
     final poops = m.poopLayout.place(st.cows, m.poopOf);
-    final poopTotal = m.poopTotal;
+    // 右上角的數字：點一下清掉的（A-14）到第 0.3 秒才少
+    final poopTotal = m.poopTotal + _poopFxPending.length;
     final dirty = st.cows.isNotEmpty && poopTotal / st.cows.length > (st.economy?.sickDirtFree ?? 0.5);
     final showSwipeHint = !settings.swipeHintSeen && !empty;
 
@@ -309,14 +337,19 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
         // 點一頭牛：轉正面、跳出小名片；再點一次或點空地就收起來
         onTapCow: (c) => setState(() => _popId = _popId == c.id ? null : c.id),
         onTapEmpty: _popId == null ? null : () => setState(() => _popId = null),
-        // 清大便：點一下清一坨（A-14），從大便上開始劃、劃過的都清掉（A-15）；都是減少動態版（直接消失）
+        // 清大便：點一下清一坨（A-14，開著動畫時播淡掉、波紋、小星星），從大便上開始劃、劃過的都清掉（A-15，現在是減少動態版）
         poops: poops,
-        onTapPoop: (p) {
-          _takePoop(p);
-          _sendPoop();
-        },
+        onTapPoop: _tapPoop,
         onSwipePoop: _takePoop,
         onSwipeEnd: _sendPoop,
+        poopFx: _poopFx,
+        onPoopFxCount: (f) => setState(() {
+          if (_poopFxPending.remove(f.id)) _dirtBump++;
+        }),
+        onPoopFxDone: (f) => setState(() {
+          _poopFx.remove(f);
+          _poopFxPending.remove(f.id);
+        }),
       ),
       underlays: [
         if (bubbleCow != null) _BubbleAnchor(cows: cows, cow: bubbleCow, pan: _pan, game: _game),
@@ -349,7 +382,7 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
           Positioned(
             right: 12,
             top: top + 62,
-            child: DirtPill(count: poopTotal, bad: dirty),
+            child: DirtPill(count: poopTotal, bad: dirty, bump: _dirtBump),
           ),
         if (empty)
           Positioned(
