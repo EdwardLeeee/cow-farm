@@ -68,12 +68,14 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
   /// 被點到的牛（S03-06：轉正面、跳出小名片）。
   Object? _popId;
 
-  /// A-14 點一下清大便：還在播的那幾坨（[PoopCleanFx]）。[_poopFxPending] 是還沒到第 0.3 秒的：右上角的數字還算著它們，
-  /// 到了才少 1、跳一下（[_dirtBump]）。
+  /// 清大便還在播的那幾坨（[PoopCleanFx]；A-14 點一下、A-15 劃過去）。[_poopFxPending] 是還沒到數字少 1 的時間的
+  /// （點一下 0.3 秒、劃過去 0.05 秒）：右上角的數字還算著它們。數字跳一下（[_dirtBump]）：點一下是少 1 的時候，
+  /// 劃過去是手指放開的時候。[_swiped] 是這一次劃過去清掉幾坨。
   final _poopFx = <PoopFx>[];
   final _poopFxPending = <int>{};
   var _poopFxId = 0;
   var _dirtBump = 0;
+  var _swiped = 0;
   _Toast? _toast;
   Timer? _toastTimer;
 
@@ -171,6 +173,26 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
         _poopFxPending.add(fx.id);
       });
     }
+    _sendPoop();
+  }
+
+  /// 手指劃過一坨（A-15）：開著動畫就在原位播淡掉、小星星（沒有波紋），數字 0.05 秒後少；減少動態版直接消失。
+  void _swipePoop(ScenePoop p) {
+    if (!_takePoop(p)) return;
+    _swiped++;
+    if (AppMotion.read(context)) {
+      final fx = PoopFx(_poopFxId++, p.spot, swipe: true);
+      setState(() {
+        _poopFx.add(fx);
+        _poopFxPending.add(fx.id);
+      });
+    }
+  }
+
+  /// 手指放開：劃到的一次送出；開著動畫時右上角的數字跳一下（設計稿 A15 第 0.85–1.0 秒）。
+  void _swipeEnd() {
+    if (_swiped > 0 && AppMotion.read(context)) setState(() => _dirtBump++);
+    _swiped = 0;
     _sendPoop();
   }
 
@@ -337,14 +359,14 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
         // 點一頭牛：轉正面、跳出小名片；再點一次或點空地就收起來
         onTapCow: (c) => setState(() => _popId = _popId == c.id ? null : c.id),
         onTapEmpty: _popId == null ? null : () => setState(() => _popId = null),
-        // 清大便：點一下清一坨（A-14，開著動畫時播淡掉、波紋、小星星），從大便上開始劃、劃過的都清掉（A-15，現在是減少動態版）
+        // 清大便：點一下清一坨（A-14），從大便上開始劃、劃過的都清掉（A-15）；開著動畫時播淡掉、小星星（點一下加波紋）
         poops: poops,
         onTapPoop: _tapPoop,
-        onSwipePoop: _takePoop,
-        onSwipeEnd: _sendPoop,
+        onSwipePoop: _swipePoop,
+        onSwipeEnd: _swipeEnd,
         poopFx: _poopFx,
         onPoopFxCount: (f) => setState(() {
-          if (_poopFxPending.remove(f.id)) _dirtBump++;
+          if (_poopFxPending.remove(f.id) && !f.swipe) _dirtBump++;
         }),
         onPoopFxDone: (f) => setState(() {
           _poopFx.remove(f);

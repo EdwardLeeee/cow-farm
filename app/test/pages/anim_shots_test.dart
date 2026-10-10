@@ -4,12 +4,14 @@
 // A-01 收奶（按下「收奶」以後 1.4 秒：奶桶 36.4 瓶全部進倉庫，130 → 166 瓶）、
 // A-02 成交（賣 130 瓶牛奶、1,924 幣：12,480 → 14,404；賣出面板捲到最上面，跟設計稿一樣）、
 // A-05 升級（牧場頁，累積收入 7,500 跨過 Lv5 的門檻）、A-08 收成稻米（田地頁，倉庫 184 → 361 公斤）、
-// A-13 小牛長大（減少動態的最後一格）、A-14 清大便：點一下（S03-27 的 9 坨，點第 0 個位置那一坨，跟設計稿一樣）。
+// A-13 小牛長大（減少動態的最後一格）、A-14 清大便：點一下（S03-27 的 9 坨，點第 0 個位置那一坨，跟設計稿一樣）、
+// A-15 清大便：手指劃過去（劃過第 3、1、4 個位置，跟設計稿一樣）。
 // 390 寬、每點 2 像素（跟設計稿的動畫一樣只出 390），寫到 SHOTS_DIR/anim/<動畫 ID>/<第幾格>.png。
 // 只在本機拍，CI 不跑（沒給 SHOTS 就整個跳過）。在 app/ 底下：
 //   flutter test --dart-define=SHOTS=1 --dart-define=SHOTS_DIR=build/shots/<PR 編號> test/pages/anim_shots_test.dart
 // 拍完用 python3 tool/anim_gif.py build/shots/<PR 編號> 組成 GIF、拼成跟設計稿分鏡一樣時間點的對照。
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:cowfarm/api/models.dart';
 import 'package:cowfarm/app.dart';
@@ -215,6 +217,43 @@ void main() {
         await tester.pump(_frame);
       }
       await _save(tester, 'A-14', i);
+    }
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  // A-15 清大便：手指劃過去。設計稿的手指從第 3 坨左邊 34 開始劃，app 要按在大便上才是清大便（ceo 2026-10-10），
+  // 所以從第 3 坨上面按下去；之後照設計稿：0.15–0.85 秒（inOut）經過第 3、1、4 坨，再往右上 30、12，第 0.85 秒放開
+  testWidgets('A-15 清大便：手指劃過去（1.2 秒）', (tester) async {
+    await _ranch(
+      tester,
+      model: await ranchModel(state: ranchState(cows: poopCows(9))),
+    );
+    Offset at(int spot) => tester.getCenter(find.byKey(Key('poop-$spot')));
+    final path = [at(3), at(1), at(4)];
+    path.add(path.last + const Offset(30, -12));
+    final lens = [for (var i = 1; i < path.length; i++) (path[i] - path[i - 1]).distance];
+    final total = lens.fold(0.0, (a, b) => a + b);
+    Offset along(double k) {
+      var d = k * total;
+      for (var i = 0; i < lens.length; i++) {
+        if (d <= lens[i]) return Offset.lerp(path[i], path[i + 1], d / lens[i])!;
+        d -= lens[i];
+      }
+      return path.last;
+    }
+
+    double inOut(double x) => x < 0.5 ? 4 * x * x * x : 1 - math.pow(-2 * x + 2, 3) / 2;
+    TestGesture? g;
+    for (var i = 0; i <= 24; i++) {
+      final t = i * 0.05;
+      if (i == 3) {
+        g = await tester.startGesture(path.first);
+      } else if (i > 3 && i <= 17) {
+        await g!.moveTo(along(inOut(((t - 0.15) / 0.7).clamp(0.0, 1.0))));
+        if (i == 17) await g.up();
+      }
+      if (i > 0) await tester.pump(_frame);
+      await _save(tester, 'A-15', i);
     }
     await tester.pumpWidget(const SizedBox());
   });

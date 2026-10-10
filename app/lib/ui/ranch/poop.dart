@@ -1,7 +1,7 @@
 // 牧場的大便（v0.3 第 5 節；使用者 2026-10-03 選第 13 輪 04-A 霜淇淋捲）：場景裡的大便（設計稿 poop.js）、
 // 右上角的大便數（s03.js 的 dirtyPill、screens.css 的 .dirty）。點一下清一坨（A-14）、手指劃過去清好幾坨（A-15）。
-// 開著動畫時點一下照 A-14 播（[PoopCleanFx]、數字晚 0.3 秒變少、跳一下）；劃過去（A-15）現在是減少動態版：
-// 清到的大便直接消失，數字直接變少。
+// 開著動畫時照 A-14、A-15 播（[PoopCleanFx]）：點一下數字晚 0.3 秒變少、跳一下；劃過去每坨 0.05 秒後少、
+// 手指放開時跳一下（劃過的軌跡在 scene.dart）。手機開了「減少動態」：清到的大便直接消失，數字直接變少。
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -113,38 +113,61 @@ class PoopLayout {
   static int _compareId(Object a, Object b) => a is int && b is int ? a.compareTo(b) : '$a'.compareTo('$b');
 }
 
-/// 點一下清掉的一坨（A-14 的動畫）：[id] 分開每一次，[spot] 是那一坨原本的位置（[kPoopSpots] 的第幾個）。
+/// 清掉的一坨在播的動畫：[id] 分開每一次，[spot] 是那一坨原本的位置（[kPoopSpots] 的第幾個）。
+/// [swipe]：手指劃過去清掉的（A-15）；不是的話是點一下（A-14）。
 class PoopFx {
-  const PoopFx(this.id, this.spot);
+  const PoopFx(this.id, this.spot, {this.swipe = false});
   final int id;
   final int spot;
+  final bool swipe;
 }
 
-/// A-14 清大便：點一下（設計稿 anims.js 的 A14：手指在第 0.25 秒點下去，這裡從點下去那一刻算，播 0.47 秒）。
-/// - 波紋（.ripple）：0–0.3 秒從 0.4 倍放大到 1.4 倍、慢慢淡掉。
-/// - 大便：0.05–0.2 秒淡掉（場景裡那一坨已經拿掉了，這裡在原位畫一個淡掉的）。
-/// - 小星星（.poof）：0.07–0.47 秒冒出來再消失，往上飄 10、從 0.7 倍放大到 1.2 倍。
-/// - 第 0.3 秒叫 [onCount]（右上角的數字這時才少 1、跳一下），播完叫 [onDone]。
+/// 一坨的動畫時間（秒，從清掉那一刻算）：整段 [length]、數字少 1 的時間 [countAt]、波紋 [ripple]（沒有是 null）、
+/// 大便淡掉 [fade]、小星星 [poof]。
+class _FxTiming {
+  const _FxTiming({required this.length, required this.countAt, this.ripple, required this.fade, required this.poof});
+  final double length, countAt;
+  final (double, double)? ripple;
+  final (double, double) fade, poof;
+}
+
+/// A-14 點一下（設計稿 anims.js 的 A14：手指在第 0.25 秒點下去，這裡從點下去那一刻算）。
+const _tapTiming = _FxTiming(length: 0.47, countAt: 0.3, ripple: (0, 0.3), fade: (0.05, 0.2), poof: (0.07, 0.47));
+
+/// A-15 劃過去（設計稿的 A15：手指經過那一坨的時間 tk 起算）：沒有波紋，0.1 秒淡掉，星星 0.35 秒，0.05 秒數字就少。
+const _swipeTiming = _FxTiming(length: 0.35, countAt: 0.05, fade: (0, 0.1), poof: (0, 0.35));
+
+/// 清掉一坨的動畫（A-14 點一下、A-15 劃過去）：
+/// - 波紋（.ripple，只有點一下）：0–0.3 秒從 0.4 倍放大到 1.4 倍、慢慢淡掉。
+/// - 大便：在原位淡掉（場景裡那一坨已經拿掉了，這裡畫一個淡掉的）。點一下 0.05–0.2 秒，劃過去 0–0.1 秒。
+/// - 小星星（.poof）：冒出來再消失，往上飄 10、從 0.7 倍放大到 1.2 倍。點一下 0.07–0.47 秒，劃過去 0–0.35 秒。
+/// - 右上角的數字少 1 的時候叫 [onCount]（點一下第 0.3 秒、劃過去第 0.05 秒），播完叫 [onDone]。
 /// [poop] 是那一坨在螢幕上的範圍；[origin] 是波紋、星星的中心（大便底部中間往上 8，設計稿的 poopAt）。
 class PoopCleanFx extends StatefulWidget {
-  const PoopCleanFx({super.key, required this.poop, required this.origin, this.onCount, this.onDone});
+  const PoopCleanFx({
+    super.key,
+    required this.poop,
+    required this.origin,
+    this.swipe = false,
+    this.onCount,
+    this.onDone,
+  });
 
   final Rect poop;
   final Offset origin;
+  final bool swipe;
   final VoidCallback? onCount;
   final VoidCallback? onDone;
-
-  /// 整段的長度、數字變少的時間（秒）。
-  static const length = 0.47, countAt = 0.3;
 
   @override
   State<PoopCleanFx> createState() => _PoopCleanFxState();
 }
 
 class _PoopCleanFxState extends State<PoopCleanFx> with SingleTickerProviderStateMixin {
+  late final _timing = widget.swipe ? _swipeTiming : _tapTiming;
   late final _c = AnimationController(
     vsync: this,
-    duration: Duration(milliseconds: (PoopCleanFx.length * 1000).round()),
+    duration: Duration(milliseconds: (_timing.length * 1000).round()),
   );
   var _counted = false;
 
@@ -153,7 +176,7 @@ class _PoopCleanFxState extends State<PoopCleanFx> with SingleTickerProviderStat
     super.initState();
     _c
       ..addListener(() {
-        if (!_counted && _c.value * PoopCleanFx.length >= PoopCleanFx.countAt) {
+        if (!_counted && _c.value * _timing.length >= _timing.countAt) {
           _counted = true;
           widget.onCount?.call();
         }
@@ -177,9 +200,10 @@ class _PoopCleanFxState extends State<PoopCleanFx> with SingleTickerProviderStat
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: _c,
     builder: (context, _) {
-      final t = _c.value * PoopCleanFx.length;
+      final tm = _timing, t = _c.value * tm.length;
       final o = widget.origin;
-      final rk = _seg(t, 0, 0.3), pk = _seg(t, 0.07, 0.47);
+      final rk = tm.ripple == null ? 0.0 : _seg(t, tm.ripple!.$1, tm.ripple!.$2);
+      final pk = _seg(t, tm.poof.$1, tm.poof.$2);
       final poof = pk > 0 && pk < 1 ? math.sin(math.pi * pk) : 0.0;
       final scale = 0.7 + 0.5 * pk;
       return Stack(
@@ -189,7 +213,7 @@ class _PoopCleanFxState extends State<PoopCleanFx> with SingleTickerProviderStat
           Positioned.fromRect(
             rect: widget.poop,
             child: Opacity(
-              opacity: 1 - _seg(t, 0.05, 0.2),
+              opacity: 1 - _seg(t, tm.fade.$1, tm.fade.$2),
               child: SvgPicture.asset('assets/ui/icons/poop.svg', fit: BoxFit.fill, excludeFromSemantics: true),
             ),
           ),
