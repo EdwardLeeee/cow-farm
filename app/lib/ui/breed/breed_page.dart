@@ -425,7 +425,7 @@ class PickCard extends StatelessWidget {
     final line = disabled ? AppColors.disabledLine : AppColors.ink;
     final calf = cow.stage == CowStage.calf;
     final meta = switch (off) {
-      null || PickOff.other => rarityChip(cow.breed, cow.tier),
+      null || PickOff.other => cowRarityChip(cow),
       PickOff.listed => CowBadge(BadgeKind.listed, s.badgeListed),
       PickOff.bred => CowBadge(BadgeKind.bred, s.badgeBred),
       PickOff.working => CowBadge(BadgeKind.working, s.badgeWorking),

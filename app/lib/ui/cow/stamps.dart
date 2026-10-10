@@ -22,8 +22,13 @@ List<String> feedTodo(Cow c) => [
 /// 「1 / 2」：吃過幾種 / 要吃幾種。
 String stampCount(Cow c) => '${c.need.length - feedTodo(c).length} / ${c.need.length}';
 
+/// app 有圖示的飼料（assets/ui/icons/feed_*.svg，協定 1.6 的六種）。
+const kFeedIcons = {'grass', 'hay', 'oats', 'alfalfa', 'corn', 'soy'};
+
 /// 飼料圖示（ui/icons/feed_<種類>）；還沒吃的淡淡的（.feed-ic 的 opacity 0.45）。
 Widget feedIcon(String feed, double size, {bool faded = false}) {
+  // 伺服器之後新加的飼料（app 還沒有圖示）：留一樣大的空位，不去讀不存在的圖
+  if (!kFeedIcons.contains(feed)) return SizedBox.square(dimension: size);
   final icon = AppIcon('feed_$feed', size: size);
   return faded ? Opacity(opacity: 0.45, child: icon) : icon;
 }
@@ -163,7 +168,7 @@ class _Stamp extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 4),
-        Text(s.byKey('feed.$feed'), style: AppText.style(15, weight: FontWeight.w700, lineHeight: 20)),
+        Text(s.feedName(feed), style: AppText.style(15, weight: FontWeight.w700, lineHeight: 20)),
       ],
     );
   }
@@ -377,7 +382,7 @@ class GrowAlertCard extends StatelessWidget {
                             const WidgetSpan(child: SizedBox(width: 4)),
                             WidgetSpan(alignment: PlaceholderAlignment.middle, child: feedIcon(k, 18)),
                             const WidgetSpan(child: SizedBox(width: 1)),
-                            TextSpan(text: s.byKey('feed.$k'), style: feedStyle),
+                            TextSpan(text: s.feedName(k), style: feedStyle),
                           ],
                         ],
                       ),

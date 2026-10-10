@@ -277,7 +277,10 @@ class Cow {
   bool canBreedAt(double gameNow) => serverCanBreed ?? (isAdultAt(gameNow) && !bred && !busy);
   bool canShipAt(double gameNow) => serverCanShip ?? (isAdultAt(gameNow) && !busy);
   bool canWorkAt(double gameNow) => serverCanWork ?? (type == CowType.dual && isAdultAt(gameNow) && !busy);
-  bool canListAt(double gameNow) => bull && isAdultAt(gameNow) && !bred && !busy;
+
+  /// 可以上架借種：長大揭曉了（到了 adult_at、state 還沒重抓的小牛不算）、沒配過種、沒在忙、沒生病（病牛不能上架，
+  /// 協定 2.6 的 cow_sick）。
+  bool canListAt(double gameNow) => bull && revealed && isAdultAt(gameNow) && !bred && !busy && !sick;
 
   factory Cow.fromJson(Map<String, dynamic> j) {
     final stage = switch (j['stage']) {

@@ -751,7 +751,7 @@ class MyBullsCard extends StatelessWidget {
               _MyBullRow(
                 key: Key('my-bull-${c.key}'),
                 cow: c,
-                meta: rarityChip(c.breed, c.tier),
+                meta: cowRarityChip(c),
                 fee: s.s18FeeLabel(price: '\u0000'),
                 price: c.studFee?.price,
                 button: AppButton(

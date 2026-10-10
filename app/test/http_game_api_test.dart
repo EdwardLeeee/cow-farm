@@ -188,6 +188,65 @@ void main() {
     expect(avatar['breed'], 'jersey');
   });
 
+  test('照顧（協定 2.6）：清大便送每頭牛幾坨（piles），不給就全部清；治療送 cow_id；都帶 request_id', () async {
+    final reqs = <http.Request>[];
+    final client = MockClient((req) async {
+      reqs.add(req);
+      return http.Response(jsonEncode({'ok': true}), 200);
+    });
+    final api = HttpGameApi(base: base, client: client, sleep: noSleep)..token = 'tok';
+    await api.clean({3: 2, 7: 1});
+    await api.clean(null);
+    await api.cure(3);
+    expect(reqs.map((r) => (r.method, r.url.path)).toList(), [
+      ('POST', '/v1/clean'),
+      ('POST', '/v1/clean'),
+      ('POST', '/v1/cure'),
+    ]);
+    final bodies = [for (final r in reqs) jsonDecode(r.body) as Map<String, dynamic>];
+    expect(bodies[0]['piles'], [
+      {'cow_id': 3, 'n': 2},
+      {'cow_id': 7, 'n': 1},
+    ]);
+    expect(bodies[0].keys.toSet(), {'piles', 'request_id'});
+    expect(bodies[1].keys.toSet(), {'request_id'}, reason: '不給 piles 是全部清');
+    expect(bodies[2].keys.toSet(), {'cow_id', 'request_id'});
+    expect(bodies[2]['cow_id'], 3);
+    final ids = {for (final b in bodies) b['request_id']};
+    expect(ids, hasLength(3), reason: '每個新操作用新的 request_id');
+  });
+
+  test('配種表的代表配法（協定 2.7）：GET /v1/codex/pairings、帶 token、不帶 request_id；少了品種的那一組不要', () async {
+    final reqs = <http.Request>[];
+    final client = MockClient((req) async {
+      reqs.add(req);
+      return http.Response(
+        jsonEncode({
+          'server_time': 1791141900.0,
+          'pairings': {
+            'jersey': [
+              {'sire': 'jersey', 'dam': 'jersey'},
+              {'sire': 'holstein', 'dam': 'jersey'},
+              {'sire': 'jersey'},
+            ],
+            'holstein': <Object>[],
+          },
+        }),
+        200,
+      );
+    });
+    final api = HttpGameApi(base: base, client: client, sleep: noSleep)..token = 'tok';
+    final table = await api.codexPairings();
+    expect(reqs.single.method, 'GET');
+    expect(reqs.single.url.path, '/v1/codex/pairings');
+    expect(reqs.single.headers['Authorization'], 'Bearer tok');
+    expect(reqs.single.url.queryParameters.containsKey('request_id'), isFalse);
+    expect(table, {
+      'jersey': [(sire: 'jersey', dam: 'jersey'), (sire: 'holstein', dam: 'jersey')],
+      'holstein': <BreedPair>[],
+    });
+  });
+
   test('借種紀錄（協定 4.6）：借出、借入；對方的牧場刪除了是 null', () async {
     final client = MockClient((req) async {
       expect(req.method, 'GET');

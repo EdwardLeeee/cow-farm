@@ -77,8 +77,9 @@ class Strings extends GeneratedStrings {
   }
 
   /// 品種名（協定的 breed 代號，跟 design/m2/src/cow/breeds.js 一樣）。
-  /// 雜種牛（[kHybrid]）是「雜種牛」（breed.mix.name）。
-  String breedName(String breed) => byKey(breed == 'hybrid' ? 'breed.mix.name' : 'breed.$breed.name');
+  /// 雜種牛（[kHybrid]）是「雜種牛」（breed.mix.name）。伺服器之後新加的品種（協定：伺服器只會「加」東西）、
+  /// 字串表還沒有的寫「？？？」，不丟例外（l10n_test 把現在的 24 種都查一遍）。
+  String breedName(String breed) => table[breed == 'hybrid' ? 'breed.mix.name' : 'breed.$breed.name'] ?? gUnknownBreed;
 
   /// 品種的一句話介紹（圖鑑）。
   String breedIntro(String breed) => byKey('breed.$breed.intro');
@@ -94,8 +95,11 @@ class Strings extends GeneratedStrings {
         CowType.beef => 'calf.beef',
       })} #$id';
 
-  /// 飼料名（協定 1.6 的飼料代號：grass、hay、oats、alfalfa、corn、soy），幾種用「、」連起來（設計稿 i18n.js 的 feedList）。
-  String feedList(List<String> codes) => [for (final c in codes) byKey('feed.$c')].join(gListSep);
+  /// 飼料名（協定 1.6 的飼料代號：grass、hay、oats、alfalfa、corn、soy）。伺服器之後新加的、字串表還沒有的寫「？？？」。
+  String feedName(String code) => table['feed.$code'] ?? gUnknownBreed;
+
+  /// 幾種飼料用「、」連起來（設計稿 i18n.js 的 feedList）。
+  String feedList(List<String> codes) => [for (final c in codes) feedName(c)].join(gListSep);
 
   /// 一頭牛的名字：小牛「小乳牛 #15」（長大才知道品種），雜種牛「雜種牛 #20」，其他「娟珊 #3」。
   String cowLabel(Cow c) => c.revealed ? cowName(c.breed, c.number) : calfName(c.type, c.number);
