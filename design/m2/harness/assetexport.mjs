@@ -15,7 +15,7 @@ const M2 = resolve(HERE, '..'), REPO = resolve(M2, '../..');
 const OUT = { cows: join(REPO, 'app/assets/cows'), ui: join(REPO, 'app/assets/ui') };
 const imp = (p) => import(pathToFileURL(join(M2, p)).href);
 
-const { BREEDS, CODEX_ORDER, MIX_LOOK } = await imp('src/cow/breeds.js');
+const { BREEDS, CODEX_ORDER, MIX_LOOK, tierOf } = await imp('src/cow/breeds.js');
 const { drawCow } = await imp('src/cow/render.js');
 const { calfBow, hasBow, CALF_LOOK } = await imp('src/cow/calf.js');
 const { sickLines, SICK_BUBBLE_INNER } = await imp('src/cow/sick.js');
@@ -84,6 +84,14 @@ function cows() {
       });
     }
   }
+  // 配種頁「可能生出的小牛」（S08-06、S18；ceo 2026-10-10 定，cow-app 問的）：一個品種一張，沒有公母、沒有蝴蝶結。
+  // 照設計稿 s08.js 的 outcomeCard：正面、朝左、seed 是 90＋稀有度（花紋會變的 9 種跟 v0 不一樣）
+  for (const breed of CODEX_ORDER) {
+    const name = `${breed}_calf_plain_front_left_v0`;
+    const { svg, meta } = cowFile({ breed, age: 'calf', pose: 'front', seed: 90 + tierOf(BREEDS[breed]) }, 'left');
+    files[`svg/${name}.svg`] = svg;
+    images[name] = { ...meta, sha256: sha(svg) };
+  }
   // 雜種牛（v0.3 第 1.1 節；第 13 輪 03-A）：照用途三種體型，只有長大的樣子（小牛一律用 CALF_LOOK 那個品種的小牛圖）；素色沒有光澤，朝右用翻轉
   for (const breed of Object.values(MIX_LOOK)) {
     const seeds = [BREEDS[breed].seed];
@@ -114,6 +122,7 @@ function cows() {
       '年紀只有 calf、adult：老牛用 adult 的圖。朝右只有 right 為 true 的品種有，其他品種朝右時把朝左的圖左右翻轉。',
       '變體：seeds 的長度就是變體數，app 用「牛的編號 mod 變體數」挑。',
       '雜種牛（breeds 裡 mix 為 true）：照用途挑，乳牛 mixDairy、耕牛 mixDraft、肉牛 mixBeef；只有 adult（小牛一律用 CALF_LOOK 那個品種的小牛圖）。',
+      '可能生出的小牛（配種頁 S08-06、借種 S18）：<品種>_calf_plain_front_left_v0，一個品種一張，沒有公母、沒有蝴蝶結（設計稿 s08.js 的 outcomeCard：seed 90＋稀有度）；朝左，剪影 app 自己做。',
       '病牛：名字後面加 _sick，只有 front（病牛一律轉正面）；臉色發青、額頭藍線已經畫在圖裡。成年牛照品種（含雜種牛），小牛照 CALF_LOOK。頭上的溫度計泡泡用 ui 的 parts/sick_bubble 另外疊（位置見 ui.json 的 about）。',
     ],
     generator: closure(['src/cow/breeds.js', 'src/cow/render.js', 'src/cow/calf.js']),

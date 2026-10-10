@@ -6,10 +6,11 @@
   "年紀只有 calf、adult：老牛用 adult 的圖。朝右只有 right 為 true 的品種有，其他品種朝右時把朝左的圖左右翻轉。",
   "變體：seeds 的長度就是變體數，app 用「牛的編號 mod 變體數」挑。",
   "雜種牛（breeds 裡 mix 為 true）：照用途挑，乳牛 mixDairy、耕牛 mixDraft、肉牛 mixBeef；只有 adult（小牛一律用 CALF_LOOK 那個品種的小牛圖）。",
+  "可能生出的小牛（配種頁 S08-06、借種 S18）：<品種>_calf_plain_front_left_v0，一個品種一張，沒有公母、沒有蝴蝶結（設計稿 s08.js 的 outcomeCard：seed 90＋稀有度）；朝左，剪影 app 自己做。",
   "病牛：名字後面加 _sick，只有 front（病牛一律轉正面）；臉色發青、額頭藍線已經畫在圖裡。成年牛照品種（含雜種牛），小牛照 CALF_LOOK。頭上的溫度計泡泡用 ui 的 parts/sick_bubble 另外疊（位置見 ui.json 的 about）。"
  ],
  "generator": {
-  "design/m2/harness/assetexport.mjs": "1b8309626232977c429ff26906404e96717620b0b87905862e186c96a7df0799",
+  "design/m2/harness/assetexport.mjs": "d0ef7ac13e4fd189af08d9811bef33b81c17443c65af74a312d49785fd54addc",
   "design/m2/src/cow/breeds.js": "a7f37d682deea250586c15bac9eaa28a551825b28fcf7ab7766526a48d75ecf8",
   "design/m2/src/cow/calf.js": "3d773e00d3f42d69b9de1b2de366e9af4f25f46645fdcf47a5146b063d84c29b",
   "design/m2/src/cow/q.js": "161f0ebf2cffa8d8baf19f095bab63f04c6d55004155fd078942b2aae7b5fbee",
@@ -13412,6 +13413,534 @@
     "ry": 6.32
    },
    "sha256": "eb3ba8e20ecc86b31bcca9e73b29063a68ab58d124f02fff20182bddae8f0a23"
+  },
+  "holstein_calf_plain_front_left_v0": {
+   "w": 52.6,
+   "h": 63.14,
+   "x0": -26.3,
+   "y0": -59.14,
+   "height": 55.14,
+   "face": {
+    "cx": 0,
+    "cy": -39.1,
+    "r": 15.89
+   },
+   "headTop": {
+    "x": 0,
+    "y": -55.14
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 19.67,
+    "ry": 3.82
+   },
+   "sha256": "1d1afc01d9b2476bf29c7627b2b385ee6238a42712f2b9283865bafe336a1596"
+  },
+  "fluffyHolstein_calf_plain_front_left_v0": {
+   "w": 52.6,
+   "h": 63.14,
+   "x0": -26.3,
+   "y0": -59.14,
+   "height": 55.14,
+   "face": {
+    "cx": 0,
+    "cy": -39.1,
+    "r": 15.89
+   },
+   "headTop": {
+    "x": 0,
+    "y": -55.14
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 21.25,
+    "ry": 3.82
+   },
+   "sha256": "7db5abfcb25eb6699c866426af2031ffff0cdf8858a78eb58ee433be7580902d"
+  },
+  "jersey_calf_plain_front_left_v0": {
+   "w": 50.32,
+   "h": 57.7,
+   "x0": -25.16,
+   "y0": -53.7,
+   "height": 49.7,
+   "face": {
+    "cx": 0,
+    "cy": -35.2,
+    "r": 15.17
+   },
+   "headTop": {
+    "x": 0,
+    "y": -49.7
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 17.71,
+    "ry": 3.44
+   },
+   "sha256": "af80fda4e6a939edf852a221897a40a2d115a5fdc4b1ce35ece8ae8834dba5ff"
+  },
+  "glossBlack_calf_plain_front_left_v0": {
+   "w": 52.6,
+   "h": 63.14,
+   "x0": -26.3,
+   "y0": -59.14,
+   "height": 55.14,
+   "face": {
+    "cx": 0,
+    "cy": -39.1,
+    "r": 15.89
+   },
+   "headTop": {
+    "x": 0,
+    "y": -55.14
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 19.67,
+    "ry": 3.82
+   },
+   "sha256": "868d39e0e432c598c5ba1ee49a1435b7b323dce83c134db8ccac010043744677"
+  },
+  "cottonCream_calf_plain_front_left_v0": {
+   "w": 50.32,
+   "h": 57.7,
+   "x0": -25.16,
+   "y0": -53.7,
+   "height": 49.7,
+   "face": {
+    "cx": 0,
+    "cy": -35.2,
+    "r": 15.17
+   },
+   "headTop": {
+    "x": 0,
+    "y": -49.7
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 19.12,
+    "ry": 3.44
+   },
+   "sha256": "2b0b5624be37c41cef38497660051b2725927c8132b313d4726d4d885fba472c"
+  },
+  "velvetBlack_calf_plain_front_left_v0": {
+   "w": 52.6,
+   "h": 63.14,
+   "x0": -26.3,
+   "y0": -59.14,
+   "height": 55.14,
+   "face": {
+    "cx": 0,
+    "cy": -39.1,
+    "r": 15.89
+   },
+   "headTop": {
+    "x": 0,
+    "y": -55.14
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 21.25,
+    "ry": 3.82
+   },
+   "sha256": "86e604a952e0ec0acd632d96e09e5c211a72d22dd5675c9abd9b639ac28d8ea7"
+  },
+  "chocolate_calf_plain_front_left_v0": {
+   "w": 50.32,
+   "h": 63.67,
+   "x0": -25.16,
+   "y0": -59.67,
+   "height": 55.67,
+   "face": {
+    "cx": 0,
+    "cy": -35.2,
+    "r": 15.17
+   },
+   "headTop": {
+    "x": 0,
+    "y": -55.67
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 17.71,
+    "ry": 3.44
+   },
+   "sha256": "25447136cb90a55d994d27537e9cd101dff43925d4f961e58addeb4b3f90358e"
+  },
+  "strawberry_calf_plain_front_left_v0": {
+   "w": 50.32,
+   "h": 63.67,
+   "x0": -25.16,
+   "y0": -59.67,
+   "height": 55.67,
+   "face": {
+    "cx": 0,
+    "cy": -35.2,
+    "r": 15.17
+   },
+   "headTop": {
+    "x": 0,
+    "y": -55.67
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 17.71,
+    "ry": 3.44
+   },
+   "sha256": "fcf54f741c57c0fb09bfe3e6cb89e3c76e0c746745cc8ab096c68801cd80dc90"
+  },
+  "yellow_calf_plain_front_left_v0": {
+   "w": 53.84,
+   "h": 62.04,
+   "x0": -26.92,
+   "y0": -58.04,
+   "height": 54.04,
+   "face": {
+    "cx": 0,
+    "cy": -37.5,
+    "r": 16.38
+   },
+   "headTop": {
+    "x": 0,
+    "y": -54.04
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 22.36,
+    "ry": 3.61
+   },
+   "sha256": "ca70d7b00492f69fad94c174190be3bff69315a9eb214eceff42795d6da83862"
+  },
+  "highland_calf_plain_front_left_v0": {
+   "w": 56,
+   "h": 62.04,
+   "x0": -28.63,
+   "y0": -58.04,
+   "height": 54.04,
+   "face": {
+    "cx": 0,
+    "cy": -37.5,
+    "r": 16.38
+   },
+   "headTop": {
+    "x": 0,
+    "y": -54.04
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 24.15,
+    "ry": 3.61
+   },
+   "sha256": "22a425ce8451ddc48aa733eb40b37db8e92bef8f47a6b1b44f43c316c139711b"
+  },
+  "milkTea_calf_plain_front_left_v0": {
+   "w": 51.48,
+   "h": 56.71,
+   "x0": -25.74,
+   "y0": -52.71,
+   "height": 48.71,
+   "face": {
+    "cx": 0,
+    "cy": -33.76,
+    "r": 15.64
+   },
+   "headTop": {
+    "x": 0,
+    "y": -48.71
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 20.12,
+    "ry": 3.25
+   },
+   "sha256": "f24d423b0afe323024a5ac454cf865e8fd6e05295e30dc6f4335f817a80bce89"
+  },
+  "buffalo_calf_plain_front_left_v0": {
+   "w": 53.84,
+   "h": 62.04,
+   "x0": -26.92,
+   "y0": -58.04,
+   "height": 54.04,
+   "face": {
+    "cx": 0,
+    "cy": -37.5,
+    "r": 16.38
+   },
+   "headTop": {
+    "x": 0,
+    "y": -54.04
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 22.36,
+    "ry": 3.61
+   },
+   "sha256": "40dc787ab6f6fbb137aed12577efd1165cf1bc601c556e40c305e7ce3d7930b3"
+  },
+  "cottonCandy_calf_plain_front_left_v0": {
+   "w": 51.9,
+   "h": 56.71,
+   "x0": -26.16,
+   "y0": -52.71,
+   "height": 48.71,
+   "face": {
+    "cx": 0,
+    "cy": -33.76,
+    "r": 15.64
+   },
+   "headTop": {
+    "x": 0,
+    "y": -48.71
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 21.73,
+    "ry": 3.25
+   },
+   "sha256": "813909e995b7040b383adf4c52fe782625f2b97e5bbf34bee2f33809699ed368"
+  },
+  "shaggyBuffalo_calf_plain_front_left_v0": {
+   "w": 56,
+   "h": 62.04,
+   "x0": -28.63,
+   "y0": -58.04,
+   "height": 54.04,
+   "face": {
+    "cx": 0,
+    "cy": -37.5,
+    "r": 16.38
+   },
+   "headTop": {
+    "x": 0,
+    "y": -54.04
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 24.15,
+    "ry": 3.61
+   },
+   "sha256": "0c5a04576695129a696465d668e8492e5bcb297a3883a582331821f5a1b04fa1"
+  },
+  "honey_calf_plain_front_left_v0": {
+   "w": 51.48,
+   "h": 56.71,
+   "x0": -25.74,
+   "y0": -52.71,
+   "height": 48.71,
+   "face": {
+    "cx": 0,
+    "cy": -33.76,
+    "r": 15.64
+   },
+   "headTop": {
+    "x": 0,
+    "y": -48.71
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 20.12,
+    "ry": 3.25
+   },
+   "sha256": "c84ad5f40c4060891422c4a2283d8b181e6d45af047ea6c5b36478a5e8620c87"
+  },
+  "goldenEar_calf_plain_front_left_v0": {
+   "w": 51.48,
+   "h": 62.87,
+   "x0": -25.74,
+   "y0": -58.87,
+   "height": 54.87,
+   "face": {
+    "cx": 0,
+    "cy": -33.76,
+    "r": 15.64
+   },
+   "headTop": {
+    "x": 0,
+    "y": -54.87
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 20.12,
+    "ry": 3.25
+   },
+   "sha256": "8d9d35da25fd3dc7882c90e02802a918bfcadb69ef8cb12e6212bb5ce703ec4f"
+  },
+  "angus_calf_plain_front_left_v0": {
+   "w": 62.82,
+   "h": 61.7,
+   "x0": -32.04,
+   "y0": -57.7,
+   "height": 53.7,
+   "face": {
+    "cx": 0,
+    "cy": -38.45,
+    "r": 17.2
+   },
+   "headTop": {
+    "x": 0,
+    "y": -53.7
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 26.83,
+    "ry": 3.68
+   },
+   "sha256": "103430dbba6e01f5736d6698220d0e5fdb346993bdf27c7921809fc4d79ecee0"
+  },
+  "galloway_calf_plain_front_left_v0": {
+   "w": 67.1,
+   "h": 61.7,
+   "x0": -34.18,
+   "y0": -57.7,
+   "height": 53.7,
+   "face": {
+    "cx": 0,
+    "cy": -38.45,
+    "r": 17.2
+   },
+   "headTop": {
+    "x": 0,
+    "y": -53.7
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 28.98,
+    "ry": 3.68
+   },
+   "sha256": "01922439e7c54cf44b83a146903c7b304c6de7283c5043356f2b9743790ab392"
+  },
+  "charolais_calf_plain_front_left_v0": {
+   "w": 57.33,
+   "h": 56.3,
+   "x0": -29.23,
+   "y0": -52.3,
+   "height": 48.3,
+   "face": {
+    "cx": 0,
+    "cy": -34.61,
+    "r": 16.42
+   },
+   "headTop": {
+    "x": 0,
+    "y": -48.3
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 24.15,
+    "ry": 3.31
+   },
+   "sha256": "03291eb3763912c5e784e5109044da03bf173c95d35e996caeab19e139f5e828"
+  },
+  "wagyu_calf_plain_front_left_v0": {
+   "w": 62.82,
+   "h": 63.81,
+   "x0": -32.04,
+   "y0": -59.81,
+   "height": 55.81,
+   "face": {
+    "cx": 0,
+    "cy": -38.45,
+    "r": 17.2
+   },
+   "headTop": {
+    "x": 0,
+    "y": -55.81
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 26.83,
+    "ry": 3.68
+   },
+   "sha256": "c574f6a4ff88bab183da0dc58021ce280a6d8d0f2218c13e719a4466f44ee38d"
+  },
+  "whiteFleece_calf_plain_front_left_v0": {
+   "w": 61.19,
+   "h": 56.3,
+   "x0": -31.16,
+   "y0": -52.3,
+   "height": 48.3,
+   "face": {
+    "cx": 0,
+    "cy": -34.61,
+    "r": 16.42
+   },
+   "headTop": {
+    "x": 0,
+    "y": -48.3
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 26.08,
+    "ry": 3.31
+   },
+   "sha256": "65cba2432e610c0acd79fcbfd91135fdf7127e7136eac23250f67f9cbe7aba2c"
+  },
+  "fluffyWagyu_calf_plain_front_left_v0": {
+   "w": 67.1,
+   "h": 63.81,
+   "x0": -34.18,
+   "y0": -59.81,
+   "height": 55.81,
+   "face": {
+    "cx": 0,
+    "cy": -38.45,
+    "r": 17.2
+   },
+   "headTop": {
+    "x": 0,
+    "y": -55.81
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 28.98,
+    "ry": 3.68
+   },
+   "sha256": "4037b069bfb4e48a7045cd3dc8d0ee07c503d829fd32725311390f0fd84c45bc"
+  },
+  "whiteWagyu_calf_plain_front_left_v0": {
+   "w": 57.33,
+   "h": 58.31,
+   "x0": -29.23,
+   "y0": -54.31,
+   "height": 50.31,
+   "face": {
+    "cx": 0,
+    "cy": -34.61,
+    "r": 16.42
+   },
+   "headTop": {
+    "x": 0,
+    "y": -50.31
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 24.15,
+    "ry": 3.31
+   },
+   "sha256": "879694731b285c624e40c7d342c81757971e678789882cf37d818289692338d2"
+  },
+  "starry_calf_plain_front_left_v0": {
+   "w": 57.33,
+   "h": 58.31,
+   "x0": -29.23,
+   "y0": -54.31,
+   "height": 50.31,
+   "face": {
+    "cx": 0,
+    "cy": -34.61,
+    "r": 16.42
+   },
+   "headTop": {
+    "x": 0,
+    "y": -50.31
+   },
+   "shadow": {
+    "cx": 0,
+    "rx": 24.15,
+    "ry": 3.31
+   },
+   "sha256": "607cb89aa1b89d4db14f00eaae91078404fad4d1cf067cd2655febf84f70c00a"
   },
   "mixDairy_cow_adult_side_left_v0": {
    "w": 118.05,
