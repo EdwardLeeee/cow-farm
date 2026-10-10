@@ -73,6 +73,13 @@ Map<String, dynamic> _cow(
   };
 }
 
+/// [FakeGameApi.cleanReplies] 的一次：[gate] 完成了才回應，[error] 給了就回這個錯（伺服器沒清）。
+class CleanReply {
+  CleanReply({this.error});
+  final gate = Completer<void>();
+  final Exception? error;
+}
+
 /// GET /v1/codex/pairings 的假資料：娟珊照設計稿 S09-03（s09.js 的 JERSEY_PAIRS 裡不是「表上沒有的」那 4 組）；
 /// 其他品種只放同品種配同品種一組（真的伺服器每種 4 組，照遺傳算）。
 Map<String, dynamic> samplePairingsJson() => {
@@ -500,8 +507,23 @@ class FakeGameApi implements GameApi {
   @override
   Future<Map<String, dynamic>> clean(Map<Object, int>? piles) async {
     calls.add('clean:${piles == null ? 'all' : [for (final e in piles.entries) '${e.key}x${e.value}'].join(',')}');
+    // 個別控制每一次（[cleanReplies]）：像真的伺服器，照收到的順序先算好（成功的 server_time 往後 1 秒），回應晚一點才到
+    if (cleanReplies.isNotEmpty) {
+      final reply = cleanReplies.removeAt(0);
+      final res = reply.error == null ? _clean(piles, tick: true) : null;
+      await reply.gate.future;
+      if (reply.error case final e?) throw e;
+      return res!;
+    }
     if (cleanGate case final gate?) await gate.future;
     if (cleanError != null) throw cleanError!;
+    return _clean(piles);
+  }
+
+  /// 每一次清大便的回應（照呼叫的順序拿一個）：[gate] 完成了才回，[error] 給了就回這個錯。
+  final cleanReplies = <CleanReply>[];
+
+  Map<String, dynamic> _clean(Map<Object, int>? piles, {bool tick = false}) {
     var cleaned = 0;
     final cows = <Map<String, dynamic>>[];
     for (final c in (stateJson['cows'] as List? ?? const [])) {
@@ -516,7 +538,12 @@ class FakeGameApi implements GameApi {
     }
     final total = cows.fold<int>(0, (a, c) => a + ((c['poop'] as num?)?.toInt() ?? 0));
     final poop = {'total': total, 'dirt': cows.isEmpty ? 0.0 : total / cows.length, 'safe_until': null};
-    stateJson = {...stateJson, 'cows': cows, 'poop': poop};
+    stateJson = {
+      ...stateJson,
+      'cows': cows,
+      'poop': poop,
+      if (tick) 'server_time': (stateJson['server_time'] as num) + 1,
+    };
     return {'cleaned': cleaned, 'poop': poop, 'coins': stateJson['coins'], 'state': stateJson};
   }
 

@@ -119,6 +119,47 @@ void main() {
     expect(find.byKey(const Key('toast')), findsOneWidget);
   });
 
+  testWidgets('連點兩坨、先送的晚回來（它的 state 比較舊）：不蓋掉已經換上的新 state，清掉的不會冒回來', (tester) async {
+    final (m, api) = await _showPoop(tester, 9);
+    final a = CleanReply(), b = CleanReply();
+    api.cleanReplies.addAll([a, b]);
+    await tester.tap(_poop(2));
+    await tester.pump();
+    await tester.tap(_poop(4));
+    await tester.pump();
+    expect(dirtText(tester), '${zh.s03Poop} 7');
+    // 後送的先回來（伺服器已經兩坨都清了）
+    b.gate.complete();
+    await tester.pump();
+    await tester.pump();
+    expect(m.state!.poop.total, 7);
+    // 先送的才回來：它的 state 只清了第一坨，比較舊，不換上
+    a.gate.complete();
+    await tester.pump();
+    await tester.pump();
+    expect(m.state!.poop.total, 7, reason: '舊的 state 不蓋掉新的');
+    expect(_poop(4), findsNothing, reason: '第 4 個位置那坨不會冒回來');
+    expect(dirtText(tester), '${zh.s03Poop} 7');
+  });
+
+  testWidgets('送出失敗：大便放回原來的位置，不是放進最前面的空位', (tester) async {
+    final (_, api) = await _showPoop(tester, 4);
+    // 第 1 個位置先清掉（成功），空出來
+    await tester.tap(_poop(1));
+    await tester.pump();
+    await tester.pump();
+    expect(_poop(1), findsNothing);
+    final spot3 = tester.getRect(_poop(3));
+    api.cleanError = const NetworkException('offline');
+    await tester.tap(_poop(3));
+    await tester.pump();
+    await tester.pump();
+    expect(_poop(3), findsOneWidget, reason: '放回第 3 個位置');
+    expect(tester.getRect(_poop(3)), spot3);
+    expect(_poop(1), findsNothing, reason: '不是放進最前面的空位（第 1 個）');
+    expect(dirtText(tester), '${zh.s03Poop} 3');
+  });
+
   testWidgets('斷線的時候點大便：不清（跟停用的按鈕一樣）', (tester) async {
     final (_, api) = await _showPoop(tester, 4, connected: false);
     await tester.tap(_poop(0));

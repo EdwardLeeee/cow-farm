@@ -107,6 +107,16 @@ class PoopLayout {
     ]..sort((a, b) => a.spot.compareTo(b.spot));
   }
 
+  /// 送出失敗、大便要放回去（[spots]：牛 → 原本的位置）：位置還空著就放回原位，被別的佔了就照常放進最前面的空位。
+  void restore(Map<String, List<int>> spots) {
+    final used = {for (final l in _byCow.values) ...l};
+    for (final e in spots.entries) {
+      for (final s in e.value) {
+        if (used.add(s)) _byCow.putIfAbsent(e.key, () => []).add(s);
+      }
+    }
+  }
+
   /// 換了牧場：新牧場的大便照編號重新排。
   void clear() => _byCow.clear();
 

@@ -203,6 +203,29 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('兩坨各送一次、一次失敗：只收掉失敗那一坨的動畫，另一坨照常播完', (tester) async {
+    final (_, api) = await _showPoop(tester, 4);
+    final ok = CleanReply(), fail = CleanReply(error: const NetworkException('offline'));
+    api.cleanReplies.addAll([ok, fail]);
+    await tester.tap(_poop(0));
+    await tester.pump();
+    await tester.tap(_poop(3));
+    await tester.pump();
+    expect(_fx(0), findsOneWidget);
+    expect(_fx(1), findsOneWidget);
+    fail.gate.complete();
+    await tester.pump();
+    await tester.pump();
+    expect(_fx(1), findsNothing, reason: '失敗的那一坨收掉，大便放回去');
+    expect(_poop(3), findsOneWidget);
+    expect(_fx(0), findsOneWidget, reason: '另一坨照常播');
+    ok.gate.complete();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(_fx(0), findsNothing, reason: '播完收掉');
+    expect(dirtText(tester), '${zh.s03Poop} 3');
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('減少動態：點到的直接消失、數字直接變少（不播波紋和小星星）', (tester) async {
     tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
     addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);

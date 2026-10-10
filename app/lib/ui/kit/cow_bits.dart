@@ -84,6 +84,11 @@ class TierChip extends StatelessWidget {
 Widget rarityChip(String breed, int tier, {bool compact = false}) =>
     breed == kHybrid ? MixStarChip(compact: compact) : TierChip(breedInfo(breed)?.tier ?? tier, compact: compact);
 
+/// 一頭牛的稀有度標籤：還沒揭曉的小牛（品種、稀有度長大才知道，協定 2.3）不放。到了 adult_at、伺服器的 state
+/// 還沒重抓的那幾秒，小牛也會出現在選牛卡、選耕牛、我的公牛裡，不能畫成 1 顆星。
+Widget cowRarityChip(Cow c, {bool compact = false}) =>
+    c.revealed ? rarityChip(c.breed, c.tier, compact: compact) : const SizedBox.shrink();
+
 /// .tier.stars.mix-star：雜種牛一律 1 顆灰星（使用者 2026-10-08），灰底灰框；螢幕閱讀器唸「雜種」。
 class MixStarChip extends StatelessWidget {
   const MixStarChip({super.key, this.compact = false});

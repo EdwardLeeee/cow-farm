@@ -76,6 +76,9 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
   var _poopFxId = 0;
   var _dirtBump = 0;
   var _swiped = 0;
+
+  /// 還沒送出的那幾坨的動畫（下一次 [_sendPoop] 送的就是它們）：送出失敗只收掉這一批，別批的照常播完。
+  final _unsentFx = <int>{};
   _Toast? _toast;
   Timer? _toastTimer;
 
@@ -160,7 +163,7 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
     if (!m.online || m.poopOf(p.cow) <= 0) return false;
     // 場景的大便下一格畫面才更新：同一格裡被劃到兩次（或連點兩下）的，第二次不算
     if (!m.poopLayout.take(p.spot)) return false;
-    return m.takePoop(p.cow);
+    return m.takePoop(p.cow, spot: p.spot);
   }
 
   /// 點一下清一坨（A-14）：開著動畫就在原位播淡掉、波紋、小星星，數字晚 0.3 秒才少；減少動態版直接消失、數字直接變少。
@@ -170,6 +173,7 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
       final fx = PoopFx(_poopFxId++, p.spot);
       setState(() {
         _poopFx.add(fx);
+        _unsentFx.add(fx.id);
         _poopFxPending.add(fx.id);
       });
     }
@@ -184,6 +188,7 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
       final fx = PoopFx(_poopFxId++, p.spot, swipe: true);
       setState(() {
         _poopFx.add(fx);
+        _unsentFx.add(fx.id);
         _poopFxPending.add(fx.id);
       });
     }
@@ -200,14 +205,16 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
   Future<void> _sendPoop() async {
     final m = context.read<GameModel>();
     final s = Strings.of(context, listen: false);
+    final batch = {..._unsentFx};
+    _unsentFx.clear();
     final r = await m.sendPoop();
     final err = r?.error;
     if (!mounted || err == null) return;
-    // 沒清成：大便放回去了，還在播的 A-14 收掉（數字也不再晚一步）
-    if (_poopFx.isNotEmpty) {
+    // 沒清成：這一批的大便放回原位了，它們還在播的動畫收掉（數字也不再晚一步）；別批的照常播完
+    if (batch.isNotEmpty) {
       setState(() {
-        _poopFx.clear();
-        _poopFxPending.clear();
+        _poopFx.removeWhere((f) => batch.contains(f.id));
+        _poopFxPending.removeAll(batch);
       });
     }
     if (err case ApiActionError(:final error) when error.maintenance || error.unauthorized) return;
