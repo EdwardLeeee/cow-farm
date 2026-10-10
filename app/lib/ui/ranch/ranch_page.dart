@@ -1369,6 +1369,7 @@ class _CowPop extends StatelessWidget {
         ? s.growUp(v: s.countdown((adultAt - m.gameNow) / m.timeScale))
         : s.weight(v: fmt(cow.weightKg));
     final metaStyle = AppText.style(13, weight: FontWeight.w700, color: AppColors.ink2, lineHeight: 19);
+    final price = curePrice(m), coins = m.state?.coins ?? 0;
     // .cow-pop 的框、圓角、陰影、內距跟 .card 一樣
     return AppCard(
       key: const Key('cow-pop'),
@@ -1385,7 +1386,8 @@ class _CowPop extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: cowChips(context, cow),
           ),
-          // 病牛（S03-29）：兩行說明（可以換行，.meta.wrap），按鈕換成「治療（5,000 幣）」
+          // 病牛（S03-29）：兩行說明（可以換行，.meta.wrap），按鈕換成「治療（5,000 幣）」。
+          // 金幣不夠（ceo 2026-10-10）：照牛的詳細 S04-20，「治療」停用、下面寫還差多少（只是畫面判斷，扣錢照樣是伺服器算）
           if (cow.sick) ...[
             const SizedBox(height: 2),
             Text(s.s03SickNoMilk, key: const Key('pop-meta'), style: metaStyle),
@@ -1393,14 +1395,24 @@ class _CowPop extends StatelessWidget {
             Text(s.s03SickShip, style: metaStyle),
             const SizedBox(height: 8),
             AppButton(
-              s.treat(price: fmt(curePrice(m))),
+              s.treat(price: fmt(price)),
               key: const Key('pop-treat'),
               small: true,
               block: true,
               kind: ButtonKind.primary,
               icon: 'coin',
-              onPressed: m.canAct ? onTreat : null,
+              onPressed: m.canAct && coins >= price ? onTreat : null,
             ),
+            if (coins < price)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  s.notEnoughCoins(n: fmt(price - coins)),
+                  key: const Key('pop-treat-short'),
+                  textAlign: TextAlign.center,
+                  style: KitText.warn(),
+                ),
+              ),
           ] else ...[
             const SizedBox(height: 2),
             Text(meta, key: const Key('pop-meta'), style: metaStyle),

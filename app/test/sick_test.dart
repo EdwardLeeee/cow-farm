@@ -3,6 +3,7 @@
 import 'package:cowfarm/app.dart';
 import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
+import 'package:cowfarm/ui/kit/kit.dart';
 import 'package:cowfarm/ui/kit/motion.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,11 +14,14 @@ import 'pages/s03_cases.dart';
 import 'pages/s04_cases.dart' show kvValue;
 import 'pages/s17_cases.dart' show FieldsApi, fieldsHerd, fieldsState, showFields;
 
-/// 設計稿 S03-28 的牧場（#3 荷斯坦生病了、9 坨大便）。[motion] 開著動畫（牛會走動）。
-Future<(GameModel, FakeGameApi)> _sickRanch(WidgetTester tester, {bool motion = false}) async {
+/// 設計稿 S03-28 的牧場（#3 荷斯坦生病了、9 坨大便）。[motion] 開著動畫（牛會走動）；[coins] 給了就換掉金幣。
+Future<(GameModel, FakeGameApi)> _sickRanch(WidgetTester tester, {bool motion = false, double? coins}) async {
   Screen.w430.apply(tester);
   final api = FakeGameApi(
-    state: ranchState(cows: sickHerd()),
+    state: {
+      ...ranchState(cows: sickHerd()),
+      'coins': ?coins,
+    },
     market: ranchMarket(),
   );
   final m = await ranchModel(api: api);
@@ -54,6 +58,26 @@ void main() {
     expect(find.text(zh.s04Treated(cow: zh.cowName('holstein', 3))), findsOneWidget);
     expect(find.byKey(const Key('cow-pop')), findsNothing, reason: '名片收起來');
     expect(ranchGame(tester).artOf(3), isNot(endsWith('_sick')), reason: '臉色回來了');
+  });
+
+  testWidgets('金幣不夠（剩 3,750）：名片上的「治療」照 S04-20 停用，下面寫還差 1,250 幣（ceo 2026-10-10）', (tester) async {
+    final (_, api) = await _sickRanch(tester, coins: 3750);
+    await tapSceneCow(tester, 3);
+    await tester.pump();
+    expect(tester.widget<AppButton>(find.byKey(const Key('pop-treat'))).onPressed, isNull);
+    expect(find.text(zh.notEnoughCoins(n: '1,250')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('pop-treat')), warnIfMissed: false);
+    await tester.pump();
+    expect(find.byKey(const Key('treat-dialog')), findsNothing);
+    expect(api.calls.where((c) => c.startsWith('cure')), isEmpty);
+  });
+
+  testWidgets('金幣夠：名片上沒有「還差」那一行', (tester) async {
+    await _sickRanch(tester);
+    await tapSceneCow(tester, 3);
+    await tester.pump();
+    expect(tester.widget<AppButton>(find.byKey(const Key('pop-treat'))).onPressed, isNotNull);
+    expect(find.byKey(const Key('pop-treat-short')), findsNothing);
   });
 
   testWidgets('治療確認按「取消」：不治療，名片還在', (tester) async {
