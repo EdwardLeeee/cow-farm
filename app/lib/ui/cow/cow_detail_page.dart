@@ -784,8 +784,9 @@ class ListSheet extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
+                    // 雜種牛不透露原本的稀有度（協定 2.3）：跟名片一樣寫「雜種」
                     (fee.atMax ? s.s04FeeHowMax : s.s04FeeHowGrow)(
-                      tier: s.tierName(cow.tier.clamp(0, 3)),
+                      tier: cow.hybrid ? s.badgeMix : s.tierName(cow.tier.clamp(0, 3)),
                       rate: priceText(fee.perKg),
                       kg: fmt(fee.kg),
                     ),

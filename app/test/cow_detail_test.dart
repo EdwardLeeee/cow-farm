@@ -28,6 +28,16 @@ Future<void> _tap(WidgetTester tester, String key) async {
 void main() {
   setUpAll(loadAppAssets);
 
+  testWidgets('雜種公牛上架借種：說明寫「雜種」，不露出原本的稀有度（協定 2.3）', (tester) async {
+    Screen.w430.apply(tester);
+    // 安格斯 #5（公牛、可以上架）變成雜種牛：伺服器照樣送原本的稀有度（傳說）
+    final mix = {...detailCow(5), 'breed': 'hybrid', 'tier': 3, 'hybrid': true};
+    await showCow(tester, AppLang.zhHant, mix);
+    await _tap(tester, 'detail-list');
+    expect(find.text(_zh.s04FeeHowGrow(tier: _zh.badgeMix, rate: '1.1', kg: '790')), findsOneWidget);
+    expect(find.textContaining(_zh.tierName(3)), findsNothing);
+  });
+
   testWidgets('出貨（S07 → S20）：機率和各等級收入照伺服器給的；按「確定出貨」才出貨，結果頁按「好」回到清單', (tester) async {
     Screen.w390.apply(tester);
     final api = DetailApi(state: detailState(detailCow(3)))..after = detailState(detailCow(11));

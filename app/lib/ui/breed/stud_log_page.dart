@@ -157,9 +157,20 @@ class LogEmptyCard extends StatelessWidget {
 }
 
 /// 借種紀錄裡的牛：品種＋編號（借入的公牛沒有編號）。不加「公牛」（ceo 2026-10-02：紀錄裡的一定是公牛）。
+/// 沒有品種（伺服器沒給）只寫 #編號。
 String logCowText(Strings s, String breed, Object? id) {
   final n = id is int ? id : int.tryParse('${id ?? ''}');
+  if (breed.isEmpty) return n == null ? '' : '#$n';
   return n == null ? s.breedName(breed) : s.cowName(breed, n);
+}
+
+/// 借入時生下的小牛：長大了寫品種＋編號；還沒長大（協定 4.6：calf.breed 是 null）寫牧場裡那頭牛現在的名字
+/// （例「小乳牛 #15」），不在牧場了寫 #編號。沒有小牛是 null。
+String? logCalfText(Strings s, GameModel m, StudLogEntry e) {
+  if (e.calfBreed case final b? when b.isNotEmpty) return logCowText(s, b, e.calfId);
+  if (e.calfId == null) return null;
+  final c = m.state?.cowById('${e.calfId}');
+  return c != null ? s.cowLabel(c) : '#${e.calfId}';
 }
 
 /// 紀錄裡的對方：已刪除的牧場、電腦「電腦 名字」、真人「名字 #編號」。
@@ -191,7 +202,7 @@ class StudLogRow extends StatelessWidget {
     final e = entry;
     final cow = logCowText(s, e.bullBreed, e.out ? e.bullId : null);
     final ranch = logRanchText(s, e.ranch);
-    final calf = e.calfBreed == null ? null : logCowText(s, e.calfBreed!, e.calfId);
+    final calf = logCalfText(s, m, e);
     final amt = e.out ? '+${fmt(e.price)}' : '−${fmt(e.price)}';
     // 每一列自己一個無障礙節點：不然同一個清單的幾列會併成一個，讀螢幕一口氣讀完（8790 走查看到）
     return Semantics(
