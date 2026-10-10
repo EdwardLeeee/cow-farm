@@ -22,6 +22,7 @@ const { sickLines, SICK_BUBBLE_INNER } = await imp('src/cow/sick.js');
 const { ICON_NAMES, TAB_KEYS, icon, tabIcon } = await imp('src/js/icons.js');
 const { backdrop, sparkle, HERD, WIDE } = await imp('src/js/scene.js');
 const { TK, truckBack, truckFront, wheel, A03_HERD } = await imp('src/js/truck.js');
+const { sackSvg, hungrySvg } = await imp('src/js/feedbar.js');
 
 const f = (v) => Math.round(v * 100) / 100;
 const sha = (s) => createHash('sha256').update(s).digest('hex');
@@ -167,6 +168,11 @@ function ui() {
   put('parts/sparkle.svg', wrap([-12, -12, 24, 24], sparkle(0, 0, 10)));
   // 病牛頭上的溫度計泡泡（v0.3 第 5 節）：中心 (0, 0)、半徑 10，尾巴往左下指向牛頭
   put('parts/sick_bubble.svg', wrap([-12.6, -11, 24.6, 25.8], SICK_BUBBLE_INNER));
+  // 飼料列的袋子（v0.3 第 2.2 節；feedbar.js）：54×58，沒有了（0 份）用 empty
+  put('parts/feed_sack.svg', standalone(sackSvg(false)));
+  put('parts/feed_sack_empty.svg', standalone(sackSvg(true)));
+  // 肚子餓的圖示（空碗加問號；使用者選第 26 輪 A）
+  put('parts/hungry.svg', standalone(hungrySvg()));
   const manifest = {
     about: [
       'cow-ui 的 design/m2/harness/assetexport.mjs 產生的，不要手改。files 的 key 是 app/assets/ui/ 底下的路徑。',
@@ -176,8 +182,10 @@ function ui() {
       'parts/sparkle：半徑 10，中心在 (0, 0)；描邊 1.6，設計稿畫小的星星時描邊不縮。',
       'parts/sick_bubble：病牛頭上的溫度計泡泡，中心在 (0, 0)、半徑 10。放的位置照 cows.json 那張牛圖的 face、headTop：中心 (face.cx + 0.9315 × face.r, headTop.y − 0.2 × face.r)，半徑 0.5 × face.r（設計稿 src/cow/sick.js 的 sickBubbleAt）。',
       'icons/poop：大便（霜淇淋捲），牧場場景裡的大便也是這張：底部中間對齊地上那一點，寬約 19（場景座標）。',
+      'parts/feed_sack、parts/feed_sack_empty：牧場頁飼料列的袋子 54×58（0 份用 empty，整袋再淡到 0.4）。飼料的圖示 icons/feed_<key> 畫在袋子的 (15, 22)、24×24；剩幾份是右上角的深色圓角標籤（右 −4、上 2、高 20）。袋子下面的名字 12 px、白色描邊 3 px。袋子要有下面的影子（設計稿 drop-shadow 0 3px 2px，35% 深棕）。',
+      'parts/hungry：肚子餓的圖示（空碗加問號），viewBox 40×46，畫面上 38×44；底部中間對齊牛的頭頂往上 4（cows.json 的 headTop）。',
     ],
-    generator: closure(['src/js/icons.js', 'src/js/scene.js', 'src/js/truck.js']),
+    generator: closure(['src/js/icons.js', 'src/js/scene.js', 'src/js/truck.js', 'src/js/feedbar.js']),
     anchors: {
       truck: {
         size: [TK.w, TK.h],

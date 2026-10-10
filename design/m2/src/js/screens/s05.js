@@ -54,7 +54,7 @@ const S = [];
 const full = (id, name, render, x = {}) => S.push({ id, name, type: 'full', render, ...x });
 const part = (id, name, crop, render, x = {}) => S.push({ id, name, type: 'part', crop, render, ...x });
 
-part('S05-01', '牧場頁的倉庫小卡', '.dock-row', (ctx) => ranchPage(ctx));
+part('S05-01', '牧場頁的倉庫小鈕（奶桶面板左上角；第 23 輪 03-B）', '.dock-head', (ctx) => ranchPage(ctx));
 full('S05-02', '倉庫詳細：每一批（長頁）', (ctx) => page(ctx), { tall: true });
 full('S05-03', '空倉庫', (ctx) => page(ctx, { milk: [], beef: [], rice: [], tall: false }));
 full('S05-04', '倉庫滿了（牛奶）', (ctx) => page(ctx, { milk: [{ qty: 120, tier: 0, fresh: 1, ago: { h: 1 } }, { qty: 77, tier: 1, fresh: 0.86, ago: { h: 12 } }, { qty: 28, tier: 3, fresh: 0.7, ago: { h: 26 } }], beef: [], rice: WAREHOUSE.rice.slice(0, 1), tall: false }));
