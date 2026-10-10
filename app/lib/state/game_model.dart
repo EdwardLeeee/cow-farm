@@ -534,6 +534,7 @@ class GameModel extends ChangeNotifier {
     poopLayout.clear();
     _cleaning.clear();
     _unsent.clear();
+    _unsentSpots.clear();
     _offlineSince = null;
     _onlineBefore = false;
     _dropped = false;
@@ -1356,18 +1357,22 @@ class GameModel extends ChangeNotifier {
   /// 劃過去清掉、還沒送出的（手指放開才一次送）。
   final Map<String, int> _unsent = {};
 
+  /// 還沒送出的那幾坨原本畫在哪個位置（牛 → 位置）：送出失敗時放回原位，不是放進最前面的空位。
+  final Map<String, List<int>> _unsentSpots = {};
+
   /// 這頭牛旁邊現在要畫幾坨（扣掉正在清的）。
   int poopOf(Cow c) => max(0, c.poop - (_cleaning[c.key] ?? 0));
 
   /// 全場現在有幾坨（扣掉正在清的；右上角的數字）。
   int get poopTotal => state?.cows.fold<int>(0, (n, c) => n + poopOf(c)) ?? 0;
 
-  /// 清掉 [cow] 旁邊的一坨（點到、劃過去）：先從畫面拿掉（A-14、A-15 的減少動態版），[sendPoop] 才送出。
-  /// 斷線的時候不能清（跟停用的按鈕一樣）。
-  bool takePoop(Cow cow) {
+  /// 清掉 [cow] 旁邊的一坨（點到、劃過去）：先從畫面拿掉（A-14、A-15），[sendPoop] 才送出。[spot] 是那一坨畫在哪個位置
+  /// （送出失敗時放回去）。斷線的時候不能清（跟停用的按鈕一樣）。
+  bool takePoop(Cow cow, {int? spot}) {
     if (!online || poopOf(cow) <= 0) return false;
     _cleaning.update(cow.key, (n) => n + 1, ifAbsent: () => 1);
     _unsent.update(cow.key, (n) => n + 1, ifAbsent: () => 1);
+    if (spot != null) _unsentSpots.putIfAbsent(cow.key, () => []).add(spot);
     _notify();
     return true;
   }
@@ -1377,20 +1382,30 @@ class GameModel extends ChangeNotifier {
   Future<ActionResult<Map<String, dynamic>>?> sendPoop() async {
     if (_unsent.isEmpty) return null;
     final piles = Map.of(_unsent);
+    final spots = {
+      for (final e in _unsentSpots.entries) e.key: [...e.value],
+    };
     _unsent.clear();
+    _unsentSpots.clear();
     ActionResult<Map<String, dynamic>> r;
     try {
       final res = await api.clean({for (final e in piles.entries) state?.cowById(e.key)?.id ?? e.key: e.value});
       _httpOk = true;
       // 拿掉正在清的、換上回應的 state 要在同一步（不然會多扣一次，或閃一下）
       _release(piles);
-      if (res['state'] case final Map<String, dynamic> st) _setState(GameState.fromJson(st));
+      // 連點兩坨時兩個請求同時在路上：先送的晚回來，它的 state 比較舊（不含後面那坨），不能蓋掉已經換上的新的
+      if (res['state'] case final Map<String, dynamic> st) {
+        final next = GameState.fromJson(st);
+        if (state == null || next.serverTime >= state!.serverTime) _setState(next);
+      }
       r = ActionResult.ok(res);
     } on ApiException catch (e) {
+      poopLayout.restore(spots);
       _release(piles);
       _handleApiError(e);
       r = ActionResult.fail(ApiActionError(e));
     } on NetworkException {
+      poopLayout.restore(spots);
       _release(piles);
       _httpOk = false;
       r = const ActionResult.fail(NetworkActionError());
