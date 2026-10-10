@@ -6,10 +6,12 @@
   "parts/truck_*：卡車自己的座標 270×152（anchors.truck）。back 畫在牛後面，front 畫在牛前面；輪子、擋板另外畫。",
   "parts/sparkle：半徑 10，中心在 (0, 0)；描邊 1.6，設計稿畫小的星星時描邊不縮。",
   "parts/sick_bubble：病牛頭上的溫度計泡泡，中心在 (0, 0)、半徑 10。放的位置照 cows.json 那張牛圖的 face、headTop：中心 (face.cx + 0.9315 × face.r, headTop.y − 0.2 × face.r)，半徑 0.5 × face.r（設計稿 src/cow/sick.js 的 sickBubbleAt）。",
-  "icons/poop：大便（霜淇淋捲），牧場場景裡的大便也是這張：底部中間對齊地上那一點，寬約 19（場景座標）。"
+  "icons/poop：大便（霜淇淋捲），牧場場景裡的大便也是這張：底部中間對齊地上那一點，寬約 19（場景座標）。",
+  "parts/feed_sack、parts/feed_sack_empty：牧場頁飼料列的袋子 54×58（0 份用 empty，整袋再淡到 0.4）。飼料的圖示 icons/feed_<key> 畫在袋子的 (15, 22)、24×24；剩幾份是右上角的深色圓角標籤（右 −4、上 2、高 20）。袋子下面的名字 12 px、白色描邊 3 px。袋子要有下面的影子（設計稿 drop-shadow 0 3px 2px，35% 深棕）。",
+  "parts/hungry：肚子餓的圖示（空碗加問號），viewBox 40×46，畫面上 38×44；底部中間對齊牛的頭頂往上 4（cows.json 的 headTop）。"
  ],
  "generator": {
-  "design/m2/harness/assetexport.mjs": "d0ef7ac13e4fd189af08d9811bef33b81c17443c65af74a312d49785fd54addc",
+  "design/m2/harness/assetexport.mjs": "e305f944391bb9f6dd2962719ec8dfebc753aa3b8372a7f74ba87e79f52176ac",
   "design/m2/src/cow/breeds.js": "a7f37d682deea250586c15bac9eaa28a551825b28fcf7ab7766526a48d75ecf8",
   "design/m2/src/cow/calf.js": "3d773e00d3f42d69b9de1b2de366e9af4f25f46645fdcf47a5146b063d84c29b",
   "design/m2/src/cow/q.js": "161f0ebf2cffa8d8baf19f095bab63f04c6d55004155fd078942b2aae7b5fbee",
@@ -17,9 +19,10 @@
   "design/m2/src/cow/r11.js": "6320eccb9408e09ad5ee4a983d2c30e1a9341461d08bad9b2665994b4147b06e",
   "design/m2/src/cow/render.js": "fd3363eae9b2bfe19afe8dbbfb990f576133dbcd4d14615e8a5dac05af73d55a",
   "design/m2/src/cow/sick.js": "aa8ab60fae35ac532870d2d91923e756f2b211d40401121dca002523f22a8e66",
+  "design/m2/src/js/feedbar.js": "4f314e29d9ea3a7e3fe16ab11ec8ae64e7d4df97fefdbc7f51df56ed41996392",
   "design/m2/src/js/feeds.js": "18fbdcd654cc8aedfb36072facd9fc8c78f4ae3a64ae7a9bf49796906c307f74",
   "design/m2/src/js/icons.js": "b4c7a26a3157c2c6ce215f34728e37c4e1c4c52369f72482249a49356417e547",
-  "design/m2/src/js/poop.js": "e40856515326331787c75d6e199c50373947dac1064a123cabe7eed97b59e595",
+  "design/m2/src/js/poop.js": "b8712c7fd4adea8bd3d79245b2337c7be43884985f802ae62170581970328dd4",
   "design/m2/src/js/scene.js": "41570152fdcacb49314777062b67b925c34fa61cab2194fe338015f575507306",
   "design/m2/src/js/truck.js": "3731ad8d2be15bc3ab095511aa41ca2befa924b28d54888b94b70de3abdb741a"
  },
@@ -518,6 +521,21 @@
    "w": 24.6,
    "h": 25.8,
    "sha256": "74a0b0e0729c7b82521312db3b6471d3630370663d755d8afaa8809922175a37"
+  },
+  "parts/feed_sack.svg": {
+   "w": 54,
+   "h": 58,
+   "sha256": "771e525a21a5a685c96866825a23a6ee5568a7817e66d706316e0aa9edcf0fa6"
+  },
+  "parts/feed_sack_empty.svg": {
+   "w": 54,
+   "h": 58,
+   "sha256": "5b08a641fb54f5c6898b99850b2230736e49716289d21fb72b1ed699789485ba"
+  },
+  "parts/hungry.svg": {
+   "w": 40,
+   "h": 46,
+   "sha256": "3ef7dbe5055616984d34313ddfd99100eca489079c3f4b7c39da5c3a2d37f93a"
   }
  }
 }

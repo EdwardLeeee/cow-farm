@@ -1,4 +1,4 @@
-// S05 倉庫：從牧場面板的倉庫卡打開、返回；新的在上面；快滿、滿了；去市場賣、加大倉庫；出貨的牛沒有品種時只寫編號。
+// S05 倉庫：從牧場頁頂列的「倉庫」小鈕打開、返回；新的在上面；快滿、滿了；去市場賣、加大倉庫；出貨的牛沒有品種時只寫編號。
 import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
 import 'package:cowfarm/ui/kit/kit.dart';
@@ -15,7 +15,7 @@ Future<GameModel> _open(WidgetTester tester, Map<String, dynamic> state) async {
   Screen.w390.apply(tester);
   final m = await ranchModel(state: state);
   await pumpAppIn(tester, m, AppLang.zhHant, prefs: swipeHintSeen);
-  await tester.tap(find.byKey(const Key('storage-mini')));
+  await tester.tap(find.byKey(const Key('warehouse-btn')));
   await tester.pump();
   return m;
 }
@@ -27,7 +27,7 @@ bool _above(WidgetTester tester, String first, String second) =>
 void main() {
   setUpAll(loadAppAssets);
 
-  testWidgets('點牧場面板的倉庫卡打開倉庫；返回鈕、手機的返回都回到牧場', (tester) async {
+  testWidgets('點牧場頁的「倉庫」小鈕打開倉庫；返回鈕、手機的返回都回到牧場', (tester) async {
     final m = await _open(tester, warehouseState());
     expect(find.byKey(const Key('warehouse')), findsOneWidget);
     expect(m.warehouseOpen, isTrue);
@@ -37,7 +37,7 @@ void main() {
     expect(m.warehouseOpen, isFalse);
 
     // 手機的返回（Android 返回鍵、iPhone 滑回）
-    await tester.tap(find.byKey(const Key('storage-mini')));
+    await tester.tap(find.byKey(const Key('warehouse-btn')));
     await tester.pump();
     await tester.binding.handlePopRoute();
     await tester.pump();
