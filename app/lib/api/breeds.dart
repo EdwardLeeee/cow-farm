@@ -6,6 +6,21 @@ import 'models.dart';
 /// 不算在 24 種的完成度裡。協定 C1（ceo 2026-10-08 核准 cow-back 的提案），cow-back 寫進 protocol.md。
 const kHybrid = 'hybrid';
 
+/// 小牛的長相（v0.3 #151，設計稿 cow/calf.js 的 CALF_LOOK）：小牛只有 6 種樣子（用途 × 公母），照用途的一般品種畫；
+/// 母小牛的圖已經有蝴蝶結（匯出的素材畫好了）。
+const kCalfLook = {CowType.dairy: 'holstein', CowType.dual: 'yellow', CowType.beef: 'angus'};
+
+/// 雜種牛的長相（v0.3 #157，設計稿 cow/breeds.js 的 MIX_LOOK）：照用途三種體型，毛色都是灰褐素色。只有長大的圖。
+const kMixLook = {CowType.dairy: 'mixDairy', CowType.dual: 'mixDraft', CowType.beef: 'mixBeef'};
+
+/// 一個品種代號畫哪個圖：雜種牛照用途的體型，其他照品種。
+String lookOf(String breed, CowType type) => breed == kHybrid ? kMixLook[type]! : breed;
+
+extension CowLook on Cow {
+  /// 這頭牛畫哪個品種的圖：小牛照用途的一般品種（[kCalfLook]），雜種牛照用途的體型（[kMixLook]），其他照品種。
+  String get look => !revealed ? kCalfLook[type]! : (hybrid ? kMixLook[type]! : lookOf(breed, type));
+}
+
 /// 品種代號，依特徵組合（0–7）排。
 const kBreedsByType = <CowType, List<String>>{
   CowType.dairy: [

@@ -1,6 +1,7 @@
 // S01 啟動與載入、S02 自己取名的畫面狀態（design/m2/scope.md 第 4 節；設計稿 boards/S01-啟動與載入、S02-自己取名）。
 import 'dart:math';
 
+import 'package:cowfarm/api/models.dart';
 import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
 import 'package:cowfarm/storage/token_store.dart';
@@ -128,7 +129,7 @@ final startCases = <PageCase>[
       // 名字後面加 #編號（player_id 補零到 4 位）；牛、金幣、奶桶都照伺服器的 state
       expect(find.text(_zh.s02Welcome(name: '小花的快樂牧場 #0031')), findsOneWidget);
       expect(find.text(_zh.cowName('holstein', 1)), findsOneWidget);
-      expect(find.text(_zh.cowName('yellow', 2)), findsOneWidget);
+      expect(find.text(_zh.calfName(CowType.dual, 2)), findsOneWidget, reason: '開局送的小牛也還不知道品種（#151）');
       expect(find.text('${_zh.cow}${_zh.gSep}${_zh.s02GiftMilk}'), findsOneWidget);
       expect(find.text('${_zh.bull}${_zh.gSep}${_zh.gGrowsIn(time: _zh.minutes(m: 20))}'), findsOneWidget);
       expect(find.text(_zh.s02Boost(h: 1, x: '5')), findsOneWidget);

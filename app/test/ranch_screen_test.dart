@@ -158,15 +158,16 @@ void main() {
     await tester.pump();
     expect(pop, findsNothing);
 
-    // 小牛：標籤「小牛」，那一行寫長大還要多久（ceo 2026-10-02）。#2 在場景右半邊，一開始看不到
+    // 小牛：標籤「小牛」，那一行寫長大還要多久（ceo 2026-10-02）；還不知道品種，叫「小肉牛 #3」（#151）。
+    // #2 在場景右半邊，一開始看不到
     await tapSceneCow(tester, 3);
     await tester.pump();
-    expect(find.descendant(of: pop, matching: find.text(_zh.cowName(m.state!.cows[2].breed, 3))), findsOneWidget);
+    expect(find.descendant(of: pop, matching: find.text(_zh.calfName(m.state!.cows[2].type, 3))), findsOneWidget);
     expect(find.descendant(of: pop, matching: find.text(_zh.stageCalf)), findsOneWidget);
     expect(tester.widget<Text>(find.byKey(const Key('pop-meta'))).data, _zh.growUp(v: _zh.countdown(3600 / 144)));
     expect(sceneCowAsset(tester, 3), contains('_front_'));
     // 點名片本身（名字）：不會收起來（名片擋住，點不到後面的空地）
-    await tester.tap(find.descendant(of: pop, matching: find.text(_zh.cowName(m.state!.cows[2].breed, 3))));
+    await tester.tap(find.descendant(of: pop, matching: find.text(_zh.calfName(m.state!.cows[2].type, 3))));
     await tester.pump();
     expect(pop, findsOneWidget);
     // 點空地（右上方的天空，小名片最右到 12 + 208 + … 碰不到）：收起來

@@ -2,6 +2,7 @@
 // S10 設施（效果、費用、滿級、還沒開放、升級成功）；擴建、加大倉庫的按鈕直接到設施。
 import 'dart:async';
 
+import 'package:cowfarm/api/models.dart';
 import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
 import 'package:cowfarm/ui/kit/kit.dart';
@@ -86,7 +87,8 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
     expect(api.calls, contains('shop-buy:A'));
     expect(find.byKey(const Key('drawn-cow')), findsOneWidget);
-    expect(find.text(_zh.cowName('highland', 17)), findsOneWidget);
+    // 抽到的也是小牛（#151）：叫「小耕牛 #17」
+    expect(find.text(_zh.calfName(CowType.dual, 17)), findsOneWidget);
     expect(find.text(_zh.stageCalf), findsOneWidget);
     await tester.tap(find.byKey(const Key('drawn-ok')));
     await tester.pump();

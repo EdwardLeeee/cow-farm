@@ -47,8 +47,9 @@ Map<String, dynamic> designCow(
     'id': id,
     'type': info.type.wire,
     'bull': bull,
-    'tier': info.tier,
-    'breed': breed,
+    // v0.3 C1（協定 2.3）：小牛的品種、稀有度長大才揭曉，伺服器送 null（[breed] 只用來決定用途）
+    'tier': adult ? info.tier : null,
+    'breed': adult ? breed : null,
     'stage': stage,
     'born_at': t0 - 36000,
     'age_h': 10.0,
@@ -69,6 +70,10 @@ Map<String, dynamic> designCow(
     'grade_probs': adult ? {'A': 0.4, 'B': 0.44, 'C': 0.16} : null,
     'origin': 'start',
     'stud_fee': fee == null ? null : {'price': fee, 'per_kg': 1.1, 'kg': kg, 'at_max': false},
+    'hybrid': false,
+    'need': const <String>[],
+    'ate': const <String>[],
+    'missed': const <String>[],
   };
 }
 

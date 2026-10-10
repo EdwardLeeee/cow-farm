@@ -379,9 +379,9 @@ class CodexDetailPage extends StatelessWidget {
   }
 }
 
-/// 品種詳細的數值（設計稿 detailPage 的 stats）：乳牛先寫產奶、耕牛先寫耕田；再來最佳體重、賣價倍數、小牛長大。
-/// 數字都讀伺服器的 economy（協定 2.3，app 不寫死）；沒給的寫「–」。產量是每遊戲小時（跟牛的詳細 S04 一樣），
-/// 小牛長大是時間，換成現實時間（倍率 144 時是秒）。
+/// 品種詳細的數值（設計稿 detailPage 的 stats）：乳牛先寫產奶、耕牛先寫耕田；再來最佳體重、賣價倍數。
+/// 數字都讀伺服器的 economy（協定 2.3，app 不寫死）；沒給的寫「–」。產量是每遊戲小時（跟牛的詳細 S04 一樣）。
+/// 「小牛長大 N 小時」那一格 v0.3 拿掉了（#151：所有小牛長大的時間一樣）。
 List<KvCell> codexStats(Strings s, GameModel m, CowType type, int tier) {
   final e = m.state?.economy;
   final mult = e == null || e.tierMult.isEmpty ? null : e.tierMult[tier.clamp(0, e.tierMult.length - 1)];
@@ -401,18 +401,6 @@ List<KvCell> codexStats(Strings s, GameModel m, CowType type, int tier) {
     mult == null ? '–' : '×${mult.toStringAsFixed(1)}',
     type == CowType.dual ? s.s09MultBeef : null,
   ));
-  final growH = e == null || e.calfGrowH.isEmpty ? null : e.calfGrowH[tier.clamp(0, e.calfGrowH.length - 1)];
-  if (growH == null) {
-    cells.add((s.s09CalfGrow, '–', null));
-  } else {
-    final seconds = growH * 3600 / (m.timeScale > 0 ? m.timeScale : 1);
-    // 整數小時照設計稿「2 小時」（數字大、單位小）；倍率 144 時不是整數小時，整串寫在數字那格
-    cells.add(
-      seconds % 3600 == 0
-          ? (s.s09CalfGrow, fmt(seconds / 3600), s.gHourUnit)
-          : (s.s09CalfGrow, s.countdown(seconds), null),
-    );
-  }
   return cells;
 }
 

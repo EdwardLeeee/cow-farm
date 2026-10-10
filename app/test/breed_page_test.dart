@@ -49,7 +49,7 @@ void main() {
     expect(_go(tester).label, _zh.s08BredBtn);
     expect(_go(tester).onPressed, isNull);
     expect(find.byType(CalfCard), findsOneWidget);
-    expect(find.text(_zh.breedDone(cow: _zh.cowName('jersey', 16))), findsOneWidget);
+    expect(find.text(_zh.breedDone(cow: _zh.calfName(CowType.dairy, 16))), findsOneWidget);
     // 剛配好的那一對還是選好的樣子（捲回上面看）
     await tester.scrollUntilVisible(find.byKey(const Key('sire-14')), -200, scrollable: breedScrollable);
     expect(_card(tester, 'sire-14').on, isTrue);

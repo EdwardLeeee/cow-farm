@@ -7,6 +7,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../api/breeds.dart';
 import '../../api/models.dart';
 import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
@@ -206,7 +207,7 @@ class _TruckSceneState extends State<TruckScene> with SingleTickerProviderStateM
     if (art == null) return const [];
     Widget at(Offset foot, {required bool front, required bool right}) {
       final (name, mirror) = art.pick(
-        breed: cow.breed,
+        breed: cow.look,
         bull: cow.bull,
         calf: cow.stage == CowStage.calf,
         front: front,

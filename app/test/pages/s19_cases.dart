@@ -7,6 +7,7 @@ import 'package:cowfarm/api/game_api.dart';
 import 'package:cowfarm/api/models.dart';
 import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
+import 'package:cowfarm/ui/kit/cow_bits.dart';
 import 'package:cowfarm/ui/kit/note_line.dart';
 import 'package:cowfarm/ui/shop/shop_page.dart';
 import 'package:flutter/widgets.dart';
@@ -86,7 +87,7 @@ class ShopApi extends FakeGameApi {
     calls.add('shop-buy:$grade');
     if (after != null) stateJson = after!;
     // 設計稿抽到的：高地牛 #17（耕牛、母、優良、小牛，還要 2 小時長大）
-    final calf = designCow(17, 'highland', stage: 'calf', growMin: 120);
+    final calf = designCow(17, 'highland', stage: 'calf', growMin: 180); // v0.3：所有小牛 3 小時長大（#151）
     return ShopBuyResult(grade: grade, cow: Cow.fromJson(calf), cost: 3200);
   }
 
@@ -187,8 +188,16 @@ final s19Cases = <PageCase>[
     check: (tester) {
       expect(find.byKey(const Key('drawn-cow')), findsOneWidget);
       expect(find.text(_zh.drawnTitle(g: 'A')), findsOneWidget);
-      expect(find.text(_zh.cowName('highland', 17)), findsOneWidget);
-      expect(find.text(_zh.s19DrawnDraft(time: _zh.countdown(7200))), findsOneWidget);
+      // 抽到的也是小牛（#151）：「小耕牛 #17」、不放稀有度；下面「長大可能是：」這個等級公開的稀有度機率
+      expect(find.text(_zh.calfName(CowType.dual, 17)), findsOneWidget);
+      final odds = find.byKey(const Key('draw-odds'));
+      expect(find.descendant(of: odds, matching: find.text(_zh.s19DrawnOdds)), findsOneWidget);
+      expect(find.descendant(of: odds, matching: find.byType(TierChip)), findsNWidgets(4));
+      expect(
+        find.descendant(of: find.byKey(const Key('drawn-cow')), matching: find.byType(TierChip)),
+        findsNWidgets(4),
+      );
+      expect(find.text(_zh.s19DrawnDraft(time: _zh.countdown(10800))), findsOneWidget);
       expect(find.text('9,280'), findsOneWidget);
     },
   ),

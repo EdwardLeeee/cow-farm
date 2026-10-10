@@ -7,6 +7,7 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../api/breeds.dart';
 import '../../api/models.dart';
 import '../kit/cow_art.dart';
 import '../kit/motion.dart';
@@ -70,7 +71,7 @@ class CowPlacement {
     final cow = c.cow;
     final id = cow.id is int ? cow.id as int : int.tryParse('${cow.id}') ?? 0;
     final (name, mirror) = art.pick(
-      breed: cow.breed,
+      breed: cow.look,
       bull: cow.bull,
       calf: cow.stage == CowStage.calf,
       front: c.front,

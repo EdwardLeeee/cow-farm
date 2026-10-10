@@ -191,7 +191,8 @@ List<Widget> cowChips(BuildContext context, Cow c) {
   return [
     UseChip(info?.type ?? c.type),
     SexText(bull: c.bull),
-    rarityChip(c.breed, c.tier),
+    // 小牛不放稀有度：長大才揭曉（#151）
+    if (c.revealed) rarityChip(c.breed, c.tier),
     if (c.stage == CowStage.calf) CowBadge(BadgeKind.calf, s.stageCalf),
     if (c.stage == CowStage.old) CowBadge(BadgeKind.old, s.stageOld),
     if (c.fieldIndex != null) CowBadge(BadgeKind.working, s.badgeWorking),
@@ -259,7 +260,7 @@ class CowRow extends StatelessWidget {
               CowPicBox(
                 radius: 16,
                 child: CowPicture(
-                  breed: cow.breed,
+                  breed: cow.look,
                   bull: cow.bull,
                   calf: cow.stage == CowStage.calf,
                   variant: id,
@@ -274,7 +275,7 @@ class CowRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // 名字放不下就換行（字級不變），編號才不會被截掉
-                    Text(s.cowName(cow.breed, id), style: AppText.style(16, weight: FontWeight.w900, lineHeight: 21)),
+                    Text(s.cowLabel(cow), style: AppText.style(16, weight: FontWeight.w900, lineHeight: 21)),
                     const SizedBox(height: 3),
                     Wrap(
                       spacing: 4,

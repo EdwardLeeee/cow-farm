@@ -8,6 +8,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../api/breeds.dart';
 import '../../api/models.dart';
 import '../../l10n/format.dart';
 import '../../l10n/l10n.dart';
@@ -289,7 +290,7 @@ class _DetailHead extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                s.cowName(cow.breed, cow.number),
+                s.cowLabel(cow),
                 key: const Key('detail-name'),
                 style: AppText.style(20, weight: FontWeight.w900, lineHeight: 26),
               ),
@@ -308,7 +309,8 @@ class _DetailHead extends StatelessWidget {
   }
 }
 
-/// .card.hero：天空草地的底、牛的正面大圖（200×150、置中），左上角「來源：開局」；老牛下面一行說明（S04-10）。
+/// .card.hero：天空草地的底、牛的正面大圖（200×150、置中），左上角「來源：開局」；老牛下面一行說明（S04-10），
+/// 小牛下面寫「長大才知道是什麼品種」（#151）。
 /// 來源標籤不能蓋到牛頭（scope.md S04；設計稿 kit.js 的 fitOriginTags）：牛頭最靠左的地方離牛圖左緣，
 /// 一行標籤的高度內 42、兩行 38；標籤右緣要在那之前 6。一行放得下就一行；不然在「來源：」後面換兩行；
 /// 還是放不下就放到圖的下面、靠左。
@@ -389,7 +391,7 @@ class _Hero extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(top: 4),
                         child: CowPicture(
-                          breed: cow.breed,
+                          breed: cow.look,
                           bull: cow.bull,
                           calf: cow.stage == CowStage.calf,
                           variant: cow.number,
@@ -413,6 +415,18 @@ class _Hero extends StatelessWidget {
                             borderRadius: BorderRadius.all(AppRadii.r10),
                           ),
                           child: Text(s.s04OldNote, style: KitText.hint()),
+                        )
+                      // 小牛：長大才知道是什麼品種（#151）
+                      else if (!cow.revealed)
+                        Container(
+                          key: const Key('calf-note'),
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          decoration: const BoxDecoration(
+                            color: Color.fromRGBO(255, 255, 255, 0.9),
+                            borderRadius: BorderRadius.all(AppRadii.r10),
+                          ),
+                          child: Text(s.s04CalfUnknown, style: KitText.hint()),
                         ),
                     ],
                   ),
@@ -711,7 +725,7 @@ class ListSheet extends StatelessWidget {
     final price = fee == null ? '–' : fmt(fee.price);
     final label = AppText.style(14, weight: FontWeight.w900, lineHeight: 20);
     return AppSheet(
-      title: s.s04ListTitle(cow: s.cowName(cow.breed, cow.number)),
+      title: s.s04ListTitle(cow: s.cowLabel(cow)),
       onClose: onCancel,
       children: [
         // .fee-box：借種費（大字），下面一行算法
@@ -832,7 +846,7 @@ class _ShipConfirmDialogState extends State<ShipConfirmDialog> {
       ),
       child: Row(
         children: [
-          CowPicture(breed: cow.breed, bull: cow.bull, variant: cow.number, width: pic, height: pic, pad: 3 * pic / 76),
+          CowPicture(breed: cow.look, bull: cow.bull, variant: cow.number, width: pic, height: pic, pad: 3 * pic / 76),
           const SizedBox(width: 8),
           Expanded(
             child: Column(
@@ -844,7 +858,7 @@ class _ShipConfirmDialogState extends State<ShipConfirmDialog> {
                     style: AppText.style(14, weight: FontWeight.w700, lineHeight: 21),
                     children: [
                       TextSpan(
-                        text: s.cowName(cow.breed, cow.number),
+                        text: s.cowLabel(cow),
                         style: AppText.style(16, weight: FontWeight.w700, lineHeight: 21),
                       ),
                     ],
@@ -1155,7 +1169,7 @@ class _ShipResultPageState extends State<ShipResultPage> with SingleTickerProvid
                 child: Column(
                   children: [
                     Text(
-                      s.s20Title(cow: s.cowName(cow.breed, cow.number)),
+                      s.s20Title(cow: s.cowLabel(cow)),
                       style: AppText.style(14, weight: FontWeight.w900, color: AppColors.ink2, lineHeight: 20),
                     ),
                     const SizedBox(height: 8),

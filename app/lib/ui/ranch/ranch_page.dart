@@ -1106,12 +1106,15 @@ class _CowPop extends StatelessWidget {
   Widget build(BuildContext context) {
     final m = context.read<GameModel>();
     final s = Strings.of(context);
-    final id = cow.id is int ? cow.id as int : int.tryParse('${cow.id}') ?? 0;
     // 名片那一行（ceo 2026-10-02）：產奶的母牛寫產量（S03-06）；小牛寫長大還要多久；
     // 其他的牛（公牛、肉牛、耕牛、不產奶的老牛）寫體重，照 D30 狀態表上公牛的寫法
     final adultAt = cow.adultAt;
+    // 雜種牛不透露原本的稀有度（協定 2.3）：寫「產雜種牛奶」（設計稿沒畫雜種牛的名片）
     final meta = cow.milkPerH > 0
-        ? s.s03PopMilk(tier: s.tierName((breedInfo(cow.breed)?.tier ?? cow.tier).clamp(0, 3)), n: rateNum(cow.milkPerH))
+        ? s.s03PopMilk(
+            tier: cow.hybrid ? s.badgeMix : s.tierName((breedInfo(cow.breed)?.tier ?? cow.tier).clamp(0, 3)),
+            n: rateNum(cow.milkPerH),
+          )
         : !cow.isAdultAt(m.gameNow) && adultAt != null
         ? s.growUp(v: s.countdown((adultAt - m.gameNow) / m.timeScale))
         : s.weight(v: fmt(cow.weightKg));
@@ -1122,7 +1125,7 @@ class _CowPop extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // 名字放不下（英文「Strawberry Cow #12」）就換行，字級不變，編號才不會被截掉
-          Text(s.cowName(cow.breed, id), style: AppText.style(17, weight: FontWeight.w900, lineHeight: 22)),
+          Text(s.cowLabel(cow), style: AppText.style(17, weight: FontWeight.w900, lineHeight: 22)),
           const SizedBox(height: 4),
           // 用途、公母、稀有度，再加上狀態（scope.md S03-06：品種、稀有度、狀態）
           Wrap(
