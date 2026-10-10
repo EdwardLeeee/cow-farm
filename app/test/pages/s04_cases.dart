@@ -144,8 +144,10 @@ class DetailApi extends FakeGameApi {
   bool pending = false;
   bool fail = false;
 
-  /// 病牛（S07-06）：每一級的收入、期望收入都乘一成（協定 2.4：伺服器已經乘進去，四捨五入到整數）。
+  /// 病牛（S07-06）：每一級的收入、期望收入都乘一成（協定 2.4：伺服器已經乘進去，四捨五入到整數）；
+  /// 治好以後的期望收入是牛原本的估值（[cured] 是 false：舊的伺服器沒有這個欄位）。
   bool sick = false;
+  bool cured = true;
   List<Map<String, dynamic>> blockers = [];
   String grade = 'A';
   Map<String, dynamic>? after;
@@ -163,6 +165,7 @@ class DetailApi extends FakeGameApi {
       'grade_mult': {'A': 1.25, 'B': 1.0, 'C': 0.75},
       'value_by_grade': {for (final e in designIncome.entries) e.key: sick ? (e.value * 0.1).round() : e.value},
       'expected_value': sick ? (2514 * 0.1).round() : 2514,
+      if (sick && cured) 'expected_value_cured': 2514,
       'sick': sick,
       'can_ship': blockers.isEmpty,
       'blockers': blockers,
@@ -611,8 +614,8 @@ final s07Cases = <PageCase>[
       expect(find.textContaining('297', findRichText: true), findsOneWidget);
       expect(find.textContaining('178', findRichText: true), findsOneWidget);
       expect(find.text(_zh.expectedValue(v: '251'), findRichText: true), findsOneWidget);
-      // 先治療再出貨：伺服器的期望收入（整數）除回一成，大約 2,510 幣（設計稿用的是牛原本的估值 2,514）
-      expect(find.text(_zh.s07SickNote(v: '2,510')), findsOneWidget);
+      // 先治療再出貨：照伺服器的 expected_value_cured（牛原本的估值 2,514，跟設計稿一樣）
+      expect(find.text(_zh.s07SickNote(v: '2,514')), findsOneWidget);
       expect(find.text(_zh.s07Note), findsNothing);
       expect(_btn(tester, 'ship-confirm').onPressed, isNotNull, reason: '病牛照樣可以出貨');
     },

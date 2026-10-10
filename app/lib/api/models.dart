@@ -532,7 +532,6 @@ class Economy {
     this.renamePrice,
     this.hybridMult,
     this.curePrice,
-    this.sickBeefMult,
     this.poopMaxPerCow,
     this.sickDirtFree,
   });
@@ -565,10 +564,9 @@ class Economy {
   /// v0.3 C1：雜種牛的倍數（牛奶、牛肉、稻米；取代 tier_mult）。舊的伺服器沒有。
   final double? hybridMult;
 
-  /// v0.3 C1（協定 2.3、2.6）：治療一頭的價錢、病牛出貨牛肉剩的比例、每頭牛最多幾坨大便、
-  /// 髒的程度（大便 ÷ 牛的頭數）超過多少才會生病。舊的伺服器沒有。
+  /// v0.3 C1（協定 2.3、2.6）：治療一頭的價錢、每頭牛最多幾坨大便、髒的程度（大便 ÷ 牛的頭數）超過多少才會生病。
+  /// 舊的伺服器沒有。
   final double? curePrice;
-  final double? sickBeefMult;
   final int? poopMaxPerCow;
   final double? sickDirtFree;
 
@@ -602,7 +600,6 @@ class Economy {
       renamePrice: _dn(j['rename_price']),
       hybridMult: _dn(j['hybrid_mult']),
       curePrice: _dn(j['cure_price']),
-      sickBeefMult: _dn(j['sick_beef_mult']),
       poopMaxPerCow: j['poop_max_per_cow'] is num ? (j['poop_max_per_cow'] as num).toInt() : null,
       sickDirtFree: _dn(j['sick_dirt_free']),
     );
@@ -1025,6 +1022,7 @@ class ShipPreview {
     this.gradeMult = const {},
     this.valueByGrade = const {},
     this.expectedValue,
+    this.expectedValueCured,
     this.weightKg,
     this.canShip = true,
     this.blockers = const [],
@@ -1033,6 +1031,10 @@ class ShipPreview {
   final Map<String, double> gradeMult;
   final Map<String, double> valueByGrade;
   final double? expectedValue;
+
+  /// 病牛治好以後再出貨的期望收入（`expected_value_cured`，S07-06「先治療再出貨，大約可以賣 x 幣」）。
+  /// 不是病牛、舊的伺服器沒有：null（畫面不寫那一句）。
+  final double? expectedValueCured;
   final double? weightKg;
   final bool canShip;
   final List<Blocker> blockers; // cow_not_adult、cow_in_field、cow_listed
@@ -1042,6 +1044,7 @@ class ShipPreview {
     gradeMult: _gradeMap(j['grade_mult']),
     valueByGrade: _gradeMap(j['value_by_grade']),
     expectedValue: _dn(j['expected_value']),
+    expectedValueCured: _dn(j['expected_value_cured']),
     weightKg: _dn(j['weight_kg']),
     canShip: j['can_ship'] is bool ? j['can_ship'] as bool : true,
     blockers: _blockers(j['blockers']),

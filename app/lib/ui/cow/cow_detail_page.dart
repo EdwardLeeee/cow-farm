@@ -1019,21 +1019,20 @@ class _ShipConfirmDialogState extends State<ShipConfirmDialog> {
                 textAlign: TextAlign.right,
               ),
             ),
-          // 病牛（S07-06）：橘字「先治療再出貨，大約可以賣 x 幣」（伺服器的期望收入已經乘了一成，除回去）；
-          // 伺服器說現在不能出貨（S07-03）：橘字原因；不然一句說明
-          if (cow.sick)
-            Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: NoteLine(
-                key: const Key('ship-sick'),
-                icon: 'warn',
-                text: s.s07SickNote(
-                  v: fmt((p.expectedValue ?? cow.shipValue ?? 0) / (m.state?.economy?.sickBeefMult ?? 0.1)),
+          // 病牛（S07-06）：橘字「先治療再出貨，大約可以賣 x 幣」，x 照伺服器的 expected_value_cured（帳都由伺服器算）；
+          // 舊的伺服器沒有這個欄位就不寫這一句。伺服器說現在不能出貨（S07-03）：橘字原因；不然一句說明
+          if (cow.sick) ...[
+            if (p.expectedValueCured case final cured?)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: NoteLine(
+                  key: const Key('ship-sick'),
+                  icon: 'warn',
+                  text: s.s07SickNote(v: fmt(cured)),
+                  kind: NoteKind.warn,
                 ),
-                kind: NoteKind.warn,
               ),
-            )
-          else if (blockers.isNotEmpty)
+          ] else if (blockers.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 10),
               child: NoteLine(

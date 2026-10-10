@@ -13,6 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'fakes.dart';
 import 'pages/page_case.dart';
+import 'pages/s03_cases.dart' show sickCow;
 import 'pages/s04_cases.dart';
 
 final _zh = Strings.forLang(AppLang.zhHant);
@@ -27,6 +28,20 @@ Future<void> _tap(WidgetTester tester, String key) async {
 
 void main() {
   setUpAll(loadAppAssets);
+
+  testWidgets('病牛出貨（S07-06）：舊的伺服器沒有 expected_value_cured，就不寫「先治療再出貨，大約可以賣 x 幣」', (tester) async {
+    Screen.w430.apply(tester);
+    final cow = sickCow(detailCow(3));
+    final api = DetailApi(state: detailState(cow))
+      ..sick = true
+      ..cured = false;
+    await showCow(tester, AppLang.zhHant, cow, api: api);
+    await openShip(tester);
+    expect(find.byKey(const Key('dialog')), findsOneWidget);
+    expect(find.byKey(const Key('ship-sick')), findsNothing, reason: 'app 不自己除回一成去猜');
+    expect(find.text(_zh.s07Note), findsNothing);
+    expect(_btn(tester, 'ship-confirm').onPressed, isNotNull, reason: '病牛照樣可以出貨');
+  });
 
   testWidgets('雜種公牛上架借種：說明寫「雜種」，不露出原本的稀有度（協定 2.3）', (tester) async {
     Screen.w430.apply(tester);
