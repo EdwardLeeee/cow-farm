@@ -1,6 +1,8 @@
 // A-10 出貨評級揭曉（設計稿 anims.js 的 A10，1.5 秒）：卡車開走、結果頁淡入以後，A、B、C 輪流越轉越慢，第 0.9 秒停在這次的
 // 評級，光線放射、三箱牛肉掉進來，1.2–1.45 秒字和按鈕淡入；點一下跳過。減少動態（或沒開動畫）：直接是 S20。
 // 逐格的畫面在 test/pages/anim_shots_test.dart。
+import 'dart:math' as math;
+
 import 'package:cowfarm/app.dart';
 import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/ui/kit/motion.dart';
@@ -93,6 +95,21 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     expect(find.byKey(const Key('ship-result')), findsNothing);
+  });
+
+  testWidgets('光線 1.5 秒轉 40°（#192）：一條 20°，播完轉了整數條，停下來跟 S20 的光線一樣', (tester) async {
+    Screen.w390.apply(tester);
+    await shipWithMotion(tester, 'A');
+    double deg() {
+      final m = tester.widget<Transform>(find.byKey(const Key('ship-burst'))).transform;
+      return math.atan2(m.entry(1, 0), m.entry(0, 0)) * 180 / math.pi;
+    }
+
+    final a = deg();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(deg() - a, closeTo(8, 0.1), reason: '0.3 秒轉 8°（1.5 秒 40°）');
+    await tester.pump(const Duration(milliseconds: 1500));
+    expect(deg(), closeTo(40, 0.01), reason: '最後一格：40° 是 2 條，光線的位置跟沒轉（S20）一樣');
   });
 
   testWidgets('減少動態：不輪流、不放射，直接是 S20', (tester) async {

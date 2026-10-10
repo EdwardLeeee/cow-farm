@@ -1130,14 +1130,16 @@ class _ShipResultPageState extends State<ShipResultPage> with SingleTickerProvid
       color: AppColors.cream,
       child: Stack(
         children: [
-          // .burst：A-10 第 0.9–1.05 秒淡入、0.9–1.3 秒從 0.4 倍放大到 1 倍，一直轉（每秒 20 度）
+          // .burst：A-10 第 0.9–1.05 秒淡入、0.9–1.3 秒從 0.4 倍放大到 1 倍，1.5 秒轉 40 度（#192）：光線一條 20 度，
+          // 最後一格轉了整數條，停下來跟 S20 一樣
           Positioned.fill(
             child: t == null
                 ? CustomPaint(painter: _Burst(g))
                 : Opacity(
                     opacity: animSeg(t, 0.9, 1.05),
                     child: Transform.rotate(
-                      angle: t * 20 * math.pi / 180,
+                      key: const Key('ship-burst'),
+                      angle: t / _dur * 40 * math.pi / 180,
                       child: Transform.scale(
                         scale: 0.4 + 0.6 * animOutCubic(animSeg(t, 0.9, 1.3)),
                         child: CustomPaint(painter: _Burst(g)),

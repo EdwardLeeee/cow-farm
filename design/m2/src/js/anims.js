@@ -403,7 +403,8 @@ const A10 = {
     big.style.transform = `scale(${t < 0.9 ? 0.92 : 1 + 0.18 * Math.sin(Math.PI * land)})`;
     const burst = root.querySelector('.burst');
     burst.style.opacity = seg(t, 0.9, 1.05);
-    burst.style.transform = `scale(${0.4 + 0.6 * outCubic(seg(t, 0.9, 1.3))}) rotate(${t * 20}deg)`;
+    // 光線一條 20°（.burst 的 repeating-conic-gradient）：最後一格轉到 40°（整數條），停下來跟 S20-01 一樣（2026-10-09 cow-app 量到以前停在 30°，差半條）
+    burst.style.transform = `scale(${0.4 + 0.6 * outCubic(seg(t, 0.9, 1.3))}) rotate(${(t / 1.5) * 40}deg)`;
     [...root.querySelectorAll('.gift-box')].forEach((b, i) => {
       const k = seg(t, 1.0 + i * 0.08, 1.3 + i * 0.08);
       b.style.opacity = k > 0 ? 1 : 0;
