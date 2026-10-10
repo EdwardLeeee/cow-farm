@@ -7,7 +7,6 @@ import 'dart:async';
 import 'package:cowfarm/api/game_api.dart';
 import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
-import 'package:cowfarm/ui/ranch/scene.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -128,31 +127,30 @@ void main() {
     expect(api.calls.where((c) => c.startsWith('clean')), isEmpty);
   });
 
-  testWidgets('第 10 坨以後（12 坨）：放到右半邊的草地上，是左半邊第 0、5、6 個位置的左右鏡射（ceo 2026-10-10 的暫定做法）', (tester) async {
+  testWidgets('第 10 坨以後（12 坨）：放到右半邊，cow-ui 排的位置（往右滑才看得到）', (tester) async {
     await _showPoop(tester, 12);
     for (var i = 0; i < 12; i++) {
       expect(_poop(i), findsOneWidget, reason: '第 $i 個位置');
     }
     expect(_poop(12), findsNothing);
     expect(dirtText(tester), '${zh.s03Poop} 12');
-    // 右半邊（往右滑才看得到）：跟左半邊對應的那一坨一樣高、左右對稱（場景兩個畫面寬）
-    final sceneW = tester.getSize(find.byType(RanchScene)).width * 2;
-    for (final (right, left) in [(9, 0), (10, 5), (11, 6)]) {
-      final l = tester.getRect(_poop(left)), r = tester.getRect(_poop(right));
-      expect(r.top, closeTo(l.top, 0.001), reason: '第 $right 個');
+    // 跟左半邊一樣的算法：底部中間對準場景座標（390 寬、還沒往右滑：螢幕 x = 場景 x，在畫面右邊外面）
+    for (final (i, spot) in [(9, const Offset(544, 398)), (10, const Offset(700, 360)), (11, const Offset(430, 404))]) {
+      final r = tester.getRect(_poop(i)), l = tester.getRect(_poop(0));
       expect(r.width, closeTo(l.width, 0.001));
-      expect(r.center.dx, closeTo(sceneW - l.center.dx, 0.01));
+      expect(r.center.dx - l.center.dx, closeTo(spot.dx - 236, 0.01), reason: '第 $i 個');
+      expect(r.bottom - l.bottom, closeTo(spot.dy - 398, 0.01), reason: '第 $i 個');
     }
   });
 
-  testWidgets('大便比位置多（20 坨）：最多畫 13 坨，右上角照樣寫 20；清掉一坨，還沒畫的補進空出來的位置', (tester) async {
+  testWidgets('大便比位置多（20 坨）：最多畫 18 坨，右上角照樣寫 20；清掉一坨，還沒畫的補進空出來的位置', (tester) async {
     final (_, api) = await _showPoop(tester, 20);
-    for (var i = 0; i < 13; i++) {
+    for (var i = 0; i < 18; i++) {
       expect(_poop(i), findsOneWidget, reason: '第 $i 個位置');
     }
-    expect(find.byKey(const Key('poop-13')), findsNothing);
+    expect(find.byKey(const Key('poop-18')), findsNothing);
     expect(dirtText(tester), '${zh.s03Poop} 20');
-    // 每頭牛 2 坨，照編號排：#2 是第 0、1 個位置，#3 是第 2、3 個，#5 是第 4、5 個……#11 只畫得下 1 坨（第 12 個）
+    // 每頭牛 2 坨，照編號排：#2 是第 0、1 個位置，#3 是第 2、3 個，#5 是第 4、5 個……#14 是第 16、17 個，#15 的 2 坨還沒畫
     await tester.tap(_poop(4));
     await tester.pump();
     await tester.pump();

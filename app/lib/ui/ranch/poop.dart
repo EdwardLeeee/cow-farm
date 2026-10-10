@@ -12,13 +12,12 @@ import '../../l10n/l10n.dart';
 import '../../theme/tokens.dart';
 import '../kit/app_icon.dart';
 import '../kit/motion.dart';
-import 'scene.dart' show kSceneWidth;
 
 /// 場景裡大便的位置（poop.js 的 POOP_SPOTS：場景座標，大便的底部中間；草地上、不擋到牛）。
-/// 設計稿只畫了場景左半邊這 9 個（第 0–8 個）。第 10 坨以後照 ceo 2026-10-10 的暫定做法放到右半邊（第 9–12 個）：
-/// 左半邊第 0、5、6、7 個的左右鏡射。其他 5 個鏡射過去會落在池塘上、被「收起」擋住，先不用；所以最多畫 13 坨，
-/// 再多的先不畫，右上角的數字照樣寫全部。cow-ui 給了右半邊正式的位置再換。
-const _leftPoopSpots = <Offset>[
+/// 第 0–8 個是設計稿場景左半邊的 9 個；第 9–17 個在右半邊（往右滑才看得到），是 cow-ui 2026-10-10 排的
+/// （避開池塘、石頭、水槽、花叢、乾草捲和兩頭牛的預設位置，y 都 ≤ 448，面板蓋不到；第 29 輪會放進設計稿）。
+/// 最多畫 18 坨；再多的先不畫，右上角的數字照樣寫全部。
+const kPoopSpots = <Offset>[
   Offset(236, 398),
   Offset(252, 452),
   Offset(38, 498),
@@ -28,12 +27,16 @@ const _leftPoopSpots = <Offset>[
   Offset(204, 338),
   Offset(132, 412),
   Offset(332, 490),
-];
-
-/// 右半邊的位置：x 換成 場景的寬（兩個畫面寬）− x。
-final kPoopSpots = <Offset>[
-  ..._leftPoopSpots,
-  for (final i in const [0, 5, 6, 7]) Offset(kSceneWidth - _leftPoopSpots[i].dx, _leftPoopSpots[i].dy),
+  // 右半邊
+  Offset(544, 398),
+  Offset(700, 360),
+  Offset(430, 404),
+  Offset(648, 412),
+  Offset(506, 366),
+  Offset(740, 412),
+  Offset(576, 338),
+  Offset(418, 448),
+  Offset(756, 356),
 ];
 
 /// 場景裡一坨的寬（poop.js 的 POOP_W：圖示 poop 的 20 放大成 19）。
