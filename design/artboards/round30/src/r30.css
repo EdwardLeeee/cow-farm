@@ -1,0 +1,151 @@
+/* 第 30 輪草稿：從第 29 輪複製，最後面加第 30 輪的大圖。以下是第 29 輪的說明。
+   第 29 輪草稿的樣式：掃地牛（特別牛）、掃地機（耐久值）、飼料列（收起）、大便 18 個位置。顏色和元件沿用 M2 設計稿（design/m2/src/css）。
+   版面、飼料列、掃地機面板從第 25、26、28 輪複製；這一輪新的 class 都加 r29- 開頭，避免跟 M2 撞名。 */
+
+/* ---------- 說明圖的版面（不是畫面的一部分；跟第 13 輪一樣） ---------- */
+body { background: #FFF9EF; }
+.board { padding: 28px 36px 36px; background: #FFF9EF; }
+.b-label { display: inline-block; font-size: 22px; font-weight: 900; line-height: 34px; padding: 0 14px; background: var(--yellow); border: 3px solid var(--ink); border-radius: 12px; }
+.b-title { margin-top: 12px; font-size: 26px; font-weight: 900; line-height: 34px; }
+.b-sub { margin-top: 4px; font-size: 16px; font-weight: 700; line-height: 24px; color: var(--ink-2); }
+.b-row { display: grid; gap: 30px 40px; margin-top: 22px; align-items: start; }
+.b-cell { margin: 0; }
+.b-cell figcaption { min-height: 68px; margin-bottom: 10px; font-size: 14px; font-weight: 700; line-height: 20px; color: #C2541B; }
+.b-cell figcaption b { display: block; font-size: 18px; font-weight: 900; line-height: 26px; color: var(--ink); }
+.b-cell .phone { outline: 2px solid #E2D4C2; }
+.b-cell .phone.tall { height: auto; min-height: 844px; }
+.b-notes { margin: 24px 0 0; padding-left: 22px; font-size: 15px; font-weight: 700; line-height: 24px; color: var(--ink-2); }
+.skip-note { padding: 4px 12px; border: 2px dashed #C2541B; border-radius: 14px; font-size: 14px; font-weight: 900; line-height: 20px; color: #C2541B; text-align: center; background: rgba(255, 255, 255, 0.6); }
+.gesture { position: absolute; z-index: 90; line-height: 0; pointer-events: none; }
+.r29-tap { position: absolute; z-index: 89; width: 36px; height: 36px; border-radius: 50%; border: 3px solid #FFFFFF; box-shadow: 0 0 0 2px rgba(75, 51, 38, 0.35); pointer-events: none; }
+.ov-row { margin-top: 26px; }
+.ov-title { font-size: 20px; font-weight: 900; line-height: 28px; }
+.ov-cells { display: flex; flex-wrap: wrap; gap: 28px; margin-top: 10px; }
+.ov-cap { min-height: 28px; font-size: 15px; line-height: 22px; }
+.ov-cap b { font-weight: 900; }
+.ov-ph { overflow: hidden; outline: 2px solid #E2D4C2; }
+.ov-art { display: grid; place-items: center; width: 195px; height: 156px; margin-bottom: 8px; background: linear-gradient(180deg, #DDF0FF, #E8F6DA); border: 2px solid #E2D4C2; border-radius: 16px; line-height: 0; overflow: hidden; }
+.gif-box { display: inline-block; background: #FFF7EC; }
+.gif-label { width: 390px; padding: 6px 10px; font-size: 14px; font-weight: 900; line-height: 20px; color: var(--ink); background: #FFD45E; border-bottom: 2px solid var(--ink); white-space: nowrap; overflow: hidden; }
+.gif-box .phone { border-radius: 0; }
+.r29-later { position: absolute; left: 0; right: 0; top: 46%; z-index: 50; margin: 0 auto; width: max-content; padding: 6px 16px; background: rgba(46, 29, 20, 0.72); color: #FFFFFF; border-radius: 16px; font-size: 16px; font-weight: 900; line-height: 24px; }
+
+/* ---------- 01 掃地牛五種：大圖＋小牛 ---------- */
+.r29-lineup { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-top: 20px; padding: 18px; background: linear-gradient(180deg, #E6F5FF 0, #F1FAE8 62%, #E3F2D3 100%); border: 3px solid var(--ink); border-radius: 22px; }
+.r29-lu { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 8px 14px; background: rgba(255, 255, 255, 0.78); border: 2px solid #E2D4C2; border-radius: 18px; }
+.r29-lu .lu-k { align-self: flex-start; padding: 0 10px; font-size: 15px; font-weight: 900; line-height: 24px; background: var(--yellow); border: 2px solid var(--ink); border-radius: 10px; }
+.r29-lu .lu-big { line-height: 0; }
+.r29-lu .lu-small { display: flex; align-items: flex-end; gap: 10px; line-height: 0; }
+.r29-lu .lu-small span { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; font-weight: 900; line-height: 16px; color: var(--ink-2); }
+.r29-lu b.lu-name { font-size: 19px; line-height: 26px; }
+.r29-lu .chips { justify-content: center; }
+.r29-lu .lu-look { font-size: 13px; font-weight: 700; line-height: 19px; color: var(--ink-2); text-align: center; }
+.r29-lu .lu-new { padding: 1px 8px; font-size: 12px; font-weight: 900; line-height: 18px; color: #FFFFFF; background: #E0503C; border-radius: 9px; }
+
+/* ---------- 02 圖鑑、詳細頁、名片、牛的詳細 ---------- */
+.r29-subhead { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 6px; margin: 6px 0 -2px; font-size: 14px; font-weight: 900; line-height: 20px; }
+.r29-subhead .hint { font-weight: 700; }
+.dex-cell .dex-pic svg { display: block; }
+.r29-hero .hero-bg { background: linear-gradient(180deg, #DDF0FF 0%, #EAF6FF 58%, #CDEFB4 58.5%, #BDEBA4 100%); }
+.r29-hero .dex-pics { gap: 2px; padding: 6px 0 4px; }
+.r29-card-title { display: inline-flex; align-items: center; gap: 4px; }
+.r29-broom { display: inline-block; line-height: 0; }
+.r29-clean { margin: 6px 0 0; font-size: 14px; font-weight: 700; line-height: 21px; }
+.r29-clean b { color: #3E8E2F; }
+.cow-pop .r29-pop-clean { display: flex; align-items: center; gap: 4px; margin: 2px 0 6px; font-size: 12px; font-weight: 900; line-height: 16px; color: #3E8E2F; }
+.r29-today { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; padding: 6px 10px; background: #F1FAE8; border: 2px solid #CFE8BE; border-radius: 12px; font-size: 13px; font-weight: 900; line-height: 19px; }
+.r29-today .num { font-size: 18px; color: #3E8E2F; }
+
+/* ---------- 03 牧場：飼料列沒有底板（第 26 輪定案）、袋子下面只寫名字 ---------- */
+.fbar { margin-top: 8px; }
+.fbar-b { position: relative; padding: 0 0 0 2px; margin: 0 0 4px; background: none; border: 0; box-shadow: none; overflow: visible; }
+.fb-track { display: flex; gap: 6px; width: max-content; }
+.fb-item { position: relative; display: flex; flex-direction: column; align-items: center; width: 68px; }
+.sack { position: relative; display: block; line-height: 0; }
+.sack svg { filter: drop-shadow(0 3px 2px rgba(46, 29, 20, 0.35)); }
+.sk-ic { position: absolute; left: 50%; top: 22px; transform: translateX(-50%); line-height: 0; }
+.sk-n { position: absolute; right: -4px; top: 2px; min-width: 20px; height: 20px; padding: 0 4px; border-radius: 10px; background: var(--ink); color: #FFFFFF; font-size: 12px; line-height: 20px; text-align: center; }
+.fb-name { display: flex; flex-direction: column; align-items: center; font-size: 12px; font-weight: 900; line-height: 15px; color: var(--ink); paint-order: stroke fill; -webkit-text-stroke: 3px #FFFFFF; }
+.fb-item.none .sack, .fb-item.none .fb-name { opacity: 0.4; }
+.fb-item.lift { transform: translateY(-8px) rotate(-6deg); }
+.fb-item.back .sk-n { background: #3E8E2F; box-shadow: 0 0 0 3px #CFEFC2; }
+.wh-pill { position: absolute; left: 0; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; gap: 4px; height: 30px; padding: 0 10px 0 6px; background: #FFFFFF; border: 2.5px solid var(--ink); border-radius: 15px; box-shadow: 0 2px 0 var(--ink); font-size: 13px; font-weight: 900; }
+.dock-head { position: relative; }
+.kg-pop { position: absolute; z-index: 86; transform: translate(-50%, -100%); padding: 2px 10px; background: #FFFFFF; border: 2.5px solid var(--ink); border-radius: 12px; font-size: 16px; font-weight: 900; line-height: 22px; color: #3E8E2F; white-space: nowrap; box-shadow: 0 2px 0 var(--ink); }
+.chew { position: absolute; z-index: 86; font-size: 13px; font-weight: 900; color: var(--ink-2); transform: rotate(-6deg); }
+.drag26 { position: absolute; z-index: 88; line-height: 0; filter: drop-shadow(0 6px 4px rgba(46, 29, 20, 0.35)); }
+.hungry26 { position: absolute; z-index: 60; transform: translate(-50%, -100%); line-height: 0; filter: drop-shadow(0 2px 0 rgba(75, 51, 38, 0.35)); }
+.g-pill23 { position: absolute; left: 50%; top: calc(var(--safe-top) + 178px); transform: translateX(-50%); z-index: 30; padding: 6px 14px; background: rgba(46, 29, 20, 0.8); border-radius: 16px; color: #FFFFFF; font-size: 13px; font-weight: 900; line-height: 19px; white-space: nowrap; }
+.g-pill23.ok { background: rgba(62, 142, 47, 0.92); }
+/* 收起：奶桶面板、飼料一起收；「展開」那顆帶奶桶的 %，滿了變藍 */
+.dock.r29-folded .dock-head { margin-bottom: 0; }
+.r29-pail { display: inline-flex; align-items: center; gap: 2px; margin-right: 6px; padding-right: 6px; border-right: 2px solid var(--line-soft); line-height: 0; }
+.r29-pail .num { font-size: 13px; line-height: 18px; }
+.dt-pill.r29-full { background: #DDF0FF; border-color: #2F6FB0; color: #1F5A93; }
+.dt-pill.r29-full .r29-pail { border-right-color: #9CC6EE; }
+
+/* ---------- 04、05 掃地機（第 28 輪的面板改成耐久值） ---------- */
+.r29-sheet .r29-sub { margin: -4px 0 10px; font-size: 13px; font-weight: 700; line-height: 19px; color: var(--ink-2); }
+.r29-models { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.r29-model { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 8px; background: #FFFFFF; border: 2.5px solid var(--line-soft); border-radius: 18px; text-align: center; font: inherit; color: inherit; }
+.r29-model.picked { background: #FFF6D6; border-color: #E7B53A; box-shadow: 0 0 0 3px #FFE7A0; }
+.r29-model.off { background: #F4F0EA; }
+.r29-model.off .r29-pic, .r29-model.off .r29-name, .r29-model.off .r29-price { opacity: 0.55; }
+.r29-pic { display: grid; place-items: center; width: 100%; height: 78px; background: linear-gradient(180deg, #DDF0FF, #E8F6DA); border-radius: 12px; line-height: 0; }
+.r29-name { display: flex; align-items: center; gap: 4px; font-size: 15px; line-height: 21px; }
+.r29-tier { font-style: normal; padding: 0 6px; font-size: 11px; font-weight: 900; line-height: 17px; color: #FFFFFF; background: #8C8F99; border-radius: 8px; white-space: nowrap; }
+.r29-tier.hi { background: #4E88C7; }
+.r29-price { display: inline-flex; align-items: center; gap: 4px; min-height: 24px; font-size: 18px; line-height: 24px; }
+.r29-tbd { font-size: 16px; font-weight: 900; color: #C2541B; }
+.r29-spec { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; width: 100%; margin-top: 2px; padding-top: 6px; border-top: 1.5px dashed var(--line-soft); font-size: 12px; font-weight: 700; line-height: 18px; text-align: left; }
+.r29-spec > span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.r29-spec b { font-weight: 900; }
+.r29-chip { position: absolute; left: 8px; top: 8px; z-index: 2; font-style: normal; padding: 0 8px; font-size: 11px; font-weight: 900; line-height: 18px; color: #FFFFFF; background: #3E8E2F; border-radius: 9px; }
+.r29-ownbar { display: block; width: 100%; padding: 2px 2px 0; }
+.r29-off-note { font-size: 12px; font-weight: 900; line-height: 17px; color: #8A7E72; }
+.r29-check { position: absolute; right: -6px; top: -6px; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #E7B53A; border: 2px solid var(--ink); line-height: 0; }
+.r29-rules { margin: 10px 0 0; padding-left: 18px; font-size: 12px; font-weight: 700; line-height: 18px; color: var(--ink-2); }
+.r29-sheet .btn-row { margin-top: 12px; }
+.r29-dead { display: flex; align-items: center; gap: 10px; margin: -2px 0 10px; padding: 8px 10px; background: #FFF0EA; border: 2px solid #F3B9AC; border-radius: 14px; }
+.r29-dead .r29-dpic { flex: none; display: grid; place-items: center; width: 64px; height: 44px; line-height: 0; }
+.r29-dead b { display: block; font-size: 14px; line-height: 20px; color: #C2412D; }
+.r29-dead span { font-size: 12px; font-weight: 700; line-height: 17px; color: var(--ink-2); }
+/* 耐久值：條＋數字 */
+.r29-dur { display: flex; align-items: center; gap: 6px; width: 100%; }
+.r29-dur .r29-bar { position: relative; flex: 1; height: 10px; border-radius: 5px; background: #EDE6DC; border: 1.5px solid var(--ink); overflow: hidden; }
+.r29-dur .r29-bar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: #5DB04A; }
+.r29-dur.mid .r29-bar i { background: #F2B23A; }
+.r29-dur.low .r29-bar i { background: #E0503C; }
+.r29-dur .num { min-width: 46px; font-size: 13px; font-weight: 900; line-height: 18px; text-align: right; white-space: nowrap; }
+.r29-dur.low .num { color: #C2412D; }
+/* 點掃地機：耐久值的小卡（跟點牛的名片同一種樣子） */
+.cow-pop.r29-bot-pop { width: 214px; }
+.r29-bot-pop .name { display: flex; align-items: center; gap: 6px; }
+.r29-bot-pop .r29-dur { margin-top: 8px; }
+.r29-bot-pop .meta { margin-top: 6px; }
+.r29-bot-pop .r29-warn-line { display: flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 12px; font-weight: 900; line-height: 16px; color: #C2412D; }
+.r29-owned { display: flex; flex-direction: column; gap: 6px; margin: -2px 0 10px; padding: 8px 10px; background: #F3F9EE; border: 2px solid #CFE8BE; border-radius: 14px; }
+.r29-owned .r29-ohead { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 900; line-height: 20px; }
+.r29-owned .r29-ohead .r29-opic { flex: none; line-height: 0; }
+
+/* ---------- 07 大便 18 個位置 ---------- */
+.r29-pp { display: flex; gap: 40px; align-items: flex-start; margin-top: 22px; }
+.r29-pp-full { position: relative; line-height: 0; border: 2px solid #E2D4C2; }
+.r29-pp-cap { margin-bottom: 10px; font-size: 18px; font-weight: 900; line-height: 26px; }
+.r29-pp-cap small { display: block; font-size: 14px; font-weight: 700; line-height: 20px; color: #C2541B; }
+.r29-pp table { border-collapse: collapse; margin-top: 4px; white-space: nowrap; font-size: 14px; font-weight: 700; line-height: 20px; }
+.r29-pp td, .r29-pp th { padding: 2px 10px; border: 1.5px solid #E2D4C2; text-align: center; }
+.r29-pp th { background: #FFF1DF; font-weight: 900; }
+.r29-pp td.new { background: #FFE8E2; }
+
+/* ---------- 第 30 輪：一個版本一張大圖＋小牛＋說明 ---------- */
+.r30-hero { display: flex; align-items: flex-end; gap: 18px; margin-top: 20px; padding: 18px 22px; background: linear-gradient(180deg, #E6F5FF 0, #F1FAE8 62%, #E3F2D3 100%); border: 3px solid var(--ink); border-radius: 22px; }
+.r30-big, .r30-calf { line-height: 0; }
+.r30-calf { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.r30-calf span { font-size: 13px; font-weight: 900; line-height: 18px; color: var(--ink-2); }
+.r30-text { flex: 1; min-width: 0; align-self: center; }
+.r30-text > b { display: inline-block; padding: 0 12px; font-size: 18px; line-height: 28px; background: var(--yellow); border: 2px solid var(--ink); border-radius: 10px; }
+.r30-name { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 20px; font-weight: 900; line-height: 28px; }
+.r30-text p { margin: 8px 0 0; font-size: 15px; font-weight: 700; line-height: 23px; }
+.r30-ovart { display: grid; place-items: center; width: 300px; height: 200px; margin-bottom: 8px; background: linear-gradient(180deg, #DDF0FF, #E8F6DA); border: 2px solid #E2D4C2; border-radius: 16px; line-height: 0; overflow: hidden; }
+.r30-ovart + .ov-ph { margin-left: 52px; }
