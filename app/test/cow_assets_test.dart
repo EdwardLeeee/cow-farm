@@ -97,6 +97,12 @@ void main() {
           }
         }
       }
+      // 配種頁「可能生出的小牛」（S08，#151）：24 種各一張沒有公母、沒有蝴蝶結的小牛，只有正面朝左
+      if (!mixes.contains(breed)) {
+        final name = '${breed}_calf_plain_front_left_v0';
+        expect(images.containsKey(name), isTrue, reason: name);
+        expected++;
+      }
     }
     expect(images.length, expected, reason: '沒有多餘的組合');
     // 研究時量到的：會變花紋的 9 種、有高光要另外畫朝右的 12 種（docs/research/2026-10-cow-rendering.md）

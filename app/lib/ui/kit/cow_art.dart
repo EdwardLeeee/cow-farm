@@ -90,6 +90,8 @@ class CowArt {
   /// 圖檔名（不含副檔名）與要不要左右翻。同品種的個體差異：花色 = [variant] 除以花色數的餘數（T3 選項 2）；
   /// 朝右時有自己畫的朝右圖就用，沒有就把朝左的圖翻過來。
   /// [sick]：病牛（v0.3 第 5 節）一律轉正面，用名字後面加 `_sick` 的圖（臉色發青、額頭藍線；cows.json 的 about）。
+  /// [plain]：配種頁「可能生出的小牛」（設計稿 s08.js 的 outcomeCard）：沒有公母、沒有蝴蝶結的小牛，只有正面朝左一張
+  /// （`<品種>_calf_plain_front_left_v0`，花紋已經照設計稿挑好）；沒有那張圖（舊的素材）就照一般的畫。
   (String, bool) pick({
     required String breed,
     required bool bull,
@@ -98,7 +100,11 @@ class CowArt {
     required bool right,
     int variant = 0,
     bool sick = false,
+    bool plain = false,
   }) {
+    if (plain && calf && _images.containsKey('${breed}_calf_plain_front_left_v0')) {
+      return ('${breed}_calf_plain_front_left_v0', false);
+    }
     final n = _variants[breed] ?? 1;
     final native = right && _right.contains(breed);
     final name =
@@ -125,6 +131,7 @@ class CowPicture extends StatelessWidget {
     required this.height,
     this.pad = 4,
     this.sick = false,
+    this.plain = false,
   });
 
   final String breed;
@@ -140,11 +147,23 @@ class CowPicture extends StatelessWidget {
   /// 病牛（v0.3 第 5 節）：正面的圖用臉色發青的那張，頭上疊溫度計泡泡（[SickBubble]）。
   final bool sick;
 
+  /// 沒有公母、沒有蝴蝶結的小牛（[CowArt.pick] 的 plain；配種頁「可能生出的小牛」）。
+  final bool plain;
+
   @override
   Widget build(BuildContext context) {
     final art = CowArt.instance;
     final (name, mirror) =
-        art?.pick(breed: breed, bull: bull, calf: calf, front: front, right: right, variant: variant, sick: sick) ??
+        art?.pick(
+          breed: breed,
+          bull: bull,
+          calf: calf,
+          front: front,
+          right: right,
+          variant: variant,
+          sick: sick,
+          plain: plain,
+        ) ??
         ('', false);
     final m = art?.meta(name);
     if (m == null) return SizedBox(width: width, height: height);
@@ -264,6 +283,7 @@ class CowSilhouette extends StatelessWidget {
     required this.breed,
     this.bull = false,
     this.calf = false,
+    this.plain = false,
     required double size,
     this.pad = 4,
   }) : width = size,
@@ -280,11 +300,15 @@ class CowSilhouette extends StatelessWidget {
     this.front = true,
     this.pad = 4,
   }) : calf = false,
+       plain = false,
        dark = true;
 
   final String breed;
   final bool bull;
   final bool calf;
+
+  /// 沒有公母、沒有蝴蝶結的小牛的剪影（配種頁「可能生出的小牛」沒發現過的品種）。
+  final bool plain;
   final double width;
   final double height;
   final bool front;
@@ -299,7 +323,16 @@ class CowSilhouette extends StatelessWidget {
       children: [
         ColorFiltered(
           colorFilter: ColorFilter.mode(dark ? const Color(0xFF2A1E1A) : const Color(0xFFC2B3A6), BlendMode.srcIn),
-          child: CowPicture(breed: breed, bull: bull, calf: calf, front: front, width: width, height: height, pad: pad),
+          child: CowPicture(
+            breed: breed,
+            bull: bull,
+            calf: calf,
+            plain: plain,
+            front: front,
+            width: width,
+            height: height,
+            pad: pad,
+          ),
         ),
         if (!dark) Positioned.fill(child: CustomPaint(painter: _QuestionMark(height))),
       ],

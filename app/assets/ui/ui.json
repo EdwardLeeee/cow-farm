@@ -9,7 +9,7 @@
   "icons/poop：大便（霜淇淋捲），牧場場景裡的大便也是這張：底部中間對齊地上那一點，寬約 19（場景座標）。"
  ],
  "generator": {
-  "design/m2/harness/assetexport.mjs": "1b8309626232977c429ff26906404e96717620b0b87905862e186c96a7df0799",
+  "design/m2/harness/assetexport.mjs": "d0ef7ac13e4fd189af08d9811bef33b81c17443c65af74a312d49785fd54addc",
   "design/m2/src/cow/breeds.js": "a7f37d682deea250586c15bac9eaa28a551825b28fcf7ab7766526a48d75ecf8",
   "design/m2/src/cow/calf.js": "3d773e00d3f42d69b9de1b2de366e9af4f25f46645fdcf47a5146b063d84c29b",
   "design/m2/src/cow/q.js": "161f0ebf2cffa8d8baf19f095bab63f04c6d55004155fd078942b2aae7b5fbee",
