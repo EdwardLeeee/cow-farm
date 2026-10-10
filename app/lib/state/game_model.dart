@@ -10,6 +10,9 @@ import '../api/push.dart';
 import '../auth/sign_in.dart';
 import '../storage/token_store.dart';
 import '../ui/ranch/herd.dart';
+import '../ui/ranch/poop.dart';
+import 'grow_reveals.dart';
+import 'settings.dart';
 
 /// 手機上的單調時鐘（秒）。不受使用者改手機時間影響，只用來推算畫面上的時間與奶桶。
 typedef NowFn = double Function();
@@ -141,7 +144,9 @@ class GameModel extends ChangeNotifier {
     this.longOfflineAfter = const Duration(seconds: 60),
     this.signInPlatform = SignInPlatform.none,
     this.signIn,
-  }) : _now = now ?? monotonicClock() {
+    PrefsStore? prefs,
+  }) : _now = now ?? monotonicClock(),
+       _grows = GrowReveals(prefs ?? MemoryPrefsStore()) {
     push.connected.addListener(_onConnectedChanged);
     _pushSub = push.messages.listen(_onPush);
   }
@@ -181,6 +186,13 @@ class GameModel extends ChangeNotifier {
   Timer? _marketTimer;
   Timer? _maintTimer;
   bool _disposed = false;
+
+  /// 小牛長大揭曉（A-13、S03-25）：看過是小牛的牛記在手機上（[prefs]），長大了就排著等牧場頁揭曉。
+  final GrowReveals _grows;
+
+  /// 下一頭小牛長大（adult_at）的時候重抓 state（協定 2.3）。[start] 以後才排（測試不開計時器）。
+  Timer? _growTimer;
+  bool _started = false;
 
   // ---- 狀態 ----
   bool starting = false;
@@ -274,8 +286,16 @@ class GameModel extends ChangeNotifier {
   /// 圖鑑打開的品種（S09-03、S09-04）；null 是列表。
   String? codexBreed;
 
+  /// 圖鑑配種表的代表配法（協定 2.7 `GET /v1/codex/pairings`）：品種 → 4 組。固定資料，拿到一次就記著（換牧場也一樣）；
+  /// 還沒拿到（或拿不到）是 null，品種詳細先不放配種表。舊的伺服器沒有這個端點（404）是空的，不再問。
+  Map<String, List<BreedPair>>? codexPairings;
+  bool _pairingsLoading = false;
+
   /// 牧場場景裡每頭牛的位置：這次打開 app 期間同一頭牛一直在同一個位置（ceo 2026-10-02）。只是顯示用。
   final herdLayout = HerdLayout();
+
+  /// 牧場場景裡每坨大便的位置（清掉一坨時其他的不跳位）。只是顯示用。
+  final poopLayout = PoopLayout();
   String? detailCowKey;
   String? breedSireKey;
   String? breedDamKey;
@@ -311,6 +331,8 @@ class GameModel extends ChangeNotifier {
   /// 啟動：先問伺服器是不是在維護（S16-01）；有 token 就拿牧場與行情、連 WebSocket、開始定時校正；
   /// 沒有 token 就停在「還沒有牧場」（S02 取名）。
   Future<void> start() async {
+    _started = true;
+    await _grows.loaded; // 先知道哪些牛看過是小牛，第一次收到 state 就能揭曉沒開 app 的時候長大的
     await _boot();
     _stateTimer ??= Timer.periodic(refreshEvery, (_) {
       if (needsRanch || authLost != null || maintenance != null) return;
@@ -455,6 +477,7 @@ class GameModel extends ChangeNotifier {
     busy = false;
     _deleteRequestId = null;
     ranchDeleted = true;
+    _grows.forget(state?.playerId);
     await _forgetRanch();
     _notify();
     return const ActionResult.ok(null);
@@ -486,6 +509,10 @@ class GameModel extends ChangeNotifier {
   /// 選好的公牛母牛、剛生的小牛、場景的位置都不能留給新牧場。
   void _clearRanchView() {
     state = null;
+    // 舊牧場還沒揭曉的小牛不能留到新牧場（手機上記的照牧場分開，不用清）
+    _grows.clear();
+    _growTimer?.cancel();
+    _growTimer = null;
     // 舊牧場還沒按「好」的升級慶祝（S11-01）、還沒按掉的備份提醒（S11-05）不能留到新牧場
     levelUp = null;
     backupRemind = false;
@@ -504,6 +531,9 @@ class GameModel extends ChangeNotifier {
     breedDamKey = null;
     lastCalfKey = null;
     herdLayout.clear();
+    poopLayout.clear();
+    _cleaning.clear();
+    _unsent.clear();
     _offlineSince = null;
     _onlineBefore = false;
     _dropped = false;
@@ -738,6 +768,7 @@ class GameModel extends ChangeNotifier {
 
   Future<void> _loadState() async {
     final token = api.token;
+    await _grows.loaded;
     final s = await api.getState();
     if (api.token != token) return; // 這段時間牧場換了（刪除）：舊牧場的資料不要
     _setState(s);
@@ -752,6 +783,38 @@ class GameModel extends ChangeNotifier {
     if (s.ranchName != null && s.ranchName!.isNotEmpty) ranchName = s.ranchName!;
     // 等級比上一次高：要慶祝（S11-01）。剛打開、剛開新牧場（之前沒有 state）不算；一次升好幾級只記最後那一級
     if (before != null && s.level > before) levelUp = (level: s.level, levelAt: s.levelProgress.levelAt);
+    _grows.track(s);
+    _scheduleGrowRefresh(s);
+  }
+
+  /// 下一頭要在牧場頁揭曉的牛（長大了、還沒揭曉；照長大的時間）。沒有是 null。
+  Cow? get grownCow => _grows.next(state);
+
+  /// 揭曉完了（一般的牛點一下，雜種牛按「好」）：換下一頭。
+  void dismissGrown(Cow cow) {
+    _grows.done(cow.id, state?.playerId);
+    _notify();
+  }
+
+  /// 在最早的那頭小牛長大的時候重抓 state（協定 2.3：伺服器不推播，app 在 adult_at 重抓）。平常 [refreshEvery] 也會抓，
+  /// 這裡讓揭曉不用多等那幾秒。
+  void _scheduleGrowRefresh(GameState s) {
+    _growTimer?.cancel();
+    _growTimer = null;
+    if (!_started || _disposed) return;
+    final now = gameNow;
+    double? next;
+    for (final c in s.cows) {
+      final at = c.adultAt;
+      if (c.stage == CowStage.calf && at != null && at > now && (next == null || at < next)) next = at;
+    }
+    if (next == null) return;
+    final scale = timeScale > 0 ? timeScale : 1;
+    // 晚 0.5 秒再抓：伺服器只算到它的 server_time，手機的時鐘快一點的話抓到的還是小牛（下次照樣會抓到）
+    _growTimer = Timer(Duration(milliseconds: ((next - now) / scale * 1000).ceil() + 500), () {
+      _growTimer = null;
+      refreshState();
+    });
   }
 
   /// 剛升級、還沒按「好」的慶祝（S11-01）：升到幾級、這一級的門檻（累積收入）。
@@ -1049,6 +1112,8 @@ class GameModel extends ChangeNotifier {
     studLogOpen = false;
     codexBreed = null;
     _notify();
+    // 打開紀錄分頁就先拿配種表，點進品種詳細時已經有了
+    if (t == AppTab.records) loadCodexPairings();
   }
 
   /// 牧場資料（S21-01）開著：點頂列的頭像或名牌打開，返回關掉。整頁，沒有頂列和分頁列。
@@ -1157,6 +1222,29 @@ class GameModel extends ChangeNotifier {
   void openCodex(String breed) {
     codexBreed = breed;
     _notify();
+    loadCodexPairings();
+  }
+
+  /// 拿配種表的代表配法（[codexPairings]）。已經有了、正在拿就不再送；失敗了下次打開紀錄分頁、品種詳細再試。
+  Future<void> loadCodexPairings() async {
+    if (codexPairings != null || _pairingsLoading) return;
+    _pairingsLoading = true;
+    try {
+      final v = await _read(() async {
+        try {
+          return await api.codexPairings();
+        } on ApiException catch (e) {
+          if (e.status != 404) rethrow;
+          return const <String, List<BreedPair>>{};
+        }
+      });
+      if (v != null) {
+        codexPairings = v;
+        _notify();
+      }
+    } finally {
+      _pairingsLoading = false;
+    }
   }
 
   void closeCodex() {
@@ -1261,6 +1349,67 @@ class GameModel extends ChangeNotifier {
 
   Future<ActionResult<Map<String, dynamic>>> collect() => _act(api.collect);
 
+  // ---- 清大便（v0.3 C1；協定 2.6 的 POST /v1/clean） ----
+  /// 畫面上已經拿掉、伺服器還沒回的大便（牛的 key → 幾坨；包含劃過去、手指還沒放開的）。
+  final Map<String, int> _cleaning = {};
+
+  /// 劃過去清掉、還沒送出的（手指放開才一次送）。
+  final Map<String, int> _unsent = {};
+
+  /// 這頭牛旁邊現在要畫幾坨（扣掉正在清的）。
+  int poopOf(Cow c) => max(0, c.poop - (_cleaning[c.key] ?? 0));
+
+  /// 全場現在有幾坨（扣掉正在清的；右上角的數字）。
+  int get poopTotal => state?.cows.fold<int>(0, (n, c) => n + poopOf(c)) ?? 0;
+
+  /// 清掉 [cow] 旁邊的一坨（點到、劃過去）：先從畫面拿掉（A-14、A-15 的減少動態版），[sendPoop] 才送出。
+  /// 斷線的時候不能清（跟停用的按鈕一樣）。
+  bool takePoop(Cow cow) {
+    if (!online || poopOf(cow) <= 0) return false;
+    _cleaning.update(cow.key, (n) => n + 1, ifAbsent: () => 1);
+    _unsent.update(cow.key, (n) => n + 1, ifAbsent: () => 1);
+    _notify();
+    return true;
+  }
+
+  /// 送出拿掉的大便（每頭牛清幾坨，一次送）。成功就換上回應的 state；失敗的話大便放回去。
+  /// 不鎖其他按鈕（點一坨、再點一坨不用等）。沒有要送的是 null。
+  Future<ActionResult<Map<String, dynamic>>?> sendPoop() async {
+    if (_unsent.isEmpty) return null;
+    final piles = Map.of(_unsent);
+    _unsent.clear();
+    ActionResult<Map<String, dynamic>> r;
+    try {
+      final res = await api.clean({for (final e in piles.entries) state?.cowById(e.key)?.id ?? e.key: e.value});
+      _httpOk = true;
+      // 拿掉正在清的、換上回應的 state 要在同一步（不然會多扣一次，或閃一下）
+      _release(piles);
+      if (res['state'] case final Map<String, dynamic> st) _setState(GameState.fromJson(st));
+      r = ActionResult.ok(res);
+    } on ApiException catch (e) {
+      _release(piles);
+      _handleApiError(e);
+      r = ActionResult.fail(ApiActionError(e));
+    } on NetworkException {
+      _release(piles);
+      _httpOk = false;
+      r = const ActionResult.fail(NetworkActionError());
+    }
+    _notify();
+    return r;
+  }
+
+  void _release(Map<String, int> piles) {
+    for (final e in piles.entries) {
+      final left = (_cleaning[e.key] ?? 0) - e.value;
+      if (left > 0) {
+        _cleaning[e.key] = left;
+      } else {
+        _cleaning.remove(e.key);
+      }
+    }
+  }
+
   Future<ActionResult<SellResult>> sell(Commodity c, double qty) async {
     final r = await _act(() => api.sell(c, qty));
     if (r.ok) unawaited(refreshMarket());
@@ -1273,6 +1422,9 @@ class GameModel extends ChangeNotifier {
     _notify();
     return r;
   }
+
+  /// 治療病牛（v0.3 第 5 節；協定 2.6 的 POST /v1/cure，`economy.cure_price` 幣，馬上好）。
+  Future<ActionResult<Map<String, dynamic>>> cure(Cow cow) => _act(() => api.cure(cow.id));
 
   /// 商店抽牛（v0.2）。
   Future<ActionResult<ShopBuyResult>> shopBuy(String grade) => _act(() => api.shopBuy(grade));
@@ -1360,8 +1512,13 @@ class GameModel extends ChangeNotifier {
   double fieldRiceNow(FieldInfo f) {
     final s = state;
     if (s == null) return f.rice;
+    // 病牛（v0.3 第 5 節）停止耕田：田裡的稻米不再長
+    if (fieldOxSick(f)) return f.rice;
     return f.riceAfter(gameNow - s.serverTime);
   }
+
+  /// 這塊田的耕牛生病了（S17-13）。
+  bool fieldOxSick(FieldInfo f) => f.cowId != null && (state?.cowById('${f.cowId}')?.sick ?? false);
 
   Future<void> loadHistory(Commodity c, String range) async {
     final pts = await _read(() => api.marketHistory(c, range));
@@ -1380,6 +1537,7 @@ class GameModel extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _growTimer?.cancel();
     _stateTimer?.cancel();
     _marketTimer?.cancel();
     _maintTimer?.cancel();

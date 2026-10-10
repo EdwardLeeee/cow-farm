@@ -3,7 +3,8 @@
 // A-11 牛舍滿 40 頭一起走（場景左半、往右滑到底的右半，各一輪 4 秒；其他 32 個位置的走法，ceo 2026-10-03）、
 // A-01 收奶（按下「收奶」以後 1.4 秒：奶桶 36.4 瓶全部進倉庫，130 → 166 瓶）、
 // A-02 成交（賣 130 瓶牛奶、1,924 幣：12,480 → 14,404；賣出面板捲到最上面，跟設計稿一樣）、
-// A-05 升級（牧場頁，累積收入 7,500 跨過 Lv5 的門檻）、A-08 收成稻米（田地頁，倉庫 184 → 361 公斤）。
+// A-05 升級（牧場頁，累積收入 7,500 跨過 Lv5 的門檻）、A-08 收成稻米（田地頁，倉庫 184 → 361 公斤）、
+// A-13 小牛長大（減少動態的最後一格）、A-14 清大便：點一下（S03-27 的 9 坨，點第 0 個位置那一坨，跟設計稿一樣）。
 // 390 寬、每點 2 像素（跟設計稿的動畫一樣只出 390），寫到 SHOTS_DIR/anim/<動畫 ID>/<第幾格>.png。
 // 只在本機拍，CI 不跑（沒給 SHOTS 就整個跳過）。在 app/ 底下：
 //   flutter test --dart-define=SHOTS=1 --dart-define=SHOTS_DIR=build/shots/<PR 編號> test/pages/anim_shots_test.dart
@@ -199,6 +200,25 @@ void main() {
     }
   });
 
+  // A-14 清大便：點一下。設計稿的手指在第 0.25 秒點下去（app 沒有畫手指，真的手指點）：第 0–4 格是點以前，
+  // 第 5 格點下去，之後每格 50 毫秒拍到 0.9 秒（第 18 格）
+  testWidgets('A-14 清大便：點一下（0.9 秒）', (tester) async {
+    await _ranch(
+      tester,
+      model: await ranchModel(state: ranchState(cows: poopCows(9))),
+    );
+    for (var i = 0; i <= 18; i++) {
+      if (i == 5) {
+        await tester.tap(find.byKey(const Key('poop-0')));
+        await tester.pump();
+      } else if (i > 0) {
+        await tester.pump(_frame);
+      }
+      await _save(tester, 'A-14', i);
+    }
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('A-07 轉身：點 #12 草莓牛，側面 → 正面（0.5 秒）', (tester) async {
     await _ranch(tester);
     // #12 的節奏 3.3：第 0.7 秒才起步，0.5 秒前還在原位（跟設計稿 A-07 的位置一樣）
@@ -246,5 +266,28 @@ void main() {
       if (i > 0) await tester.pump(_frame);
       await _save(tester, 'A-10', i);
     }
+  });
+
+  // A-13 小牛長大：發光、白光一閃還沒做，現在開著動畫也跟減少動態版一樣淡入 0.2 秒。拍減少動態那張的「之後」：
+  // 小乳牛 #16 長大成娟珊 #16（設計稿的 #16 不算在牛舍 10／12 裡；app 的 #16 排在場景右半邊，看不到）
+  testWidgets('A-13 小牛長大：減少動態的最後一格（小乳牛 #16 → 娟珊 #16）', (tester) async {
+    final api = FakeGameApi(
+      state: ranchState(
+        cows: [
+          ...designCows(),
+          designCow(16, 'holstein', stage: 'calf'),
+        ],
+        penUsed: 10,
+      ),
+      market: ranchMarket(),
+    );
+    final m = await ranchModel(api: api);
+    api.stateJson = ranchState(cows: [...designCows(), designCow(16, 'jersey')], penUsed: 10);
+    await m.refreshState();
+    tester.platformDispatcher.accessibilityFeaturesTestValue = const FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    await _ranch(tester, model: m);
+    await tester.pump(const Duration(milliseconds: 250));
+    await _save(tester, 'A-13', 0);
   });
 }

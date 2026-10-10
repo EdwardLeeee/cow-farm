@@ -8,6 +8,7 @@ import 'package:cowfarm/api/models.dart';
 import 'package:cowfarm/l10n/format.dart';
 import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
+import 'package:cowfarm/ui/cow/stamps.dart';
 import 'package:cowfarm/ui/kit/cow_bits.dart';
 import 'package:cowfarm/ui/kit/kit.dart';
 import 'package:flutter/widgets.dart';
@@ -64,7 +65,7 @@ Map<String, dynamic> detailCow(int id, {int? field, bool listed = false, bool br
     probs: [0.401, 0.439, 0.16],
   ),
   15 => _detail(
-    designCow(15, 'holstein', stage: 'calf'),
+    halfCalf15(),
     ageH: 2 + 18 / 60, // v0.3：所有小牛 3 小時長大（#151），出生 2 小時 18 分、還要 42 分
     origin: 'breed',
   ),
@@ -143,6 +144,11 @@ class DetailApi extends FakeGameApi {
 
   bool pending = false;
   bool fail = false;
+
+  /// 病牛（S07-06）：每一級的收入、期望收入都乘一成（協定 2.4：伺服器已經乘進去，四捨五入到整數）；
+  /// 治好以後的期望收入是牛原本的估值（[cured] 是 false：舊的伺服器沒有這個欄位）。
+  bool sick = false;
+  bool cured = true;
   List<Map<String, dynamic>> blockers = [];
   String grade = 'A';
   Map<String, dynamic>? after;
@@ -158,8 +164,10 @@ class DetailApi extends FakeGameApi {
       'tier': 0,
       'grade_probs': {'A': 0.397, 'B': 0.441, 'C': 0.162},
       'grade_mult': {'A': 1.25, 'B': 1.0, 'C': 0.75},
-      'value_by_grade': designIncome,
-      'expected_value': 2514,
+      'value_by_grade': {for (final e in designIncome.entries) e.key: sick ? (e.value * 0.1).round() : e.value},
+      'expected_value': sick ? (2514 * 0.1).round() : 2514,
+      if (sick && cured) 'expected_value_cured': 2514,
+      'sick': sick,
       'can_ship': blockers.isEmpty,
       'blockers': blockers,
     });
@@ -327,6 +335,11 @@ final s04Cases = <PageCase>[
       expect(_btn(tester, 'detail-ship').label, _zh.shipNotAdult);
       expect(_btn(tester, 'detail-ship').onPressed, isNull);
       expect(find.byKey(const Key('detail-grade-probs')), findsNothing);
+      // 飼料集點卡（#174）：燕麥吃過、豆粕還沒吃
+      expect(find.text('1 / 2'), findsOneWidget);
+      expect(find.byKey(const Key('stamp-ink-oats')), findsOneWidget);
+      expect(find.byKey(const Key('stamp-ink-soy')), findsNothing);
+      expect(find.text(_zh.s04StampRule), findsOneWidget);
     },
   ),
   PageCase(
@@ -446,6 +459,91 @@ final s04Cases = <PageCase>[
       expect(_btn(tester, 'detail-ship').onPressed, isNotNull);
     },
   ),
+  PageCase(
+    'S04-22',
+    '小牛的集點卡：集滿了、什麼都可以吃',
+    // 設計稿：小肉牛 #22 玉米、豆粕都吃過；小乳牛（公）#23 一般品種，什麼都可以吃
+    (tester, lang) => pumpSheet(tester, lang, [
+      StampCard(cow: Cow.fromJson(stampCalves()[2])),
+      StampCard(cow: Cow.fromJson(stampCalves()[3])),
+    ]),
+    crop: find.byKey(const Key('sheet')),
+    check: (tester) {
+      expect(find.text('2 / 2'), findsOneWidget);
+      expect(find.byKey(const Key('stamp-ink-corn')), findsOneWidget);
+      expect(find.byKey(const Key('stamp-ink-soy')), findsOneWidget);
+      expect(find.text(_zh.s04EatAny), findsOneWidget);
+    },
+  ),
+  PageCase(
+    'S04-18',
+    '病牛：治療、配種停用、出貨估值只剩一成',
+    (tester, lang) => showCow(tester, lang, sickCow(detailCow(3))),
+    check: (tester) {
+      expect(find.byType(SickBadge), findsOneWidget, reason: '「生病了」標籤');
+      expect(find.text(_zh.s04SickNote), findsOneWidget, reason: '橘字說明');
+      expect(kvValue(tester, _zh.gMilk), _zh.s04SickMilk, reason: '產奶：停止');
+      expect(kvValue(tester, _zh.s04Value), '${_zh.s04About(v: '251')} ${_zh.gCoin}', reason: '出貨估值只剩一成');
+      expect(_btn(tester, 'detail-treat').onPressed, isNotNull);
+      expect(find.text(_zh.treat(price: '5,000')), findsOneWidget);
+      expect(_btn(tester, 'detail-breed').onPressed, isNull, reason: '病牛不能配種');
+      expect(_btn(tester, 'detail-ship').onPressed, isNotNull, reason: '出貨照樣可以');
+    },
+  ),
+  PageCase(
+    'S04-19',
+    '病牛：治療確認',
+    (tester, lang) async {
+      await showCow(tester, lang, sickCow(detailCow(3)));
+      await tester.tap(find.byKey(const Key('detail-treat')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+    },
+    check: (tester) {
+      expect(find.text(_zh.s04TreatTitle(cow: _zh.cowName('holstein', 3))), findsOneWidget);
+      expect(find.text(_zh.s04TreatBody(price: '5,000')), findsOneWidget);
+      expect(find.byKey(const Key('treat-cancel')), findsOneWidget);
+      expect(find.byKey(const Key('treat-ok')), findsOneWidget);
+    },
+  ),
+  PageCase(
+    'S04-20',
+    '病牛：金幣不夠，治療停用',
+    // 設計稿：剩 3,750 幣，還差 1,250 幣
+    (tester, lang) => showCow(
+      tester,
+      lang,
+      sickCow(detailCow(3)),
+      api: DetailApi(state: {...detailState(sickCow(detailCow(3))), 'coins': 3750}),
+    ),
+    crop: find.byKey(const Key('detail-actions')),
+    check: (tester) {
+      expect(_btn(tester, 'detail-treat').onPressed, isNull);
+      expect(find.text(_zh.notEnoughCoins(n: '1,250')), findsOneWidget);
+      expect(_btn(tester, 'detail-ship').onPressed, isNotNull);
+    },
+  ),
+  PageCase(
+    'S04-21',
+    '治療好了',
+    // 治療確認按「治療」：伺服器扣 5,000 幣、治好了，回到一般的樣子，提示「荷斯坦 #3 好了！」
+    (tester, lang) async {
+      await showCow(tester, lang, sickCow(detailCow(3)));
+      await tester.tap(find.byKey(const Key('detail-treat')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(find.byKey(const Key('treat-ok')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+    },
+    crop: find.byKey(const Key('toast')),
+    check: (tester) {
+      expect(find.text(_zh.s04Treated(cow: _zh.cowName('holstein', 3))), findsOneWidget);
+      expect(find.byType(SickBadge), findsNothing, reason: '回到一般的樣子');
+      expect(find.byKey(const Key('detail-treat')), findsNothing);
+      expect(find.text('7,480'), findsOneWidget, reason: '12,480 − 5,000');
+    },
+  ),
 ];
 
 /// 打開荷斯坦 #3 的出貨確認；[setup] 先設定假伺服器（一直等、失敗、不能出貨）。
@@ -520,6 +618,28 @@ final s07Cases = <PageCase>[
     check: (tester) {
       expect(find.textContaining('2,968', findRichText: true), findsOneWidget);
       expect(_btn(tester, 'ship-confirm').onPressed, isNull);
+    },
+  ),
+  PageCase(
+    'S07-06',
+    '病牛出貨：牛肉只剩一成',
+    (tester, lang) async {
+      final cow = sickCow(detailCow(3));
+      final api = DetailApi(state: detailState(cow))..sick = true;
+      await showCow(tester, lang, cow, api: api);
+      await openShip(tester);
+    },
+    crop: find.byKey(const Key('dialog')),
+    check: (tester) {
+      expect(find.descendant(of: find.byKey(const Key('dialog')), matching: find.byType(SickBadge)), findsOneWidget);
+      // 每一級的收入、期望收入都只剩一成（伺服器算好的）
+      expect(find.textContaining('297', findRichText: true), findsOneWidget);
+      expect(find.textContaining('178', findRichText: true), findsOneWidget);
+      expect(find.text(_zh.expectedValue(v: '251'), findRichText: true), findsOneWidget);
+      // 先治療再出貨：照伺服器的 expected_value_cured（牛原本的估值 2,514，跟設計稿一樣）
+      expect(find.text(_zh.s07SickNote(v: '2,514')), findsOneWidget);
+      expect(find.text(_zh.s07Note), findsNothing);
+      expect(_btn(tester, 'ship-confirm').onPressed, isNotNull, reason: '病牛照樣可以出貨');
     },
   ),
 ];

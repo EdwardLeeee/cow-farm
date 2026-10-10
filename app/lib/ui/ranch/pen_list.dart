@@ -8,6 +8,7 @@ import '../../api/models.dart';
 import '../../l10n/format.dart';
 import '../../l10n/l10n.dart';
 import '../../state/game_model.dart';
+import '../cow/stamps.dart';
 import '../kit/cow_bits.dart';
 import '../kit/kit.dart';
 import '../kit/page_head.dart';
@@ -72,7 +73,14 @@ class _PenListPageState extends State<PenListPage> {
           children: [
             for (final (i, c) in cows.indexed) ...[
               if (i > 0) const SizedBox(height: 10),
-              CowRow(key: Key('cow-${c.id}'), cow: c, meta: cowMeta(s, m, c), onTap: () => m.openCow(c.key)),
+              CowRow(
+                key: Key('cow-${c.id}'),
+                cow: c,
+                meta: cowMeta(s, m, c),
+                onTap: () => m.openCow(c.key),
+                // 小牛：飼料集點（S03-33；長大以後就不用了）
+                extra: c.stage == CowStage.calf ? StampLine(cow: c) : null,
+              ),
             ],
           ],
         ),
@@ -81,12 +89,13 @@ class _PenListPageState extends State<PenListPage> {
   }
 }
 
-/// 牛舍清單那一行說明（設計稿 cowListRow 的 meta）：
+/// 牛舍清單那一行說明（設計稿 cowListRow 的 meta）：病牛「不產奶，也不能配種、上架」（S03-30）、
 /// 小牛「長大還要 …」、在田裡「在第 n 塊田・稻米 x 公斤／時」、上架中「借種上架中：x 幣」、
 /// 產奶的母牛「產奶 x 瓶／時・體重 x 公斤」、其他「體重 x 公斤・估值約 x 幣」。倒數一律是現實時間。
 String cowMeta(Strings s, GameModel m, Cow c) {
   final sep = s.gSep;
   final adultAt = c.adultAt;
+  if (c.sick) return s.s03SickNoMilk;
   if (c.stage == CowStage.calf && adultAt != null) {
     return s.growUp(v: s.countdown((adultAt - m.gameNow) / m.timeScale));
   }

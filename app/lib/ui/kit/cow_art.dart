@@ -89,6 +89,7 @@ class CowArt {
 
   /// 圖檔名（不含副檔名）與要不要左右翻。同品種的個體差異：花色 = [variant] 除以花色數的餘數（T3 選項 2）；
   /// 朝右時有自己畫的朝右圖就用，沒有就把朝左的圖翻過來。
+  /// [sick]：病牛（v0.3 第 5 節）一律轉正面，用名字後面加 `_sick` 的圖（臉色發青、額頭藍線；cows.json 的 about）。
   (String, bool) pick({
     required String breed,
     required bool bull,
@@ -96,13 +97,15 @@ class CowArt {
     required bool front,
     required bool right,
     int variant = 0,
+    bool sick = false,
   }) {
     final n = _variants[breed] ?? 1;
     final native = right && _right.contains(breed);
     final name =
         '${breed}_${bull ? 'bull' : 'cow'}_${calf ? 'calf' : 'adult'}_${front ? 'front' : 'side'}'
         '_${native ? 'right' : 'left'}_v${variant % n}';
-    return (name, right && !native);
+    // 病牛的圖只有正面；沒有那張圖（舊的素材）就照一般的畫
+    return (sick && front && _images.containsKey('${name}_sick') ? '${name}_sick' : name, right && !native);
   }
 
   CowImageMeta? meta(String name) => _images[name];
@@ -121,6 +124,7 @@ class CowPicture extends StatelessWidget {
     required this.width,
     required this.height,
     this.pad = 4,
+    this.sick = false,
   });
 
   final String breed;
@@ -133,19 +137,26 @@ class CowPicture extends StatelessWidget {
   final double height;
   final double pad;
 
+  /// 病牛（v0.3 第 5 節）：正面的圖用臉色發青的那張，頭上疊溫度計泡泡（[SickBubble]）。
+  final bool sick;
+
   @override
   Widget build(BuildContext context) {
     final art = CowArt.instance;
     final (name, mirror) =
-        art?.pick(breed: breed, bull: bull, calf: calf, front: front, right: right, variant: variant) ?? ('', false);
+        art?.pick(breed: breed, bull: bull, calf: calf, front: front, right: right, variant: variant, sick: sick) ??
+        ('', false);
     final m = art?.meta(name);
     if (m == null) return SizedBox(width: width, height: height);
     // cowSVG：k = min((w − 2pad) / 牛的寬, (h − 2pad) / 牛的高)；牛的寬 = viewBox 寬 − 左右留邊。
-    // 母小牛的高算到蝴蝶結頂（設計稿 kit.js：ch = max(牛的高, 蝴蝶結頂)；#151）：viewBox 上緣（扣掉留邊）就是那裡
-    final k = [
-      (width - pad * 2) / (m.w - CowArt.margin * 2),
-      (height - pad * 2) / math.max(m.height, -(m.y0 + CowArt.margin)),
-    ].reduce((a, b) => a < b ? a : b);
+    // 母小牛的高算到蝴蝶結頂（設計稿 kit.js：ch = max(牛的高, 蝴蝶結頂)；#151）：viewBox 上緣（扣掉留邊）就是那裡。
+    // 病牛（正面、朝左）的寬算到泡泡的右邊、高算到泡泡頂，牛跟著往左移（x0、x1 的中間放在正中間）
+    final bubble = sick && front && !mirror ? SickBubble.of(m) : null;
+    final x0 = m.x0 + CowArt.margin;
+    final x1 = math.max(m.x0 + m.w - CowArt.margin, bubble?.right ?? double.negativeInfinity);
+    final top = math.max(math.max(m.height, -(m.y0 + CowArt.margin)), -(bubble?.top ?? 0));
+    final k = math.min((width - pad * 2) / (x1 - x0), (height - pad * 2) / top);
+    final feet = Offset(width / 2 - (x0 + x1) / 2 * k, height - pad);
     Widget pic = SvgPicture.asset('assets/cows/svg/$name.svg', width: m.w * k, height: m.h * k, fit: BoxFit.fill);
     if (mirror) pic = Transform.flip(flipX: true, child: pic);
     return SizedBox(
@@ -155,13 +166,56 @@ class CowPicture extends StatelessWidget {
         child: Stack(
           clipBehavior: Clip.none,
           children: [
-            // 腳底（viewBox 原點）放在 y = h − pad；左右留邊一樣寬，所以整張圖置中
-            Positioned(left: (width - m.w * k) / 2, top: height - pad + m.y0 * k, child: pic),
+            // 腳底（viewBox 原點）放在 y = h − pad；左右留邊一樣寬，所以整張圖置中（病牛往左移，讓出泡泡的位置）
+            Positioned(
+              left: bubble == null ? (width - m.w * k) / 2 : feet.dx + m.x0 * k,
+              top: height - pad + m.y0 * k,
+              child: pic,
+            ),
+            if (bubble != null) bubble.positioned(feet, k),
           ],
         ),
       ),
     );
   }
+}
+
+/// 病牛頭上的溫度計泡泡（素材 ui/parts/sick_bubble：中心在 (0, 0)、半徑 10，viewBox −12.6 −11 24.6 25.8）。
+/// 位置照那張牛圖的 face、headTop（ui.json 的 about；設計稿 sick.js 的 sickBubbleAt）：
+/// 中心 (face.cx + 0.9315 × face.r, headTop.y − 0.2 × face.r)、半徑 0.5 × face.r，都是牛圖的座標（原點在腳底）。
+class SickBubble {
+  const SickBubble._(this.faceX, this.center, this.radius);
+
+  /// 這張牛圖（朝左）的泡泡。
+  factory SickBubble.of(CowImageMeta m) {
+    final (cx, _, r) = m.face;
+    return SickBubble._(cx, Offset(cx + 0.9315 * r, m.headTop.dy - 0.2 * r), 0.5 * r);
+  }
+
+  /// 臉的中間（牛圖的 x）。
+  final double faceX;
+  final Offset center;
+  final double radius;
+
+  double get right => center.dx + radius;
+  double get top => center.dy - radius;
+
+  /// viewBox 的左上角、寬高（半徑 10 的那一版）。
+  static const _box = Rect.fromLTWH(-12.6, -11, 24.6, 25.8);
+
+  /// 泡泡在螢幕上的範圍：腳底在 [feet]、牛圖的 1 單位是 [k] 點。[mirror]：左右翻的圖（朝右），臉在腳底的另一邊，
+  /// 泡泡照樣在臉的右上方（設計稿的泡泡不翻）。
+  Rect rect(Offset feet, double k, {bool mirror = false}) {
+    final s = radius * k / 10;
+    final x = mirror ? -faceX + (center.dx - faceX) : center.dx;
+    final c = feet + Offset(x, center.dy) * k;
+    return Rect.fromLTWH(c.dx + _box.left * s, c.dy + _box.top * s, _box.width * s, _box.height * s);
+  }
+
+  Widget positioned(Offset feet, double k) => Positioned.fromRect(
+    rect: rect(feet, k),
+    child: SvgPicture.asset('assets/ui/parts/sick_bubble.svg', fit: BoxFit.fill, excludeFromSemantics: true),
+  );
 }
 
 /// 牛的臉（設計稿 kit.js 的 cowFace）：正面的圖只取臉那個圓，畫成 [size]×[size]。頂列的頭像用。
@@ -202,7 +256,8 @@ class CowFace extends StatelessWidget {
 
 /// 牛的淺色剪影（設計稿 kit.js 的 cowSVG 加 sil: true）：整隻牛填 #C2B3A6，中間一個白字、深色描邊的「？」
 /// （字級是高的 0.42、基線在高的 0.62、描邊 max(1.5, 高 × 0.03)）。找不到這頭牛（S04-11）、還沒發現的品種（S08-06）用。
-/// [CowSilhouette.dark] 是深色的（sil: 'dark'，填 #2A1E1A、沒有「？」）：圖鑑還沒發現的品種（S09）、帳號失效（S15-03）。
+/// [CowSilhouette.dark] 是深色的（sil: 'dark'，填 #2A1E1A、沒有「？」）：圖鑑還沒發現的品種（S09）、帳號失效（S15-03）、
+/// 配種表還沒配出過的爸媽（S09-08，爸爸是公牛的影子）。
 class CowSilhouette extends StatelessWidget {
   const CowSilhouette({
     super.key,
@@ -219,12 +274,12 @@ class CowSilhouette extends StatelessWidget {
   const CowSilhouette.dark({
     super.key,
     required this.breed,
+    this.bull = false,
     required this.width,
     required this.height,
     this.front = true,
     this.pad = 4,
-  }) : bull = false,
-       calf = false,
+  }) : calf = false,
        dark = true;
 
   final String breed;

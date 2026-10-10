@@ -186,6 +186,9 @@ class HttpGameApi implements GameApi {
   Future<ShopInfo> shop() async => ShopInfo.fromJson(await _get('/v1/shop'));
 
   @override
+  Future<Map<String, List<BreedPair>>> codexPairings() async => codexPairingsFromJson(await _get('/v1/codex/pairings'));
+
+  @override
   Future<ShopBuyResult> shopBuy(String grade) async =>
       ShopBuyResult.fromJson(await _mutate('/v1/shop/buy', {'grade': grade}));
 
@@ -207,6 +210,17 @@ class HttpGameApi implements GameApi {
 
   @override
   Future<Map<String, dynamic>> setAvatar(String breed) => _mutate('/v1/ranch/avatar', {'breed': breed});
+
+  @override
+  Future<Map<String, dynamic>> clean(Map<Object, int>? piles) => _mutate('/v1/clean', {
+    if (piles != null)
+      'piles': [
+        for (final e in piles.entries) {'cow_id': e.key, 'n': e.value},
+      ],
+  });
+
+  @override
+  Future<Map<String, dynamic>> cure(Object cowId) => _mutate('/v1/cure', {'cow_id': cowId});
 
   @override
   Future<StudMarket> stud() async => StudMarket.fromJson(await _get('/v1/stud'));

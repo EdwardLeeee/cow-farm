@@ -87,6 +87,19 @@ abstract class GameApi {
   /// （沒發現回 409 avatar_locked）。
   Future<Map<String, dynamic>> setAvatar(String breed);
 
+  // ---- v0.3 C1 照顧（協定 2.6） ----
+  /// 清大便（免費）：[piles] 是每頭牛清幾坨（比那頭牛現有的多就清到 0）；null 是全部清。
+  /// 回應有 `cleaned`（清了幾坨）、`poop`（同 `state.poop`）、`coins`、`state`。
+  Future<Map<String, dynamic>> clean(Map<Object, int>? piles);
+
+  /// 治療一頭病牛（`economy.cure_price` 幣，馬上好）。回應有 `cow_id`、`cost`、`cow`、`coins`、`state`；
+  /// 錯誤 `cow_not_found`、`cow_not_sick`、`not_enough_coins`。
+  Future<Map<String, dynamic>> cure(Object cowId);
+
+  // ---- v0.3 C1b 圖鑑的配種表（協定 2.7） ----
+  /// 每個品種的代表配法（`GET /v1/codex/pairings`，固定資料，同一版伺服器不會變）：品種 → 4 組 `{sire, dam}`。
+  Future<Map<String, List<BreedPair>>> codexPairings();
+
   Future<StudMarket> stud();
   Future<BreedPreview> studPreview(Object listingId, Object dam);
 

@@ -182,12 +182,12 @@ class _FieldsPageState extends State<FieldsPage> with SingleTickerProviderStateM
     });
   }
 
-  /// 每小時的產量：長滿的田不算（設計稿 S17-01 是 11.0，收成以後 S17-09 是 25.3）。
+  /// 每小時的產量：長滿的田、病牛的田（S17-13）不算（設計稿 S17-01 是 11.0，收成以後 S17-09 是 25.3）。
   static double _rate(GameModel m) {
     var rate = 0.0;
     for (final f in m.state!.fields) {
       final cap = f.capacity;
-      if (!f.empty && cap != null && m.fieldRiceNow(f) < cap) rate += f.perHour;
+      if (!f.empty && cap != null && !m.fieldOxSick(f) && m.fieldRiceNow(f) < cap) rate += f.perHour;
     }
     return rate;
   }
@@ -655,12 +655,19 @@ class FieldCard extends StatelessWidget {
       );
     }
     final cow = ox;
-    final full = rice >= cap;
+    // 病牛（S17-13）：停止耕田，標籤換成「生病了」，牛是正面臉色發青，進度條變灰停住，不寫每小時
+    final sick = cow?.sick ?? false;
+    final full = !sick && rice >= cap;
     // 剩的比上限多（叫回稀有耕牛後改派一般耕牛）：照長滿了顯示，數字只寫公斤數（S17-12）
-    final over = rice > cap;
+    final over = !sick && rice > cap;
     final rate = field.perHour;
     final left = rate > 0 ? (cap - rice) / rate * 60 / m.timeScale : 0.0;
-    final bar = full ? MeterBar.yellow(fraction: 1) : MeterBar.green(fraction: cap > 0 ? rice / cap : 0);
+    final frac = cap > 0 ? (rice / cap).clamp(0.0, 1.0) : 0.0;
+    final bar = sick
+        ? MeterBar.gray(fraction: frac)
+        : full
+        ? MeterBar.yellow(fraction: 1)
+        : MeterBar.green(fraction: cap > 0 ? rice / cap : 0);
     return AppCard(
       color: full ? _fullBg : AppColors.paper,
       child: Column(
@@ -671,7 +678,12 @@ class FieldCard extends StatelessWidget {
               Expanded(
                 child: Align(alignment: Alignment.centerLeft, child: number),
               ),
-              if (full) CowBadge(BadgeKind.full, s.s17Full) else CowBadge(BadgeKind.working, s.badgeWorking),
+              if (sick)
+                const SickBadge()
+              else if (full)
+                CowBadge(BadgeKind.full, s.s17Full)
+              else
+                CowBadge(BadgeKind.working, s.badgeWorking),
             ],
           ),
           const SizedBox(height: 8),
@@ -690,6 +702,7 @@ class FieldCard extends StatelessWidget {
                         width: 48,
                         height: 48,
                         pad: 2 * 48 / 52,
+                        sick: sick,
                       ),
               ),
               const SizedBox(width: 8),
@@ -717,7 +730,7 @@ class FieldCard extends StatelessWidget {
                             fit: OverflowBoxFit.deferToChild,
                             child: rarityChip(cow.breed, cow.tier),
                           ),
-                        Text(s.fieldRate(v: rateText(rate)), style: KitText.hint()),
+                        if (!sick) Text(s.fieldRate(v: rateText(rate)), style: KitText.hint()),
                       ],
                     ),
                   ],
@@ -756,8 +769,12 @@ class FieldCard extends StatelessWidget {
           const SizedBox(height: 8),
           CssLine(
             TextSpan(
-              text: full ? s.fieldFull : s.s17FullIn(time: fullInText(s, left), h: rateText(capHours)),
-              style: full ? KitText.warn() : KitText.hint(),
+              text: sick
+                  ? s.s17SickStop
+                  : full
+                  ? s.fieldFull
+                  : s.s17FullIn(time: fullInText(s, left), h: rateText(capHours)),
+              style: sick || full ? KitText.warn() : KitText.hint(),
             ),
             wrap: true,
           ),

@@ -6,6 +6,7 @@ import 'package:cowfarm/api/game_api.dart';
 import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
 import 'package:cowfarm/ui/fields/fields_page.dart';
+import 'package:cowfarm/ui/kit/cow_bits.dart';
 import 'package:cowfarm/ui/kit/kit.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
@@ -334,6 +335,36 @@ final s17Cases = [
     check: (tester) {
       expect(find.text('120.0'), findsOneWidget, reason: '只寫公斤數，不寫「/ 88.0」');
       expect(find.text(_zh.fieldFull), findsNWidgets(2));
+    },
+  ),
+  PageCase(
+    'S17-13',
+    '病牛在田裡：停止耕田',
+    // 設計稿：第 1 塊田的台灣黃牛 #2 生病了（62.5 / 88.0 公斤停住）
+    (tester, lang) async {
+      final cows = [for (final c in fieldsHerd()) c['id'] == 2 ? sickCow(c) : c];
+      await showFields(
+        tester,
+        lang,
+        api: FieldsApi(state: fieldsState(cows: cows)),
+      );
+      await scrollFieldsTo(tester, find.byKey(const Key('field-0')));
+    },
+    crop: find.byKey(const Key('field-0')),
+    check: (tester) {
+      final card = find.byKey(const Key('field-0'));
+      expect(find.descendant(of: card, matching: find.byType(SickBadge)), findsOneWidget);
+      expect(find.descendant(of: card, matching: find.text(_zh.badgeWorking)), findsNothing);
+      expect(find.descendant(of: card, matching: find.text(_zh.s17SickStop)), findsOneWidget);
+      expect(
+        find.descendant(
+          of: card,
+          matching: find.text(_zh.fieldRate(v: '11')),
+        ),
+        findsNothing,
+        reason: '不寫每小時',
+      );
+      expect(find.text('62.5 / 88.0'), findsOneWidget);
     },
   ),
 ];

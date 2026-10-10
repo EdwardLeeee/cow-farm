@@ -82,7 +82,12 @@ List<Map<String, dynamic>> designCows() => [
   designCow(3, 'holstein', milk: 14, kg: 212, value: 2514),
   designCow(7, 'jersey', milk: 14, kg: 196, value: 3102),
   designCow(12, 'strawberry', milk: 14, kg: 174, value: 5520),
-  designCow(15, 'holstein', stage: 'calf'),
+  // 小乳牛 #15：要吃燕麥、豆粕，都吃過了（集滿了，牧場不冒泡泡；設計稿 fixtures.js 的 COWS）
+  {
+    ...designCow(15, 'holstein', stage: 'calf'),
+    'need': ['oats', 'soy'],
+    'ate': ['oats', 'soy'],
+  },
   designCow(2, 'yellow', bull: true, kg: 431, value: 5108, field: 0, rice: 11),
   designCow(9, 'highland', kg: 377, value: 5832, field: 2, rice: 14.3),
   designCow(5, 'angus', bull: true, kg: 790, value: 9420, listed: 7, fee: 870),
@@ -90,6 +95,72 @@ List<Map<String, dynamic>> designCows() => [
   designCow(8, 'holstein', bull: true, stage: 'old', kg: 268, value: 2810, bred: true),
   designCow(14, 'jersey', bull: true, kg: 205, value: 3240),
 ];
+
+/// 設計稿 S03-25 的雜種牛（fixtures.js 的 MIX_COW）：#20 乳牛、母，小時候要吃苜蓿、沒吃到，長大變成雜種牛
+/// （伺服器照樣送原本的稀有度，畫面不顯示）。[calf] 是長大前、還是小牛的時候。
+Map<String, dynamic> mixCow({bool calf = false}) => calf
+    ? {
+        ...designCow(20, 'holstein', stage: 'calf'),
+        'need': ['alfalfa'],
+      }
+    : {
+        ...designCow(20, 'holstein', milk: 14, kg: 206, value: 1466),
+        'breed': 'hybrid',
+        'tier': 2,
+        'hybrid': true,
+        'need': ['alfalfa'],
+        'missed': ['alfalfa'],
+      };
+
+/// 設計稿的 10 頭牛，旁邊一共 [n] 坨大便：照牛的編號一頭一坨分下去（場景裡排在設計稿的第 0–(n − 1) 個位置）。
+List<Map<String, dynamic>> poopCows(int n) {
+  final herd = designCows()..sort((a, b) => (a['id'] as int).compareTo(b['id'] as int));
+  return [
+    for (var i = 0; i < herd.length; i++) {...herd[i], 'poop': n ~/ herd.length + (i < n % herd.length ? 1 : 0)},
+  ];
+}
+
+/// 設計稿 S03-31～33、S04-08 的小乳牛 #15（fixtures.js 的 CALF_DEMO）：燕麥吃過、豆粕還沒吃，42 分後長大。
+Map<String, dynamic> halfCalf15() => {
+  ...designCow(15, 'holstein', stage: 'calf'),
+  'need': ['oats', 'soy'],
+  'ate': ['oats'],
+};
+
+/// 設計稿的 10 頭牛，小乳牛 #15 換成吃了一半的（S03-31、32）。
+List<Map<String, dynamic>> stampHerd() => [for (final c in designCows()) c['id'] == 15 ? halfCalf15() : c];
+
+/// 設計稿 S03-33 的四頭小牛（CALF_DEMO）：#15 吃了一半、#21 小耕牛還沒吃（2 小時 10 分後長大）、
+/// #22 小肉牛集滿了（1 小時 30 分）、#23 小乳牛（公）什麼都可以吃（2 小時 40 分）。
+List<Map<String, dynamic>> stampCalves() => [
+  halfCalf15(),
+  {
+    ...designCow(21, 'yellow', bull: true, stage: 'calf', growMin: 130),
+    'need': ['oats'],
+  },
+  {
+    ...designCow(22, 'angus', stage: 'calf', growMin: 90),
+    'need': ['corn', 'soy'],
+    'ate': ['corn', 'soy'],
+  },
+  designCow(23, 'holstein', bull: true, stage: 'calf', growMin: 160),
+];
+
+/// 設計稿的病牛（fixtures.js 的 sickOf；v0.3 第 5 節）：生病了、不產奶、不能配種，出貨估值只剩一成
+/// （協定 2.3：伺服器的 ship_value 已經乘進去，四捨五入到整數）。
+Map<String, dynamic> sickCow(Map<String, dynamic> c) => {
+  ...c,
+  'sick': true,
+  'sick_since': t0 - 600,
+  'milk_per_h': 0.0,
+  'milk_frac': 0.0,
+  'ship_value': ((c['ship_value'] as num) * 0.1).roundToDouble(),
+  'can_breed': false,
+  'can_work': false,
+};
+
+/// 設計稿 S03-28、29 的牧場：9 坨大便，#3 荷斯坦生病了。
+List<Map<String, dynamic>> sickHerd() => [for (final c in poopCows(9)) c['id'] == 3 ? sickCow(c) : c];
 
 /// 設計稿 S03-01 的牧場：Lv 4（經驗 41%）、12,480 幣、牛舍 10／12、奶桶 36.4／42（每小時 42 瓶）、倉庫 225。
 Map<String, dynamic> ranchState({
@@ -129,7 +200,17 @@ Map<String, dynamic> ranchState({
       'ox_rice_per_h': 11.0,
       'field_cap_h': 8.0,
       'hybrid_mult': 0.6, // v0.3 C1：雜種牛的倍數（協定 2.3）
+      // v0.3 C1 照顧（協定 2.3、2.6）
+      'cure_price': 5000,
+      'sick_beef_mult': 0.1,
+      'poop_max_per_cow': 4,
+      'sick_dirt_free': 0.5,
     },
+    // 全場的大便 = 每頭牛的 poop 加起來；髒的程度 = 大便 ÷ 牛的頭數（協定 2.3）
+    'poop': () {
+      final total = herd.fold<int>(0, (n, c) => n + ((c['poop'] as num?)?.toInt() ?? 0));
+      return {'total': total, 'dirt': herd.isEmpty ? 0.0 : total / herd.length, 'safe_until': null};
+    }(),
     'pen': {
       'slots': penSlots,
       'used': penUsed ?? herd.length,
@@ -235,15 +316,26 @@ Future<GameModel> ranchModel({
   bool connected = true,
   SignInService? signIn,
   SignInPlatform signInPlatform = SignInPlatform.iphone,
+  PrefsStore? prefs,
 }) async {
   final a = api ?? FakeGameApi(state: state ?? ranchState(), market: market ?? ranchMarket());
   if (api != null) {
     a.stateJson = state ?? a.stateJson;
     a.marketJson = market ?? a.marketJson;
   }
-  final (m, _, _) = await loadedModel(api: a, connected: connected, signIn: signIn, signInPlatform: signInPlatform);
+  final (m, _, _) = await loadedModel(
+    api: a,
+    connected: connected,
+    signIn: signIn,
+    signInPlatform: signInPlatform,
+    prefs: prefs,
+  );
   return m;
 }
+
+/// 右上角的大便數（「大便 9」）。
+String dirtText(WidgetTester tester) =>
+    tester.widget<Text>(find.byKey(const Key('dirt-count'))).textSpan!.toPlainText();
 
 /// 名片的位置（ranch_page.dart 的 RenderPopPlacer）：從名片往上找。
 RenderPopPlacer popPlacer(WidgetTester tester) {
@@ -867,6 +959,206 @@ final s03Cases = <PageCase>[
       final pop = find.byKey(const Key('cow-pop'));
       expect(find.descendant(of: pop, matching: find.text(_zh.stageOld)), findsOneWidget);
       expect(find.text(_zh.weight(v: '268')), findsOneWidget);
+    },
+  ),
+  PageCase(
+    'S03-26',
+    '牧場有大便：右上角出現大便數',
+    (tester, lang) async => pumpAppIn(
+      tester,
+      await ranchModel(state: ranchState(cows: poopCows(4))),
+      lang,
+      prefs: swipeHintSeen,
+    ),
+    check: (tester) {
+      expect(dirtText(tester), '${_zh.s03Poop} 4');
+      expect(find.text(_zh.s03PoopDanger), findsNothing, reason: '4 ÷ 10 頭 = 0.4，還不會生病');
+      // 設計稿的第 0–3 個位置
+      for (var i = 0; i < 9; i++) {
+        expect(find.byKey(Key('poop-$i')), i < 4 ? findsOneWidget : findsNothing, reason: '第 $i 個位置');
+      }
+    },
+  ),
+  PageCase(
+    'S03-27',
+    '太髒了：大便數變紅「會生病」',
+    (tester, lang) async => pumpAppIn(
+      tester,
+      await ranchModel(state: ranchState(cows: poopCows(9))),
+      lang,
+      prefs: swipeHintSeen,
+    ),
+    check: (tester) {
+      expect(dirtText(tester), '${_zh.s03Poop} 9');
+      expect(find.text(_zh.s03PoopDanger), findsOneWidget, reason: '9 ÷ 10 頭 = 0.9 > 0.5');
+      for (var i = 0; i < 9; i++) {
+        expect(find.byKey(Key('poop-$i')), findsOneWidget, reason: '第 $i 個位置');
+      }
+    },
+  ),
+  PageCase(
+    'S03-28',
+    '有病牛：轉正面、臉色發青、頭上溫度計',
+    (tester, lang) async => pumpAppIn(
+      tester,
+      await ranchModel(state: ranchState(cows: sickHerd())),
+      lang,
+      prefs: swipeHintSeen,
+    ),
+    check: (tester) {
+      expect(ranchGame(tester).artOf(3), endsWith('_sick'), reason: '轉正面、臉色發青的圖');
+      expect(ranchGame(tester).artOf(7), isNot(endsWith('_sick')));
+      expect(dirtText(tester), '${_zh.s03Poop} 9');
+    },
+  ),
+  PageCase(
+    'S03-29',
+    '點病牛：名片寫「生病了」、按鈕換成治療',
+    (tester, lang) async {
+      await pumpAppIn(
+        tester,
+        await ranchModel(state: ranchState(cows: sickHerd())),
+        lang,
+        prefs: swipeHintSeen,
+      );
+      await tapSceneCow(tester, 3);
+      await tester.pump();
+    },
+    check: (tester) {
+      final pop = find.byKey(const Key('cow-pop'));
+      expect(tester.getSize(pop).width, 236, reason: '病牛的名片寬 236');
+      expect(find.descendant(of: pop, matching: find.byType(SickBadge)), findsOneWidget);
+      expect(find.text(_zh.s03SickNoMilk), findsOneWidget);
+      expect(find.text(_zh.s03SickShip), findsOneWidget);
+      expect(find.text(_zh.treat(price: '5,000')), findsOneWidget);
+      expect(find.byKey(const Key('pop-detail')), findsNothing);
+    },
+  ),
+  PageCase(
+    'S03-30',
+    '牛舍清單：病牛那一列',
+    // 設計稿：病牛 #3、娟珊 #7 兩列
+    (tester, lang) async {
+      final cows = [
+        for (final c in designCows())
+          if (c['id'] == 3) sickCow(c) else if (c['id'] == 7) c,
+      ];
+      await pumpAppIn(
+        tester,
+        await ranchModel(state: ranchState(cows: cows)),
+        lang,
+        prefs: swipeHintSeen,
+      );
+      await openPenList(tester);
+    },
+    crop: find.byKey(const Key('pen-rows')),
+    check: (tester) {
+      final rows = find.byKey(const Key('pen-rows'));
+      expect(find.descendant(of: rows, matching: find.byType(CowRow)), findsNWidgets(2));
+      expect(find.descendant(of: rows, matching: find.byType(SickBadge)), findsOneWidget);
+      expect(find.text(_zh.s03SickNoMilk), findsOneWidget);
+      expect(find.text('${_zh.milkRate(v: '14')}${_zh.gSep}${_zh.weight(v: '196')}'), findsOneWidget);
+    },
+  ),
+  PageCase(
+    'S03-31',
+    '小牛頭上的想吃泡泡：還沒吃的飼料＋幾個了',
+    // 提醒卡（S03-32）另外一個狀態：這裡當作已經提醒過了
+    (tester, lang) async => pumpAppIn(
+      tester,
+      await ranchModel(state: ranchState(cows: stampHerd())),
+      lang,
+      prefs: {...swipeHintSeen, SettingsController.growAlertKey: '15@31'},
+    ),
+    check: (tester) {
+      final want = find.byKey(const Key('want-15'));
+      expect(want, findsOneWidget);
+      expect(find.descendant(of: want, matching: find.text('1 / 2')), findsOneWidget);
+      expect(find.byKey(const Key('grow-alert-15')), findsNothing);
+    },
+  ),
+  PageCase(
+    'S03-32',
+    '快長大了、還有沒吃的：提醒卡（一頭一張，可以關）',
+    (tester, lang) async => pumpAppIn(
+      tester,
+      await ranchModel(state: ranchState(cows: stampHerd())),
+      lang,
+      prefs: swipeHintSeen,
+    ),
+    check: (tester) {
+      expect(find.byKey(const Key('grow-alert-15')), findsOneWidget);
+      expect(
+        find.text(_zh.s03GrowSoon(cow: _zh.calfName(CowType.dairy, 15), time: _zh.countdown(42 * 60))),
+        findsOneWidget,
+      );
+      final alert = find.byKey(const Key('grow-alert-15'));
+      expect(
+        find.descendant(of: alert, matching: find.textContaining(_zh.s03NotEaten, findRichText: true)),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: alert, matching: find.textContaining(_zh.byKey('feed.soy'), findRichText: true)),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('grow-alert-go-15')), findsOneWidget);
+      expect(find.byKey(const Key('want-15')), findsOneWidget);
+    },
+  ),
+  PageCase(
+    'S03-33',
+    '牛舍清單：小牛的集點（吃了一半、還沒吃、集滿了、什麼都可以吃）',
+    // 提醒卡（S03-32）會蓋住「我的牛」：這裡當作已經提醒過了
+    (tester, lang) async {
+      await pumpAppIn(
+        tester,
+        await ranchModel(state: ranchState(cows: stampCalves())),
+        lang,
+        prefs: {...swipeHintSeen, SettingsController.growAlertKey: '15@31'},
+      );
+      await openPenList(tester);
+    },
+    crop: find.byKey(const Key('pen-rows')),
+    check: (tester) {
+      final rows = find.byKey(const Key('pen-rows'));
+      expect(find.descendant(of: rows, matching: find.byKey(const Key('stamp-line'))), findsNWidgets(3));
+      expect(find.descendant(of: rows, matching: find.byKey(const Key('stamp-any'))), findsOneWidget);
+      expect(find.text('1 / 2'), findsOneWidget);
+      expect(find.text('0 / 1'), findsOneWidget);
+      expect(find.text('2 / 2'), findsOneWidget);
+      expect(find.text(_zh.s03StampsFull), findsOneWidget);
+    },
+  ),
+  PageCase(
+    'S03-25',
+    '小牛長大揭曉：變成雜種牛（A-13 的結尾）',
+    // 設計稿：S03-01 的牧場，小乳牛 #20 長大了、變成雜種牛（設計稿的 #20 不算在牛舍 10／12 裡；app 的 #20 排在場景
+    // 右半邊，看不到）。先收到 #20 還是小牛的 state，下一次收到長大了的
+    (tester, lang) async {
+      final api = FakeGameApi(
+        state: ranchState(cows: [...designCows(), mixCow(calf: true)], penUsed: 10),
+        market: ranchMarket(),
+      );
+      final m = await ranchModel(api: api);
+      api.stateJson = ranchState(cows: [...designCows(), mixCow()], penUsed: 10);
+      await m.refreshState();
+      await pumpAppIn(tester, m, lang, prefs: swipeHintSeen);
+    },
+    check: (tester) {
+      expect(find.byKey(const Key('grow-reveal')), findsOneWidget);
+      expect(
+        tester.widget<Text>(find.byKey(const Key('grow-title'))).data,
+        _zh.animGrownUp(cow: _zh.calfName(CowType.dairy, 20)),
+      );
+      expect(find.text(_zh.cowName('hybrid', 20)), findsOneWidget);
+      final name = find.byKey(const Key('grow-name'));
+      expect(find.descendant(of: name, matching: find.byType(MixStarChip)), findsOneWidget);
+      expect(find.descendant(of: name, matching: find.text(_zh.badgeMix)), findsOneWidget);
+      expect(find.text(_zh.animMixGrown(feeds: _zh.feedList(['alfalfa']))), findsOneWidget);
+      expect(find.text(_zh.animMixHint(mult: '0.6')), findsOneWidget);
+      expect(find.byKey(const Key('grow-ok')), findsOneWidget);
+      expect(find.byKey(const Key('grow-skip')), findsNothing, reason: '雜種牛按「好」關，沒有「點一下跳過」');
+      expect(find.text('10 / 12'), findsOneWidget);
     },
   ),
   PageCase(

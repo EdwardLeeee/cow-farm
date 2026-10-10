@@ -7,6 +7,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:provider/provider.dart';
 
 import '../../api/breeds.dart';
@@ -16,6 +17,8 @@ import '../../l10n/l10n.dart';
 import '../../state/game_model.dart';
 import '../../state/settings.dart';
 import '../../theme/tokens.dart';
+import '../cow/stamps.dart';
+import '../cow/treat.dart';
 import '../kit/app_icon.dart';
 import '../kit/cow_bits.dart';
 import '../kit/frame.dart';
@@ -27,6 +30,8 @@ import '../widgets/action_button.dart';
 import '../widgets/ticker_builder.dart';
 import 'coach_card.dart';
 import 'dock.dart';
+import 'grow_reveal.dart';
+import 'poop.dart';
 import 'pen_list.dart';
 import 'ranch_game.dart';
 import 'scene.dart';
@@ -62,6 +67,13 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
 
   /// 被點到的牛（S03-06：轉正面、跳出小名片）。
   Object? _popId;
+
+  /// A-14 點一下清大便：還在播的那幾坨（[PoopCleanFx]）。[_poopFxPending] 是還沒到第 0.3 秒的：右上角的數字還算著它們，
+  /// 到了才少 1、跳一下（[_dirtBump]）。
+  final _poopFx = <PoopFx>[];
+  final _poopFxPending = <int>{};
+  var _poopFxId = 0;
+  var _dirtBump = 0;
   _Toast? _toast;
   Timer? _toastTimer;
 
@@ -122,6 +134,62 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
       milkShown: fx.milk + (data.warehouse.milkTotal - fx.milk) * gain,
       draining: drain > 0 && drain < 1,
     );
+  }
+
+  /// 病牛的名片按「治療」（S03-29）：一樣先問（S04-19），治好了在牧場頁提示「荷斯坦 #3 好了！」（S04-21）。
+  Future<void> _treat(Cow cow) async {
+    final m = context.read<GameModel>();
+    final s = Strings.of(context, listen: false);
+    final r = await treatCow(context, cow);
+    if (r == null || !mounted) return;
+    final err = r.error;
+    if (err == null) {
+      setState(() => _popId = null);
+      _showToast(_Toast(ToastKind.ok, s.s04Treated(cow: s.cowLabel(cow))));
+      return;
+    }
+    if (err case ApiActionError(:final error) when error.maintenance || error.unauthorized) return;
+    _showToast(_Toast(actionErrorKind(err), actionErrorTextWith(s, m, err)));
+  }
+
+  /// 清掉一坨大便：先從畫面拿掉（位置空出來，其他的不跳位），斷線的時候不能清。清掉了回 true。
+  bool _takePoop(ScenePoop p) {
+    final m = context.read<GameModel>();
+    if (!m.online || m.poopOf(p.cow) <= 0) return false;
+    // 場景的大便下一格畫面才更新：同一格裡被劃到兩次（或連點兩下）的，第二次不算
+    if (!m.poopLayout.take(p.spot)) return false;
+    return m.takePoop(p.cow);
+  }
+
+  /// 點一下清一坨（A-14）：開著動畫就在原位播淡掉、波紋、小星星，數字晚 0.3 秒才少；減少動態版直接消失、數字直接變少。
+  void _tapPoop(ScenePoop p) {
+    if (!_takePoop(p)) return;
+    if (AppMotion.read(context)) {
+      final fx = PoopFx(_poopFxId++, p.spot);
+      setState(() {
+        _poopFx.add(fx);
+        _poopFxPending.add(fx.id);
+      });
+    }
+    _sendPoop();
+  }
+
+  /// 送出清掉的大便（點一下馬上送，劃過去的手指放開才送）；失敗的話大便放回去，跳一般的錯誤提示。
+  Future<void> _sendPoop() async {
+    final m = context.read<GameModel>();
+    final s = Strings.of(context, listen: false);
+    final r = await m.sendPoop();
+    final err = r?.error;
+    if (!mounted || err == null) return;
+    // 沒清成：大便放回去了，還在播的 A-14 收掉（數字也不再晚一步）
+    if (_poopFx.isNotEmpty) {
+      setState(() {
+        _poopFx.clear();
+        _poopFxPending.clear();
+      });
+    }
+    if (err case ApiActionError(:final error) when error.maintenance || error.unauthorized) return;
+    _showToast(_Toast(actionErrorKind(err), actionErrorTextWith(s, m, err)));
   }
 
   Future<void> _collect() async {
@@ -211,11 +279,13 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
     // 奶桶滿了：產奶的牛轉正面（D11），編號最小的那頭頭上冒泡泡（S03-02）
     final producers = [
       for (final (c, _) in herd)
-        if (c.milkPerH > 0) c,
+        if (c.milkPerH > 0 && !c.sick) c,
     ];
     final bubbleCow = full && producers.isNotEmpty ? producers.first : null;
-    // 被點到的牛也轉正面（D11）
-    final cows = [for (final (c, slot) in herd) SceneCow(c, slot, front: (full && c.milkPerH > 0) || c.id == _popId)];
+    // 被點到的牛也轉正面（D11）；病牛一律轉正面看玩家、不冒奶桶的泡泡（S03-28）
+    final cows = [
+      for (final (c, slot) in herd) SceneCow(c, slot, front: c.sick || (full && c.milkPerH > 0) || c.id == _popId),
+    ];
     final popCow = [
       for (final sc in cows)
         if (sc.cow.id == _popId) sc.cow,
@@ -224,9 +294,15 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
     // 空牧場在很矮的手機（320×568）放不下「去商店」卡片：面板收成一條，卡片才不會疊到奶桶（m3-backlog）
     final shortScreen = mq.size.height < 700;
     final collapsed = settings.dockCollapsed || (empty && shortScreen);
-    final bigNews = _bigNews(m, settings);
-    // 新手引導卡（S11-03）：大新聞、空牧場的卡片開著時先不出（一次一張）
-    final coach = bigNews == null && st.cows.isNotEmpty ? coachToShow(m, settings) : null;
+    // 小牛長大揭曉（A-13 的最後一格、S03-25）：一頭一頭來，揭曉的時候大新聞、引導卡先不出
+    final grown = m.grownCow;
+    final bigNews = grown == null ? _bigNews(m, settings) : null;
+    // 快長大的提醒卡（S03-32）：再 1 小時內長大、還有沒吃的小牛，一頭一張（先長大的先），按過就不再跳
+    final alertCow = grown == null && bigNews == null ? _growAlertCow(m, settings, st) : null;
+    // 新手引導卡（S11-03）：大新聞、空牧場的卡片、提醒卡開著時先不出（一次一張）
+    final coach = grown == null && bigNews == null && alertCow == null && st.cows.isNotEmpty
+        ? coachToShow(m, settings)
+        : null;
     final collectButton = AppButton(
       s.collect,
       key: const Key('collect'),
@@ -238,6 +314,12 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
     );
     final top = safe.top + FrameSizes.hud;
     final news = m.market?.news.firstOrNull;
+    // 大便（v0.3 第 5 節）：場景裡每一坨的位置（記住，清掉一坨時其他的不跳位）、右上角的數字（扣掉正在清的）。
+    // 髒的程度 = 大便 ÷ 牛的頭數，超過會生病的門檻就變紅（S03-27）
+    final poops = m.poopLayout.place(st.cows, m.poopOf);
+    // 右上角的數字：點一下清掉的（A-14）到第 0.3 秒才少
+    final poopTotal = m.poopTotal + _poopFxPending.length;
+    final dirty = st.cows.isNotEmpty && poopTotal / st.cows.length > (st.economy?.sickDirtFree ?? 0.5);
     final showSwipeHint = !settings.swipeHintSeen && !empty;
 
     return AppFrame(
@@ -255,8 +337,32 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
         // 點一頭牛：轉正面、跳出小名片；再點一次或點空地就收起來
         onTapCow: (c) => setState(() => _popId = _popId == c.id ? null : c.id),
         onTapEmpty: _popId == null ? null : () => setState(() => _popId = null),
+        // 清大便：點一下清一坨（A-14，開著動畫時播淡掉、波紋、小星星），從大便上開始劃、劃過的都清掉（A-15，現在是減少動態版）
+        poops: poops,
+        onTapPoop: _tapPoop,
+        onSwipePoop: _takePoop,
+        onSwipeEnd: _sendPoop,
+        poopFx: _poopFx,
+        onPoopFxCount: (f) => setState(() {
+          if (_poopFxPending.remove(f.id)) _dirtBump++;
+        }),
+        onPoopFxDone: (f) => setState(() {
+          _poopFx.remove(f);
+          _poopFxPending.remove(f.id);
+        }),
       ),
-      underlays: [if (bubbleCow != null) _BubbleAnchor(cows: cows, cow: bubbleCow, pan: _pan, game: _game)],
+      underlays: [
+        if (bubbleCow != null) _BubbleAnchor(cows: cows, cow: bubbleCow, pan: _pan, game: _game),
+        // 小牛頭上的想吃泡泡（S03-31）：還有沒吃的飼料才冒（集滿了、一般優良的不冒；病牛頭上已經有溫度計，先不冒）
+        _WantAnchors(
+          cows: [
+            for (final sc in cows)
+              if (sc.cow.stage == CowStage.calf && !sc.cow.sick && feedTodo(sc.cow).isNotEmpty) sc,
+          ],
+          pan: _pan,
+          game: _game,
+        ),
+      ],
       body: [
         if (news != null)
           Positioned(
@@ -271,6 +377,13 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
           top: top + 58,
           child: _PenPill(used: st.pen.used, slots: st.pen.slots),
         ),
+        // .dirty：右上角的大便數，跟牛欄膠囊同一列（有大便才出現）
+        if (poopTotal > 0)
+          Positioned(
+            right: 12,
+            top: top + 62,
+            child: DirtPill(count: poopTotal, bad: dirty, bump: _dirtBump),
+          ),
         if (empty)
           Positioned(
             left: 24,
@@ -314,6 +427,22 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
       overlays: [
         // S11-03：跑馬燈下面 12、左右各 12，× 疊在卡片的右上角。跟大新聞一樣在最上層：蓋在場景、「我的牛」上，
         // 很矮的手機（320 × 568 英文、泰文）卡片比較高，會暫時蓋到面板的上緣（按卡上的按鈕或 × 就收起來）
+        if (alertCow case final c?)
+          Positioned(
+            left: 12,
+            right: 12,
+            top: top + 56,
+            child: GrowAlertCard(
+              cow: c,
+              time: s.countdown((c.adultAt! - m.gameNow) / m.timeScale),
+              // 去餵食：餵食還沒做（ceo），先打開這頭小牛的詳細，看得到集點卡
+              onGo: () {
+                settings.markGrowAlertSeen(c.id, st.playerId);
+                m.openCow(c.key);
+              },
+              onClose: () => settings.markGrowAlertSeen(c.id, st.playerId),
+            ),
+          ),
         if (coach != null) ...[
           Positioned(
             left: 12,
@@ -345,7 +474,8 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
             ),
           ),
         ],
-        if (popCow != null) _CowPopAnchor(cows: cows, cow: popCow, pan: _pan, game: _game),
+        if (popCow != null)
+          _CowPopAnchor(cows: cows, cow: popCow, pan: _pan, game: _game, onTreat: () => _treat(popCow)),
         if (bigNews != null)
           Positioned(
             left: 16,
@@ -398,6 +528,14 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
               ),
             ),
           ),
+        // 蓋在最上面（暗幕連頂列、分頁列一起蓋）；換一頭就從頭淡入
+        if (grown != null)
+          GrowReveal(
+            key: ValueKey(('grow', grown.id)),
+            cow: grown,
+            mult: st.economy?.hybridMult,
+            onDone: () => m.dismissGrown(grown),
+          ),
       ],
     );
   }
@@ -430,6 +568,19 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
             ),
       ],
     );
+  }
+
+  /// 快長大的提醒卡（S03-32）要提醒哪一頭：還有沒吃的飼料、再 1 小時（現實時間）內長大、這支手機還沒提醒過；先長大的先。
+  static Cow? _growAlertCow(GameModel m, SettingsController settings, GameState st) {
+    Cow? best;
+    for (final c in st.cows) {
+      final at = c.adultAt;
+      if (c.stage != CowStage.calf || at == null || feedTodo(c).isEmpty) continue;
+      final left = (at - m.gameNow) / m.timeScale;
+      if (left <= 0 || left > 3600 || settings.growAlertSeen(c.id, st.playerId)) continue;
+      if (best == null || at < best.adultAt!) best = c;
+    }
+    return best;
   }
 
   /// 大新聞（收購價大漲或大跌 20% 以上，企劃書 4.7、D24、m3-backlog）：還沒看過的那一則，跳出一次（S03-15）。
@@ -544,6 +695,77 @@ class _BubbleTail extends CustomPainter {
 
   @override
   bool shouldRepaint(_BubbleTail oldDelegate) => false;
+}
+
+/// 小牛頭上的想吃泡泡（S03-31，.want）：頭頂上方 10、置中（translate(−50%, −100%)、margin-top −10）。
+/// 小牛會走動（A-11）：開著動畫的時候每一格跟著小牛走到的地方。
+class _WantAnchors extends StatefulWidget {
+  const _WantAnchors({required this.cows, required this.pan, required this.game});
+
+  final List<SceneCow> cows;
+  final double pan;
+  final RanchGame game;
+
+  @override
+  State<_WantAnchors> createState() => _WantAnchorsState();
+}
+
+class _WantAnchorsState extends State<_WantAnchors> with SingleTickerProviderStateMixin {
+  late final Ticker _ticker = createTicker((_) => setState(() {}));
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _sync();
+  }
+
+  @override
+  void didUpdateWidget(_WantAnchors oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _sync();
+  }
+
+  /// 有泡泡、牛會走動才每一格重畫。
+  void _sync() {
+    final on = widget.cows.isNotEmpty && AppMotion.of(context);
+    if (on && !_ticker.isActive) {
+      _ticker.start();
+    } else if (!on && _ticker.isActive) {
+      _ticker.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.cows.isEmpty) return const SizedBox.shrink();
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: LayoutBuilder(
+          builder: (context, c) {
+            final fit = SceneFit(c.biggest, widget.pan);
+            return Stack(
+              children: [
+                for (final sc in widget.cows)
+                  if (CowPlacement.of(sc, fit, dx: widget.game.dxOf(sc.cow.id)) case final p?)
+                    Positioned(
+                      left: p.head.dx - 150,
+                      width: 300,
+                      bottom: c.maxHeight - (p.head.dy - 10),
+                      child: Center(child: WantBubble(cow: sc.cow)),
+                    ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
 }
 
 /// .ticker：最新一則新聞，太長就跑馬燈（減少動態時不跑）。
@@ -990,12 +1212,21 @@ class _BigNews extends StatelessWidget {
 /// （夾在螢幕左 12 到右 220 之間）。平常在頭頂上方 14、尖角朝下；名片上緣會碰到頂列（頂列下緣再留 6）時，
 /// 改放到牛腳下 14、尖角朝上（D30）。名片被擋在畫面裡時，尖角跟著移到對準那頭牛。
 class _CowPopAnchor extends StatelessWidget {
-  const _CowPopAnchor({required this.cows, required this.cow, required this.pan, required this.game});
+  const _CowPopAnchor({
+    required this.cows,
+    required this.cow,
+    required this.pan,
+    required this.game,
+    required this.onTreat,
+  });
 
   final List<SceneCow> cows;
   final Cow cow;
   final double pan;
   final RanchGame game;
+
+  /// 病牛的名片按「治療」（S03-29）。
+  final VoidCallback onTreat;
 
   @override
   Widget build(BuildContext context) {
@@ -1014,7 +1245,9 @@ class _CowPopAnchor extends StatelessWidget {
             foot: p.foot,
             // 頂列在安全區下面 6、高 52；再留 6
             limit: safeTop + 6 + FrameSizes.hud + 6,
-            child: _CowPop(cow: cow),
+            // 病牛的名片寬 236（.cow-pop.sick；S03-29），一樣左右留 12
+            width: cow.sick ? 236 : 208,
+            child: _CowPop(cow: cow, onTreat: onTreat),
           );
         },
       ),
@@ -1024,27 +1257,42 @@ class _CowPopAnchor extends StatelessWidget {
 
 /// 擺名片、畫尖角：要先量名片的高，才知道上面放不放得下。
 class _PopPlacer extends SingleChildRenderObjectWidget {
-  const _PopPlacer({required this.head, required this.foot, required this.limit, required super.child});
+  const _PopPlacer({
+    required this.head,
+    required this.foot,
+    required this.limit,
+    required this.width,
+    required super.child,
+  });
 
   final Offset head;
   final Offset foot;
   final double limit;
+  final double width;
 
   @override
-  RenderPopPlacer createRenderObject(BuildContext context) => RenderPopPlacer(head, foot, limit);
+  RenderPopPlacer createRenderObject(BuildContext context) => RenderPopPlacer(head, foot, limit, width);
 
   @override
   void updateRenderObject(BuildContext context, RenderPopPlacer renderObject) => renderObject
     ..head = head
     ..foot = foot
-    ..limit = limit;
+    ..limit = limit
+    ..width = width;
 }
 
 /// 名片的位置（測試會讀 [below]、[tip]）。
 class RenderPopPlacer extends RenderShiftedBox {
-  RenderPopPlacer(this._head, this._foot, this._limit) : super(null);
+  RenderPopPlacer(this._head, this._foot, this._limit, this._width) : super(null);
 
-  static const width = 208.0;
+  /// 名片的寬：一般 208，病牛 236（S03-29）。
+  double get width => _width;
+  double _width;
+  set width(double v) {
+    if (v == _width) return;
+    _width = v;
+    markNeedsLayout();
+  }
 
   Offset _head;
   set head(Offset v) {
@@ -1078,8 +1326,9 @@ class RenderPopPlacer extends RenderShiftedBox {
     size = constraints.biggest;
     final child = this.child;
     if (child == null) return;
-    child.layout(const BoxConstraints.tightFor(width: width), parentUsesSize: true);
-    final left = math.max(12.0, math.min(size.width - 220, _head.dx - 43));
+    child.layout(BoxConstraints.tightFor(width: width), parentUsesSize: true);
+    // 左右都留 12（s03.js：left = max(12, min(畫面寬 − 12 − 名片寬, 頭的 x − 43))）
+    final left = math.max(12.0, math.min(size.width - 12 - width, _head.dx - 43));
     final above = _head.dy - 14 - child.size.height;
     below = above < _limit - 0.5;
     tip = math.max(18.0, math.min(width - 36, _head.dx - left - 9));
@@ -1098,9 +1347,10 @@ class RenderPopPlacer extends RenderShiftedBox {
 }
 
 class _CowPop extends StatelessWidget {
-  const _CowPop({required this.cow});
+  const _CowPop({required this.cow, required this.onTreat});
 
   final Cow cow;
+  final VoidCallback onTreat;
 
   @override
   Widget build(BuildContext context) {
@@ -1118,6 +1368,8 @@ class _CowPop extends StatelessWidget {
         : !cow.isAdultAt(m.gameNow) && adultAt != null
         ? s.growUp(v: s.countdown((adultAt - m.gameNow) / m.timeScale))
         : s.weight(v: fmt(cow.weightKg));
+    final metaStyle = AppText.style(13, weight: FontWeight.w700, color: AppColors.ink2, lineHeight: 19);
+    final price = curePrice(m), coins = m.state?.coins ?? 0;
     // .cow-pop 的框、圓角、陰影、內距跟 .card 一樣
     return AppCard(
       key: const Key('cow-pop'),
@@ -1127,28 +1379,53 @@ class _CowPop extends StatelessWidget {
           // 名字放不下（英文「Strawberry Cow #12」）就換行，字級不變，編號才不會被截掉
           Text(s.cowLabel(cow), style: AppText.style(17, weight: FontWeight.w900, lineHeight: 22)),
           const SizedBox(height: 4),
-          // 用途、公母、稀有度，再加上狀態（scope.md S03-06：品種、稀有度、狀態）
+          // 用途、公母、稀有度，再加上狀態（scope.md S03-06：品種、稀有度、狀態；病牛加「生病了」）
           Wrap(
             spacing: 4,
             runSpacing: 4,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: cowChips(context, cow),
           ),
-          const SizedBox(height: 2),
-          Text(
-            meta,
-            key: const Key('pop-meta'),
-            style: AppText.style(13, weight: FontWeight.w700, color: AppColors.ink2, lineHeight: 19),
-          ),
-          const SizedBox(height: 8),
-          AppButton(
-            s.s03PopDetail,
-            key: const Key('pop-detail'),
-            small: true,
-            block: true,
-            kind: ButtonKind.primary,
-            onPressed: () => m.openCow(cow.key),
-          ),
+          // 病牛（S03-29）：兩行說明（可以換行，.meta.wrap），按鈕換成「治療（5,000 幣）」。
+          // 金幣不夠（ceo 2026-10-10）：照牛的詳細 S04-20，「治療」停用、下面寫還差多少（只是畫面判斷，扣錢照樣是伺服器算）
+          if (cow.sick) ...[
+            const SizedBox(height: 2),
+            Text(s.s03SickNoMilk, key: const Key('pop-meta'), style: metaStyle),
+            const SizedBox(height: 2),
+            Text(s.s03SickShip, style: metaStyle),
+            const SizedBox(height: 8),
+            AppButton(
+              s.treat(price: fmt(price)),
+              key: const Key('pop-treat'),
+              small: true,
+              block: true,
+              kind: ButtonKind.primary,
+              icon: 'coin',
+              onPressed: m.canAct && coins >= price ? onTreat : null,
+            ),
+            if (coins < price)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  s.notEnoughCoins(n: fmt(price - coins)),
+                  key: const Key('pop-treat-short'),
+                  textAlign: TextAlign.center,
+                  style: KitText.warn(),
+                ),
+              ),
+          ] else ...[
+            const SizedBox(height: 2),
+            Text(meta, key: const Key('pop-meta'), style: metaStyle),
+            const SizedBox(height: 8),
+            AppButton(
+              s.s03PopDetail,
+              key: const Key('pop-detail'),
+              small: true,
+              block: true,
+              kind: ButtonKind.primary,
+              onPressed: () => m.openCow(cow.key),
+            ),
+          ],
         ],
       ),
     );

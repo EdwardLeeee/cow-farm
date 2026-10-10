@@ -61,6 +61,11 @@ class MeterBar extends StatelessWidget {
     : fill = const Color(0xFFFFB938),
       track = const Color(0xFFFFF4CC);
 
+  /// 灰（.bar.gray）：停住的進度（病牛在田裡，v0.3 第 5 節；S17-13）。
+  const MeterBar.gray({super.key, required this.fraction, this.height = 14, this.radius = 8})
+    : fill = const Color(0xFFCDBFAE),
+      track = const Color(0xFFF1EBE3);
+
   /// 紅（.bar.red，底色不變）：快壞了、倉庫滿了。
   const MeterBar.red({super.key, required this.fraction, this.height = 14, this.radius = 8})
     : fill = const Color(0xFFFF8A80),

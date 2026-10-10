@@ -73,6 +73,25 @@ Map<String, dynamic> _cow(
   };
 }
 
+/// GET /v1/codex/pairings 的假資料：娟珊照設計稿 S09-03（s09.js 的 JERSEY_PAIRS 裡不是「表上沒有的」那 4 組）；
+/// 其他品種只放同品種配同品種一組（真的伺服器每種 4 組，照遺傳算）。
+Map<String, dynamic> samplePairingsJson() => {
+  'server_time': t0,
+  'pairings': {
+    for (final b in kCodexOrder)
+      b: b == 'jersey'
+          ? [
+              {'sire': 'jersey', 'dam': 'jersey'},
+              {'sire': 'holstein', 'dam': 'jersey'},
+              {'sire': 'jersey', 'dam': 'holstein'},
+              {'sire': 'cottonCream', 'dam': 'chocolate'},
+            ]
+          : [
+              {'sire': b, 'dam': b},
+            ],
+  },
+};
+
 /// 剛建好的牧場（伺服器 cowecon/params.py 的 OnboardingParams）：100 幣、奶桶裡 20 瓶、開局 1 小時產奶 ×5，
 /// 送一頭成年母乳牛（#1）和一頭還要 20 分鐘長大的公耕牛小牛（#2）。倍率 1（正式版），倒數就是現實時間。
 Map<String, dynamic> newRanchStateJson() => {
@@ -291,6 +310,12 @@ class FakeGameApi implements GameApi {
   /// 設了就讓 /v1/market 等到 complete 才回（測試「補抓完才提示」）。
   Completer<void>? marketGate;
 
+  /// GET /v1/codex/pairings 的回應（[samplePairingsJson]）。
+  Map<String, dynamic> pairingsJson = samplePairingsJson();
+
+  /// 設了就讓 GET /v1/codex/pairings 丟這個錯（例如舊的伺服器沒有這個端點、連不上）。
+  Exception? pairingsError;
+
   @override
   Future<Session> createSession(String ranchName) async {
     calls.add('session:$ranchName');
@@ -366,6 +391,13 @@ class FakeGameApi implements GameApi {
       'free_slots': 1,
       'grades': [_shopGrade('A', 3200, 0.5), _shopGrade('B', 1700, 0.3), _shopGrade('C', 900, 0.1)],
     });
+  }
+
+  @override
+  Future<Map<String, List<BreedPair>>> codexPairings() async {
+    calls.add('codexPairings');
+    if (pairingsError case final e?) throw e;
+    return codexPairingsFromJson(pairingsJson);
   }
 
   @override
@@ -459,6 +491,54 @@ class FakeGameApi implements GameApi {
       'profile': {...profile, 'avatar': breed},
     };
     return {'avatar': breed};
+  }
+
+  /// 清大便（協定 2.6）出錯；[cleanGate] 給了就等它完成才回（測試看回應到之前的畫面）。
+  Exception? cleanError;
+  Completer<void>? cleanGate;
+
+  @override
+  Future<Map<String, dynamic>> clean(Map<Object, int>? piles) async {
+    calls.add('clean:${piles == null ? 'all' : [for (final e in piles.entries) '${e.key}x${e.value}'].join(',')}');
+    if (cleanGate case final gate?) await gate.future;
+    if (cleanError != null) throw cleanError!;
+    var cleaned = 0;
+    final cows = <Map<String, dynamic>>[];
+    for (final c in (stateJson['cows'] as List? ?? const [])) {
+      final m = (c as Map).cast<String, dynamic>();
+      final has = (m['poop'] as num?)?.toInt() ?? 0;
+      final want = piles == null
+          ? has
+          : piles.entries.where((e) => '${e.key}' == '${m['id']}').fold<int>(0, (a, e) => a + e.value);
+      final n = want < has ? want : has;
+      cleaned += n;
+      cows.add({...m, 'poop': has - n});
+    }
+    final total = cows.fold<int>(0, (a, c) => a + ((c['poop'] as num?)?.toInt() ?? 0));
+    final poop = {'total': total, 'dirt': cows.isEmpty ? 0.0 : total / cows.length, 'safe_until': null};
+    stateJson = {...stateJson, 'cows': cows, 'poop': poop};
+    return {'cleaned': cleaned, 'poop': poop, 'coins': stateJson['coins'], 'state': stateJson};
+  }
+
+  /// 治療（協定 2.6）出錯。
+  Exception? cureError;
+
+  @override
+  Future<Map<String, dynamic>> cure(Object cowId) async {
+    calls.add('cure:$cowId');
+    if (cureError != null) throw cureError!;
+    final price = ((stateJson['economy'] as Map?)?['cure_price'] as num?) ?? 5000;
+    Map<String, dynamic>? cured;
+    final cows = [
+      for (final c in (stateJson['cows'] as List? ?? const []))
+        if ('${(c as Map)['id']}' == '$cowId')
+          cured = {...c.cast<String, dynamic>(), 'sick': false, 'sick_since': null}
+        else
+          c,
+    ];
+    final coins = ((stateJson['coins'] as num?) ?? 0) - price;
+    stateJson = {...stateJson, 'cows': cows, 'coins': coins};
+    return {'cow_id': cowId, 'cost': price, 'cow': cured, 'coins': coins, 'state': stateJson};
   }
 
   @override
@@ -817,6 +897,7 @@ Future<(GameModel, FakeGameApi, FakePush)> loadedModel({
   SignInService? signIn,
   SignInPlatform signInPlatform = SignInPlatform.iphone,
   TokenStore? tokens,
+  PrefsStore? prefs,
 }) async {
   final a = api ?? FakeGameApi();
   final p = FakePush(connected: connected);
@@ -829,6 +910,7 @@ Future<(GameModel, FakeGameApi, FakePush)> loadedModel({
     uiTick: uiTick,
     signInPlatform: signIn == null ? SignInPlatform.none : signInPlatform,
     signIn: signIn,
+    prefs: prefs,
   );
   await m.refreshState(); // token 還沒設時不會動作
   a.token = 'tok';

@@ -17,6 +17,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../api/breeds.dart';
 import '../../api/models.dart';
 import '../../theme/tokens.dart';
+import '../kit/cow_art.dart';
 import 'herd.dart';
 import 'scene.dart';
 import 'walk.dart';
@@ -80,6 +81,7 @@ class RanchGame extends FlameGame {
       if (p != null) _ensurePicture(p.name);
       final front = CowPlacement.of(SceneCow(c.cow, c.slot, front: !c.front), fit);
       if (front != null) _ensurePicture(front.name);
+      if (c.cow.sick) _ensureSickBubble();
     }
     if (animate != _animate) {
       _animate = animate;
@@ -132,6 +134,24 @@ class RanchGame extends FlameGame {
     });
   }
 
+  /// 病牛頭上的溫度計泡泡（ui/parts/sick_bubble）。
+  PictureInfo? _sickBubble;
+  bool _sickBubbleLoading = false;
+
+  void _ensureSickBubble() {
+    if (_sickBubble != null || _sickBubbleLoading) return;
+    _sickBubbleLoading = true;
+    vg.loadPicture(const SvgAssetLoader('assets/ui/parts/sick_bubble.svg'), null).then((info) {
+      _sickBubbleLoading = false;
+      if (_disposed) {
+        info.picture.dispose();
+        return;
+      }
+      _sickBubble = info;
+      if (paused) stepEngine(stepTime: 0);
+    });
+  }
+
   bool _takeBudget() {
     if (_budget <= 0) return false;
     _budget--;
@@ -176,6 +196,9 @@ class RanchGame extends FlameGame {
     }
     _pictures.clear();
     _loading.clear();
+    _sickBubble?.picture.dispose();
+    _sickBubble = null;
+    _sickBubbleLoading = false;
     super.onDispose();
   }
 }
@@ -292,7 +315,8 @@ class CowComponent extends Component with HasGameReference<RanchGame> {
         left = 0;
       }
     }
-    final plan = walkPlanFor(_slot);
+    // 病牛（v0.3 第 5 節）一律轉正面看玩家，不走動
+    final plan = scene.cow.sick ? null : walkPlanFor(_slot);
     if (plan == null) {
       _pose = WalkPose.rest;
       _back = false;
@@ -358,7 +382,22 @@ class CowComponent extends Component with HasGameReference<RanchGame> {
     final aligned = _drawArt(canvas, info, p, look.front, exact: still && !game._moved);
     if (still && !aligned) game._unaligned++;
     if (breedInfo(scene.cow.breed)?.tier == 3) _sparkles(canvas, p.head, p.unit / fit.k, fit.k);
+    // 病牛（正面）頭上的溫度計泡泡（scene.js：病牛的圖後面接著畫）
+    if (scene.cow.sick && look.front && _turn == null) _drawSickBubble(canvas, p);
     canvas.restore();
+  }
+
+  void _drawSickBubble(Canvas canvas, CowPlacement p) {
+    final info = game._sickBubble;
+    final m = CowArt.instance?.meta(p.name);
+    if (info == null || m == null) return;
+    final r = SickBubble.of(m).rect(p.foot, p.unit, mirror: p.mirror);
+    canvas
+      ..save()
+      ..translate(r.left, r.top)
+      ..scale(r.width / info.size.width, r.height / info.size.height)
+      ..drawPicture(info.picture)
+      ..restore();
   }
 
   /// 畫牛；回傳是不是一個像素對一個像素（跟直接畫 SVG 一樣）。
