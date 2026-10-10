@@ -734,9 +734,10 @@ class _OutcomeRow extends StatelessWidget {
         wrap: narrow,
         children: [
           if (found)
-            CowPicture(breed: breed, calf: true, variant: 90 + tier, width: 44, height: 44, pad: 2)
+            // 沒有公母、沒有蝴蝶結的小牛（設計稿 outcomeCard：正面、朝左，花紋照 seed 90＋稀有度挑好的那一張）
+            CowPicture(breed: breed, calf: true, plain: true, width: 44, height: 44, pad: 2)
           else
-            CowSilhouette(breed: breed, calf: true, size: 44, pad: 2),
+            CowSilhouette(breed: breed, calf: true, plain: true, size: 44, pad: 2),
           Text(
             found ? s.breedName(breed) : s.gUnknownBreed,
             style: AppText.style(15, weight: FontWeight.w900, lineHeight: 21),
