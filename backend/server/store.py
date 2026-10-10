@@ -279,11 +279,12 @@ class Store:
                     await conn.execute(
                         "INSERT INTO markets(commodity, snapshot, t) VALUES($1, $2, $3)", cid, snap, market_t
                     )
+                for cid, price in prices.items():  # 牛奶等，加上飼料（v0.3 B，飼料市場的狀態在 exchange meta）
                     await conn.execute(
                         "INSERT INTO price_history(commodity, t, price) VALUES($1, $2, $3) ON CONFLICT DO NOTHING",
                         cid,
                         market_t,
-                        prices[cid],
+                        price,
                     )
 
     async def put_meta(self, key: str, value: Any) -> None:
@@ -600,6 +601,8 @@ class Store:
     async def weekly_income(self, since_t: float) -> Dict[int, int]:
         async with self.pool.acquire() as conn:
             rows = await conn.fetch(
-                "SELECT player_id, SUM(coins) AS s FROM trades WHERE t >= $1 GROUP BY player_id", since_t
+                "SELECT player_id, SUM(coins) AS s FROM trades WHERE t >= $1 AND commodity IN ('milk', 'beef', 'rice') "
+                "GROUP BY player_id",
+                since_t,
             )
         return {r["player_id"]: int(r["s"]) for r in rows}

@@ -23,15 +23,16 @@ M1 伺服器加的部分：出貨兩步（ship_to_storage → sell_beef）、sel
 v0.3 照顧（docs/design/v0.3-care.md、決定 D35；參數在 CareParams）
 - 小牛長大（adult_at）那一刻揭曉品種：稀有以上的品種要在小牛時期吃過指定的飼料（required_feeds），少一種就變雜種牛
   （價值等級 HYBRID = 4，倍數 0.6；基因照舊，配種用得到）。Farm.advance 一定先揭曉，所以成年後吃的不算小牛時期。
-- 飼料：一份長固定公斤數（feed_kg），加成最多 bonus_max_kg，跟著年紀長出來（beef_weight）。吃飽冷卻、過了最壯不能餵。
+- 飼料：一份長的公斤數隨機（平均 feed_kg，×U(1 ± feed_kg_spread)，用呼叫端給的亂數），加成最多 bonus_max_kg，
+  跟著年紀長出來（beef_weight）。吃飽冷卻、過了最壯不能餵。
 - 地板：Farm.use_floor → set_speed（A0 的年紀速度）。
 - 大便與生病：每頭牛照自己的時鐘（poop_at）每 poop_every_s 拉一坨，最多 poop_max_per_cow 坨。髒的程度 = 大便 ÷ 牛數，
   每頭牛的風險率 = sick_rate_per_h ×（髒 − sick_dirt_free）。牧場記一條累積風險（hazard），每頭牛出生（或治好）時抽一個
   Exp(1) 門檻，累積風險多出門檻就生病；事件之間風險率是常數，生病的時間精確反推。所以跟上線幾次、tick 多大都無關。
-  病牛不產奶、不耕田、不能配種上架借種，出貨牛肉只剩一成；治療 cure_price。打掃牛（程式裡叫 helper）每 helper_clean_s
-  清全部；大便掃地機（robot）每 robot_clean_s 清全部，隨機壞掉（買來、修好時抽壞掉的時間），壞了要付修理費。
+  病牛不產奶、不耕田、不能配種上架借種，出貨牛肉只剩一成；治療 cure_price。大便掃地機（robot）每 robot_clean_s
+  清全部；耐久值每清一次隨機扣，扣到 0 就壞（買的時候就照種子算好壞掉的時間），壞了要重買。
 - 照顧規則開關（Farm.care）：大便、生病、變雜種只在開著時發生。舊存檔讀進來是關的。研究模擬和伺服器的電腦玩家開，
-  真人的牧場到 v0.3 C1（協定和按鈕都好了）才開。餵食、地板、小幫手不受開關影響。
+  真人的牧場到 v0.3 C1（協定和按鈕都好了）才開。餵食、地板、掃地機不受開關影響。
 """
 
 from __future__ import annotations
@@ -42,7 +43,7 @@ import random
 from itertools import product
 from typing import Dict, List, Optional, Sequence, Tuple, Union
 
-from .market import ImpactState, Market, SaleResult
+from .market import FeedMarket, FeedTrade, ImpactState, Market, SaleResult
 from .params import DAY, HOUR, CareParams, EconomyParams, FarmParams
 
 N_LOCI = 4
@@ -144,6 +145,13 @@ def required_feeds(cp: CareParams, g: int) -> Tuple[int, ...]:
         if rt == t and rm == m:
             return feeds
     return ()
+
+
+def robot_wear_mean(cp: CareParams, m: int) -> float:
+    """第 m 款掃地機每清一次平均扣多少耐久值。平均壽命 robot_life_d 天 = N 次清理（N = robot_life_d 天 ÷ robot_clean_s）。
+    每次扣的是指數分布，所以扣到 0 的是第 1 + Poisson(耐久值 ÷ 平均) 次：平均 = 耐久值 ÷ (N − 1) 時，壽命的平均剛好是 N 次。"""
+    n = cp.robot_life_d[m] * DAY / cp.robot_clean_s
+    return cp.robot_durability / (n - 1.0)
 
 
 # ---------------------------------------------------------------------------
@@ -735,11 +743,10 @@ class Farm:
         "floors",
         "rented",
         "rent_until",
-        "helper_from",
-        "helper_until",
         "robot",
         "robot_from",
         "robot_until",
+        "robot_seed",
         "stats",
     )
 
@@ -760,6 +767,9 @@ class Farm:
         self.rice_lots: List[RiceLot] = []  # v0.2：收成後放在倉庫、還沒賣的稻米
         self.fields: List[Field] = [Field(now) for _ in range(fp.field_start)]
         self.impact = {cid: ImpactState() for cid in params.commodity_ids}
+        for fid in params.care.feed_ids:  # v0.3 B：飼料市場的買進、賣回各一份（每位玩家計入壓力的上限、滑價）
+            self.impact[f"{fid}:buy"] = ImpactState()
+            self.impact[f"{fid}:sell"] = ImpactState()
         self._next_cid = 1
         self.first_breed_used = False
         self.n_sales = 0  # 賣過幾次（牛奶、牛肉、稻米）；教學與任務用
@@ -802,11 +812,10 @@ class Farm:
         self.floors = 1  # 買斷的地板（位元）；泥土地開局就有
         self.rented = 0  # 租的地板（0 = 沒有）；租到 rent_until，到期那一刻正在用的話換回泥土地
         self.rent_until = 0.0
-        self.helper_from = 0.0  # 這次雇用小幫手從什麼時候開始（每 helper_clean_s 清一次的起點）
-        self.helper_until = 0.0
         self.robot = -1  # 大便掃地機：第幾款（CareParams.robot_ids 的索引；-1 = 沒有）
-        self.robot_from = 0.0  # 這次開始動（買來、修好）的時間：每 robot_clean_s 清一次的起點
-        self.robot_until = 0.0  # 壞掉的時間（開始動時抽的；玩家看不到，到了才知道）
+        self.robot_from = 0.0  # 買來的時間：每 robot_clean_s 清一次的起點
+        self.robot_until = 0.0  # 壞掉的時間（買的時候照耐久值的種子算好）
+        self.robot_seed: Optional[float] = None  # 耐久值的亂數種子（買的時候抽）
         if care:
             for c in self.cows:  # 亂數用在開局兩頭牛的基因之後
                 self._arm(c, rng)
@@ -1042,8 +1051,8 @@ class Farm:
     def _care_sim(self, now: float) -> Tuple[List[int], float, Dict[int, float]]:
         """從 care_t 到 now 的大便與生病，不改狀態：回傳 (每頭牛的大便, 牧場的累積風險, {牛的編號: 生病的時間})。
 
-        髒的程度只在事件時改變：某頭牛拉大便（poop_at + k × poop_every_s）、小幫手清（helper_from + k × helper_clean_s）、
-        掃地機清（robot_from + k × robot_clean_s，壞掉以後停）、
+        髒的程度只在事件時改變：某頭牛拉大便（poop_at + k × poop_every_s）、
+        掃地機清（robot_from + k × robot_clean_s，壞掉那一次清完就停）、
         新手保護結束。事件之間每頭牛的風險率是常數，累積風險是分段的直線，生病的時間在那一段裡精確反推。
         剛好在 now 的事件算進這次（下次從 now 之後的事件開始）。"""
         cows = self.cows
@@ -1064,8 +1073,6 @@ class Farm:
                 heap.append((c.poop_at + k * P, i, k))
         heapq.heapify(heap)
         total = sum(poop)
-        hs = cp.helper_clean_s
-        hk = max(1, math.floor((t - self.helper_from) / hs) + 1) if self.helper_until > t else 0
         rs = cp.robot_clean_s
         rk = max(1, math.floor((t - self.robot_from) / rs) + 1) if self.robot >= 0 and self.robot_until > t else 0
         safe_end = self.created_at + cp.newbie_safe_s
@@ -1077,12 +1084,6 @@ class Farm:
             t1 = now
             if heap and heap[0][0] < t1:
                 t1 = heap[0][0]
-            if hk:
-                tm = self.helper_from + hk * hs
-                if tm > self.helper_until:
-                    hk = 0
-                elif tm < t1:
-                    t1 = tm
             if rk:
                 tm = self.robot_from + rk * rs
                 if tm > self.robot_until:
@@ -1103,7 +1104,7 @@ class Farm:
                         pi += 1
                     H = H1
             t = t1
-            # t 這一刻的事件：先拉大便，再讓小幫手、掃地機清
+            # t 這一刻的事件：先拉大便，再讓掃地機清
             while heap and heap[0][0] <= t:
                 _, i, k = heapq.heappop(heap)
                 poop[i] += 1
@@ -1111,9 +1112,6 @@ class Farm:
                 if poop[i] < cap:
                     heapq.heappush(heap, (cows[i].poop_at + (k + 1) * P, i, k + 1))
             cleaned = False
-            if hk and self.helper_from + hk * hs <= t:
-                hk += 1
-                cleaned = True
             if rk and self.robot_from + rk * rs <= t:
                 rk += 1
                 cleaned = True
@@ -1212,59 +1210,56 @@ class Farm:
         self._record(now, "cure", -cp.cure_price, 1.0)
         return True
 
-    def hire_helper(self, days: int, now: float) -> bool:
-        """雇打掃小幫手 days 天（接在還沒到期的後面），預付最多 helper_max_days 天。雇用那一刻先清一次。"""
-        cp = self.p.care
-        if days < 1:
-            return False
-        until = max(now, self.helper_until) + days * DAY
-        cost = cp.helper_price_per_day * days
-        if until - now > cp.helper_max_days * DAY + 1e-6 or self.coins < cost:
-            return False
-        self.advance(now)
-        if self.helper_until <= now:
-            self.helper_from = now
-            for c in self.cows:
-                c.poop = 0
-        self.coins -= cost
-        self.helper_until = until
-        self._record(now, "helper", -cost, float(days))
-        return True
-
     # ---- 大便掃地機 ----
     def robot_working(self, now: float) -> bool:
         """有掃地機、而且 now 還沒壞。"""
         return self.robot >= 0 and now < self.robot_until
 
-    def _robot_start(self, now: float, rng: random.Random) -> None:
-        """開始動（買來、修好）：那一刻先清一次，抽壞掉的時間（指數分布，平均 robot_mtbf_d 天；用掉 rng 一個亂數）。"""
-        self.robot_from = now
-        self.robot_until = now - math.log(1.0 - rng.random()) * self.p.care.robot_mtbf_d[self.robot] * DAY
-        for c in self.cows:
-            c.poop = 0
+    def _robot_wear(self) -> random.Random:
+        """耐久值每次扣多少的亂數：由買的時候抽的種子導出，什麼時候重算都一樣（壞掉的時間、state 的耐久值）。"""
+        return random.Random(f"robot-wear:{self.robot_seed!r}")
 
     def buy_robot(self, m: int, now: float, rng: random.Random) -> bool:
-        """買第 m 款掃地機（一次只有一台：已經有另一款就換掉，舊的不退錢）。已經有同一款就不能買（壞了用 repair_robot）。"""
+        """買第 m 款掃地機（使用者 2026-10-10：不能修，壞了要重買；一次只有一台，還在動的時候不能買，壞了可以買任一款）。
+        買來那一刻先清一次，耐久值 robot_durability；之後每清一次扣 Exp(平均 robot_wear_mean)，扣到 0 那一次清完就壞
+        （robot_until，買的時候就算好）。用掉 rng 一個亂數（耐久值的種子）。"""
         cp = self.p.care
-        if not (0 <= m < len(cp.robot_price)) or m == self.robot or self.coins < cp.robot_price[m]:
+        if not (0 <= m < len(cp.robot_price)) or self.robot_working(now) or self.coins < cp.robot_price[m]:
             return False
         self.advance(now)
         self.coins -= cp.robot_price[m]
         self.robot = m
-        self._robot_start(now, rng)
+        self.robot_from = now
+        self.robot_seed = rng.random()
+        w = self._robot_wear()
+        lam = 1.0 / robot_wear_mean(cp, m)
+        d, k = cp.robot_durability, 0
+        while d > 0.0:
+            k += 1
+            d -= w.expovariate(lam)
+        self.robot_until = now + k * cp.robot_clean_s
+        for c in self.cows:
+            c.poop = 0
         self._record(now, "robot", -cp.robot_price[m], 1.0)
         return True
 
-    def repair_robot(self, now: float, rng: random.Random) -> bool:
-        """修好壞掉的掃地機（robot_repair），馬上開始動、重新抽壞掉的時間。"""
+    def robot_durability(self, now: float) -> Optional[float]:
+        """掃地機現在的耐久值（0–robot_durability）：沒有掃地機是 None，壞了是 0。照買的時候的種子，重算到 now 為止
+        清過的次數（剛好在 now 的那一次算進去，跟 _care_sim 一樣）。"""
+        if self.robot < 0:
+            return None
+        if now >= self.robot_until:
+            return 0.0
         cp = self.p.care
-        if self.robot < 0 or self.coins < cp.robot_repair[self.robot] or self.robot_working(now):
-            return False
-        self.advance(now)
-        self.coins -= cp.robot_repair[self.robot]
-        self._robot_start(now, rng)
-        self._record(now, "robot", -cp.robot_repair[self.robot], 0.0)
-        return True
+        if self.robot_seed is None:  # 改成耐久值以前的存檔（隨機壞掉的版本）：照時間線性估
+            return cp.robot_durability * (self.robot_until - now) / max(1e-9, self.robot_until - self.robot_from)
+        k = max(0, math.floor((now - self.robot_from) / cp.robot_clean_s))
+        w = self._robot_wear()
+        lam = 1.0 / robot_wear_mean(cp, self.robot)
+        d = cp.robot_durability
+        for _ in range(k):
+            d -= w.expovariate(lam)
+        return max(0.0, d)
 
     def set_care(self, on: bool, now: float, rng: random.Random) -> None:
         """打開（或關掉）照顧規則。打開時還沒有門檻的牛照現在的累積風險抽門檻。"""
@@ -1279,7 +1274,8 @@ class Farm:
 
     # ---- 飼料（v0.3 第 2 節）----
     def buy_feed(self, k: int, n: int, now: float, price: Optional[float] = None) -> bool:
-        """買 n 份第 k 種飼料（price = 每份的價格；None = 參數的固定價。飼料市場在 PR B）。每種最多 feed_cap 份。"""
+        """用固定價買 n 份第 k 種飼料（price = 每份的價格；None = 基本價）。每種最多 feed_cap 份。
+        v0.3 B 起遊戲照市價買（buy_feed_market）；這個留給測試和沒有飼料市場的情境。"""
         cp = self.p.care
         if not (0 <= k < len(cp.feed_kg)) or n < 1 or self.feeds[k] + n > cp.feed_cap:
             return False
@@ -1290,6 +1286,39 @@ class Farm:
         self.feeds[k] += n
         self._record(now, "feed_buy", -cost, float(n))
         return True
+
+    def quote_feed_buy(self, k: int, n: int, market: "FeedMarket", now: float) -> "FeedTrade":
+        """照市價買 n 份第 k 種飼料要花多少（含滑價；不改狀態）。"""
+        return market.quote_buy(self.impact[f"{self.p.care.feed_ids[k]}:buy"], n, now)
+
+    def buy_feed_market(self, k: int, n: int, market: "FeedMarket", now: float) -> Optional["FeedTrade"]:
+        """跟飼料市場買 n 份第 k 種飼料（v0.3 B）：市價 ×（1 + 滑價），算進全服的買進量。每種最多 feed_cap 份；
+        錢不夠或放不下就不買（回傳 None，什麼都不變）。"""
+        cp = self.p.care
+        if not (0 <= k < len(cp.feed_kg)) or n < 1 or self.feeds[k] + n > cp.feed_cap:
+            return None
+        if self.coins < self.quote_feed_buy(k, n, market, now).amount:
+            return None
+        res = market.execute_buy(self.impact[f"{cp.feed_ids[k]}:buy"], n, now)
+        self.coins -= res.amount
+        self.feeds[k] += n
+        self._record(now, "feed_buy", -res.amount, float(n))
+        return res
+
+    def quote_feed_sell(self, k: int, n: int, market: "FeedMarket", now: float) -> "FeedTrade":
+        """賣回 n 份第 k 種飼料拿多少（市價 ×（1 − 手續費）× 滑價；不改狀態）。"""
+        return market.quote_sell(self.impact[f"{self.p.care.feed_ids[k]}:sell"], n, now)
+
+    def sell_feed_market(self, k: int, n: int, market: "FeedMarket", now: float) -> Optional["FeedTrade"]:
+        """把倉庫裡 n 份第 k 種飼料賣回飼料市場（v0.3 B）：算進全服的賣回量（壓低價格）。份數不夠就不賣。"""
+        cp = self.p.care
+        if not (0 <= k < len(cp.feed_kg)) or n < 1 or self.feeds[k] < n:
+            return None
+        res = market.execute_sell(self.impact[f"{cp.feed_ids[k]}:sell"], n, now)
+        self.coins += res.amount
+        self.feeds[k] -= n
+        self._record(now, "feed_sell", res.amount, float(n))
+        return res
 
     def feed_block(self, cow: Cow, k: int, now: float) -> Optional[str]:
         """不能餵的原因（None = 可以）：no_feed 倉庫沒有、full 吃飽冷卻中、listed 上架借種中（借種費的加成停在上架那一刻）、
@@ -1310,9 +1339,11 @@ class Farm:
                 return "bonus_max"
         return None
 
-    def feed(self, cow: Cow, k: int, now: float) -> bool:
+    def feed(self, cow: Cow, k: int, now: float, rng: random.Random) -> Optional[float]:
+        """餵一份第 k 種飼料，回傳這次加成多了幾公斤（None = 不能餵）。長的公斤數 = feed_kg[k] × U(1 ± feed_kg_spread)
+        （使用者 2026-10-10 選「改成隨機」，平均不變；用掉 rng 一個亂數），加成最多 bonus_max_kg（碰到上限就只加到上限）。"""
         if self.feed_block(cow, k, now) is not None:
-            return False
+            return None
         self.advance(now)  # 先揭曉：成年那一刻（含）之後吃的不算小牛時期
         cp = self.p.care
         self.feeds[k] -= 1
@@ -1321,10 +1352,13 @@ class Farm:
         else:
             cow.fed |= 1 << k
             cooldown = cp.calf_feed_cooldown_s
-        cow.bonus = min(cp.bonus_max_kg, cow.bonus + cp.feed_kg[k])
+        kg = cp.feed_kg[k] * rng.uniform(1.0 - cp.feed_kg_spread, 1.0 + cp.feed_kg_spread)
+        bonus = min(cp.bonus_max_kg, cow.bonus + kg)
+        gain = bonus - cow.bonus
+        cow.bonus = bonus
         cow.fed_until = now + cooldown
-        self._record(now, "feed", 0.0, cp.feed_kg[k])
-        return True
+        self._record(now, "feed", 0.0, gain)
+        return gain
 
     # ---- 地板（v0.3 第 4 節）----
     def buy_floor(self, i: int, now: float) -> bool:
@@ -1875,11 +1909,10 @@ class Farm:
             "floors": self.floors,
             "rented": self.rented,
             "rent_until": self.rent_until,
-            "helper_from": self.helper_from,
-            "helper_until": self.helper_until,
             "robot": self.robot,
             "robot_from": self.robot_from,
             "robot_until": self.robot_until,
+            "robot_seed": self.robot_seed,
         }
 
     @classmethod
@@ -1909,6 +1942,9 @@ class Farm:
         f.impact = {k: ImpactState.from_dict(v) for k, v in d["impact"].items()}
         for cid in params.commodity_ids:
             f.impact.setdefault(cid, ImpactState())
+        for fid in params.care.feed_ids:
+            f.impact.setdefault(f"{fid}:buy", ImpactState())
+            f.impact.setdefault(f"{fid}:sell", ImpactState())
         f._next_cid = d["next_cid"]
         f.first_breed_used = d["first_breed_used"]
         f.n_sales = d["n_sales"]
@@ -1927,11 +1963,11 @@ class Farm:
         f.floors = d.get("floors", 1)
         f.rented = d.get("rented", 0)
         f.rent_until = d.get("rent_until", 0.0)
-        f.helper_from = d.get("helper_from", 0.0)
-        f.helper_until = d.get("helper_until", 0.0)
+        # 打掃牛（helper_from、helper_until）2026-10-10 取消：舊存檔雇到一半的讀回來就沒了
         f.robot = d.get("robot", -1)
         f.robot_from = d.get("robot_from", 0.0)
         f.robot_until = d.get("robot_until", 0.0)
+        f.robot_seed = d.get("robot_seed")
         f.log = None
         f.track = None
         f.stats = None

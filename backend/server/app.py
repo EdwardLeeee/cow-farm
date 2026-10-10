@@ -144,11 +144,6 @@ class CleanReq(_Req):
     request_id: str
 
 
-class HelperReq(_Req):
-    days: Any
-    request_id: str
-
-
 class FloorReq(_Req):
     floor: Any  # 地板代號（協定 1.6 節）
     request_id: str
@@ -156,6 +151,11 @@ class FloorReq(_Req):
 
 class FloorRentReq(FloorReq):
     days: Any
+
+
+class RobotBuyReq(_Req):
+    model: Any  # 掃地機的代號（協定 1.6 節）
+    request_id: str
 
 
 # ---- v0.2 ----
@@ -681,6 +681,7 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
             lambda res, st: {
                 "cow_id": res["cow_id"],
                 "feed": res["feed"],
+                "kg": V.r2(res["kg"]),  # 這次長了幾公斤（隨機，2026-10-10）；app 吃完跳數字
                 "cow": cow_in(st, res["cow_id"]),
                 "feeds": st["feeds"],
             },
@@ -694,7 +695,12 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
             "feed_all",
             req.request_id,
             lambda now: g.feed_all(p.pid, req.feed, now),
-            lambda res, st: {"feed": res["feed"], "fed": res["fed"], "feeds": st["feeds"]},
+            lambda res, st: {
+                "feed": res["feed"],
+                "fed": res["fed"],
+                "kg": [V.r2(x) for x in res["kg"]],
+                "feeds": st["feeds"],
+            },
         )
 
     @app.post("/v1/feed/buy")
@@ -728,17 +734,6 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
             req.request_id,
             lambda now: g.cure(p.pid, req.cow_id, now),
             lambda res, st: {"cow_id": res["cow_id"], "cost": res["cost"], "cow": cow_in(st, res["cow_id"])},
-        )
-
-    @app.post("/v1/helper")
-    async def helper(req: HelperReq, p: Player = Depends(current)):
-        g = server.game
-        return await care_action(
-            p,
-            "helper",
-            req.request_id,
-            lambda now: g.hire_helper(p.pid, req.days, now),
-            lambda res, st: {"days": res["days"], "cost": res["cost"], "helper": st["helper"], "poop": st["poop"]},
         )
 
     @app.post("/v1/floor/buy")
@@ -778,6 +773,17 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
             req.request_id,
             lambda now: g.use_floor(p.pid, g._floor_index(req.floor), now),
             lambda res, st: {"floor": res["floor"], "floors": st["floor"]},
+        )
+
+    @app.post("/v1/robot/buy")
+    async def robot_buy(req: RobotBuyReq, p: Player = Depends(current)):
+        g = server.game
+        return await care_action(
+            p,
+            "robot_buy",
+            req.request_id,
+            lambda now: g.buy_robot(p.pid, g._robot_index(req.model), now),
+            lambda res, st: {"model": res["model"], "cost": res["cost"], "robot": st["robot"], "poop": st["poop"]},
         )
 
     # ---- 行情與排行榜 ----

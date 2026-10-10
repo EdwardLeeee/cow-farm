@@ -72,7 +72,7 @@ PLAYER_KEYS = ("D", "B", "F", "C", "T", "L")
 
 def strategy_weeks(world) -> dict:
     """各策略每週收入（賣牛奶、牛肉、稻米的收入 + 借種收入，幣）等統計。大戶（W）另計。
-    v0.3：care_net_mean = 收入 − 照顧花費（地板、小幫手、飼料、治療），玩法差距的目標用這個（使用者 2026-10-08）。"""
+    v0.3：care_net_mean = 收入 − 照顧花費（地板、掃地機、飼料、治療），玩法差距的目標用這個（使用者 2026-10-08）。"""
     groups: Dict[str, list] = {}
     for b in world.bots:
         groups.setdefault(b.strategy, []).append(b)

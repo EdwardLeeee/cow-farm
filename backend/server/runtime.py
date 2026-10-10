@@ -139,6 +139,8 @@ class ServerBots:
         b.returns = set(meta.get("returns", []))
         b.last_clean = meta.get("last_clean", b.last_clean)
         b.care_return_at = meta.get("care_return_at", 0.0)
+        if "spec" in meta:  # Y 飼料投機（v0.3 B）的投機部位
+            b.spec = [list(x) for x in meta["spec"]]
         self.bots[p.pid] = b
         last = meta.get("last_t")
         for k in range(int(TUTORIAL_S // MINUTE)):
@@ -209,6 +211,8 @@ class ServerBots:
                 meta["returns"] = sorted(b.returns)
                 meta["last_clean"] = b.last_clean
                 meta["care_return_at"] = b.care_return_at
+                if b.prof.get("spec"):
+                    meta["spec"] = b.spec
                 meta["last_t"] = t_ev
                 meta["extra"] = [x for x in meta.get("extra", []) if x[0] + x[2] > t_ev]  # 在線時段結束才刪
                 return None
@@ -348,6 +352,7 @@ class GameServer:
             "format": WORLD_FORMAT,
         }
         prices = {cid: m.price for cid, m in self.game.ex.markets.items()}
+        prices.update({fid: fm.price for fid, fm in self.game.ex.feeds.items()})  # v0.3 B
         await self.store.init_world(
             {
                 "world": world,
@@ -391,7 +396,12 @@ class GameServer:
             cid: await self.store.price_history(cid, ex_t - DEFAULT.commodity(cid).ma_window_s)
             for cid in data["markets"]
         }
-        ex = Exchange.from_dict(DEFAULT, ex_d, hist)
+        if "feeds" in ex_d:  # v0.3 B：飼料市場的 24 小時價格（exchange meta 不含歷史，跟牛奶等一樣從價格表讀）
+            ex_d["feeds"] = {
+                fid: {**fd, "hist": await self.store.price_history(fid, ex_t - DEFAULT.feedmarket.ma_window_s)}
+                for fid, fd in ex_d["feeds"].items()
+            }
+        ex = Exchange.from_dict(DEFAULT, ex_d, hist, seed=world["seed"])  # v0.3 B 以前的世界：飼料市場從基本價開始
         stud = StudMarket.from_dict(DEFAULT, meta["stud"]) if "stud" in meta else StudMarket(DEFAULT)
         self.game = Game(DEFAULT, world["seed"], exchange=ex, stud=stud)
         weeks = meta.get("weeks")  # S21 以前的世界沒有：從下一個 tick 那一週開始結算
@@ -418,9 +428,9 @@ class GameServer:
         n_pending = 0
         for tr in await self.store.trades_since(ex_t):
             if tr["contrib"]:
-                ex.markets[tr["commodity"]].apply_contribution(tr["contrib"])
+                ex.market_any(tr["commodity"]).apply_contribution(tr["contrib"])  # 飼料的成交也在（v0.3 B）
                 n_pending += 1
-        for cid in data["markets"]:
+        for cid in (*data["markets"], *ex.feeds):  # v0.3 B：飼料的價格也在價格表
             self.history[cid] = deque(await self.store.price_history(cid, ex_t - HISTORY_KEEP_S))
         from cowecon.market import MarketEvent
 
@@ -898,6 +908,9 @@ class GameServer:
         for tr in trades:
             c = tr["contrib"]
             if c:
+                if tr["commodity"] in game.ex.feeds:  # v0.3 B：飼料的成交
+                    game.ex.feeds[tr["commodity"]].undo_contribution(c)
+                    continue
                 m = game.ex.markets[tr["commodity"]]
                 m.pending_counted -= c[0]
                 m.pending_actual -= c[1]
@@ -1017,6 +1030,7 @@ class GameServer:
             game.tick(t_end, online)
             weeks_dirty = game.close_weeks(t_end) or weeks_dirty  # 週冠軍（成就 weekChamp）
             prices = {cid: m.price for cid, m in game.ex.markets.items()}
+            prices.update({fid: fm.price for fid, fm in game.ex.feeds.items()})  # v0.3 B：飼料的價格也存（走勢、均線）
             for cid, p in prices.items():
                 h = self.history.setdefault(cid, deque())
                 h.append((t_end, p))

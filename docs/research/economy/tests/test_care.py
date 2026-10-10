@@ -1,5 +1,5 @@
-"""v0.3 照顧規則（docs/design/v0.3-care.md、決定 D35）：長大才揭曉與雜種牛、飼料、地板、大便與生病、治療、打掃牛（小幫手）、
-大便掃地機、存檔。"""
+"""v0.3 照顧規則（docs/design/v0.3-care.md、決定 D35）：長大才揭曉與雜種牛、飼料（長的公斤數隨機）、地板、大便與生病、
+治療、大便掃地機（耐久值）、存檔。"""
 
 import json
 import math
@@ -63,6 +63,16 @@ def stock(f, k=SOY, n=100):
     f.feeds[k] += n
 
 
+class Mid(random.Random):
+    """餵食用的亂數：uniform 回中間值，長的就是平均公斤數（feed_kg），測試照固定公斤數算。"""
+
+    def uniform(self, a, b):
+        return (a + b) / 2
+
+
+MID = Mid(0)
+
+
 class TestReveal(unittest.TestCase):
     """第 1 節：每頭小牛一樣 3 小時長大；稀有以上的品種小牛時期沒吃齊指定的飼料，長大變雜種牛。"""
 
@@ -84,7 +94,7 @@ class TestReveal(unittest.TestCase):
         f = farm()
         stock(f, CORN)
         c = add_cow(f, 2, 6)
-        self.assertTrue(f.feed(c, CORN, T0))
+        self.assertTrue(f.feed(c, CORN, T0, MID))
         f.advance(c.adult_at)
         self.assertTrue(c.grown)
         self.assertEqual(c.vt, HYBRID)
@@ -96,8 +106,8 @@ class TestReveal(unittest.TestCase):
         stock(f, CORN)
         stock(f, SOY)
         c = add_cow(f, 2, 6)
-        self.assertTrue(f.feed(c, CORN, T0))
-        self.assertTrue(f.feed(c, SOY, T0 + 45 * MINUTE))
+        self.assertTrue(f.feed(c, CORN, T0, MID))
+        self.assertTrue(f.feed(c, SOY, T0 + 45 * MINUTE, MID))
         f.advance(c.adult_at + HOUR)
         self.assertEqual(c.vt, 2)
 
@@ -106,8 +116,8 @@ class TestReveal(unittest.TestCase):
         stock(f, CORN)
         stock(f, SOY)
         c = add_cow(f, 2, 6)
-        f.feed(c, CORN, T0)
-        self.assertTrue(f.feed(c, SOY, c.adult_at))  # 成年那一刻餵：成牛的冷卻，不算小牛時期
+        f.feed(c, CORN, T0, MID)
+        self.assertTrue(f.feed(c, SOY, c.adult_at, MID))  # 成年那一刻餵：成牛的冷卻，不算小牛時期
         self.assertEqual(c.fed, 1 << CORN)
         self.assertEqual(c.fed_until, c.adult_at + CP.feed_cooldown_s)
         self.assertEqual(c.vt, HYBRID)
@@ -161,7 +171,8 @@ class TestReveal(unittest.TestCase):
 
 
 class TestFeed(unittest.TestCase):
-    """第 2 節（ceo 2026-10-03）：一份長固定公斤數、最多 +60 kg；成牛冷卻 4 小時、小牛 45 分鐘；過了最壯不能餵。"""
+    """第 2 節（ceo 2026-10-03）：一份長的公斤數隨機（使用者 2026-10-10，平均 feed_kg）、最多 +60 kg；成牛冷卻 4 小時、
+    小牛 45 分鐘；過了最壯不能餵。"""
 
     def test_buy_feed_price_and_cap(self):
         f = farm()
@@ -178,13 +189,13 @@ class TestFeed(unittest.TestCase):
         f = farm()
         stock(f, GRASS)
         calf = add_cow(f, 2)
-        self.assertTrue(f.feed(calf, GRASS, T0))
+        self.assertTrue(f.feed(calf, GRASS, T0, MID))
         self.assertEqual(f.feed_block(calf, GRASS, T0 + 44 * MINUTE), "full")
-        self.assertTrue(f.feed(calf, GRASS, T0 + 45 * MINUTE))
+        self.assertTrue(f.feed(calf, GRASS, T0 + 45 * MINUTE, MID))
         adult = add_cow(f, 2, adult_h=1, now=T0 + HOUR)
-        self.assertTrue(f.feed(adult, GRASS, T0 + HOUR))
+        self.assertTrue(f.feed(adult, GRASS, T0 + HOUR, MID))
         self.assertEqual(f.feed_block(adult, GRASS, T0 + 5 * HOUR - 1), "full")
-        self.assertTrue(f.feed(adult, GRASS, T0 + 5 * HOUR))
+        self.assertTrue(f.feed(adult, GRASS, T0 + 5 * HOUR, MID))
         self.assertEqual(f.feeds[GRASS], 100 - 4)
 
     def test_bonus_kg_cap_and_blocks(self):
@@ -193,7 +204,7 @@ class TestFeed(unittest.TestCase):
         c = add_cow(f, 2, adult_h=0)
         t = T0
         while f.feed_block(c, SOY, t) is None:
-            f.feed(c, SOY, t)
+            f.feed(c, SOY, t, MID)
             t += CP.feed_cooldown_s
         self.assertEqual(c.bonus, CP.bonus_max_kg)  # 8 × 7 = 56，第 8 次到 60 停
         self.assertEqual(f.feed_block(c, SOY, t), "bonus_max")
@@ -202,12 +213,39 @@ class TestFeed(unittest.TestCase):
         f.feeds[GRASS] = 0
         self.assertEqual(f.feed_block(add_cow(f, 2, now=t), GRASS, t), "no_feed")
 
+    def test_random_kg(self):
+        """每次長的公斤數 = 平均 × U(0.5, 1.5)（使用者 2026-10-10 選「改成隨機」）；回傳這次加了幾公斤；碰到上限只加到上限；
+        不能餵回 None，不用掉亂數。"""
+        f = farm()
+        stock(f, CORN, 200)
+        rng = random.Random(7)
+        gains = []
+        for _ in range(40):
+            c = add_cow(f, 1, adult_h=1)
+            g = f.feed(c, CORN, T0, rng)
+            self.assertEqual(g, c.bonus)
+            gains.append(g)
+        lo, hi = (CP.feed_kg[CORN] * (1 + x * CP.feed_kg_spread) for x in (-1, 1))
+        self.assertEqual((lo, hi), (2.5, 7.5))
+        self.assertTrue(all(lo <= g <= hi for g in gains))
+        self.assertGreater(max(gains) - min(gains), 3.0)  # 真的有隨機
+        sd = CP.feed_kg[CORN] * CP.feed_kg_spread * 2 / math.sqrt(12) / math.sqrt(len(gains))
+        self.assertAlmostEqual(sum(gains) / len(gains), CP.feed_kg[CORN], delta=3 * sd)  # 平均不變
+        full = add_cow(f, 1, adult_h=1)
+        full.bonus = CP.bonus_max_kg - 1.0
+        stock(f, SOY)
+        self.assertEqual(f.feed(full, SOY, T0, rng), 1.0)  # 豆粕最少也長 4 公斤，只加到 60
+        self.assertEqual(full.bonus, CP.bonus_max_kg)
+        state = rng.getstate()
+        self.assertIsNone(f.feed(full, SOY, T0 + HOUR, rng))  # 吃飽冷卻
+        self.assertEqual(rng.getstate(), state)
+
     def test_listed_bull_cannot_eat(self):
         f = farm()
         stock(f, SOY)
         sm = StudMarket(DEFAULT)
         bull = add_cow(f, 2, bull=True, adult_h=1)
-        self.assertTrue(f.feed(bull, SOY, T0))
+        self.assertTrue(f.feed(bull, SOY, T0, MID))
         t = T0 + 5 * HOUR
         lst = sm.list_bull(f, "p1", bull, t)
         self.assertEqual(lst.bonus, 8.0)
@@ -228,14 +266,16 @@ class TestFeed(unittest.TestCase):
 
     def test_no_calf_arbitrage_with_max_feed_and_fastest_floor(self):
         """「買 C 級小牛、灌最貴的飼料、一長大就出貨」：最快的地板（2 小時長大）、小牛冷卻 45 分鐘（餵 3 次）、成年那一刻
-        再餵 1 次，價格用總價格上限 2.2 倍、照實際評級機率，期望收入也低於 C 級價格 + 飼料錢。
+        再餵 1 次，牛肉用總價格上限 2.2 倍、照實際評級機率，期望收入也低於 C 級價格 + 飼料錢。
+        v0.3 B 起飼料照市價買：飼料用最低價（飼料市場的 price_lo，基本價 0.5 倍；ceo 2026-10-09）也一樣不成立；
+        長的公斤數隨機以後（2026-10-10），每次都抽到最多（1.5 倍）也一樣。
         加成如果不跟著年紀長出來（直接加 32 公斤），1.48 倍市價就回本，這個測試會失敗。"""
         speed = max(CP.floor_speed)
         grow_h = FP.tier_growth_h[0] / speed
         n_calf = int(grow_h * HOUR // CP.calf_feed_cooldown_s) + (1 if grow_h * HOUR % CP.calf_feed_cooldown_s else 0)
         n_feeds = n_calf + 1
-        bonus = min(CP.bonus_max_kg, n_feeds * CP.feed_kg[SOY])
-        cost = FP.shop_grade_price[2] + n_feeds * CP.feed_price[SOY]
+        bonus = min(CP.bonus_max_kg, n_feeds * CP.feed_kg[SOY] * (1 + CP.feed_kg_spread))  # 每次都抽到最多
+        cost = FP.shop_grade_price[2] + n_feeds * CP.feed_price[SOY] * DEFAULT.feedmarket.price_lo
         price = DEFAULT.beef.base_price * 2.2
         ev = 0.0
         for (t, bull, mask), p in shop_grade_distribution(FP, "C").items():
@@ -246,8 +286,8 @@ class TestFeed(unittest.TestCase):
         self.assertLess(ev, cost)
 
 
-class TestPoopAndHelper(unittest.TestCase):
-    """第 5 節：每頭牛每 3 小時一坨、最多 4 坨；清掉以後照原本的時鐘繼續拉；小幫手每 30 分鐘清全部。"""
+class TestPoop(unittest.TestCase):
+    """第 5 節：每頭牛每 3 小時一坨、最多 4 坨；清掉以後照原本的時鐘繼續拉。"""
 
     def test_schedule_and_cap(self):
         f = farm()  # 開局 2 頭牛，時鐘從開牧場算
@@ -266,30 +306,6 @@ class TestPoopAndHelper(unittest.TestCase):
         self.assertEqual(f.clean(T0 + 9 * HOUR, {a.cid: 1, b.cid: 5}), 3)
         self.assertEqual((a.poop, b.poop), (1, 0))
 
-    def test_helper_cleans_every_half_hour(self):
-        f = farm()
-        f.coins = 10_000
-        self.assertTrue(f.hire_helper(1, T0 + 5 * HOUR))
-        self.assertEqual(f.coins, 10_000 - CP.helper_price_per_day)
-        self.assertEqual(f.poop_total(T0 + 5 * HOUR), 0)  # 雇用那一刻先清一次
-        self.assertEqual(f.poop_total(T0 + 6 * HOUR), 0)  # 6:00 拉的，6:00 也清：先拉再清
-        add_cow(f, 0, now=T0 + 6 * HOUR + 10 * MINUTE)  # 9:10 拉第一坨，9:30 清
-        self.assertEqual(f.poop_total(T0 + 9 * HOUR + 29 * MINUTE), 1)
-        self.assertEqual(f.poop_total(T0 + 9 * HOUR + 30 * MINUTE), 0)
-        for c in range(20):
-            add_cow(f, 0, now=T0 + 6 * HOUR + c * 7 * MINUTE)
-        f.advance(T0 + 5 * HOUR + DAY)
-        self.assertEqual(sum(c.sick_since is not None for c in f.cows), 0)
-        self.assertGreater(f.poop_total(T0 + 5 * HOUR + DAY + 4 * HOUR), 0)  # 到期就不清了
-
-    def test_helper_prepay_limit(self):
-        f = farm()
-        self.assertTrue(f.hire_helper(CP.helper_max_days, T0))
-        self.assertFalse(f.hire_helper(1, T0 + HOUR))
-        self.assertTrue(f.hire_helper(1, T0 + DAY))
-        self.assertEqual(f.helper_until, T0 + 8 * DAY)
-        self.assertFalse(f.hire_helper(0, T0 + 2 * DAY))
-
     def test_care_off_no_poop(self):
         f = farm(care=False)
         f.advance(T0 + 10 * DAY)
@@ -298,76 +314,74 @@ class TestPoopAndHelper(unittest.TestCase):
 
 
 class TestRobot(unittest.TestCase):
-    """大便掃地機（使用者 2026-10-09 選兩款）：一次買斷，每 60 分鐘清全部；隨機壞掉，壞了就停，付修理費才再動。"""
-
-    class _U:
-        """假的亂數：random() 固定回傳 u（壞掉的時間 = −ln(1 − u) × 平均天數）。"""
-
-        def __init__(self, u):
-            self.u = u
-
-        def random(self):
-            return self.u
+    """大便掃地機（使用者 2026-10-09 選兩款；2026-10-10 改成耐久值、不能修）：一次買斷，每 60 分鐘清全部；耐久值每清一次
+    隨機扣，扣到 0 那一次清完就壞，要重新買。一次只有一台：還在動的時候不能買。"""
 
     def test_params(self):
         self.assertEqual(CP.robot_ids, ("basic", "sturdy"))
-        self.assertEqual(CP.robot_price, (3000.0, 12000.0))
-        self.assertEqual(CP.robot_mtbf_d, (1.0, 3.0))
-        self.assertEqual(CP.robot_repair, (750.0, 3000.0))
+        self.assertEqual(CP.robot_price, (12000.0, 24000.0))  # 使用者 2026-10-10 選
+        self.assertEqual(CP.robot_life_d, (3.0, 7.0))
+        self.assertEqual(CP.robot_durability, 100.0)
         self.assertEqual(CP.robot_clean_s, 60 * MINUTE)
 
-    def test_buy_cleans_every_hour_until_broken(self):
+    def test_buy_cleans_every_hour_until_broken_then_rebuy(self):
         f = farm()
-        f.coins = 10_000
-        u = 1.0 - math.exp(-0.5)  # 半天後壞掉
-        self.assertTrue(f.buy_robot(0, T0 + 5 * HOUR, self._U(u)))
-        self.assertEqual(f.coins, 10_000 - CP.robot_price[0])
-        self.assertAlmostEqual(f.robot_until, T0 + 5 * HOUR + 0.5 * DAY, places=6)
+        f.coins = 50_000
+        self.assertTrue(f.buy_robot(0, T0 + 5 * HOUR, random.Random(1)))
+        self.assertEqual(f.coins, 50_000 - CP.robot_price[0])
+        self.assertGreater(f.robot_until, T0 + 5 * HOUR + DAY)
         self.assertEqual(f.poop_total(T0 + 5 * HOUR), 0)  # 買來那一刻先清一次
         self.assertEqual(f.poop_total(T0 + 6 * HOUR), 0)  # 6:00 拉的，6:00 也清
-        add_cow(f, 0, now=T0 + 6 * HOUR + 10 * MINUTE)  # 9:10 拉第一坨，10:00 清（每 60 分鐘，比打掃牛慢）
+        add_cow(f, 0, now=T0 + 6 * HOUR + 10 * MINUTE)  # 9:10 拉第一坨，10:00 清（每 60 分鐘）
         self.assertEqual(f.poop_total(T0 + 9 * HOUR + 59 * MINUTE), 1)
         self.assertEqual(f.poop_total(T0 + 10 * HOUR), 0)
-        self.assertTrue(f.robot_working(T0 + 17 * HOUR - 1))
-        self.assertFalse(f.robot_working(f.robot_until))
-        self.assertGreater(f.poop_total(T0 + 17 * HOUR + 4 * HOUR), 0)  # 壞了就不清
-        self.assertFalse(f.buy_robot(0, T0 + DAY, self._U(u)))  # 同一款不能再買（壞了要修）
+        end = f.robot_until
+        k = round((end - f.robot_from) / CP.robot_clean_s)
+        self.assertAlmostEqual(end, f.robot_from + k * CP.robot_clean_s)  # 壞在某一次清完
+        self.assertTrue(f.robot_working(end - 1))
+        self.assertFalse(f.robot_working(end))
+        self.assertFalse(f.buy_robot(1, end - 1, random.Random(2)))  # 還在動：不能買，另一款也不行
+        self.assertGreater(f.poop_total(end + 4 * HOUR), 0)  # 壞了就不清
+        self.assertTrue(f.buy_robot(0, end + 4 * HOUR, random.Random(3)))  # 壞了重買，同一款也可以
+        self.assertEqual(f.poop_total(end + 4 * HOUR), 0)
+        self.assertEqual((f.robot, f.robot_from), (0, end + 4 * HOUR))
+        self.assertEqual(f.coins, 50_000 - 2 * CP.robot_price[0])
+        f.advance(f.robot_until)
+        f.coins = CP.robot_price[1] - 1
+        self.assertFalse(f.buy_robot(1, f.robot_until, random.Random(4)))  # 錢不夠
+        self.assertFalse(f.buy_robot(2, f.robot_until, random.Random(4)))  # 沒有這一款
 
-    def test_repair_and_switch_model(self):
+    def test_durability(self):
+        """耐久值：買來 100，每清一次扣一點（只在清的那一刻扣）、一直往下，壞了是 0；沒有掃地機是 None。存檔讀回來一樣。"""
         f = farm()
-        f.coins = 20_000
-        self.assertTrue(f.buy_robot(0, T0, self._U(1.0 - math.exp(-1.0))))  # 1 天後壞掉
-        self.assertFalse(f.repair_robot(T0 + HOUR, self._U(0.5)))  # 還在動，不能修
-        self.assertTrue(f.repair_robot(T0 + DAY + HOUR, self._U(1.0 - math.exp(-2.0))))
-        self.assertEqual(f.coins, 20_000 - CP.robot_price[0] - CP.robot_repair[0])
-        self.assertEqual(f.robot_from, T0 + DAY + HOUR)
-        self.assertAlmostEqual(f.robot_until, T0 + 3 * DAY + HOUR, places=6)
-        self.assertEqual(f.poop_total(T0 + DAY + HOUR), 0)  # 修好那一刻先清一次
-        self.assertTrue(f.buy_robot(1, T0 + 2 * DAY, self._U(0.5)))  # 換耐用款（舊的不退錢）
-        self.assertEqual((f.robot, f.coins), (1, 20_000 - CP.robot_price[0] - CP.robot_repair[0] - CP.robot_price[1]))
-        self.assertAlmostEqual(f.robot_until, T0 + 2 * DAY - math.log(0.5) * 3 * DAY, places=6)
-        f.coins = 0
-        self.assertFalse(f.buy_robot(0, T0 + 9 * DAY, self._U(0.5)))  # 錢不夠
-        self.assertFalse(f.repair_robot(T0 + 9 * DAY, self._U(0.5)))
+        self.assertIsNone(f.robot_durability(T0))
+        f.buy_robot(0, T0, random.Random(5))
+        self.assertEqual(f.robot_durability(T0), CP.robot_durability)
+        self.assertEqual(f.robot_durability(T0 + HOUR - 1), CP.robot_durability)  # 第一次清以前不扣
+        hours = int((f.robot_until - T0) // HOUR)
+        ds = [f.robot_durability(T0 + h * HOUR) for h in range(hours)]
+        self.assertTrue(all(a > b > 0 for a, b in zip(ds, ds[1:])))
+        self.assertEqual(f.robot_durability(f.robot_until), 0.0)
+        g = Farm.from_dict(DEFAULT, json.loads(json.dumps(f.to_dict())))
+        self.assertEqual(g.robot_durability(T0 + 30 * HOUR), f.robot_durability(T0 + 30 * HOUR))
+        self.assertEqual(g.robot_until, f.robot_until)
 
-    def test_mean_time_between_breaks(self):
-        """壞掉的時間是指數分布：平均 robot_mtbf_d 天。"""
+    def test_mean_life(self):
+        """平均壽命 robot_life_d 天（使用者：基本款三天、耐用款七天）。"""
         for m in range(len(CP.robot_ids)):
-            f = farm()
-            rng = random.Random(m)
-            gaps = []
-            for _ in range(4000):
-                f.coins = 1e7
-                f.robot = m
-                f._robot_start(T0, rng)
-                gaps.append((f.robot_until - T0) / DAY)
-            self.assertAlmostEqual(sum(gaps) / len(gaps), CP.robot_mtbf_d[m], delta=0.05 * CP.robot_mtbf_d[m])
+            lives = []
+            for i in range(2000):
+                f = farm()
+                f.buy_robot(m, T0, random.Random(f"{m}:{i}"))
+                lives.append((f.robot_until - T0) / DAY)
+            self.assertAlmostEqual(sum(lives) / len(lives), CP.robot_life_d[m], delta=0.02 * CP.robot_life_d[m])
 
     def test_robot_prevents_sickness_while_working(self):
         f = farm()
         for c in range(20):
             add_cow(f, 0, now=T0 + c * 7 * MINUTE)
-        self.assertTrue(f.buy_robot(1, T0 + HOUR, self._U(1.0 - math.exp(-10.0))))  # 30 天都不壞
+        self.assertTrue(f.buy_robot(1, T0 + HOUR, random.Random(1)))
+        self.assertGreater(f.robot_until, T0 + HOUR + 5 * DAY)
         f.advance(T0 + 5 * DAY)
         self.assertEqual(sum(c.sick_since is not None for c in f.cows), 0)
 
@@ -380,12 +394,13 @@ class TestRobot(unittest.TestCase):
                 f.buy_shop("C", T0, rng)
             f.buy_robot(0, T0 + DAY + 2 * HOUR, rng)
             t = T0 + DAY + 2 * HOUR
-            while t < T0 + 4 * DAY:
-                t = min(T0 + 4 * DAY, t + step)
+            while t < T0 + 6 * DAY:
+                t = min(T0 + 6 * DAY, t + step)
                 f.advance(t)
             return f
 
         fs = [run(s) for s in (HOUR, 7 * MINUTE, 31 * HOUR)]
+        self.assertLess(fs[0].robot_until, T0 + 6 * DAY)  # 中間壞掉
         for f in fs[1:]:
             self.assertEqual([c.poop for c in f.cows], [c.poop for c in fs[0].cows])
             self.assertEqual([c.sick_since is None for c in f.cows], [c.sick_since is None for c in fs[0].cows])
@@ -401,9 +416,13 @@ class TestRobot(unittest.TestCase):
         f.advance(T0 + 3 * DAY)
         g.advance(T0 + 3 * DAY)
         self.assertEqual(g.to_dict(), f.to_dict())
+        old = json.loads(json.dumps(f.to_dict()))
+        del old["robot_seed"]  # 改成耐久值以前的存檔（隨機壞掉）：照時間線性估
+        h = Farm.from_dict(DEFAULT, old)
+        self.assertAlmostEqual(h.robot_durability((h.robot_from + h.robot_until) / 2), CP.robot_durability / 2)
         for k in ("robot", "robot_from", "robot_until"):
-            del d[k]
-        self.assertEqual(Farm.from_dict(DEFAULT, d).robot, -1)  # 舊存檔：沒有掃地機
+            del old[k]
+        self.assertEqual(Farm.from_dict(DEFAULT, old).robot, -1)  # 更舊的存檔：沒有掃地機
 
 
 class TestSickness(unittest.TestCase):
@@ -427,7 +446,7 @@ class TestSickness(unittest.TestCase):
         self.assertAlmostEqual(f.hazard, r * 6)
 
     def test_overnight_target(self):
-        """使用者 2026-10-08「睡一覺偶爾有病牛」：10 頭成牛、睡前清乾淨、不清不雇小幫手，睡 8 小時後至少一頭病牛的機會
+        """使用者 2026-10-08「睡一覺偶爾有病牛」：10 頭成牛、睡前清乾淨、沒有掃地機，睡 8 小時後至少一頭病牛的機會
         約 1/4（20–30%）；一整天不管約九成（80% 以上）。每頭牛的大便時鐘相位隨機，取 200 次平均。"""
 
         def p_any(hours, trials=200):
@@ -723,26 +742,27 @@ class TestCareSave(unittest.TestCase):
         for _ in range(6):
             f.buy_shop("B", T0, rng)
         f.buy_feed(SOY, 20, T0)
-        f.feed(f.cows[3], SOY, T0)
+        f.feed(f.cows[3], SOY, T0, MID)
         self.assertTrue(f.buy_floor(3, T0))  # 買了軟墊地但沒鋪
         self.assertTrue(f.rent_floor(2, 3, T0))
         f.use_floor(2, T0 + HOUR)
-        f.hire_helper(1, T0 + 2 * HOUR)
+        f.buy_robot(0, T0 + 2 * HOUR, random.Random(9))
         t = T0 + 2 * DAY
         f.advance(t)
         d = json.loads(json.dumps(f.to_dict()))
         self.assertEqual((d["floor"], d["floors"], d["rented"], d["rent_until"]), (2, 0b1001, 2, T0 + 3 * DAY))
         g = Farm.from_dict(DEFAULT, d)
         self.assertEqual(g.to_dict(), d)
-        f.advance(t + 3 * DAY)
-        g.advance(t + 3 * DAY)
+        f.advance(t + 5 * DAY)  # 掃地機大約 3 天後壞掉，之後沒人清
+        g.advance(t + 5 * DAY)
         self.assertEqual(g.to_dict(), f.to_dict())
+        self.assertLess(g.robot_until, t + 5 * DAY)
         self.assertTrue(any(c.sick_since is not None for c in g.cows))
 
     def test_old_save_loads_with_care_off(self):
         f = Farm(DEFAULT, T0, random.Random(3))
         d = json.loads(json.dumps(f.to_dict()))
-        for k in ("care", "care_t", "hazard", "feeds", "floor", "floors", "helper_from", "helper_until"):
+        for k in ("care", "care_t", "hazard", "feeds", "floor", "floors", "robot", "robot_from", "robot_until", "robot_seed"):
             del d[k]
         d["bucket"] = d["bucket"][:4]
         for c in d["cows"]:
