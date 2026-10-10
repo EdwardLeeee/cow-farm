@@ -555,6 +555,7 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
         from cowecon.farm import beef_grade_probs, beef_weight
 
         probs = beef_grade_probs(fp, c, now)
+        sick = pl.farm.is_sick(c, now)
         by_grade = {
             gn: round(ship_value(g, pl, c, now, fp.beef_grade_mult[i] * fp.tier_mult[c.vt]))
             for i, gn in enumerate(V.GRADE_NAMES)
@@ -565,11 +566,13 @@ def create_app(cfg: Optional[Config] = None, store: Optional[Store] = None, cloc
             "weight_kg": V.r2(beef_weight(fp, c, now)),
             "tier": c.tier,
             "hybrid": c.hybrid,  # v0.3 C1：雜種牛（value_by_grade 已經乘 hybrid_mult）
-            "sick": pl.farm.is_sick(c, now),  # 病牛：value_by_grade、expected_value 已經乘 sick_beef_mult
+            "sick": sick,  # 病牛：value_by_grade、expected_value 已經乘 sick_beef_mult
             "grade_probs": V.grade_dict(probs),
             "grade_mult": dict(zip(V.GRADE_NAMES, fp.beef_grade_mult)),
             "value_by_grade": by_grade,
             "expected_value": round(ship_value(g, pl, c, now)),
+            # 病牛治好以後馬上出貨的估計（同一個報價、含滑價，不扣治療費）；app「先治療再出貨，大約可以賣 x 幣」
+            "expected_value_cured": round(ship_value(g, pl, c, now, cured=True)) if sick else None,
             "can_ship": not blockers,
             "blockers": blockers,
         }

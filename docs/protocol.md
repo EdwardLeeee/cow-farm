@@ -436,7 +436,7 @@ app 怎麼顯示：
 
 v0.3 C1：`can_breed`、`can_work` 病牛是 false；`can_ship` 病牛照樣可以。
 
-**長大揭曉**（v0.3 C1）：小牛到 `adult_at` 那一刻揭曉品種。`GET /v1/state` 不存檔，但會把到 `server_time` 為止的揭曉、大便、生病都算進去，跟下一個動作存下來的一樣（`codex[].found_at`、成就的時間都是長大或生病的那一刻）。app 在 `adult_at` 重抓 state，看 `stage` 從 `calf` 變 `adult` 就播揭曉動畫（A-04）：`hybrid` 是 true 就顯示 `missed`；`codex` 多了新的品種就接「發現新品種」（A-06）。伺服器不另外推播。病牛沒辦法事先知道時間，下次抓 state 才看得到。
+**長大揭曉**（v0.3 C1）：小牛到 `adult_at` 那一刻揭曉品種。`GET /v1/state` 不存檔，但會把到 `server_time` 為止的揭曉、大便、生病都算進去，跟下一個動作存下來的一樣（`codex[].found_at`、成就的時間都是長大或生病的那一刻）。app 在 `adult_at` 重抓 state，看 `stage` 從 `calf` 變 `adult` 就播揭曉動畫（A-13）：`hybrid` 是 true 就顯示 `missed`；`codex` 多了新的品種就接「發現新品種」（A-06）。伺服器不另外推播。病牛沒辦法事先知道時間，下次抓 state 才看得到。
 
 v2 拿掉的：`type_name`、`tier_name`、`ready_at`、`breed_ready`（看 `can_breed`）、頂層的 `breed`（`first_free`）、`shop.calf_price`、`stud.prices`。
 
@@ -705,7 +705,8 @@ v2 拿掉的：`type_name`、`tier_name`、`ready_at`、`breed_ready`（看 `can
 {"server_time": 1791141900.0, "real_time": 1790771411.11, "time_scale": 144.0,
  "cow_id": 1, "weight_kg": 40.44, "tier": 0, "hybrid": false, "sick": false,
  "grade_probs": {"A": 0.156616, "B": 0.488677, "C": 0.354707}, "grade_mult": {"A": 1.25, "B": 1.0, "C": 0.75},
- "value_by_grade": {"A": 625, "B": 500, "C": 375}, "expected_value": 475, "can_ship": true, "blockers": []}
+ "value_by_grade": {"A": 625, "B": 500, "C": 375}, "expected_value": 475, "expected_value_cured": null,
+ "can_ship": true, "blockers": []}
 ```
 
 | 欄位 | 說明 |
@@ -715,6 +716,7 @@ v2 拿掉的：`type_name`、`tier_name`、`ready_at`、`breed_ready`（看 `can
 | `value_by_grade` | 評到各級時，出貨後立刻全部賣掉的估計收入（幣，含這位玩家的滑價；v0.3 C1 起雜種牛乘 `hybrid_mult`、病牛乘 `sick_beef_mult`） |
 | `hybrid`、`sick` | v0.3 C1：雜種牛、病牛（同 `cows[]`）。`tier` 跟 `cows[].tier` 一樣 |
 | `expected_value` | 期望值（= `state.cows[].ship_value`） |
+| `expected_value_cured` | 2026-10-10：病牛治好以後馬上出貨的期望值（幣）。治療馬上好，體重、評級機率不變，一樣含這位玩家的滑價；**沒有扣治療費**（`economy.cure_price`）。app 的病牛出貨提示「先治療再出貨，大約可以賣 x 幣」用這個，不要拿 `expected_value` 除以 `sick_beef_mult`（滑價不是比例，會差幾幣）。不是病牛是 null |
 | `can_ship`／`blockers[]` | 現在能不能出貨；不能的原因 `{"code", "message", …}`：`cow_not_adult`、`cow_in_field`、`cow_listed`。app 用 `code` 查 `err.<code>`，不顯示 `message` |
 
 ### 3.5 `GET /v1/shop` 商店等級與精確機率
@@ -1286,3 +1288,4 @@ app 啟動時先打這個（還沒有 token 也能打），再決定要不要顯
   - 3.8 節更正：小牛長大時間 v0.3 起每頭一樣（`economy.calf_grow_h`）。
 - 2026-10-09：v0.3 C1b 圖鑑的配種表（2.7 節）：`GET /v1/codex/pairings`（每個品種 4 組代表配法 `{sire, dam}`）、`state.pairings[]`（配出過的組合 `{sire, dam, child, count, found_at}`）。爸爸媽媽分開算、長大揭曉才算、雜種牛不算、只算配種和借種。只加不改，存檔格式不變。
 - 2026-10-09：使用者把「打掃小幫手」改名「打掃牛」（規則一樣），協定的文字跟著改，端點和欄位名照舊用 `helper`。2.6 節寫明「全部餵一樣的」app 第一版不用（端點留給電腦假玩家），第一版的餵法是丟飼料（app 照落點挑牛，送 `POST /v1/feed`）。
+- 2026-10-10：3.4 節 `GET /v1/ship/preview` 加 `expected_value_cured`（病牛治好以後的期望值，不是病牛是 null）；2.3 節長大揭曉的動畫編號改成 A-13（原本誤寫 A-04）。只加不改。

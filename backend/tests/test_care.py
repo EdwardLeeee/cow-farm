@@ -222,8 +222,10 @@ def test_sick_cows_are_blocked():
     from server.game import ship_value
 
     healthy = ship_value(game, a, bull, now) / CP.sick_beef_mult
+    cured = ship_value(game, a, bull, now, cured=True)  # 出貨預覽的 expected_value_cured
     bull.sick_since = None
     assert ship_value(game, a, bull, now) == pytest.approx(healthy)
+    assert ship_value(game, a, bull, now) == cured
 
 
 # ---------------------------------------------------------------------------
@@ -297,7 +299,7 @@ def test_http_feed_reveal_hybrid_milk_and_beef(h):
     lots = r["warehouse"]["milk_lots"]
     assert any(lt["hybrid"] and lt["tier"] == 0 for lt in lots) and any(not lt["hybrid"] for lt in lots)
     pv = h.get("/v1/ship/preview", tok, cow_id=bad.cid).json()
-    assert pv["hybrid"] is True and pv["sick"] is False and pv["tier"] == 2
+    assert pv["hybrid"] is True and pv["sick"] is False and pv["tier"] == 2 and pv["expected_value_cured"] is None
     r = h.post("/v1/ship", tok, {"cow_id": bad.cid, "request_id": new_rid()}).json()
     assert r["beef"]["hybrid"] is True and r["beef"]["tier"] == 0
     beef = r["warehouse"]["beef_lots"][-1]
@@ -328,9 +330,15 @@ def test_http_poop_sick_cure_helper(h):
     v = cow_of(st, cow.cid)
     assert v["sick"] is True and v["sick_since"] == pytest.approx(created + CP.newbie_safe_s)
     assert v["milk_per_h"] >= 0 and not v["can_breed"] and st["poop"]["safe_until"] is None
+    pv = h.get("/v1/ship/preview", tok, cow_id=cow.cid).json()
+    assert pv["sick"] is True and pv["expected_value"] == v["ship_value"]
+    assert pv["expected_value_cured"] > pv["expected_value"] / CP.sick_beef_mult * 0.9
     coins = st["coins"]
     r = h.post("/v1/cure", tok, {"cow_id": cow.cid, "request_id": new_rid()}).json()
     assert r["cost"] == int(CP.cure_price) and r["coins"] == coins - r["cost"] and r["cow"]["sick"] is False
+    cured = h.get("/v1/ship/preview", tok, cow_id=cow.cid).json()  # 治好以後的估值 = 治療前預覽給的
+    assert cured["sick"] is False and cured["expected_value_cured"] is None
+    assert cured["expected_value"] == pv["expected_value_cured"]
     ach = {a["key"]: a for a in r["state"]["achievements"]}
     assert ach["healer"]["unlocked_at"] == r["server_time"] and ach["clean"]["unlocked_at"] is None
     # 小幫手：預付最多 7 天（含還沒到期的），雇用那一刻先清一次

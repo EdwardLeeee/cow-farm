@@ -1262,9 +1262,9 @@ def stud_fee_view(fp, tier: int, price: float, kg: float, at_max: bool) -> dict:
     return {"price": int(round(price)), "per_kg": fp.stud_fee_per_kg[tier], "kg": round(kg, 2), "at_max": at_max}
 
 
-def ship_value(game: Game, p: Player, cow: Cow, now: float, mult: Optional[float] = None) -> float:
+def ship_value(game: Game, p: Player, cow: Cow, now: float, mult: Optional[float] = None, cured: bool = False) -> float:
     """這頭牛現在出貨、立刻賣掉的估計收入（幣，含這位玩家的滑價）。mult 沒給就用評級期望值（含稀有度、雜種牛的倍數）。
-    病牛再乘 sick_beef_mult（只剩一成）。小牛是 0。"""
+    病牛再乘 sick_beef_mult（只剩一成）；cured = True 算治好以後（治療馬上好，體重、評級不變）。小牛是 0。"""
     from cowecon.farm import beef_expected_mult, beef_weight
 
     if not cow.is_adult(now):
@@ -1273,7 +1273,7 @@ def ship_value(game: Game, p: Player, cow: Cow, now: float, mult: Optional[float
     w = beef_weight(f.fp, cow, now)
     if mult is None:
         mult = beef_expected_mult(f.fp, cow, now)
-    if f.is_sick(cow, now):
+    if not cured and f.is_sick(cow, now):
         mult *= f.p.care.sick_beef_mult
     res = game.ex.markets["beef"].quote(f.impact["beef"], [(w, mult)], now)
     return res.proceeds
