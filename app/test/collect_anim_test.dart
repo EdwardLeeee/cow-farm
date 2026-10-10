@@ -1,5 +1,6 @@
-// A-01 收奶（設計稿 anims.js 的 A01，1.4 秒）：奶瓶從奶桶飛進倉庫卡、奶桶往下降、倉庫的牛奶往上跳，第 1.0 秒提示淡入。
-// 減少動態（或沒開動畫）時不飛奶瓶、數字直接變、提示直接出來。逐格的畫面在 test/pages/anim_shots_test.dart。
+// A-01 收奶（設計稿 anims.js 的 A01，1.4 秒）：奶瓶從奶桶飛進頂列左邊的「倉庫」小鈕（小鈕跳一下）、奶桶往下降，
+// 第 1.0 秒提示淡入。減少動態（或沒開動畫）時不飛奶瓶、小鈕不跳、數字直接變、提示淡入。
+// 逐格的畫面在 test/pages/anim_shots_test.dart。
 import 'package:cowfarm/app.dart';
 import 'package:cowfarm/l10n/l10n.dart';
 import 'package:cowfarm/state/game_model.dart';
@@ -42,40 +43,62 @@ String _bucketCount(WidgetTester tester) {
   ].single;
 }
 
+/// 飛的奶瓶（collect-bottle-0～4）。
+Finder _bottles() => find.byWidgetPredicate(
+  (w) => w.key is ValueKey<String> && (w.key! as ValueKey<String>).value.startsWith('collect-bottle'),
+);
+
+/// 頂列的「倉庫」小鈕上的字。
+Finder _whText() => find.descendant(
+  of: find.byKey(const Key('warehouse-btn')),
+  matching: find.text(Strings.forLang(AppLang.zhHant).warehouseTitle),
+);
+
+/// 「倉庫」小鈕放大的倍數（A-01 跳一下）。
+double _whScale(WidgetTester tester) => tester
+    .widget<Transform>(find.ancestor(of: _whText(), matching: find.byType(Transform)).first)
+    .transform
+    .getMaxScaleOnAxis();
+
 void main() {
   setUpAll(loadAppAssets);
   final zh = Strings.forLang(AppLang.zhHant);
 
-  testWidgets('開著動畫：奶瓶在飛、奶桶往下降、提示還沒出來；1.4 秒以後倉庫 166 瓶、提示出來', (tester) async {
+  testWidgets('開著動畫：奶瓶飛進「倉庫」小鈕、奶桶往下降、提示還沒出來；小鈕跳一下；1.4 秒以後提示出來', (tester) async {
     Screen.w390.apply(tester);
     await pumpRanchWithMotion(tester);
     expect(_bucketCount(tester), contains('36.4 / 42'));
     await tester.tap(find.byKey(const Key('collect')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
-    final bottles = find.byWidgetPredicate(
-      (w) => w.key is ValueKey<String> && (w.key! as ValueKey<String>).value.startsWith('collect-bottle'),
-    );
-    expect(bottles, findsNWidgets(5), reason: '第 0.5 秒五個奶瓶都在飛');
+    expect(_bottles(), findsNWidgets(5), reason: '第 0.5 秒五個奶瓶都在飛');
+    // 第一個奶瓶第 0.1–0.6 秒飛，第 0.5 秒快到了：在「倉庫」小鈕的中間附近
+    final pill = tester.getCenter(find.ancestor(of: _whText(), matching: find.byType(Container)).first);
+    expect((tester.getCenter(find.byKey(const Key('collect-bottle-0'))) - pill).distance, lessThan(6));
+    expect(_whScale(tester), 1, reason: '第 0.55 秒才開始跳');
     final mid = _bucketCount(tester);
     expect(mid, isNot(contains('36.4 /')));
     expect(double.parse(mid.split('/').first.replaceAll(RegExp('[^0-9.]'), '')), inExclusiveRange(1, 36.4));
     expect(_toastOpacity(tester), 0, reason: '第 1.0 秒才淡入');
-    await tester.pump(const Duration(milliseconds: 1000));
-    expect(find.byKey(const Key('collect-bottle')), findsNothing);
-    expect(find.descendant(of: find.byKey(const Key('storage-mini')), matching: find.text('166')), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(_whScale(tester), closeTo(1.12, 0.001), reason: '第 0.8 秒跳到最大');
+    await tester.pump(const Duration(milliseconds: 700));
+    expect(_bottles(), findsNothing);
+    expect(_whScale(tester), 1);
+    expect(_bucketCount(tester), contains('0 / 42'));
     expect(find.text(zh.collected(v: '36.4')), findsOneWidget);
     expect(_toastOpacity(tester), 1);
   });
 
-  testWidgets('減少動態：不飛奶瓶，數字直接變、提示淡入 0.2 秒', (tester) async {
+  testWidgets('減少動態：不飛奶瓶、「倉庫」小鈕不跳，數字直接變、提示淡入 0.2 秒', (tester) async {
     Screen.w390.apply(tester);
     await pumpRanchWithMotion(tester, reduced: true);
     await tester.tap(find.byKey(const Key('collect')));
     await tester.pump();
     await tester.pump();
-    expect(find.byKey(const Key('collect-bottle')), findsNothing);
-    expect(find.descendant(of: find.byKey(const Key('storage-mini')), matching: find.text('166')), findsOneWidget);
+    expect(_bottles(), findsNothing);
+    expect(_whScale(tester), 1);
+    expect(_bucketCount(tester), contains('0 / 42'));
     expect(find.text(zh.collected(v: '36.4')), findsOneWidget);
     expect(_toastOpacity(tester), lessThan(1), reason: '淡入中');
     await tester.pump(const Duration(milliseconds: 100));

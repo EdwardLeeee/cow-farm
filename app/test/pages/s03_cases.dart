@@ -162,7 +162,10 @@ Map<String, dynamic> sickCow(Map<String, dynamic> c) => {
 /// 設計稿 S03-28、29 的牧場：9 坨大便，#3 荷斯坦生病了。
 List<Map<String, dynamic>> sickHerd() => [for (final c in poopCows(9)) c['id'] == 3 ? sickCow(c) : c];
 
-/// 設計稿 S03-01 的牧場：Lv 4（經驗 41%）、12,480 幣、牛舍 10／12、奶桶 36.4／42（每小時 42 瓶）、倉庫 225。
+/// 設計稿 fixtures.js 的 FEED_STOCK：飼料列每袋的份數（苜蓿沒有了）。
+const designFeeds = {'grass': 24, 'hay': 12, 'oats': 8, 'alfalfa': 0, 'corn': 5, 'soy': 3};
+
+/// 設計稿 S03-01 的牧場：Lv 4（經驗 41%）、12,480 幣、牛舍 10／12、奶桶 36.4／42（每小時 42 瓶）、倉庫 225、飼料 [designFeeds]。
 Map<String, dynamic> ranchState({
   List<Map<String, dynamic>>? cows,
   double bucket = 36.4,
@@ -177,6 +180,7 @@ Map<String, dynamic> ranchState({
   int? penUsed,
   double beef = 934,
   double rice = 184,
+  Map<String, int> feeds = designFeeds,
 }) {
   final herd = cows ?? designCows();
   final milk =
@@ -219,6 +223,7 @@ Map<String, dynamic> ranchState({
       'max_slots': 40,
     },
     'bucket': {'qty': bucket, 'capacity': bucketCap, 'per_hour': perHour, 'boost': null},
+    'feeds': feeds,
     'warehouse': {
       'capacity': warehouseCap,
       'used': milkTotal,
@@ -513,8 +518,15 @@ final s03Cases = <PageCase>[
       expect(find.text('12,480'), findsOneWidget, reason: '一百萬以下寫完整的數字');
       expect(find.text('87%'), findsOneWidget);
       expect(find.text(_zh.s03FullIn(time: _zh.duration(m: 9))), findsOneWidget, reason: '(42 − 36.4) ÷ 42 小時，進位到分鐘');
-      expect(find.text('64%'), findsOneWidget, reason: '最舊一批牛奶的新鮮度');
-      expect(find.text('12%'), findsOneWidget, reason: '牛奶比平常 +12%');
+      // 頂列左邊的「倉庫」小鈕；飼料列 6 袋，袋子上寫剩幾份
+      expect(find.byKey(const Key('warehouse-btn')), findsOneWidget);
+      for (final MapEntry(:key, :value) in designFeeds.entries) {
+        expect(
+          find.descendant(of: find.byKey(Key('feed-$key-n')), matching: find.text('$value')),
+          findsOneWidget,
+          reason: key,
+        );
+      }
       expect(find.text('10 / 12'), findsOneWidget);
       expect(find.byKey(const Key('ticker')), findsOneWidget);
       // 場景裡有 8 頭牛：去田裡的 #2、#9 不在
@@ -585,7 +597,6 @@ final s03Cases = <PageCase>[
     check: (tester) {
       expect(find.text(_zh.s03Partial(n: '24', left: '12.4')), findsOneWidget);
       expect(find.byKey(const Key('go-upgrade')), findsOneWidget);
-      expect(find.text(_zh.s03MilkFull), findsOneWidget);
     },
   ),
   PageCase(
@@ -696,6 +707,8 @@ final s03Cases = <PageCase>[
           warehouseCap: 43786,
           beef: 12480,
           rice: 9860,
+          // 飼料袋上的份數最大（量測用）
+          feeds: {for (final k in designFeeds.keys) k: 999},
         ),
         market: ranchMarket(milk: 20.4, beef: 7.2, rice: 8.5),
       ),
@@ -704,9 +717,7 @@ final s03Cases = <PageCase>[
     ),
     check: (tester) {
       expect(find.text('40 / 40'), findsOneWidget);
-      expect(find.text(_zh.s03MilkFull), findsOneWidget);
-      expect(find.text('70%'), findsNWidgets(2), reason: '牛奶、稻米比平常 +70%');
-      expect(find.text('40%'), findsOneWidget, reason: '牛肉比平常 −40%');
+      expect(find.text('999'), findsNWidgets(6));
     },
   ),
   PageCase(
@@ -730,43 +741,32 @@ final s03Cases = <PageCase>[
   ),
   PageCase(
     'S03-11',
-    '收起來：奶桶、倉庫、收購價收成一條（收奶鈕留著）',
+    '收起來：奶桶和飼料一起收，只剩牧場；「展開」帶奶桶的 %',
     (tester, lang) async =>
         pumpAppIn(tester, await ranchModel(), lang, prefs: {...swipeHintSeen, SettingsController.dockKey: '1'}),
     check: (tester) {
-      expect(find.byKey(const Key('bucket-slim')), findsOneWidget);
-      expect(find.byKey(const Key('storage-mini')), findsNothing);
-      expect(find.byKey(const Key('collect')), findsOneWidget);
+      expect(find.byKey(const Key('bucket-card')), findsNothing);
+      expect(find.byKey(const Key('feed-bar')), findsNothing);
+      expect(find.byKey(const Key('collect')), findsNothing);
+      expect(find.byKey(const Key('warehouse-btn')), findsOneWidget);
+      expect(find.descendant(of: find.byKey(const Key('dock-pail')), matching: find.text('87%')), findsOneWidget);
+      expect(find.text(_zh.s03Expand), findsOneWidget);
     },
   ),
   PageCase(
     'S03-12',
-    '收起來的那一條：奶桶滿了、奶桶是 0',
+    '收起來的那一排：奶桶滿了（「展開」變藍、寫「滿了」）、奶桶是 0',
     (tester, lang) async {
-      final m = await ranchModel();
-      final st = m.state!;
-      DockData data(double qty) => DockData(
-        bucket: qty,
-        bucketCap: 42,
-        perHour: 42,
-        timeScale: 1,
-        warehouse: st.warehouse,
-        quotes: m.market!.quotes,
-        upIsRed: true,
-      );
+      // 設計稿的 .slim-sheet：兩排收起來的頂列，中間隔 22（表的 gap 12，第二排再 margin-top 10）
       Widget slim(double qty) => Dock(
-        data: data(qty),
+        data: DockData(bucket: qty, bucketCap: 42, perHour: 42, timeScale: 1),
         collapsed: true,
         pan: 0,
         onToggle: () {},
-        collect: AppButton(
-          Strings.forLang(lang).collect,
-          kind: ButtonKind.blue,
-          small: true,
-          onPressed: qty > 0 ? () {} : null,
-        ),
+        collect: const SizedBox.shrink(),
+        gutter: 0,
       );
-      await pumpSheet(tester, lang, [slim(42), slim(0)], model: m);
+      await pumpSheet(tester, lang, [slim(42), Padding(padding: const EdgeInsets.only(top: 10), child: slim(0))]);
     },
     crop: find.byKey(const Key('sheet')),
     check: (tester) {
@@ -992,6 +992,28 @@ final s03Cases = <PageCase>[
       expect(dirtText(tester), '${_zh.s03Poop} 9');
       expect(find.text(_zh.s03PoopDanger), findsOneWidget, reason: '9 ÷ 10 頭 = 0.9 > 0.5');
       for (var i = 0; i < 9; i++) {
+        expect(find.byKey(Key('poop-$i')), findsOneWidget, reason: '第 $i 個位置');
+      }
+    },
+  ),
+  PageCase(
+    'S03-39',
+    '大便第 10 坨以後：往右滑看到右半邊（最多畫 18 坨）',
+    (tester, lang) async {
+      await pumpAppIn(
+        tester,
+        await ranchModel(state: ranchState(cows: poopCows(18))),
+        lang,
+        prefs: swipeHintSeen,
+      );
+      await tester.drag(find.byType(RanchScene), const Offset(-1200, 0));
+      await tester.pump();
+    },
+    check: (tester) {
+      expect(dirtText(tester), '${_zh.s03Poop} 18');
+      expect(find.text(_zh.s03PoopDanger), findsOneWidget, reason: '18 ÷ 10 頭 = 1.8 > 0.5');
+      // 設計稿 poop.js 的 18 個位置都有
+      for (var i = 0; i < 18; i++) {
         expect(find.byKey(Key('poop-$i')), findsOneWidget, reason: '第 $i 個位置');
       }
     },

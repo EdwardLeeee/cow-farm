@@ -59,7 +59,7 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
   /// A-01 的減少動態版：提示淡入 0.2 秒（不飛奶瓶、數字直接變）。
   bool _fadeToast = false;
   final _pailKey = GlobalKey();
-  final _milkKey = GlobalKey();
+  final _warehouseKey = GlobalKey();
   final _fxLayerKey = GlobalKey();
 
   /// 畫牛的 Flame 遊戲（A-11、A-07）：泡泡和小名片從這裡知道停下來的牛走到哪裡。
@@ -121,24 +121,26 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
   /// A-01 現在播到第幾秒；沒在播是 null。
   double? get _fxT => _fx == null ? null : _collectAnim.value * 1.4;
 
-  /// 動畫中面板上的數字：奶桶照 inOut 從原本降到新的（0.1–0.85 秒），倉庫的牛奶照 outCubic 往上跳（0.55–1.05 秒），
-  /// 「幾分鐘後滿」降完才換（設計稿 A01.frame）。
+  /// 動畫中面板上的數字：奶桶照 inOut 從原本降到新的（0.1–0.85 秒），「幾分鐘後滿」降完才換（設計稿 A01.frame）。
   DockData _fxData(DockData data) {
     final fx = _fx, t = _fxT;
     if (fx == null || t == null) return data;
-    final drain = _inOut(_seg(t, 0.1, 0.85)), gain = _outCubic(_seg(t, 0.55, 1.05));
+    final drain = _inOut(_seg(t, 0.1, 0.85));
     return DockData(
       bucket: fx.bucket + (data.bucket - fx.bucket) * drain,
       bucketCap: data.bucketCap,
       perHour: data.perHour,
       timeScale: data.timeScale,
-      warehouse: data.warehouse,
-      quotes: data.quotes,
-      upIsRed: data.upIsRed,
       rateBucket: drain >= 1 ? data.bucket : fx.bucket,
-      milkShown: fx.milk + (data.warehouse.milkTotal - fx.milk) * gain,
       draining: drain > 0 && drain < 1,
+      feeds: data.feeds,
     );
+  }
+
+  /// A-01 奶瓶飛進「倉庫」小鈕時（0.55–1.05 秒），小鈕跳一下（放大到 1.12 再回來）。
+  double get _warehouseBump {
+    final t = _fxT;
+    return t == null ? 1 : 1 + 0.12 * math.sin(math.pi * _seg(t, 0.55, 1.05));
   }
 
   /// 病牛的名片按「治療」（S03-29）：一樣先問（S04-19），治好了在牧場頁提示「荷斯坦 #3 好了！」（S04-21）。
@@ -227,7 +229,7 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
     // A-01：收奶前的奶桶、倉庫；減少動態（或測試）時不播，數字直接變（設計稿的減少動態版）
     final motion = AppMotion.read(context);
     final reduced = AppMotion.reducedRead(context);
-    final before = _CollectFx(m.bucketNow, m.state?.warehouse.milkTotal ?? 0);
+    final before = _CollectFx(m.bucketNow);
     final r = await m.collect();
     if (!mounted) return;
     final delay = r.ok && motion ? const Duration(milliseconds: 1000) : Duration.zero;
@@ -298,9 +300,7 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
       bucketCap: st.bucket.capacity,
       perHour: st.bucket.perHour,
       timeScale: m.timeScale,
-      warehouse: st.warehouse,
-      quotes: m.market?.quotes ?? const {},
-      upIsRed: settings.upIsRed,
+      feeds: st.feeds,
     );
     // 奶桶滿了：跟奶桶卡同一個判斷（百分比四捨五入到 100 就算滿），場景和面板才會一致
     final full = data.full;
@@ -434,9 +434,10 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
             top: top + (shortScreen ? 112 : 236),
             child: const Center(child: _SwipeHint()),
           ),
+        // .dock 的左右 12 由面板自己留：飼料列要延伸到畫面的左右邊緣
         Positioned(
-          left: 12,
-          right: 12,
+          left: 0,
+          right: 0,
           bottom: FrameSizes.contentBottom(safe) + 10,
           child: AnimatedBuilder(
             animation: _collectAnim,
@@ -446,9 +447,10 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
               pan: _pan,
               onToggle: () => settings.setDockCollapsed(!collapsed),
               collect: collectButton,
-              onStorage: m.openWarehouse,
+              onWarehouse: m.openWarehouse,
               pailKey: _pailKey,
-              milkKey: _milkKey,
+              warehouseKey: _warehouseKey,
+              warehouseScale: _warehouseBump,
             ),
           ),
         ),
@@ -569,16 +571,16 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
     );
   }
 
-  /// A-01 的五個奶瓶：從奶桶圖示的中間，沿拋物線（高 90）飛到倉庫卡牛奶那一行的左邊 20，一個晚 0.08 秒；
-  /// 飛的時候變大再變小（0.7 → 1.2 → 0.7）、從 −20 度轉到 20 度（設計稿 A01.frame）。面板收起來（沒有倉庫卡）就不飛。
+  /// A-01 的五個奶瓶：從奶桶圖示的中間，沿拋物線（高 90）飛到頂列「倉庫」小鈕的中間，一個晚 0.08 秒；
+  /// 飛的時候變大再變小（0.7 → 1.2 → 0.7）、從 −20 度轉到 20 度（設計稿 A01.frame）。面板收起來（沒有奶桶）就不飛。
   Widget _bottles() {
     final t = _fxT;
     final layer = _fxLayerKey.currentContext?.findRenderObject() as RenderBox?;
     final pail = _pailKey.currentContext?.findRenderObject() as RenderBox?;
-    final milk = _milkKey.currentContext?.findRenderObject() as RenderBox?;
-    if (t == null || layer == null || pail == null || milk == null || !layer.hasSize) return const SizedBox.shrink();
+    final wh = _warehouseKey.currentContext?.findRenderObject() as RenderBox?;
+    if (t == null || layer == null || pail == null || wh == null || !layer.hasSize) return const SizedBox.shrink();
     final from = layer.globalToLocal(pail.localToGlobal(pail.size.center(Offset.zero)));
-    final to = layer.globalToLocal(milk.localToGlobal(Offset(20, milk.size.height / 2)));
+    final to = layer.globalToLocal(wh.localToGlobal(wh.size.center(Offset.zero)));
     return Stack(
       children: [
         for (var i = 0; i < 5; i++)
@@ -623,11 +625,10 @@ class _RanchPageState extends State<RanchPage> with TickerProviderStateMixin {
   }
 }
 
-/// A-01：收奶前的奶桶、倉庫的牛奶。
+/// A-01：收奶前的奶桶。
 class _CollectFx {
-  const _CollectFx(this.bucket, this.milk);
+  const _CollectFx(this.bucket);
   final double bucket;
-  final double milk;
 }
 
 // 設計稿 anims.js 的小工具：seg 是 t 在 a–b 之間走了幾成（0–1）。
