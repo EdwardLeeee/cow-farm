@@ -26,19 +26,20 @@ START_EPOCH = 1791129600.0  # 2026-10-05（週一）00:00 台灣時間
 BOT_TUNABLES = {k: getattr(B, k) for k in (
     "BUCKET_TARGET_H", "DAIRY_SHIP_FRAC", "RARE_KEEP_FRAC", "PEAK_H", "BULL_WAIT_MAX_H", "HOLD_THR", "HOLD_FRESH_SELL",
     "HOLD_WH_TARGET_H", "HOLD_MIN_COWS", "STUD_RELIST_H", "PANIC_SHIP_AGE_H", "TRACK_PLAYERS", "SHOP_CHOICE_SCALE",
-    "SICK_P_DAY", "HELPER_AHEAD_D", "LAZY_CLEAN_H", "CURE_PROD_H", "FLOOR_GAIN", "ROBOT_SICK_PER_BREAK", "ROBOT_PAYBACK_D",
+    "SICK_P_DAY", "RENT_AHEAD_D", "LAZY_CLEAN_H", "CURE_PROD_H", "FLOOR_GAIN", "ROBOT_SICK_PER_BREAK",
     "SPEC_BUY_RATIO", "SPEC_SELL_MARGIN",
 )}
 
 AMOUNT_KINDS = ("milk", "beef", "rice", "calf", "breed", "expand", "bucket", "warehouse", "fresh", "field", "stud_in", "stud_out",
-                "feed_buy", "cure", "helper", "floor", "robot", "feed_sell")
+                "feed_buy", "cure", "floor", "robot", "feed_sell")
 QTY_KINDS = ("milk", "beef", "rice", "collect", "spoiled", "harvest", "breed", "stud_in", "stud_out",
              "grade_A", "grade_B", "grade_C", "shop_A", "shop_B", "shop_C",
              "feed_buy", "feed", "clean", "sick", "cure", "bonus_kg", "hybrid", "rare_grown", "feed_sell")
 # 收入 = 賣出收入 + 借種收入 + 賣回飼料（v0.3 B；照顧好的六種玩法不賣回，只有 Y 飼料投機有）
 REVENUE_KINDS = ("milk", "beef", "rice", "stud_in", "feed_sell")
-# v0.3 照顧的花費。玩法週收入差距的目標用「收入 − 照顧花費」比（使用者 2026-10-08 選的口徑；只算收入的照舊列出當參考）
-CARE_KINDS = ("floor", "helper", "feed_buy", "cure", "robot")
+# v0.3 照顧的花費。玩法週收入差距的目標用「收入 − 照顧花費」比（使用者 2026-10-08 選的口徑；只算收入的照舊列出當參考）。
+# 打掃牛 2026-10-10 取消，不能再花錢雇。
+CARE_KINDS = ("floor", "feed_buy", "cure", "robot")
 
 
 class Ledger:
@@ -78,7 +79,7 @@ class Ledger:
         return sum(self.amount_days(k, d0, d1) for k in REVENUE_KINDS)
 
     def care_days(self, d0: int, d1: int) -> float:
-        """照顧花費（正數）：地板、小幫手、飼料、治療。"""
+        """照顧花費（正數）：地板、飼料、治療、掃地機。"""
         return -sum(self.amount_days(k, d0, d1) for k in CARE_KINDS)
 
 
@@ -343,7 +344,8 @@ def stud_summary(w: World) -> dict:
 
 def care_summary(w: World) -> dict:
     """v0.3 照顧，各玩法每位玩家平均（整段模擬）：病牛的時間佔牛的時間、飼料花費和多賣的錢（回報倍數）、
-    小幫手（打掃牛）／地板／治療／掃地機的花費和佔收入、最後有掃地機的比例、生病和治療的次數、稀有小牛長大時變雜種的比例。
+    地板／治療／掃地機的花費和佔收入、買過掃地機的比例、最後掃地機還在動的比例、每人買幾台、生病和治療的次數、
+    稀有小牛長大時變雜種的比例。
 
     飼料多賣的錢 = 出貨時體重裡的飼料加成（公斤 × 評級 × 稀有度倍率）× 整段的牛肉平均價（不含滑價，估計）。"""
     end = w.t0 + w.n_days * DAY
@@ -369,13 +371,14 @@ def care_summary(w: World) -> dict:
         rev = sum(b.ledger.revenue_days(0, w.n_days) for b in bs) / n
         feed = spend("feed_buy")
         bonus_value = qty("bonus_kg") * avg_beef
-        care = spend("helper") + spend("floor") + spend("cure") + spend("robot")
+        care = spend("floor") + spend("cure") + spend("robot")
         out[s] = {
             "n": n, "revenue": rev, "sick_share": sick_s / cow_s if cow_s else 0.0,
             "feed_spend": feed, "feed_units": qty("feed_buy"), "bonus_value": bonus_value,
             "feed_roi": bonus_value / feed if feed else None,
-            "helper_spend": spend("helper"), "floor_spend": spend("floor"), "cure_spend": spend("cure"),
+            "floor_spend": spend("floor"), "cure_spend": spend("cure"),
             "robot_spend": spend("robot"), "robot_owners": sum(1 for b in bs if b.farm.robot >= 0) / n,
+            "robot_working_end": sum(1 for b in bs if b.farm.robot_working(end)) / n, "robot_buys": qty("robot"),
             "care_spend_share": care / rev if rev else None,
             "sick": qty("sick"), "cures": qty("cure"), "cleaned": qty("clean"),
             "hybrid": qty("hybrid"), "rare_grown": qty("rare_grown"),

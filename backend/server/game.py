@@ -1116,49 +1116,43 @@ class Game:
         if why is not None:
             raise GameError("feed_no_effect", "餵了也不會長肉", 409, {"cow_id": c.cid, "reason": why})
 
-    def feed(self, pid: int, cow_id, kind, now: float) -> dict:
-        """餵一頭牛一份飼料。kind：飼料代號或索引（電腦假玩家用索引）。"""
+    def feed(self, pid: int, cow_id, kind, now: float, rng: Optional[random.Random] = None) -> dict:
+        """餵一頭牛一份飼料。kind：飼料代號或索引（電腦假玩家用索引）。長幾公斤是隨機的（使用者 2026-10-10）：
+        真人用伺服器秘密種子導出的亂數（_rng），玩家算不出這次會長多少、沒辦法挑抽得高的時候餵；電腦假玩家傳 feed_rng。
+        回傳的 kg = 這次加成實際多了幾公斤（碰到上限就是上限前剩下的）。"""
         p = self.player(pid)
         c = self._cow(p, cow_id)
         k = kind if isinstance(kind, int) and not isinstance(kind, bool) else self._feed_index(kind)
         self._feed_check(p, c, k, now)
-        if not p.farm.feed(c, k, now):
+        kg = p.farm.feed(c, k, now, self._rng(p, rng))
+        if kg is None:
             raise GameError("rejected", "現在不能餵", 409, {"cow_id": c.cid})
-        return {"cow_id": c.cid, "feed": FEED_IDS[k], "kind": k}
+        return {"cow_id": c.cid, "feed": FEED_IDS[k], "kind": k, "kg": kg}
 
-    def feed_all(self, pid: int, kind, now: float) -> dict:
-        """全部餵一樣的（企劃 2.2）：現在能吃這種飼料的牛各餵一份，份數不夠先餵小牛、再照編號。"""
+    def feed_all(self, pid: int, kind, now: float, rng: Optional[random.Random] = None) -> dict:
+        """全部餵一樣的（企劃 2.2）：現在能吃這種飼料的牛各餵一份，份數不夠先餵小牛、再照編號。kg 跟 fed 同順序。"""
         p = self.player(pid)
         f = p.farm
         k = self._feed_index(kind)
         if f.feeds[k] <= 0:
             raise GameError("out_of_feed", "倉庫沒有這種飼料", 409, {"feed": FEED_IDS[k]})
         order = sorted(f.cows, key=lambda c: (c.is_adult(now), c.cid))
-        fed = []
+        fed, kgs = [], []
         for c in order:
             if f.feeds[k] <= 0:
                 break
-            if f.feed_block(c, k, now) is None and f.feed(c, k, now):
-                fed.append(c.cid)
+            if f.feed_block(c, k, now) is None:
+                kg = f.feed(c, k, now, self._rng(p, rng))
+                if kg is not None:
+                    fed.append(c.cid)
+                    kgs.append(kg)
         if not fed:
             raise GameError("nothing_to_feed", "現在沒有牛能吃這種飼料", 409, {"feed": FEED_IDS[k]})
-        return {"feed": FEED_IDS[k], "fed": fed}
+        return {"feed": FEED_IDS[k], "fed": fed, "kg": kgs}
 
     def _max_days(self, until: float, now: float, max_days: int) -> None:
         if until - now > max_days * DAY + 1e-6:
             raise GameError("max_days", f"最多預付 {max_days} 天", 409, {"max_days": max_days})
-
-    def hire_helper(self, pid: int, days, now: float) -> dict:
-        p = self.player(pid)
-        f = p.farm
-        cp = f.p.care
-        days = self._int_arg(days, "days")
-        self._max_days(max(now, f.helper_until) + days * DAY, now, cp.helper_max_days)
-        cost = cp.helper_price_per_day * days
-        self._coins(f, cost)
-        if not f.hire_helper(days, now):
-            raise GameError("rejected", "現在不能雇小幫手", 409)
-        return {"days": days, "cost": int(round(cost)), "until": f.helper_until}
 
     # ---- 大便掃地機（協定 2.6 節）----
     @staticmethod
@@ -1168,31 +1162,18 @@ class Game:
         return ROBOT_INDEX[model]
 
     def buy_robot(self, pid: int, model, now: float, rng: Optional[random.Random] = None) -> dict:
-        """買掃地機（一次只有一台：已經有另一款就換掉，舊的不退錢）。model：代號或索引（電腦假玩家用索引）。"""
+        """買掃地機（使用者 2026-10-10：不能修，壞了要重買；一次只有一台，還在動的時候不能買，壞了可以買任一款）。
+        model：代號或索引（電腦假玩家用索引）。耐久值的種子用真人的秘密亂數（電腦假玩家傳 robot_rng）。"""
         p = self.player(pid)
         f = p.farm
         cp = f.p.care
         m = model if isinstance(model, int) and not isinstance(model, bool) else self._robot_index(model)
-        if f.robot == m:
-            raise GameError("robot_owned", "已經有這款掃地機（壞了要修）", 409, {"model": ROBOT_IDS[m]})
+        if f.robot_working(now):
+            raise GameError("robot_working", "掃地機還在動，壞了才能買新的", 409, {"model": ROBOT_IDS[f.robot]})
         self._coins(f, cp.robot_price[m])
         if not f.buy_robot(m, now, self._rng(p, rng)):
             raise GameError("rejected", "現在不能買這款掃地機", 409)
         return {"model": ROBOT_IDS[m], "cost": int(round(cp.robot_price[m]))}
-
-    def repair_robot(self, pid: int, now: float, rng: Optional[random.Random] = None) -> dict:
-        """修好壞掉的掃地機（修理費看款式），馬上開始動。"""
-        p = self.player(pid)
-        f = p.farm
-        if f.robot < 0:
-            raise GameError("no_robot", "還沒有掃地機", 409)
-        if f.robot_working(now):
-            raise GameError("robot_working", "掃地機還在動，壞了才能修", 409, {"model": ROBOT_IDS[f.robot]})
-        cost = f.p.care.robot_repair[f.robot]
-        self._coins(f, cost)
-        if not f.repair_robot(now, self._rng(p, rng)):
-            raise GameError("rejected", "現在不能修掃地機", 409)
-        return {"model": ROBOT_IDS[f.robot], "cost": int(round(cost))}
 
     def buy_floor(self, pid: int, floor, now: float) -> dict:
         """買斷地板（軟墊地）。電腦假玩家傳索引。"""

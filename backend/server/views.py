@@ -409,7 +409,6 @@ def state_view(game: Game, p: Player, now: float, clock) -> dict:
         "feed_quotes": {k: r6(game.ex.feeds[k].price) for k in FEED_IDS},
         "poop": poop_view(f, now),
         "floor": floor_view(f, now),
-        "helper": {"until": f.helper_until if f.helper_until > now else None},
         "robot": robot_view(f, now),
     }
 
@@ -438,15 +437,16 @@ def floor_view(f: Farm, now: float) -> dict:
 
 
 def robot_view(f: Farm, now: float) -> dict:
-    """大便掃地機：model 哪一款（沒有是 null）、working 有沒有在動、since 這次開始動（買來、修好）的時間、
-    broken_at 壞掉的時間（還沒壞是 null：什麼時候會壞玩家看不到，壞了才知道）。"""
+    """大便掃地機：model 哪一款（沒有是 null）、working 有沒有在動、since 買來的時間、durability 耐久值（2026-10-10：
+    整數，在動的時候 1–100，壞了是 0）、broken_at 壞掉的時間（還沒壞是 null）。"""
     if f.robot < 0:
-        return {"model": None, "working": False, "since": None, "broken_at": None}
+        return {"model": None, "working": False, "since": None, "durability": None, "broken_at": None}
     working = f.robot_working(now)
     return {
         "model": ROBOT_IDS[f.robot],
         "working": working,
         "since": f.robot_from,
+        "durability": max(1, math.ceil(f.robot_durability(now))) if working else 0,
         "broken_at": None if working else f.robot_until,
     }
 
@@ -506,7 +506,8 @@ def care_economy(cp) -> dict:
     return {
         "feeds": [
             {"id": k, "kg": cp.feed_kg[i], "price": ci(cp.feed_price[i])} for i, k in enumerate(FEED_IDS)
-        ],  # price：基本價（v0.3 B 起照市價買，現在的價錢看 state.feed_quotes）
+        ],  # kg：平均（每次長平均的 1 ± feed_kg_spread 倍）；price：基本價（v0.3 B 起照市價買，現在的價錢看 state.feed_quotes）
+        "feed_kg_spread": cp.feed_kg_spread,
         "feed_cap": cp.feed_cap,
         "feed_cooldown_h": cp.feed_cooldown_s / HOUR,
         "calf_feed_cooldown_h": cp.calf_feed_cooldown_s / HOUR,
@@ -524,13 +525,10 @@ def care_economy(cp) -> dict:
         ],
         "floor_rent_max_days": cp.floor_rent_max_days,
         "robots": [
-            {"id": k, "price": ci(cp.robot_price[i]), "repair": ci(cp.robot_repair[i]), "mtbf_days": cp.robot_mtbf_d[i]}
-            for i, k in enumerate(ROBOT_IDS)
+            {"id": k, "price": ci(cp.robot_price[i]), "life_days": cp.robot_life_d[i]} for i, k in enumerate(ROBOT_IDS)
         ],
         "robot_clean_min": cp.robot_clean_s / 60,
-        "helper_per_day": ci(cp.helper_price_per_day),
-        "helper_max_days": cp.helper_max_days,
-        "helper_clean_min": cp.helper_clean_s / 60,
+        "robot_durability": ci(cp.robot_durability),
         "cure_price": ci(cp.cure_price),
         "sick_beef_mult": cp.sick_beef_mult,
         "poop_every_h": cp.poop_every_s / HOUR,
