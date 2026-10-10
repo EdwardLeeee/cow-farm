@@ -899,6 +899,30 @@ const Map<String, String> _zhHant = {
   'news.all_swan.1': '超級颱風來襲，市場全面停擺',
   'news.all_swan.2': '港口全面封閉，農產品出不了貨',
   'news.all_swan.3': '全國消費急凍，農產品沒人買',
+  'news.grass_up.1': '連日陰雨，牧草難收割',
+  'news.grass_up.2': '各地牧場擴建，牧草供不應求',
+  'news.grass_down.1': '草原大豐收，牧草堆滿倉',
+  'news.grass_down.2': '春雨充足，牧草長得又快又好',
+  'news.hay_up.1': '乾燥機故障，乾草供應吃緊',
+  'news.hay_up.2': '梅雨季拉長，乾草曬不乾',
+  'news.hay_down.1': '好天氣曬乾草，產量大增',
+  'news.hay_down.2': '飼料行乾草清倉特賣',
+  'news.oats_up.1': '燕麥奶爆紅，燕麥被搶購',
+  'news.oats_up.2': '健康早餐風潮，燕麥片熱賣',
+  'news.oats_down.1': '燕麥大豐收',
+  'news.oats_down.2': '燕麥奶熱潮退燒',
+  'news.alfalfa_up.1': '苜蓿田遭蟲害',
+  'news.alfalfa_up.2': '高品質鮮奶當道，苜蓿搶手',
+  'news.alfalfa_down.1': '進口苜蓿大量到港',
+  'news.alfalfa_down.2': '苜蓿田擴種，新貨大量上市',
+  'news.corn_up.1': '玉米產區乾旱',
+  'news.corn_up.2': '爆米花熱賣，玉米需求大增',
+  'news.corn_down.1': '玉米豐收，倉庫滿載',
+  'news.corn_down.2': '新品種玉米產量高，價格回落',
+  'news.soy_up.1': '黃豆減產，豆粕跟著漲',
+  'news.soy_up.2': '榨油廠停機保養，豆粕缺貨',
+  'news.soy_down.1': '榨油廠開工率創新高，豆粕過剩',
+  'news.soy_down.2': '黃豆大豐收，豆粕便宜賣',
   'namegen.first.0': '晨光',
   'namegen.first.1': '青草',
   'namegen.first.2': '白雲',
@@ -1709,6 +1733,30 @@ const Map<String, String> _en = {
   'news.all_swan.1': 'Super typhoon shuts down all markets',
   'news.all_swan.2': 'Ports close; farm goods can\'t ship',
   'news.all_swan.3': 'Spending freezes nationwide; farm goods go unsold',
+  'news.grass_up.1': 'Days of rain make grass hard to cut',
+  'news.grass_up.2': 'Ranches expand everywhere; grass runs short',
+  'news.grass_down.1': 'Bumper grass harvest fills storage',
+  'news.grass_down.2': 'Plenty of spring rain; grass grows fast',
+  'news.hay_up.1': 'Dryer breakdown tightens hay supply',
+  'news.hay_up.2': 'Long rainy season; hay won\'t dry',
+  'news.hay_down.1': 'Perfect drying weather; hay output jumps',
+  'news.hay_down.2': 'Feed stores hold hay clearance sales',
+  'news.oats_up.1': 'Oat milk craze sparks an oat buying rush',
+  'news.oats_up.2': 'Healthy-breakfast trend boosts oatmeal sales',
+  'news.oats_down.1': 'Bumper oat harvest',
+  'news.oats_down.2': 'Oat milk craze cools off',
+  'news.alfalfa_up.1': 'Pests hit alfalfa fields',
+  'news.alfalfa_up.2': 'Premium milk is in; alfalfa in hot demand',
+  'news.alfalfa_down.1': 'Alfalfa imports pour into port',
+  'news.alfalfa_down.2': 'More alfalfa planted; new crop floods the market',
+  'news.corn_up.1': 'Drought hits corn-growing areas',
+  'news.corn_up.2': 'Popcorn sales soar; corn demand jumps',
+  'news.corn_down.1': 'Big corn harvest; storage is full',
+  'news.corn_down.2': 'New high-yield corn; prices ease',
+  'news.soy_up.1': 'Smaller soybean crop pushes soymeal up',
+  'news.soy_up.2': 'Oil mills shut for maintenance; soymeal runs short',
+  'news.soy_down.1': 'Oil mills hit record output; soymeal glut',
+  'news.soy_down.2': 'Bumper soybean harvest; soymeal goes cheap',
   'namegen.first.0': 'Dawn',
   'namegen.first.1': 'Fern',
   'namegen.first.2': 'Cloud',
@@ -2518,6 +2566,30 @@ const Map<String, String> _th = {
   'news.all_swan.1': 'ซูเปอร์ไต้ฝุ่นถล่ม ตลาดปิดทั้งหมด',
   'news.all_swan.2': 'ท่าเรือปิดหมด สินค้าเกษตรส่งไม่ออก',
   'news.all_swan.3': 'การใช้จ่ายทั่วประเทศหยุดชะงัก สินค้าเกษตรไม่มีคนซื้อ',
+  'news.grass_up.1': 'ฝนตกติดต่อหลายวัน ตัดหญ้าสดได้ยาก',
+  'news.grass_up.2': 'ฟาร์มหลายแห่งขยายกิจการ หญ้าสดขาดตลาด',
+  'news.grass_down.1': 'ทุ่งหญ้าได้ผลผลิตมาก หญ้าสดล้นโกดัง',
+  'news.grass_down.2': 'ฝนต้นฤดูชุ่มฉ่ำ หญ้าสดโตเร็วและงาม',
+  'news.hay_up.1': 'เครื่องอบแห้งเสีย หญ้าแห้งขาดแคลน',
+  'news.hay_up.2': 'หน้าฝนยาวนานกว่าปกติ ตากหญ้าไม่แห้ง',
+  'news.hay_down.1': 'แดดดีตากหญ้าได้เต็มที่ ผลผลิตหญ้าแห้งเพิ่มขึ้นมาก',
+  'news.hay_down.2': 'ร้านอาหารสัตว์ลดราคาล้างสต็อกหญ้าแห้ง',
+  'news.oats_up.1': 'นมข้าวโอ๊ตมาแรง คนแห่ซื้อข้าวโอ๊ต',
+  'news.oats_up.2': 'กระแสอาหารเช้าเพื่อสุขภาพ ข้าวโอ๊ตขายดี',
+  'news.oats_down.1': 'ข้าวโอ๊ตได้ผลผลิตมากเป็นพิเศษ',
+  'news.oats_down.2': 'กระแสนมข้าวโอ๊ตซาลง',
+  'news.alfalfa_up.1': 'แมลงบุกไร่อัลฟัลฟา',
+  'news.alfalfa_up.2': 'นมสดคุณภาพสูงมาแรง อัลฟัลฟาเป็นที่ต้องการ',
+  'news.alfalfa_down.1': 'อัลฟัลฟานำเข้าถึงท่าเรือจำนวนมาก',
+  'news.alfalfa_down.2': 'ปลูกอัลฟัลฟาเพิ่ม ผลผลิตใหม่ทะลักสู่ตลาด',
+  'news.corn_up.1': 'แหล่งปลูกข้าวโพดเจอภัยแล้ง',
+  'news.corn_up.2': 'ป๊อปคอร์นขายดี ความต้องการข้าวโพดพุ่ง',
+  'news.corn_down.1': 'ข้าวโพดได้ผลผลิตมาก โกดังเต็ม',
+  'news.corn_down.2': 'ข้าวโพดพันธุ์ใหม่ให้ผลผลิตสูง ราคาอ่อนตัวลง',
+  'news.soy_up.1': 'ถั่วเหลืองผลผลิตลดลง กากถั่วเหลืองราคาขึ้นตาม',
+  'news.soy_up.2': 'โรงหีบน้ำมันหยุดซ่อมบำรุง กากถั่วเหลืองขาดตลาด',
+  'news.soy_down.1': 'โรงหีบน้ำมันเดินเครื่องเต็มกำลัง กากถั่วเหลืองล้นตลาด',
+  'news.soy_down.2': 'ถั่วเหลืองได้ผลผลิตมาก กากถั่วเหลืองราคาถูก',
   'namegen.first.0': 'แสงเช้า',
   'namegen.first.1': 'ใบหญ้า',
   'namegen.first.2': 'เมฆขาว',
@@ -4753,6 +4825,78 @@ abstract class GeneratedStrings {
 
   /// `news.all_swan.3`：全國消費急凍，農產品沒人買
   String get newsAllSwan3 => table['news.all_swan.3']!;
+
+  /// `news.grass_up.1`：連日陰雨，牧草難收割
+  String get newsGrassUp1 => table['news.grass_up.1']!;
+
+  /// `news.grass_up.2`：各地牧場擴建，牧草供不應求
+  String get newsGrassUp2 => table['news.grass_up.2']!;
+
+  /// `news.grass_down.1`：草原大豐收，牧草堆滿倉
+  String get newsGrassDown1 => table['news.grass_down.1']!;
+
+  /// `news.grass_down.2`：春雨充足，牧草長得又快又好
+  String get newsGrassDown2 => table['news.grass_down.2']!;
+
+  /// `news.hay_up.1`：乾燥機故障，乾草供應吃緊
+  String get newsHayUp1 => table['news.hay_up.1']!;
+
+  /// `news.hay_up.2`：梅雨季拉長，乾草曬不乾
+  String get newsHayUp2 => table['news.hay_up.2']!;
+
+  /// `news.hay_down.1`：好天氣曬乾草，產量大增
+  String get newsHayDown1 => table['news.hay_down.1']!;
+
+  /// `news.hay_down.2`：飼料行乾草清倉特賣
+  String get newsHayDown2 => table['news.hay_down.2']!;
+
+  /// `news.oats_up.1`：燕麥奶爆紅，燕麥被搶購
+  String get newsOatsUp1 => table['news.oats_up.1']!;
+
+  /// `news.oats_up.2`：健康早餐風潮，燕麥片熱賣
+  String get newsOatsUp2 => table['news.oats_up.2']!;
+
+  /// `news.oats_down.1`：燕麥大豐收
+  String get newsOatsDown1 => table['news.oats_down.1']!;
+
+  /// `news.oats_down.2`：燕麥奶熱潮退燒
+  String get newsOatsDown2 => table['news.oats_down.2']!;
+
+  /// `news.alfalfa_up.1`：苜蓿田遭蟲害
+  String get newsAlfalfaUp1 => table['news.alfalfa_up.1']!;
+
+  /// `news.alfalfa_up.2`：高品質鮮奶當道，苜蓿搶手
+  String get newsAlfalfaUp2 => table['news.alfalfa_up.2']!;
+
+  /// `news.alfalfa_down.1`：進口苜蓿大量到港
+  String get newsAlfalfaDown1 => table['news.alfalfa_down.1']!;
+
+  /// `news.alfalfa_down.2`：苜蓿田擴種，新貨大量上市
+  String get newsAlfalfaDown2 => table['news.alfalfa_down.2']!;
+
+  /// `news.corn_up.1`：玉米產區乾旱
+  String get newsCornUp1 => table['news.corn_up.1']!;
+
+  /// `news.corn_up.2`：爆米花熱賣，玉米需求大增
+  String get newsCornUp2 => table['news.corn_up.2']!;
+
+  /// `news.corn_down.1`：玉米豐收，倉庫滿載
+  String get newsCornDown1 => table['news.corn_down.1']!;
+
+  /// `news.corn_down.2`：新品種玉米產量高，價格回落
+  String get newsCornDown2 => table['news.corn_down.2']!;
+
+  /// `news.soy_up.1`：黃豆減產，豆粕跟著漲
+  String get newsSoyUp1 => table['news.soy_up.1']!;
+
+  /// `news.soy_up.2`：榨油廠停機保養，豆粕缺貨
+  String get newsSoyUp2 => table['news.soy_up.2']!;
+
+  /// `news.soy_down.1`：榨油廠開工率創新高，豆粕過剩
+  String get newsSoyDown1 => table['news.soy_down.1']!;
+
+  /// `news.soy_down.2`：黃豆大豐收，豆粕便宜賣
+  String get newsSoyDown2 => table['news.soy_down.2']!;
 
   /// `namegen.first.0`：晨光
   String get namegenFirst0 => table['namegen.first.0']!;

@@ -33,7 +33,7 @@ from cowecon.farm import (
     stud_fee,
     wh_cap,
 )
-from cowecon.params import HEADLINES, HOUR
+from cowecon.params import FEED_HEADLINES, HEADLINES, HOUR
 
 from . import achievements as A
 from .breeds import FEED_IDS, FLOOR_IDS, feed_ids, shown_breed
@@ -542,9 +542,10 @@ _NEWS_KINDS = (("++", "super"), ("--", "swan"), ("+", "up"), ("-", "down"))
 
 
 def _news_codes() -> Dict[Tuple[str, str], str]:
-    """(HEADLINES 的 key, 標題) → 新聞代碼 `<商品>_<up|down|super|swan>.<序號>`（app 查字串表 news.<代碼>，序號從 1 開始）。"""
+    """(HEADLINES 的 key, 標題) → 新聞代碼 `<商品>_<up|down|super|swan>.<序號>`（app 查字串表 news.<代碼>，序號從 1 開始）。
+    飼料新聞（FEED_HEADLINES，key 是飼料代號）一樣：`<飼料>_<up|down>.<序號>`。"""
     out = {}
-    for key, titles in HEADLINES.items():
+    for key, titles in (*HEADLINES.items(), *FEED_HEADLINES.items()):
         suffix, kind = next((s, k) for s, k in _NEWS_KINDS if key.endswith(s))
         commodity = key[: -len(suffix)]
         for i, title in enumerate(titles):

@@ -1,6 +1,6 @@
 // 字串表檢查（不開瀏覽器）：node harness/i18ncheck.mjs
 // 1. 24 種牛的名字、介紹、特徵名（breed.*、trait.*）跟 src/cow/breeds.js 一樣（breeds.js 是 node 端出牛圖用的繁中來源）
-// 2. 新聞標題（news.<商品>_<漲跌>.<序號>）跟 backend/cowecon/params.py 的 HEADLINES 一樣；
+// 2. 新聞標題（news.<商品>_<漲跌>.<序號>）跟 backend/cowecon/params.py 的 HEADLINES、FEED_HEADLINES（飼料）一樣；
 //    「幫我想一個」的詞庫（namegen.*，ceo 2026-10-01）繁中跟 backend/server/data/ranch_words.json 一樣
 // 3. 程式裡 t('…')、T('…') 用到的 key 都在 zh-Hant.json；列出沒用到的 key（用變數組出來的 key 前綴另外算）
 // 4. 其他語言（en.json、th.json…）：缺哪些 key（畫面會用繁中）、多了哪些、佔位符 {x} 跟繁中不一樣的、空字串
@@ -24,13 +24,13 @@ for (const [k0, b] of Object.entries(BREEDS)) {
 }
 for (const [k, v] of Object.entries(TRAIT_NAME)) if (zh[`trait.${k}`] !== v) errs.push(`trait.${k} 跟 breeds.js 不一樣`);
 
-// 2. 新聞標題（params.py 的 HEADLINES：{"milk+": ("…", …), …}）
+// 2. 新聞標題（params.py 的 HEADLINES：{"milk+": ("…", …), …}；飼料新聞在 FEED_HEADLINES：{"oats+": ("…", …), …}）
 const PARAMS = join(ROOT, '../../backend/cowecon/params.py');
 let headlines = 0;
 if (existsSync(PARAMS)) {
   const src = readFileSync(PARAMS, 'utf8');
-  const block = src.slice(src.search(/^HEADLINES\b/m));
-  const body = block.slice(block.indexOf('{'), block.indexOf('\n}') + 2);
+  const dict = (name) => { const i = src.search(new RegExp(`^${name}\\b`, 'm')); if (i < 0) return ''; const block = src.slice(i); return block.slice(block.indexOf('{'), block.indexOf('\n}') + 2); };
+  const body = dict('HEADLINES') + dict('FEED_HEADLINES');
   for (const m of body.matchAll(/"(\w+)([+-])"\s*:\s*\(([^)]*)\)/g)) {
     const items = [...m[3].matchAll(/"((?:[^"\\]|\\.)*)"/g)].map((x) => x[1]);
     items.forEach((s, i) => {

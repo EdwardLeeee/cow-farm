@@ -15,7 +15,7 @@ import pytest
 from cowecon import DEFAULT
 from cowecon.farm import make_genotype, stud_fee
 from cowecon.market import MarketEvent
-from cowecon.params import HEADLINES
+from cowecon.params import FEED_HEADLINES, FEED_IDS, HEADLINES
 from server.breeds import ALL, BREEDS, breed_of_genes
 from server.names import GROUPS, compose_name, load_words, name_words, random_name_words, station_words
 from server.views import news_code
@@ -69,12 +69,12 @@ _KINDS = (
 
 
 def test_news_codes_match_string_table():
-    """每則標題都有唯一的代碼，字串表的 news.<代碼> 就是同一則標題（繁中）。"""
+    """每則標題都有唯一的代碼，字串表的 news.<代碼> 就是同一則標題（繁中）。飼料新聞（FEED_HEADLINES）一樣逐則比對。"""
     if not ZH.exists():
         pytest.skip(f"找不到 {ZH}")
     zh = json.loads(ZH.read_text(encoding="utf-8"))
     codes = set()
-    for key, titles in HEADLINES.items():
+    for key, titles in (*HEADLINES.items(), *FEED_HEADLINES.items()):
         suffix, factor, tier, kind = next(k for k in _KINDS if key.endswith(k[0]))
         commodity = key[: -len(suffix)]
         targets = ("milk", "beef", "rice") if commodity == "all" else (commodity,)
@@ -84,7 +84,8 @@ def test_news_codes_match_string_table():
             assert code.startswith(f"{commodity}_{kind}."), (key, code)
             codes.add(code)
             assert zh[f"news.{code}"] == title
-    assert len(codes) == sum(len(t) for t in HEADLINES.values())
+    assert len(codes) == sum(len(t) for t in HEADLINES.values()) + sum(len(t) for t in FEED_HEADLINES.values())
+    assert {k.rstrip("+-") for k in FEED_HEADLINES} == set(FEED_IDS)  # 六種飼料都有，代號跟協定一樣
     # 字串表裡的新聞標題全部都有對到（D33 的 _super、_swan 各 3 則 × 4 種商品也在）
     assert {k for k in zh if k.startswith("news.")} == {f"news.{c}" for c in codes}
     assert news_code(_event(("milk",), 1.2, "（測試事件）")) is None  # 不在 HEADLINES 的標題沒有代碼

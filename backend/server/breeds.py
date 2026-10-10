@@ -13,6 +13,7 @@ from typing import Dict, List, Tuple
 
 from cowecon import DEFAULT
 from cowecon.farm import cow_type, rare_mask
+from cowecon.params import FEED_IDS
 
 # BREEDS[用途][特徵組合]；用途 0 乳牛、1 耕牛、2 肉牛（cowecon.farm 的 DAIRY、OX、BEEF）
 BREEDS: Tuple[Tuple[str, ...], ...] = (
@@ -25,8 +26,7 @@ ORDER: Dict[str, int] = {b: i for i, b in enumerate(ALL)}  # 同一時間發現�
 
 
 HYBRID = "hybrid"  # 雜種牛的品種代號（協定 1.6 節）
-# 飼料代號（協定 1.6 節）：牧草、乾草、燕麥、苜蓿、玉米、豆粕。放在伺服器不放 params：改 params 會改參數指紋
-FEED_IDS: Tuple[str, ...] = ("grass", "hay", "oats", "alfalfa", "corn", "soy")
+# 飼料代號（協定 1.6 節）：牧草、乾草、燕麥、苜蓿、玉米、豆粕。cowecon.params.FEED_IDS（模組常數，不在參數指紋裡）
 FEED_INDEX: Dict[str, int] = {k: i for i, k in enumerate(FEED_IDS)}
 FLOOR_IDS: Tuple[str, ...] = tuple(DEFAULT.care.floor_ids)  # 泥土地、乾草床、青草地、軟墊地
 FLOOR_INDEX: Dict[str, int] = {k: i for i, k in enumerate(FLOOR_IDS)}
