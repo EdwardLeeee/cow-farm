@@ -531,7 +531,10 @@ class CareParams:
     # 一次只有一台：還在動的時候不能買。---
     robot_ids: Tuple[str, ...] = ("basic", "sturdy")
     robot_names: Tuple[str, ...] = ("基本款", "耐用款")  # 乳牛紋圓盤、透明圓頂
-    robot_price: Tuple[float, ...] = (3000.0, 12000.0)
+    # 使用者 2026-10-10 選「基本 12,000／耐用 24,000」（cow-back 試算的 B）：牛 10 頭以下的電腦玩家幾乎不買（買的時候
+    # ≤10 頭只佔 1–3%）、照顧花費佔收入 7–20%、週差距 10 人 1.378（seed 1–20）／100 人 1.438。耐用款每天比基本款便宜約
+    # 14%（買價 2 倍、壽命 7/3 倍），買得起的多半買耐用款；起點 3,000／12,000 的 10 人第 1 週 1.762。
+    robot_price: Tuple[float, ...] = (12000.0, 24000.0)
     robot_life_d: Tuple[float, ...] = (3.0, 7.0)  # 平均壽命（遊戲天）
     robot_durability: float = 100.0  # 買來的耐久值（state 給整數）
     robot_clean_s: float = 60 * MINUTE

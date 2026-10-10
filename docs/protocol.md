@@ -358,7 +358,7 @@ app 怎麼顯示：
              "calf_feed_cooldown_h": 0.75, "feed_bonus_max_kg": 60.0,
              "floors": [{"id": "dirt", "speed": 1.0, "late_speed": 1.0, "sick_mult": 1.0, "price": null, "rent_per_day": null}, "…共 4 種"],
              "floor_rent_max_days": 7,
-             "robots": [{"id": "basic", "price": 3000, "life_days": 3.0}, {"id": "sturdy", "price": 12000, "life_days": 7.0}],
+             "robots": [{"id": "basic", "price": 12000, "life_days": 3.0}, {"id": "sturdy", "price": 24000, "life_days": 7.0}],
              "robot_clean_min": 60.0, "robot_durability": 100,
              "cure_price": 5000, "sick_beef_mult": 0.1, "poop_every_h": 3.0, "poop_max_per_cow": 4,
              "sick_rate_per_h": 0.004, "sick_dirt_free": 0.5},

@@ -319,6 +319,7 @@ class TestRobot(unittest.TestCase):
 
     def test_params(self):
         self.assertEqual(CP.robot_ids, ("basic", "sturdy"))
+        self.assertEqual(CP.robot_price, (12000.0, 24000.0))  # 使用者 2026-10-10 選
         self.assertEqual(CP.robot_life_d, (3.0, 7.0))
         self.assertEqual(CP.robot_durability, 100.0)
         self.assertEqual(CP.robot_clean_s, 60 * MINUTE)
