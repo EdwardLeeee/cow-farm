@@ -128,6 +128,7 @@ Map<String, dynamic> ranchState({
       'beef_grade_mult': {'A': 1.25, 'B': 1.0, 'C': 0.75},
       'ox_rice_per_h': 11.0,
       'field_cap_h': 8.0,
+      'hybrid_mult': 0.6, // v0.3 C1：雜種牛的倍數（協定 2.3）
     },
     'pen': {
       'slots': penSlots,

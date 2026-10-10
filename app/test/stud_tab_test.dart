@@ -223,6 +223,34 @@ void main() {
     expect(find.text(_zh.s18LogEmptyOut), findsOneWidget);
   });
 
+  testWidgets('借種紀錄：借來的小牛還沒長大（calf.breed 是 null，協定 4.6）：寫牧場裡那頭牛現在的名字，不在牧場了寫 #編號', (tester) async {
+    Screen.w430.apply(tester);
+    Map<String, dynamic> borrowed(int calfId) => {
+      'kind': 'in',
+      't': t0 - 3600,
+      'price': 300,
+      'bull': {'id': null, 'breed': 'holstein'},
+      'calf': {'id': calfId, 'breed': null},
+      'ranch': ranchJson(id: 5821, name: '楓葉花田乳坊'),
+    };
+    final api = StudApi(state: ranchState())
+      ..studLogJson = {
+        'keep_days': 30,
+        'income_total': 0,
+        'entries': [borrowed(15), borrowed(99)],
+      };
+    await showStud(tester, AppLang.zhHant, api: api);
+    await tapStud(tester, find.byKey(const Key('stud-log-link')));
+    await tester.pump();
+    expect(find.byType(StudLogRow), findsNWidgets(2));
+    expect(tester.takeException(), isNull, reason: '以前把 null 讀成空字串，breedName(\'\') 丟例外');
+    // #15 是牧場裡的小乳牛（還沒長大）
+    expect(find.textContaining(_zh.s18CalfBorn(cow: _zh.calfName(CowType.dairy, 15))), findsOneWidget);
+    expect(find.textContaining(_zh.s18CalfBorn(cow: '#99')), findsOneWidget);
+    final e = StudLogEntry.fromJson(borrowed(15));
+    expect((e.calfId, e.calfBreed), (15, null), reason: '保留 null（協定 4.6）');
+  });
+
   testWidgets('借種紀錄的名字：真人「名字 #編號」、電腦「電腦 名字」、刪掉的「已刪除的牧場」；牛名不加「公牛」', (tester) async {
     expect(logRanchText(_zh, RanchRef.fromJson(ranchJson(id: 3310, name: '星河松林牧舍'))), '星河松林牧舍 #3310');
     expect(

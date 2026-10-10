@@ -1126,7 +1126,7 @@ class StudLogEntry {
   /// 公牛的編號：只有借出時有（自己牧場的牛，可能已經出貨了）。
   final Object? bullId;
 
-  /// 借入時生下的小牛；借出時 null。
+  /// 借入時生下的小牛；借出時 null。小牛還沒長大時 [calfBreed] 是 null（協定 4.6，長大才揭曉）。
   final Object? calfId;
   final String? calfBreed;
 
@@ -1143,7 +1143,7 @@ class StudLogEntry {
       bullBreed: '${bull['breed'] ?? ''}',
       bullId: bull['id'],
       calfId: calf?['id'],
-      calfBreed: calf == null ? null : '${calf['breed'] ?? ''}',
+      calfBreed: calf?['breed'] is String ? calf!['breed'] as String : null,
       ranch: RanchRef.fromJson(j['ranch']),
     );
   }

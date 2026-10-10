@@ -299,7 +299,13 @@ class _DetailHead extends StatelessWidget {
                 spacing: 4,
                 runSpacing: 4,
                 crossAxisAlignment: WrapCrossAlignment.center,
-                children: cowChips(context, cow),
+                // 雜種牛（#157）：灰星後面加「雜種」標籤（詳細頁才有；牛舍清單、名片只有灰星）
+                children: [
+                  for (final c in cowChips(context, cow)) ...[
+                    c,
+                    if (c is MixStarChip) CowBadge(BadgeKind.mix, s.badgeMix),
+                  ],
+                ],
               ),
             ],
           ),
@@ -427,6 +433,24 @@ class _Hero extends StatelessWidget {
                             borderRadius: BorderRadius.all(AppRadii.r10),
                           ),
                           child: Text(s.s04CalfUnknown, style: KitText.hint()),
+                        )
+                      // 雜種牛（#157）：小時候沒吃到哪幾種、倍數（economy.hybrid_mult）
+                      else if (cow.hybrid)
+                        Container(
+                          key: const Key('mix-note'),
+                          margin: const EdgeInsets.only(bottom: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          decoration: const BoxDecoration(
+                            color: Color.fromRGBO(255, 255, 255, 0.9),
+                            borderRadius: BorderRadius.all(AppRadii.r10),
+                          ),
+                          child: Text(
+                            s.s04MixNote(
+                              feeds: s.feedList(cow.missed),
+                              mult: context.read<GameModel>().state?.economy?.hybridMult?.toStringAsFixed(1) ?? '–',
+                            ),
+                            style: KitText.hint(),
+                          ),
                         ),
                     ],
                   ),
@@ -760,8 +784,9 @@ class ListSheet extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
                   child: Text(
+                    // 雜種牛不透露原本的稀有度（協定 2.3）：跟名片一樣寫「雜種」
                     (fee.atMax ? s.s04FeeHowMax : s.s04FeeHowGrow)(
-                      tier: s.tierName(cow.tier.clamp(0, 3)),
+                      tier: cow.hybrid ? s.badgeMix : s.tierName(cow.tier.clamp(0, 3)),
                       rate: priceText(fee.perKg),
                       kg: fmt(fee.kg),
                     ),
