@@ -34,7 +34,7 @@ AMOUNT_KINDS = ("milk", "beef", "rice", "calf", "breed", "expand", "bucket", "wa
                 "feed_buy", "cure", "floor", "robot", "feed_sell")
 QTY_KINDS = ("milk", "beef", "rice", "collect", "spoiled", "harvest", "breed", "stud_in", "stud_out",
              "grade_A", "grade_B", "grade_C", "shop_A", "shop_B", "shop_C",
-             "feed_buy", "feed", "clean", "sick", "cure", "bonus_kg", "hybrid", "rare_grown", "feed_sell")
+             "feed_buy", "feed", "clean", "sick", "cure", "bonus_kg", "hybrid", "rare_grown", "feed_sell", "robot")
 # 收入 = 賣出收入 + 借種收入 + 賣回飼料（v0.3 B；照顧好的六種玩法不賣回，只有 Y 飼料投機有）
 REVENUE_KINDS = ("milk", "beef", "rice", "stud_in", "feed_sell")
 # v0.3 照顧的花費。玩法週收入差距的目標用「收入 − 照顧花費」比（使用者 2026-10-08 選的口徑；只算收入的照舊列出當參考）。
