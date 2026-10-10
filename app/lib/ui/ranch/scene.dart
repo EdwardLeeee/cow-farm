@@ -155,8 +155,22 @@ class RanchScene extends StatefulWidget {
   State<RanchScene> createState() => _RanchSceneState();
 }
 
-class _RanchSceneState extends State<RanchScene> {
+class _RanchSceneState extends State<RanchScene> with SingleTickerProviderStateMixin {
   RanchGame? _own;
+
+  /// A-15 手指劃過去的軌跡：劃的時候跟著手指，放開以後 0.3 秒內淡掉（開著動畫才畫）。
+  final _trail = _SwipeTrail();
+  late final AnimationController _trailFade = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 300),
+  )..addListener(() => _trail.fade(_trailFade.value * 0.3));
+
+  @override
+  void dispose() {
+    _trailFade.dispose();
+    _trail.dispose();
+    super.dispose();
+  }
 
   RanchGame get _game => widget.game ?? (_own ??= RanchGame());
 
@@ -201,6 +215,11 @@ class _RanchSceneState extends State<RanchScene> {
     }
   }
 
+  /// 手指放開：軌跡 0.05 秒以後開始淡掉（設計稿 A15：0.85 秒放開、0.9–1.15 秒淡掉）。
+  void _endTrail() {
+    if (_trail.points.isNotEmpty) _trailFade.forward(from: 0);
+  }
+
   @override
   Widget build(BuildContext context) {
     final animate = AppMotion.of(context);
@@ -235,9 +254,17 @@ class _RanchSceneState extends State<RanchScene> {
                     child: PoopCleanFx(
                       poop: _spotRect(f.spot, fit),
                       origin: fit.map(kPoopSpots[f.spot].dx, kPoopSpots[f.spot].dy) - const Offset(0, 8),
+                      swipe: f.swipe,
                       onCount: () => widget.onPoopFxCount?.call(f),
                       onDone: () => widget.onPoopFxDone?.call(f),
                     ),
+                  ),
+                ),
+              // A-15：手指劃過的地方留一道白色的軌跡（設計稿 .swipe-trail，畫在大便和星星上面）
+              if (animate)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(key: const Key('swipe-trail'), painter: _TrailPainter(_trail)),
                   ),
                 ),
             ],
@@ -270,6 +297,10 @@ class _RanchSceneState extends State<RanchScene> {
               final down = _down ?? d.localPosition;
               _sweeping = onSwipePoop != null && _poopAt(down, fit) != null;
               if (_sweeping) {
+                if (animate) {
+                  _trailFade.stop();
+                  _trail.start(down, d.localPosition);
+                }
                 _last = down;
                 _sweep(down, d.localPosition, fit);
                 _last = d.localPosition;
@@ -279,6 +310,7 @@ class _RanchSceneState extends State<RanchScene> {
             },
             onHorizontalDragUpdate: (d) {
               if (_sweeping) {
+                if (animate) _trail.add(d.localPosition);
                 _sweep(_last ?? d.localPosition, d.localPosition, fit);
                 _last = d.localPosition;
               } else {
@@ -289,6 +321,7 @@ class _RanchSceneState extends State<RanchScene> {
             onHorizontalDragEnd: (d) {
               if (_sweeping) {
                 _sweeping = false;
+                _endTrail();
                 widget.onSwipeEnd?.call();
               } else {
                 onPanEnd?.call(-d.velocity.pixelsPerSecond.dx / fit.k);
@@ -297,6 +330,7 @@ class _RanchSceneState extends State<RanchScene> {
             onHorizontalDragCancel: () {
               if (!_sweeping) return;
               _sweeping = false;
+              _endTrail();
               widget.onSwipeEnd?.call();
             },
             child: scene,
@@ -305,4 +339,62 @@ class _RanchSceneState extends State<RanchScene> {
       },
     );
   }
+}
+
+/// A-15 手指劃過去的軌跡（設計稿 .swipe-trail 的 .st-glow）：手指經過的點連成一條線。劃的時候不透明度 0.75，
+/// 放開以後 [fade]（0.05–0.3 秒淡掉，淡完就清掉）。座標是場景這一層的。
+class _SwipeTrail extends ChangeNotifier {
+  final points = <Offset>[];
+  double opacity = 0;
+
+  void start(Offset a, Offset b) {
+    points
+      ..clear()
+      ..add(a)
+      ..add(b);
+    opacity = 0.75;
+    notifyListeners();
+  }
+
+  void add(Offset p) {
+    points.add(p);
+    notifyListeners();
+  }
+
+  /// 放開以後過了 [t] 秒。
+  void fade(double t) {
+    opacity = 0.75 * (1 - ((t - 0.05) / 0.25).clamp(0.0, 1.0));
+    if (t >= 0.3) points.clear();
+    notifyListeners();
+  }
+}
+
+/// 白色、粗 16、圓頭圓角的線（stroke="#FFFFFF" stroke-width="16" stroke-linecap/linejoin="round"）；
+/// 整條一起半透明（自己疊到的地方不會比較白）。
+class _TrailPainter extends CustomPainter {
+  _TrailPainter(this.trail) : super(repaint: trail);
+
+  final _SwipeTrail trail;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final pts = trail.points;
+    if (pts.length < 2 || trail.opacity <= 0) return;
+    final path = Path()..moveTo(pts.first.dx, pts.first.dy);
+    for (final p in pts.skip(1)) {
+      path.lineTo(p.dx, p.dy);
+    }
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 16
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..color = Colors.white.withValues(alpha: trail.opacity),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_TrailPainter oldDelegate) => oldDelegate.trail != trail;
 }
