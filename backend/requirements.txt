@@ -1,10 +1,10 @@
 # cow-farm M1 伺服器（Python 3.10）。版本沿用 docs/research/tech-stack/backend 實測過的組合。
-fastapi==0.142.2
+fastapi==0.143.0
 starlette==1.7.0
-pydantic==2.13.5
+pydantic==2.14.1
 uvicorn==0.54.0
 websockets==16.1.1
-asyncpg==0.31.0
+asyncpg==0.32.0
 # 帳號：驗 Apple／Google 的登入憑證、簽 Apple 的 client secret、加密 refresh token（docs/research/2026-10-sso-verification.md）
 pyjwt==2.15.1
 cryptography==50.0.2
