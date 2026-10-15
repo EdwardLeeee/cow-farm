@@ -27,7 +27,7 @@ dependencies:
   # 網頁版把 token 存在瀏覽器 localStorage（區網 http 不是安全環境，無法用 WebCrypto）。
   web: ^1.1.0
   # 偏好設定（語言、漲跌顏色）；不是帳，也不放 token（T1）。
-  shared_preferences: ^2.5.0
+  shared_preferences: ^2.5.6
   # 牛、圖示、場景是 cow-ui 匯出的 SVG，執行時讀（T3；ceo 2026-10-02：不在建置時轉換）。
   flutter_svg: ^2.3.0
   # 牧場場景（D4、T3）：牛走動（A-11）、轉身（A-07）。版本同 T2 的測試版。
