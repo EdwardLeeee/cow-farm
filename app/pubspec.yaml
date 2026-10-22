@@ -36,8 +36,8 @@ dependencies:
   # 換 nonce 的做法（方案 A）是讀這幾個版本的程式推的，升版要重看。Google 不直接依賴 google_sign_in：它的網頁實作
   # 一註冊就載 Google 的腳本；這三個就是 google_sign_in 7.2.0 用的版本。
   sign_in_with_apple: 8.2.0
-  google_sign_in_android: 7.2.17
-  google_sign_in_ios: 6.3.6
+  google_sign_in_android: 7.2.18
+  google_sign_in_ios: 6.3.8
   google_sign_in_platform_interface: 3.1.0
 
 dev_dependencies:
