@@ -42,6 +42,8 @@ export const useOf = (c) => BREEDS[c.breed].use;
 export const tierOfCow = (c) => tierOf(BREEDS[c.breed]);
 export const cowName = (c) => (c.age === 'calf' ? calfName(BREEDS[c.breed].use, c.id) : nameOf(c.breed, c.id));
 
+// 倉庫裡的飼料（份；v0.3 第 2、3 節）：牧場頁下方的飼料列顯示這個。苜蓿用完了（0 份，袋子淡掉）
+export const FEED_STOCK = { grass: 24, hay: 12, oats: 8, alfalfa: 0, corn: 5, soy: 3 };
 export const BUCKET = { qty: 36.4, cap: 42, perHour: 42, level: 1 };
 export const WAREHOUSE = {
   cap: 225, level: 1,

@@ -15,7 +15,7 @@ import '../kit/motion.dart';
 
 /// 場景裡大便的位置（poop.js 的 POOP_SPOTS：場景座標，大便的底部中間；草地上、不擋到牛）。
 /// 第 0–8 個是設計稿場景左半邊的 9 個；第 9–17 個在右半邊（往右滑才看得到），是 cow-ui 2026-10-10 排的
-/// （避開池塘、石頭、水槽、花叢、乾草捲和兩頭牛的預設位置，y 都 ≤ 448，面板蓋不到；第 29 輪會放進設計稿）。
+/// （避開池塘、石頭、水槽、花叢、乾草捲和兩頭牛的預設位置，y 都 ≤ 448，面板蓋不到；設計稿 S03-39）。
 /// 最多畫 18 坨；再多的先不畫，右上角的數字照樣寫全部。
 const kPoopSpots = <Offset>[
   Offset(236, 398),
@@ -331,7 +331,9 @@ class _DirtPillState extends State<DirtPill> with SingleTickerProviderStateMixin
   Widget _pill(BuildContext context) {
     final count = widget.count, bad = widget.bad;
     final s = Strings.of(context);
-    final narrow = MediaQuery.sizeOf(context).width < 390;
+    final w = MediaQuery.sizeOf(context).width;
+    // 寬度小於 390：「會生病」的字拿掉；小於 340（320 寬）：「大便」兩個字也拿掉，只留圖示和數字（英文兩位數會蓋到牛欄膠囊）
+    final narrow = w < 390, tiny = w < 340;
     const warn = Color(0xFFC2412F);
     return Container(
       key: const Key('dirt-pill'),
@@ -352,7 +354,7 @@ class _DirtPillState extends State<DirtPill> with SingleTickerProviderStateMixin
           Text.rich(
             TextSpan(
               children: [
-                TextSpan(text: '${s.s03Poop} '),
+                if (!tiny) TextSpan(text: '${s.s03Poop} '),
                 TextSpan(text: '$count', style: AppText.number(16, lineHeight: 20)),
               ],
             ),

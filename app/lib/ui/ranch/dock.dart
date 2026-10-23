@@ -1,8 +1,11 @@
-// 牧場頁下面的面板（設計稿 s03.js 的 dock、screens.css 的 .dock）：奶桶、倉庫、收購價。
-// 右上角可以收起來（只剩一條奶桶和收奶鈕，S03-11、S03-12），中間的小滑塊是場景的位置（S03-13）。
+// 牧場頁下面的面板（設計稿 s03.js 的 dock、screens.css 的 .dock；v0.3 第 2.2 節，使用者看第 19、23、26、29 輪）：
+// 頂列（左邊「倉庫」小鈕、中間場景的位置 S03-13、右邊收起／展開）、飼料列（沒有底板）、奶桶。
+// 收起來奶桶和飼料一起收，只剩頂列；「展開」那顆帶著奶桶的 %，滿了變藍、寫「滿了」（S03-11、S03-12）。
 import 'dart:math' as math;
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../../api/models.dart';
 import '../../l10n/format.dart';
@@ -14,28 +17,22 @@ import '../kit/meter.dart';
 import '../kit/press.dart';
 import 'scene.dart';
 
-/// 面板要顯示的數字（都來自伺服器的 state、行情；奶桶是平滑推算的顯示值）。
+/// 面板要顯示的數字（都來自伺服器的 state；奶桶是平滑推算的顯示值）。
 class DockData {
   const DockData({
     required this.bucket,
     required this.bucketCap,
     required this.perHour,
     required this.timeScale,
-    required this.warehouse,
-    required this.quotes,
-    required this.upIsRed,
     double? rateBucket,
-    this.milkShown,
     this.draining = false,
+    this.feeds = const {},
   }) : rateBucket = rateBucket ?? bucket;
 
   final double bucket;
 
   /// 「幾分鐘後滿」用的奶桶量（A-01 收奶的動畫：水位往下降時還寫原本的，降完才換）。
   final double rateBucket;
-
-  /// 倉庫卡上的牛奶（A-01：收奶的動畫中從原本的往上跳）；null 是照倉庫的。
-  final double? milkShown;
 
   /// A-01 水位往下降中：奶桶的瓶數固定寫一位小數（31.0），快到 0 寫 0（設計稿 A01.frame）。
   final bool draining;
@@ -45,9 +42,9 @@ class DockData {
   final double bucketCap;
   final double perHour; // 遊戲時間每小時
   final double timeScale;
-  final Warehouse warehouse;
-  final Map<Commodity, Quote> quotes;
-  final bool upIsRed;
+
+  /// 倉庫裡每種飼料幾份（state 的 feeds；沒有的是 0）。
+  final Map<String, int> feeds;
 
   int get pct => bucketCap <= 0 ? 0 : (bucket / bucketCap * 100).round();
   bool get full => pct >= 100;
@@ -61,96 +58,162 @@ class Dock extends StatelessWidget {
     required this.pan,
     required this.onToggle,
     required this.collect,
-    this.onStorage,
+    this.onWarehouse,
     this.pailKey,
-    this.milkKey,
+    this.warehouseKey,
+    this.warehouseScale = 1,
+    this.gutter = 12,
   });
 
-  /// 奶桶圖示、倉庫卡的牛奶那一行：A-01 收奶的奶瓶從哪裡飛到哪裡。
+  /// 奶桶圖示、頂列的「倉庫」小鈕：A-01 收奶的奶瓶從哪裡飛到哪裡。
   final Key? pailKey;
-  final Key? milkKey;
+  final Key? warehouseKey;
+
+  /// A-01：奶瓶飛進「倉庫」小鈕時，小鈕跳一下（放大的倍數）。
+  final double warehouseScale;
 
   final DockData data;
   final bool collapsed;
   final double pan;
   final VoidCallback onToggle;
 
-  /// 點倉庫卡：打開倉庫詳細頁（S05-02）。
-  final VoidCallback? onStorage;
+  /// 點「倉庫」小鈕：打開倉庫詳細頁（S05-02）。
+  final VoidCallback? onWarehouse;
 
   /// 收奶鈕（停用、轉圈由外面決定）。
   final Widget collect;
 
+  /// 面板離畫面左右的距離（.dock 的 left、right 12）。飼料列不受這個限制，延伸到畫面的左右邊緣。
+  final double gutter;
+
   @override
   Widget build(BuildContext context) {
     final s = Strings.of(context);
+    final side = EdgeInsets.symmetric(horizontal: gutter);
     return Column(
       key: const Key('dock'),
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // .dock-head：高 44、margin-bottom −6，加上 .dock 的 gap 8：下面的卡片離它 2
-        SizedBox(
-          height: 44 - 6 + 8,
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: SizedBox(
-              height: 44,
-              width: double.infinity,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Semantics(
-                    label: s.s03PanAria,
-                    child: _PanIndicator(pan: pan),
-                  ),
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    bottom: 0,
-                    child: Semantics(
-                      container: true,
-                      button: true,
-                      label: collapsed ? s.s03ExpandAria : s.s03CollapseAria,
-                      // 按下：膠囊往下 1、陰影變 1（G-12）
-                      child: Pressable(
-                        key: const Key('dock-toggle'),
-                        lift: 2,
-                        onTap: onToggle,
-                        builder: (context, look) => Container(
-                          constraints: const BoxConstraints(minWidth: 72),
-                          alignment: Alignment.centerRight,
-                          child: _TogglePill(collapsed: collapsed, look: look),
-                        ),
+        Padding(
+          padding: side,
+          child: SizedBox(
+            key: const Key('dock-head'),
+            height: 44,
+            // 跟設計稿的順序一樣：收起鈕在最上面（320 寬的英文「87% Show」會蓋到場景位置的右邊一點）
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Semantics(
+                  label: s.s03PanAria,
+                  child: _PanIndicator(pan: pan),
+                ),
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: _WarehouseButton(onTap: onWarehouse, pillKey: warehouseKey, scale: warehouseScale),
+                ),
+                Positioned(
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: Semantics(
+                    container: true,
+                    button: true,
+                    label: collapsed ? s.s03ExpandAria : s.s03CollapseAria,
+                    // 按下：膠囊往下 1、陰影變 1（G-12）
+                    child: Pressable(
+                      key: const Key('dock-toggle'),
+                      lift: 2,
+                      onTap: onToggle,
+                      builder: (context, look) => Container(
+                        constraints: const BoxConstraints(minWidth: 72),
+                        alignment: Alignment.centerRight,
+                        child: _TogglePill(collapsed: collapsed, look: look, data: data),
                       ),
                     ),
                   ),
-                ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (!collapsed) ...[
+          // .dock-head 的 margin-bottom 8，加上 .dock 的 gap 8
+          const SizedBox(height: 8 + 8),
+          _FeedBar(feeds: data.feeds, inset: gutter + 2),
+          // .fbar 的 margin-bottom 4，加上 .dock 的 gap 8
+          const SizedBox(height: 4 + 8),
+          Padding(
+            padding: side,
+            child: _BucketCard(data: data, collect: collect, pailKey: pailKey),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// .wh-btn：頂列左邊的「倉庫」小鈕（第 23 輪 03-B）。按的範圍至少 72 × 44，膠囊高 30。
+class _WarehouseButton extends StatelessWidget {
+  const _WarehouseButton({required this.onTap, required this.pillKey, required this.scale});
+
+  final VoidCallback? onTap;
+  final Key? pillKey;
+  final double scale;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = Strings.of(context);
+    return Semantics(
+      container: true,
+      button: true,
+      label: s.warehouseTitle,
+      // 按下：膠囊往下 1、陰影變 1（跟收起鈕一樣）
+      child: Pressable(
+        key: const Key('warehouse-btn'),
+        lift: 2,
+        onTap: onTap,
+        builder: (context, look) => Container(
+          constraints: const BoxConstraints(minWidth: 72),
+          alignment: Alignment.centerLeft,
+          child: Transform.scale(
+            scale: scale,
+            child: PressTint(
+              tint: look.tint,
+              borderRadius: const BorderRadius.all(Radius.circular(15)),
+              child: Container(
+                key: pillKey,
+                height: 30,
+                padding: const EdgeInsets.fromLTRB(6, 0, 10, 0),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  // CSS 寫 2.5px，Chrome 畫成 2px（跟收起鈕一樣）
+                  border: Border.all(color: AppColors.ink, width: 2),
+                  borderRadius: const BorderRadius.all(Radius.circular(15)),
+                  boxShadow: AppShadows.solid(look.shadow),
+                ),
+                child: ExcludeSemantics(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const AppIcon('barn', size: 18),
+                      const SizedBox(width: 4),
+                      CssLine(
+                        TextSpan(
+                          text: s.warehouseTitle,
+                          style: AppText.style(13, weight: FontWeight.w900, lineHeight: 18),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
         ),
-        if (collapsed)
-          _BucketSlim(data: data, collect: collect, pailKey: pailKey)
-        else ...[
-          _BucketCard(data: data, collect: collect, pailKey: pailKey),
-          const SizedBox(height: 8),
-          // .dock-row：倉庫、收購價兩張小卡（S05-01 只拍這一塊）
-          IntrinsicHeight(
-            key: const Key('dock-row'),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: _StorageMini(data: data, onTap: onStorage, milkKey: milkKey),
-                ),
-                const SizedBox(width: 8),
-                Expanded(child: _MarketMini(data: data)),
-              ],
-            ),
-          ),
-        ],
-      ],
+      ),
     );
   }
 }
@@ -189,39 +252,243 @@ class _PanIndicator extends StatelessWidget {
   );
 }
 
-/// .dt-pill：「收起 ⌄」「展開 ⌃」。
+/// .dt-pill：「收起 ⌄」；收起來時「🪣 87% ｜ 展開 ⌃」，奶桶滿了整顆變藍、寫「滿了」（.dt-pill.full，第 29 輪）。
 class _TogglePill extends StatelessWidget {
-  const _TogglePill({required this.collapsed, required this.look});
+  const _TogglePill({required this.collapsed, required this.look, required this.data});
 
   final bool collapsed;
   final PressLook look;
+  final DockData data;
 
   @override
   Widget build(BuildContext context) {
     final s = Strings.of(context);
+    final full = collapsed && data.full;
+    final fg = full ? const Color(0xFF1F5A93) : AppColors.ink;
     return PressTint(
       tint: look.tint,
       borderRadius: const BorderRadius.all(Radius.circular(15)),
       child: Container(
         height: 30,
-        padding: const EdgeInsets.fromLTRB(12, 0, 8, 0),
+        // 收起來時 .dt-pail 的 margin-left −4：左邊的 12 少 4
+        padding: EdgeInsets.fromLTRB(collapsed ? 12 - 4 : 12, 0, 8, 0),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: full ? const Color(0xFFDDF0FF) : Colors.white,
           // CSS 寫 2.5px，boards 量出來是 2（Chrome 畫成 2px）；照核准的 boards
-          border: Border.all(color: AppColors.ink, width: 2),
+          border: Border.all(color: full ? const Color(0xFF2F6FB0) : AppColors.ink, width: 2),
           borderRadius: const BorderRadius.all(Radius.circular(15)),
           boxShadow: AppShadows.solid(look.shadow),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              collapsed ? s.s03Expand : s.s03Collapse,
-              style: AppText.style(13, weight: FontWeight.w900, lineHeight: 18),
+            if (collapsed) ...[
+              // .dt-pail：奶桶圖示、百分比（滿了寫「滿了」），右邊一條分隔線
+              Container(
+                key: const Key('dock-pail'),
+                height: 18,
+                padding: const EdgeInsets.only(right: 6),
+                decoration: BoxDecoration(
+                  border: Border(
+                    right: BorderSide(color: full ? const Color(0xFF9CC6EE) : AppColors.lineSoft, width: 2),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const AppIcon('pail', size: 16),
+                    const SizedBox(width: 2),
+                    CssLine(
+                      TextSpan(
+                        text: full ? s.s03Full : '${data.pct}%',
+                        style: AppText.number(13, lineHeight: 18, color: fg),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // margin-right 6，加上 .dt-pill 的 gap 2
+              const SizedBox(width: 6 + 2),
+            ],
+            CssLine(
+              TextSpan(
+                text: collapsed ? s.s03Expand : s.s03Collapse,
+                style: AppText.style(13, weight: FontWeight.w900, lineHeight: 18, color: fg),
+              ),
             ),
             const SizedBox(width: 2),
             // 箭頭轉 90°（向下）；收起來時轉 −90°（向上）
             Transform.rotate(angle: (collapsed ? -1 : 1) * math.pi / 2, child: const AppIcon('chevron', size: 14)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// .fbar：飼料列（v0.3 第 2.2 節；沒有底板，第 26 輪）。一袋 68 寬、間隔 6，照設計稿 feeds.js 的順序；左右滑看其他的。
+/// 延伸到畫面的左右邊緣（設計稿沒有裁切）：一開始第一袋在面板內 2，滑到底時最後一袋離畫面右邊 [inset]。
+class _FeedBar extends StatelessWidget {
+  const _FeedBar({required this.feeds, required this.inset});
+
+  final Map<String, int> feeds;
+  final double inset;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    key: const Key('feed-bar'),
+    height: 73,
+    child: SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: EdgeInsets.symmetric(horizontal: inset),
+      // 名字的白色描邊、泰文的上下標會超出袋子的範圍一點：不裁切（左右本來就是畫面的邊緣）
+      clipBehavior: Clip.none,
+      child: Row(
+        children: [
+          for (final (i, k) in kFeedOrder.indexed) ...[
+            if (i > 0) const SizedBox(width: 6),
+            _FeedItem(feed: k, n: feeds[k] ?? 0),
+          ],
+        ],
+      ),
+    ),
+  );
+}
+
+/// .fb-item：飼料袋（54 × 58，置中）上面畫飼料的圖示、右上角剩幾份；下面寫名字（不寫公斤數，每次長幾公斤是隨機的）。
+/// 沒有了（0 份）：袋子換淺灰的，袋子和名字都淡到 0.4（.fb-item.none）。
+class _FeedItem extends StatelessWidget {
+  const _FeedItem({required this.feed, required this.n});
+
+  final String feed;
+  final int n;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = Strings.of(context);
+    final name = s.feedName(feed);
+    final none = n <= 0;
+    Widget faded(Widget child) => none ? Opacity(opacity: 0.4, child: child) : child;
+    return Semantics(
+      container: true,
+      label: s.s03FeedAria(name: name, n: n),
+      child: ExcludeSemantics(
+        child: SizedBox(
+          key: Key('feed-$feed'),
+          width: 68,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              faded(_Sack(feed: feed, n: n)),
+              faded(_FeedName(name)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// .sack：袋子（parts/feed_sack，0 份用 feed_sack_empty）、飼料圖示（左上角 (15, 22)、24 × 24），兩張圖都有下面的影子
+/// （.sack svg 的 drop-shadow 也套到圖示的 svg）；右上角的份數（.sk-n：右 −4、上 2、高 20、至少 20 寬，深色底白字）。
+class _Sack extends StatelessWidget {
+  const _Sack({required this.feed, required this.n});
+
+  final String feed;
+  final int n;
+
+  @override
+  Widget build(BuildContext context) {
+    final asset = 'assets/ui/parts/${n <= 0 ? 'feed_sack_empty' : 'feed_sack'}.svg';
+    return SizedBox(
+      width: 54,
+      height: 58,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          _DropShadow(child: SvgPicture.asset(asset, width: 54, height: 58, excludeFromSemantics: true)),
+          Positioned(left: 15, top: 22, child: _DropShadow(child: AppIcon('feed_$feed', size: 24))),
+          Positioned(
+            right: -4,
+            top: 2,
+            child: Container(
+              key: Key('feed-$feed-n'),
+              height: 20,
+              constraints: const BoxConstraints(minWidth: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              decoration: const BoxDecoration(
+                color: AppColors.ink,
+                borderRadius: BorderRadius.all(Radius.circular(10)),
+              ),
+              child: Center(
+                widthFactor: 1,
+                child: CssLine(
+                  TextSpan(
+                    text: '$n',
+                    style: AppText.number(12, lineHeight: 20, color: Colors.white),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// CSS 的 filter: drop-shadow(0 3px 2px rgba(46, 29, 20, 0.35))：同一張圖染成影子的顏色、往下 3、模糊，墊在下面。
+/// drop-shadow 的模糊值 Chrome 直接當標準差用（跟 box-shadow 不一樣，box-shadow 是一半），所以標準差是 2。
+class _DropShadow extends StatelessWidget {
+  const _DropShadow({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    clipBehavior: Clip.none,
+    children: [
+      Transform.translate(
+        offset: const Offset(0, 3),
+        child: ImageFiltered(
+          imageFilter: ImageFilter.blur(sigmaX: 2, sigmaY: 2),
+          child: ColorFiltered(colorFilter: const ColorFilter.mode(Color(0x592E1D14), BlendMode.srcIn), child: child),
+        ),
+      ),
+      child,
+    ],
+  );
+}
+
+/// .fb-name：12 特粗、行高 15，白色描邊 3（paint-order: stroke fill，描邊在字的下面）。不換行，比 68 寬的
+/// （泰文的豆粕）兩邊一樣多超出去。
+class _FeedName extends StatelessWidget {
+  const _FeedName(this.name);
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = AppText.style(12, weight: FontWeight.w900, lineHeight: 15);
+    final stroke = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3
+      ..color = Colors.white;
+    return SizedBox(
+      width: 68,
+      height: 15,
+      child: OverflowBox(
+        minWidth: 0,
+        maxWidth: double.infinity,
+        child: Stack(
+          children: [
+            CssLine(
+              TextSpan(
+                text: name,
+                style: style.copyWith(foreground: stroke),
+              ),
+            ),
+            CssLine(TextSpan(text: name, style: style)),
           ],
         ),
       ),
@@ -317,279 +584,6 @@ class _BucketCard extends StatelessWidget {
     if (minutes < 1) return s.duration(m: 1);
     return s.duration(h: minutes ~/ 60, m: minutes % 60);
   }
-}
-
-/// .bucket-slim：收起來的那一條（S03-11、S03-12）。
-class _BucketSlim extends StatelessWidget {
-  const _BucketSlim({required this.data, required this.collect, this.pailKey});
-
-  final DockData data;
-  final Widget collect;
-  final Key? pailKey;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = Strings.of(context);
-    final full = data.full;
-    return Container(
-      key: const Key('bucket-slim'),
-      padding: const EdgeInsets.fromLTRB(8, 6, 8, 6),
-      decoration: _card(full ? const Color(0xFFFFF1EE) : AppColors.paper),
-      child: Row(
-        children: [
-          PailLevel(key: pailKey, pct: data.pct.toDouble(), size: 34),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Wrap(
-                  spacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.end,
-                  children: [
-                    Text(s.bucketTitle, style: AppText.style(13, weight: FontWeight.w900)),
-                    Text('${data.pct}%', style: AppText.number(16, lineHeight: 18, color: full ? _red : AppColors.ink)),
-                    if (full)
-                      Text(
-                        s.s03Full,
-                        style: AppText.style(12, weight: FontWeight.w900, color: _red),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                MeterBar(fraction: data.pct / 100, height: 10),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          ConstrainedBox(constraints: const BoxConstraints(minWidth: 76), child: collect),
-        ],
-      ),
-    );
-  }
-}
-
-/// .card.mini.storage：倉庫的牛奶（用了幾 %、最舊一批的新鮮度）、牛肉、稻米。
-class _StorageMini extends StatelessWidget {
-  const _StorageMini({required this.data, this.onTap, this.milkKey});
-
-  final DockData data;
-  final VoidCallback? onTap;
-  final Key? milkKey;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = Strings.of(context);
-    final w = data.warehouse;
-    final milk = data.milkShown ?? w.milkTotal, cap = w.capacity;
-    final whFull = cap > 0 && milk >= cap;
-    final fresh = w.worstFreshness;
-    return _Mini(
-      key: const Key('storage-mini'),
-      onTap: onTap,
-      title: CardTitle(s.warehouseTitle),
-      // 滿了：設計稿程式加了 err-text，但 .mini .cap 的顏色、粗細比較優先，核准的圖是灰色的字；照圖做
-      caption: whFull
-          ? Text(
-              s.s03MilkFull,
-              softWrap: false,
-              style: AppText.style(12, weight: FontWeight.w700, color: AppColors.ink2, lineHeight: 16),
-            )
-          : Text(
-              s.s03MilkUsed(pct: cap > 0 ? (milk / cap * 100).round() : 0),
-              textAlign: TextAlign.right,
-              style: AppText.style(12, weight: FontWeight.w700, color: AppColors.ink2, lineHeight: 16),
-            ),
-      lines: [
-        _MiniLine(
-          key: milkKey,
-          icon: 'milk',
-          name: s.milk,
-          value: compact(milk, s.lang),
-          unit: s.unitMilk,
-          right: fresh == null
-              ? null
-              : _Trailing(
-                  icon: fresh < 0.3 ? 'leafBad' : (fresh < 0.7 ? 'leafOld' : 'leaf'),
-                  iconSize: 13,
-                  text: '${(fresh * 100).round()}%',
-                  color: fresh < 0.3 ? _red : AppColors.ink,
-                ),
-        ),
-        _MiniLine(icon: 'beef', name: s.beef, value: compact(w.beefTotal, s.lang), unit: s.unitBeef),
-        _MiniLine(icon: 'rice', name: s.rice, value: compact(w.riceTotal, s.lang), unit: s.unitRice),
-      ],
-    );
-  }
-}
-
-/// .card.mini.market：三種商品的收購價和比平常高或低幾 %（D24）。
-class _MarketMini extends StatelessWidget {
-  const _MarketMini({required this.data});
-
-  final DockData data;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = Strings.of(context);
-    Widget line(Commodity c, String icon, String name) {
-      final q = data.quotes[c];
-      return _MiniLine(
-        icon: icon,
-        name: name,
-        value: q == null ? '–' : priceText(q.price),
-        right: q == null ? null : _vsNormal(s, q),
-      );
-    }
-
-    return _Mini(
-      key: const Key('market-mini'),
-      title: CardTitle(s.s03Prices, color: AppColors.green),
-      caption: Text(
-        s.s03VsNormal,
-        style: AppText.style(12, weight: FontWeight.w700, color: AppColors.ink2, lineHeight: 16),
-      ),
-      lines: [
-        line(Commodity.milk, 'milk', s.milk),
-        line(Commodity.beef, 'beef', s.beef),
-        line(Commodity.rice, 'rice', s.rice),
-      ],
-    );
-  }
-
-  /// 比平常（基本價）高或低幾 %，四捨五入到整數；0 就寫「平常」（fixtures.js 的 vsBase）。
-  Widget _vsNormal(Strings s, Quote q) {
-    final v = q.vsBasePct;
-    if (v == null) return const SizedBox.shrink();
-    if (v == 0) {
-      return Text(
-        s.s03Normal,
-        style: AppText.style(12, weight: FontWeight.w900, color: AppColors.ink2),
-      );
-    }
-    final up = v > 0;
-    return _Trailing(
-      icon: up ? 'up' : 'down',
-      iconSize: 10,
-      text: '${v.abs()}%',
-      color: up ? AppColors.up(upIsRed: data.upIsRed) : AppColors.down(upIsRed: data.upIsRed),
-    );
-  }
-}
-
-/// .card.mini：標題列、三行。
-class _Mini extends StatelessWidget {
-  const _Mini({super.key, required this.title, required this.caption, required this.lines, this.onTap});
-
-  final Widget title;
-  final Widget caption;
-  final List<Widget> lines;
-
-  /// 可以點（倉庫卡）：整張卡浮起，按下往下 3（G-13）。
-  final VoidCallback? onTap;
-
-  Widget _box(double shadow) => Container(
-    padding: const EdgeInsets.fromLTRB(10, 6, 10, 7),
-    decoration: _card(AppColors.paper, shadow: shadow),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // .card-head：放不下時標頭換到第二行（screens.css 第 6 條）
-        Wrap(
-          alignment: WrapAlignment.spaceBetween,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 8,
-          children: [title, caption],
-        ),
-        const SizedBox(height: 3),
-        ...lines,
-      ],
-    ),
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    if (onTap == null) return _box(4);
-    return Pressable(
-      lift: 4,
-      onTap: onTap,
-      builder: (context, look) =>
-          PressTint(tint: look.tint, borderRadius: const BorderRadius.all(AppRadii.r18), child: _box(look.shadow)),
-    );
-  }
-}
-
-/// .mini-line：圖示、名稱、數字、單位，右邊一個小欄位。窄手機字小一號，再窄就不放圖示（screens.css 的 @media）。
-class _MiniLine extends StatelessWidget {
-  const _MiniLine({super.key, required this.icon, required this.name, required this.value, this.unit, this.right});
-
-  final String icon;
-  final String name;
-  final String value;
-  final String? unit;
-  final Widget? right;
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.sizeOf(context).width;
-    final narrow = w < 390, tiny = w < 340;
-    final gap = narrow ? 3.0 : 4.0;
-    return SizedBox(
-      height: 20,
-      child: Row(
-        children: [
-          // 設計稿這一行不換行；真的放不下（泰文 360 的最大數字）就把左邊整組縮小一點，不裁切、不疊到右邊
-          Expanded(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (!tiny) ...[
-                    SizedBox(
-                      width: narrow ? 16 : 19,
-                      child: Center(child: AppIcon(icon, size: narrow ? 16 : 18)),
-                    ),
-                    SizedBox(width: gap),
-                  ],
-                  Text(name, style: AppText.style(narrow ? 12 : 13, weight: FontWeight.w700, lineHeight: 20)),
-                  SizedBox(width: gap),
-                  Text(value, style: AppText.number(narrow ? 13 : 14, lineHeight: 20)),
-                  if (unit != null) ...[
-                    SizedBox(width: gap),
-                    Text(unit!, style: AppText.style(12, weight: FontWeight.w700, lineHeight: 20)),
-                  ],
-                ],
-              ),
-            ),
-          ),
-          if (right != null) ...[SizedBox(width: gap), right!],
-        ],
-      ),
-    );
-  }
-}
-
-/// .mini-line .r：右邊的小圖示加數字。
-class _Trailing extends StatelessWidget {
-  const _Trailing({required this.icon, required this.iconSize, required this.text, required this.color});
-
-  final String icon;
-  final double iconSize;
-  final String text;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      AppIcon(icon, size: iconSize, color: color),
-      SizedBox(width: MediaQuery.sizeOf(context).width < 390 ? 1 : 2),
-      // .mini-line .num：14（窄手機 13）
-      Text(text, style: AppText.number(MediaQuery.sizeOf(context).width < 390 ? 13 : 14, color: color)),
-    ],
-  );
 }
 
 const _red = Color(0xFFD9443F);

@@ -667,6 +667,39 @@
 .bucket-slim .bar { height: 10px; }
 .bucket-slim .btn { flex: none; min-width: 76px; }
 .slim-sheet .dock { position: relative; left: 0; right: 0; bottom: 0; }
+.slim-sheet .dock + .dock { margin-top: 10px; }
+/* 牧場頁下方（v0.3 第 2.2 節；使用者看第 23、26、29 輪）：倉庫小鈕（頂列左邊）、飼料列（沒有底板）、收起時「展開」帶奶桶的 % */
+.wh-btn { position: absolute; left: 0; top: 0; min-width: 72px; min-height: 44px; display: flex; align-items: center; padding: 0; background: none; border: 0; font: inherit; color: var(--ink); }
+.wh-pill { display: inline-flex; align-items: center; gap: 4px; height: 30px; padding: 0 10px 0 6px; background: #FFFFFF; border: 2.5px solid var(--ink); border-radius: 15px; box-shadow: 0 2px 0 var(--ink); font-size: 13px; font-weight: 900; line-height: 18px; white-space: nowrap; }
+.dock .dock-head { margin-bottom: 8px; } /* v0.3：頂列和飼料列中間留 8（「小牛想吃」、按住浮起來的袋子才不會碰到「收起」）；收起時下面沒有東西，不留 */
+.dock.collapsed .dock-head { margin-bottom: 0; }
+.dt-pail { display: inline-flex; align-items: center; gap: 2px; margin: 0 6px 0 -4px; padding-right: 6px; border-right: 2px solid var(--line-soft); line-height: 0; }
+.dt-pail .num { font-size: 13px; line-height: 18px; }
+.dt-pill.full { background: #DDF0FF; border-color: #2F6FB0; color: #1F5A93; }
+.dt-pill.full .dt-pail { border-right-color: #9CC6EE; }
+.fbar { position: relative; margin: 0 0 4px; padding: 0 0 0 2px; }
+.fb-track { display: flex; gap: 6px; width: max-content; }
+.fb-item { position: relative; display: flex; flex-direction: column; align-items: center; width: 68px; padding: 0; background: none; border: 0; font: inherit; color: var(--ink); }
+.sack { position: relative; display: block; line-height: 0; }
+.sack svg { filter: drop-shadow(0 3px 2px rgba(46, 29, 20, 0.35)); }
+.sk-ic { position: absolute; left: 15px; top: 22px; line-height: 0; }
+.sk-n { position: absolute; right: -4px; top: 2px; min-width: 20px; height: 20px; padding: 0 4px; border-radius: 10px; background: var(--ink); color: #FFFFFF; font-size: 12px; line-height: 20px; text-align: center; }
+.fb-name { font-size: 12px; font-weight: 900; line-height: 15px; color: var(--ink); paint-order: stroke fill; -webkit-text-stroke: 3px #FFFFFF; white-space: nowrap; }
+.fb-item.none .sack, .fb-item.none .fb-name { opacity: 0.4; }
+.fb-item.lift .sack { transform: translateY(-8px) rotate(-6deg); }
+.fb-item.back .sk-n { background: #3E8E2F; box-shadow: 0 0 0 3px #CFEFC2; }
+.fb-item.fb-want .sack svg { filter: drop-shadow(0 0 4px #5DB04A) drop-shadow(0 3px 2px rgba(46, 29, 20, 0.35)); }
+.want-tag { position: absolute; left: 50%; top: -13px; z-index: 2; transform: translateX(-50%); padding: 0 6px; font-style: normal; font-size: 12px; font-weight: 900; line-height: 16px; color: #FFFFFF; background: #3E8E2F; border-radius: 7px; white-space: nowrap; }
+/* 肚子餓（頭上的空碗加問號）、吃完跳的公斤數、拖著的飼料（A-16、A-17） */
+.hungry { position: absolute; z-index: 9; transform: translate(-50%, -100%); line-height: 0; filter: drop-shadow(0 2px 0 rgba(75, 51, 38, 0.35)); }
+.kg-pop { position: absolute; z-index: 12; transform: translate(-50%, -100%); padding: 2px 10px; background: #FFFFFF; border: 2.5px solid var(--ink); border-radius: 12px; font-size: 16px; font-weight: 900; line-height: 22px; color: #3E8E2F; white-space: nowrap; box-shadow: 0 2px 0 var(--ink); }
+.drag-feed { position: absolute; z-index: 30; transform: translate(-50%, -50%); line-height: 0; filter: drop-shadow(0 6px 4px rgba(46, 29, 20, 0.35)); }
+.drag-hand { position: absolute; z-index: 31; line-height: 0; filter: drop-shadow(0 3px 0 rgba(75, 51, 38, 0.35)); }
+.ground-feed { position: absolute; z-index: 8; transform: translate(-50%, -100%); line-height: 0; }
+.ground-feed::after { content: ""; position: absolute; left: 50%; bottom: -3px; z-index: -1; width: 26px; height: 8px; margin-left: -13px; border-radius: 50%; background: rgba(62, 107, 42, 0.22); }
+.dust { position: absolute; z-index: 7; width: 0; height: 0; pointer-events: none; }
+.dust i { position: absolute; left: -5px; top: -5px; width: 10px; height: 10px; border-radius: 50%; background: #F4E8D2; opacity: 0; }
+.chew { position: absolute; z-index: 12; font-size: 13px; font-weight: 900; line-height: 18px; color: var(--ink-2); paint-order: stroke fill; -webkit-text-stroke: 3px #FFFFFF; white-space: nowrap; }
 .swipe-hint { position: absolute; left: 50%; top: calc(var(--safe-top) + var(--hud-h) + 236px); transform: translateX(-50%); z-index: 16; display: flex; align-items: center; gap: 6px; padding: 8px 12px; background: rgba(255, 255, 255, 0.95); border: 3px solid var(--ink); border-radius: 22px; box-shadow: 0 3px 0 var(--ink); font-size: 14px; font-weight: 900; line-height: 20px; white-space: nowrap; }
 .sh-arrow { display: inline-flex; line-height: 0; }
 .finger { position: absolute; left: 0; top: 0; z-index: 95; line-height: 0; opacity: 0; filter: drop-shadow(0 3px 0 rgba(75, 51, 38, 0.35)); }
@@ -870,7 +903,7 @@
 /* 下陰影 3px（小按鈕、圓形鈕、頂列齒輪、牛欄膠囊、選牛小卡、圖鑑格子）：往下 2px */
 .btn.small.is-pressed, .icon-btn.is-pressed, .gear.is-pressed, .pen-pill.is-pressed, .pick.is-pressed, .dex-cell.is-pressed { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
 /* 下陰影 2px（牧場面板的收起膠囊）：往下 1px */
-.dock-toggle.is-pressed .dt-pill { transform: translateY(1px); box-shadow: 0 1px 0 var(--ink); }
+.dock-toggle.is-pressed .dt-pill, .wh-btn.is-pressed .wh-pill { transform: translateY(1px); box-shadow: 0 1px 0 var(--ink); }
 /* 選中的卡片：外圈的顏色留著 */
 .stud-row.on.is-pressed, .pick.on.is-pressed { box-shadow: 0 1px 0 var(--ink), 0 0 0 3px var(--yellow); }
 .ox-opt.on.is-pressed { box-shadow: 0 1px 0 var(--ink), 0 0 0 3px var(--green-2); }
@@ -879,7 +912,7 @@
 .seg button.is-pressed, .filter button.is-pressed, .chip-btn.is-pressed, .price-row.is-pressed, .set-row.is-pressed, .link-row.is-pressed,
 .link-btn.is-pressed, .tab.is-pressed, .bn-close.is-pressed,
 .btn.is-pressed-rm, button.card.is-pressed-rm, .icon-btn.is-pressed-rm, .gear.is-pressed-rm, .pen-pill.is-pressed-rm, .pick.is-pressed-rm, .dex-cell.is-pressed-rm,
-.dock-toggle.is-pressed-rm .dt-pill, .seg button.is-pressed-rm, .filter button.is-pressed-rm, .chip-btn.is-pressed-rm, .price-row.is-pressed-rm,
+.dock-toggle.is-pressed-rm .dt-pill, .wh-btn.is-pressed-rm .wh-pill, .seg button.is-pressed-rm, .filter button.is-pressed-rm, .chip-btn.is-pressed-rm, .price-row.is-pressed-rm,
 .set-row.is-pressed-rm, .link-row.is-pressed-rm, .link-btn.is-pressed-rm, .tab.is-pressed-rm, .bn-close.is-pressed-rm { background-image: linear-gradient(var(--press), var(--press)); }
 /* 沒有底色的元件：蓋的顏色做成圓角塊 */
 .set-row.is-pressed, .link-row.is-pressed, .link-btn.is-pressed, .tab.is-pressed,
@@ -895,14 +928,14 @@
   .btn:not(.small):not([disabled]):not(.disabled):active, button.card:not([disabled]):active { transform: translateY(3px); box-shadow: 0 1px 0 var(--ink); }
   .btn.small:not([disabled]):not(.disabled):active, .icon-btn:not([disabled]):active, .gear:active, .pen-pill:active,
   .pick:not([disabled]):active, .dex-cell:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--ink); }
-  .dock-toggle:active .dt-pill { transform: translateY(1px); box-shadow: 0 1px 0 var(--ink); }
+  .dock-toggle:active .dt-pill, .wh-btn:active .wh-pill { transform: translateY(1px); box-shadow: 0 1px 0 var(--ink); }
   .stud-row.on:active, .pick.on:not([disabled]):active { box-shadow: 0 1px 0 var(--ink), 0 0 0 3px var(--yellow); }
   .ox-opt.on:active { box-shadow: 0 1px 0 var(--ink), 0 0 0 3px var(--green-2); }
   .dex-cell.unknown:active { box-shadow: 0 1px 0 #B8A89A; }
 }
 @media (prefers-reduced-motion: reduce) {
   .btn:not([disabled]):not(.disabled):active, button.card:not([disabled]):active, .icon-btn:not([disabled]):active, .gear:active, .pen-pill:active,
-  .pick:not([disabled]):active, .dex-cell:active, .dock-toggle:active .dt-pill { background-image: linear-gradient(var(--press), var(--press)); }
+  .pick:not([disabled]):active, .dex-cell:active, .dock-toggle:active .dt-pill, .wh-btn:active .wh-pill { background-image: linear-gradient(var(--press), var(--press)); }
 }
 
 /* 出貨評級的大框：字放不下時 kit.js 的 fitGrade() 把字包起來整組縮小（英文；繁中、泰文不會變） */
@@ -1027,6 +1060,8 @@
 .dirty-warn { display: inline-flex; align-items: center; gap: 2px; margin-left: 2px; font-size: 12px; color: #C2412F; }
 /* 寬度小於 390：「會生病」的字拿掉，只留警告圖示（放不下牛欄膠囊旁邊） */
 @media (max-width: 389px) { .dirty-warn .dw-t { display: none; } }
+/* 320 寬：大便數到兩位數時英文放不下（會蓋到左邊的牛欄膠囊），「大便」兩個字也拿掉，只留圖示和數字 */
+@media (max-width: 339px) { .dirty .dp-t { display: none; } }
 /* 清大便的動畫（A-14、A-15）：清掉的地方冒小星星、點一下的波紋、手指、劃過去的軌跡 */
 .poof { position: absolute; z-index: 38; width: 0; height: 0; pointer-events: none; }
 .poof i { position: absolute; line-height: 0; }

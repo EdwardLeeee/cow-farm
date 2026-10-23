@@ -10,7 +10,7 @@
   "病牛：名字後面加 _sick，只有 front（病牛一律轉正面）；臉色發青、額頭藍線已經畫在圖裡。成年牛照品種（含雜種牛），小牛照 CALF_LOOK。頭上的溫度計泡泡用 ui 的 parts/sick_bubble 另外疊（位置見 ui.json 的 about）。"
  ],
  "generator": {
-  "design/m2/harness/assetexport.mjs": "d0ef7ac13e4fd189af08d9811bef33b81c17443c65af74a312d49785fd54addc",
+  "design/m2/harness/assetexport.mjs": "e305f944391bb9f6dd2962719ec8dfebc753aa3b8372a7f74ba87e79f52176ac",
   "design/m2/src/cow/breeds.js": "a7f37d682deea250586c15bac9eaa28a551825b28fcf7ab7766526a48d75ecf8",
   "design/m2/src/cow/calf.js": "3d773e00d3f42d69b9de1b2de366e9af4f25f46645fdcf47a5146b063d84c29b",
   "design/m2/src/cow/q.js": "161f0ebf2cffa8d8baf19f095bab63f04c6d55004155fd078942b2aae7b5fbee",

@@ -87,11 +87,11 @@ Map<String, dynamic> warehouseState({
   };
 }
 
-/// 打開倉庫頁（牧場面板的倉庫卡）。
+/// 打開倉庫頁（牧場頁頂列的「倉庫」小鈕）。
 Future<void> showWarehouse(WidgetTester tester, AppLang lang, Map<String, dynamic> state, {bool tall = false}) async {
   final m = await ranchModel(state: state);
   await pumpAppIn(tester, m, lang, prefs: swipeHintSeen);
-  await tester.tap(find.byKey(const Key('storage-mini')));
+  await tester.tap(find.byKey(const Key('warehouse-btn')));
   await tester.pump();
   if (tall) await growToFit(tester, find.byKey(const Key('warehouse')));
 }
@@ -101,12 +101,14 @@ final _zh = Strings.forLang(AppLang.zhHant);
 final s05Cases = <PageCase>[
   PageCase(
     'S05-01',
-    '牧場頁的倉庫小卡',
+    '牧場頁的倉庫小鈕（奶桶面板左上角；第 23 輪 03-B）',
     (tester, lang) async => pumpAppIn(tester, await ranchModel(), lang, prefs: swipeHintSeen),
-    crop: find.byKey(const Key('dock-row')),
+    crop: find.byKey(const Key('dock-head')),
     check: (tester) {
-      expect(find.byKey(const Key('storage-mini')), findsOneWidget);
-      expect(find.text('64%'), findsOneWidget, reason: '最舊一批牛奶的新鮮度');
+      expect(
+        find.descendant(of: find.byKey(const Key('warehouse-btn')), matching: find.text(_zh.warehouseTitle)),
+        findsOneWidget,
+      );
     },
   ),
   PageCase(

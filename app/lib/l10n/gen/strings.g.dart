@@ -66,6 +66,8 @@ const Map<String, List<String>> kPlaceholders = {
   's10.freshMax': ['h'],
   's11.earned': ['v'],
   's11.coachPenBody': ['price'],
+  's03.feedAria': ['n', 'name'],
+  's03.kgGain': ['kg'],
   's03.bucketCount': ['amount'],
   's03.fullIn': ['time'],
   's03.milkUsed': ['pct'],
@@ -434,12 +436,17 @@ const Map<String, String> _zhHant = {
   's11.backupNow': '現在備份',
   's03.normal': '平常',
   's03.panAria': '牧場的位置',
-  's03.expandAria': '展開奶桶、倉庫、收購價',
-  's03.collapseAria': '收起奶桶、倉庫、收購價',
+  's03.expandAria': '展開奶桶和飼料',
+  's03.collapseAria': '收起奶桶和飼料',
   's03.expand': '展開',
   's03.collapse': '收起',
   'collect': '收奶',
   's03.full': '滿了',
+  's03.feedAria': '{name}，還有 {n} 份',
+  's03.wantTag': '小牛想吃',
+  's03.hungry': '肚子餓了',
+  's03.kgGain': '+{kg} 公斤',
+  's03.noHungry': '現在沒有肚子餓的牛，飼料放回去了',
   's03.bucketCount': '{amount} 瓶',
   's03.fullStopped': '滿了，停止產奶',
   's03.fullIn': '約 {time}後滿',
@@ -840,6 +847,7 @@ const Map<String, String> _zhHant = {
   'weekdayFull.6': '六',
   's16.body': '維護完成後就能繼續玩。牧場的資料都保存在伺服器上。',
   'anim.skip': '點一下跳過',
+  'anim.chew': '嚼嚼',
   'anim.beep': '嗶',
   'anim.thanks': '謝謝你的照顧！',
   'anim.newBreed': '發現新品種！',
@@ -1267,12 +1275,17 @@ const Map<String, String> _en = {
   's11.backupNow': 'Back up now',
   's03.normal': 'Usual',
   's03.panAria': 'Ranch view position',
-  's03.expandAria': 'Show bucket, storage, and prices',
-  's03.collapseAria': 'Hide bucket, storage, and prices',
+  's03.expandAria': 'Show bucket and feed',
+  's03.collapseAria': 'Hide bucket and feed',
   's03.expand': 'Show',
   's03.collapse': 'Hide',
   'collect': 'Collect',
   's03.full': 'Full',
+  's03.feedAria': '{name}: {n} left',
+  's03.wantTag': 'Calf wants',
+  's03.hungry': 'Hungry',
+  's03.kgGain': '+{kg} kg',
+  's03.noHungry': 'No cows are hungry right now, so the feed went back',
   's03.bucketCount': '{amount} btl',
   's03.fullStopped': 'Full, no new milk',
   's03.fullIn': 'Full in ~{time}',
@@ -1674,6 +1687,7 @@ const Map<String, String> _en = {
   'weekdayFull.6': 'Saturday',
   's16.body': 'You can keep playing once it\'s done. Your ranch data is safe on the server.',
   'anim.skip': 'Tap to skip',
+  'anim.chew': 'Munch',
   'anim.beep': 'Beep',
   'anim.thanks': 'Thanks for taking care of me!',
   'anim.newBreed': 'New breed found!',
@@ -2100,12 +2114,17 @@ const Map<String, String> _th = {
   's11.backupNow': 'สำรองเลย',
   's03.normal': 'ปกติ',
   's03.panAria': 'ตำแหน่งในฟาร์ม',
-  's03.expandAria': 'ขยายแผงถังนม โกดัง และราคารับซื้อ',
-  's03.collapseAria': 'ย่อแผงถังนม โกดัง และราคารับซื้อ',
+  's03.expandAria': 'ขยายแผงถังนมและอาหารสัตว์',
+  's03.collapseAria': 'ย่อแผงถังนมและอาหารสัตว์',
   's03.expand': 'ขยาย',
   's03.collapse': 'ย่อ',
   'collect': 'เก็บนม',
   's03.full': 'เต็มแล้ว',
+  's03.feedAria': '{name} เหลือ {n} ส่วน',
+  's03.wantTag': 'ลูกวัวอยากกิน',
+  's03.hungry': 'หิวแล้ว',
+  's03.kgGain': '+{kg} กก.',
+  's03.noHungry': 'ตอนนี้ไม่มีวัวที่หิว อาหารเลยกลับเข้าถุงแล้ว',
   's03.bucketCount': '{amount} ขวด',
   's03.fullStopped': 'เต็มแล้ว หยุดให้นม',
   's03.fullIn': 'เต็มในอีก ~{time}',
@@ -2507,6 +2526,7 @@ const Map<String, String> _th = {
   'weekdayFull.6': 'เสาร์',
   's16.body': 'ปรับปรุงเสร็จแล้วก็เล่นต่อได้ ข้อมูลฟาร์มทั้งหมดเก็บอยู่บนเซิร์ฟเวอร์',
   'anim.skip': 'แตะเพื่อข้าม',
+  'anim.chew': 'งั่มๆ',
   'anim.beep': 'ปี๊น',
   'anim.thanks': 'ขอบคุณที่ดูแลนะ!',
   'anim.newBreed': 'พบสายพันธุ์ใหม่!',
@@ -3431,10 +3451,10 @@ abstract class GeneratedStrings {
   /// `s03.panAria`：牧場的位置
   String get s03PanAria => table['s03.panAria']!;
 
-  /// `s03.expandAria`：展開奶桶、倉庫、收購價
+  /// `s03.expandAria`：展開奶桶和飼料
   String get s03ExpandAria => table['s03.expandAria']!;
 
-  /// `s03.collapseAria`：收起奶桶、倉庫、收購價
+  /// `s03.collapseAria`：收起奶桶和飼料
   String get s03CollapseAria => table['s03.collapseAria']!;
 
   /// `s03.expand`：展開
@@ -3448,6 +3468,21 @@ abstract class GeneratedStrings {
 
   /// `s03.full`：滿了
   String get s03Full => table['s03.full']!;
+
+  /// `s03.feedAria`：{name}，還有 {n} 份
+  String s03FeedAria({required Object n, required Object name}) => fill('s03.feedAria', {'n': n, 'name': name});
+
+  /// `s03.wantTag`：小牛想吃
+  String get s03WantTag => table['s03.wantTag']!;
+
+  /// `s03.hungry`：肚子餓了
+  String get s03Hungry => table['s03.hungry']!;
+
+  /// `s03.kgGain`：+{kg} 公斤
+  String s03KgGain({required Object kg}) => fill('s03.kgGain', {'kg': kg});
+
+  /// `s03.noHungry`：現在沒有肚子餓的牛，飼料放回去了
+  String get s03NoHungry => table['s03.noHungry']!;
 
   /// `s03.bucketCount`：{amount} 瓶
   String s03BucketCount({required Object amount}) => fill('s03.bucketCount', {'amount': amount});
@@ -4648,6 +4683,9 @@ abstract class GeneratedStrings {
 
   /// `anim.skip`：點一下跳過
   String get animSkip => table['anim.skip']!;
+
+  /// `anim.chew`：嚼嚼
+  String get animChew => table['anim.chew']!;
 
   /// `anim.beep`：嗶
   String get animBeep => table['anim.beep']!;

@@ -1,9 +1,11 @@
 // S03 牧場主畫面
 import { frame, btn, bar, toast, badge, tierChip, useChip, sexText, cowRow, icon, fmt, cowSVG, sickBadge, mixStar, rarityChip, BREEDS } from '../kit.js';
 import { poopsSvg } from '../poop.js';
+import { sackSvg, hungrySvg } from '../feedbar.js';
+import { FEED_KEYS } from '../feeds.js';
 import { stampLine, wantBubble, growAlert } from '../stamps.js';
 import { ranchScene, HERD, WIDE } from '../scene.js';
-import { RANCH, COWS, PEN, BUCKET, WAREHOUSE, MARKET, NEWS, sum, cowName, compact, vsBase, newsTag, newsText, MIX_COW, TREAT_PRICE, sickOf, CALF_DEMO } from '../fixtures.js';
+import { RANCH, COWS, PEN, BUCKET, WAREHOUSE, MARKET, NEWS, FEED_STOCK, cowName, newsTag, newsText, MIX_COW, TREAT_PRICE, sickOf, CALF_DEMO } from '../fixtures.js';
 import { t, tb, dur, useName, sexName, tierName, calfName, feedList } from '../i18n.js';
 import { tierOf, MIX_MULT } from '../../cow/breeds.js';
 import { TIER_CLS, tierTag, pctText, newsIcons } from './s06.js';
@@ -24,36 +26,34 @@ export function pailLevel(pct, size = 44) {
 // 奶桶還要多久滿（真實時間）
 function untilFull(b) { const m = Math.ceil(((b.cap - b.qty) / b.perHour) * 60); return dur({ h: Math.floor(m / 60), m: m % 60 }); }
 const oneDec = (v) => (v >= 1000 ? fmt(Math.round(v)) : (Math.round(v * 10) / 10).toFixed(1).replace(/\.0$/, ''));
-const freshOf = (lots) => (lots.length ? lots.reduce((m, l) => (l.fresh < m ? l.fresh : m), 1) : null);
-// 比平常（基本價）高或低幾 %（D24）
-const chgHTML = (m) => { const v = vsBase(m); return v === 0 ? `<span class="r flat">${t('s03.normal')}</span>` : `<span class="r ${v > 0 ? 'up' : 'down'}">${icon(v > 0 ? 'up' : 'down', 10)}<span class="num">${Math.abs(v)}%</span></span>`; };
 
+// 飼料列（v0.3 第 2.2 節；feedbar.js）。o.lift：按住的那一袋（浮起來、轉一下）；o.used：剛丟出去的那一袋（少一份）；
+// o.want：小牛想吃的那一袋（「小牛想吃」）；o.back：剛飛回來的那一袋（份數加回去，數字變綠一下）；o.scroll：往右滑了多少；o.stock：份數（預設 fixtures 的 FEED_STOCK）
+export function feedBar(o = {}) {
+  const stock = o.stock || FEED_STOCK;
+  const items = FEED_KEYS.map((k) => {
+    const n = stock[k] - (o.used === k ? 1 : 0), name = t(`feed.${k}`);
+    return `<button class="fb-item${n ? '' : ' none'}${k === o.lift ? ' lift' : ''}${k === o.want ? ' fb-want' : ''}${k === o.back ? ' back' : ''}" data-feed="${k}" aria-label="${t('s03.feedAria', { name, n })}"><span class="sack">${sackSvg(!n)}<span class="sk-ic">${icon(`feed_${k}`, 24)}</span><b class="num sk-n">${n}</b></span><span class="fb-name">${name}</span>${k === o.want ? `<i class="want-tag">${t('s03.wantTag')}</i>` : ''}</button>`;
+  }).join('');
+  return `<div class="fbar" data-hscroll><div class="fb-track"${o.scroll ? ` style="transform:translateX(${-o.scroll}px)"` : ''}>${items}</div></div>`;
+}
+
+// 牧場頁下方：頂列（左邊倉庫小鈕、中間場景位置指示、右邊收起／展開）、飼料列（沒有底板）、奶桶面板。
+// 使用者 2026-10-09～10 看第 19、23、26、29 輪：倉庫、收購價兩張小卡拿掉，換成飼料列；倉庫改成奶桶面板左上角的小鈕（第 23 輪 03-B）；
+// 按「收起」奶桶和飼料一起收，只剩牧場和頂列；「展開」那顆帶著奶桶的 %，滿了變藍、寫「滿了」（第 29 輪）。
 export function dock(o = {}) {
   const b = { ...BUCKET, ...(o.bucket || {}) };
   const pct = Math.round((b.qty / b.cap) * 100);
   const full = pct >= 100;
-  const milkLots = o.milkLots || WAREHOUSE.milk.slice(0, 3);
-  const milk = o.milk ?? sum(milkLots), cap = o.cap ?? WAREHOUSE.cap;
-  const fresh = freshOf(milkLots);
-  const beef = o.beef ?? sum(WAREHOUSE.beef), rice = o.rice ?? sum(WAREHOUSE.rice);
-  const mk = o.market || MARKET;
-  const whFull = milk >= cap;
-  // 頂端那一列：中間是場景位置指示（場景兩個螢幕寬，滑塊佔一半），右邊是收起／展開
+  // 頂列：中間是場景位置指示（場景兩個螢幕寬，滑塊佔一半）
   const panPct = Math.max(0, Math.min(50, ((o.pan || 0) / (WIDE - 390)) * 50));
-  const head = `<div class="dock-head"><span class="pan-ind" aria-label="${t('s03.panAria')}"><i style="left:${panPct}%"></i></span>
-      <button class="dock-toggle" aria-label="${o.collapsed ? t('s03.expandAria') : t('s03.collapseAria')}"><span class="dt-pill">${o.collapsed ? t('s03.expand') : t('s03.collapse')}<span class="dt-chev${o.collapsed ? ' up' : ''}">${icon('chevron', 14)}</span></span></button></div>`;
+  const toggle = o.collapsed
+    ? `<button class="dock-toggle" aria-label="${t('s03.expandAria')}"><span class="dt-pill${full ? ' full' : ''}"><span class="dt-pail">${icon('pail', 16)}<b class="num">${full ? t('s03.full') : `${pct}%`}</b></span>${t('s03.expand')}<span class="dt-chev up">${icon('chevron', 14)}</span></span></button>`
+    : `<button class="dock-toggle" aria-label="${t('s03.collapseAria')}"><span class="dt-pill">${t('s03.collapse')}<span class="dt-chev">${icon('chevron', 14)}</span></span></button>`;
+  const head = `<div class="dock-head"><button class="wh-btn"><span class="wh-pill">${icon('barn', 18)}<span>${t('warehouseTitle')}</span></span></button><span class="pan-ind" aria-label="${t('s03.panAria')}"><i style="left:${panPct}%"></i></span>${toggle}</div>`;
+  if (o.collapsed) return `<section class="dock collapsed">${head}</section>`;
   const collectBtn = btn(o.collectLabel || t('collect'), { kind: 'blue', small: true, disabled: o.collectDisabled ?? b.qty <= 0, busy: o.collectBusy });
-  if (o.collapsed) {
-    // 收起來：只剩一條奶桶（收奶是最常按的，所以留著）；倉庫、收購價藏起來
-    return `<section class="dock collapsed">${head}
-    <article class="card bucket-slim${full ? ' is-full' : ''}">
-      <span class="bs-icon">${pailLevel(pct, 34)}</span>
-      <span class="bs-info"><span class="bs-top"><span class="bs-name">${t('bucketTitle')}</span><span class="num bs-pct">${pct}%</span>${full ? `<span class="bs-full">${t('s03.full')}</span>` : ''}</span>${bar(pct)}</span>
-      ${collectBtn}
-    </article>
-  </section>`;
-  }
-  return `<section class="dock">${head}
+  return `<section class="dock">${head}${feedBar(o.feed)}
     <article class="card bucket-card${full ? ' is-full' : ''}">
       <div class="bk-main">
         <div class="bk-icon">${pailLevel(pct)}</div>
@@ -65,26 +65,14 @@ export function dock(o = {}) {
         ${collectBtn}
       </div>
     </article>
-    <div class="dock-row">
-      <article class="card mini storage">
-        <div class="card-head"><span class="card-title">${t('warehouseTitle')}</span><span class="cap nowrap">${whFull ? t('s03.milkFull') : t('s03.milkUsed', { pct: Math.round((milk / cap) * 100) })}</span></div>
-        <div class="mini-line"><span class="ic">${icon('milk', 18)}</span>${t('milk')}<span class="num">${compact(milk)}</span><span class="u">${t('unitMilk')}</span>${fresh != null ? `<span class="r${fresh < 0.3 ? ' bad' : ''}">${icon(fresh < 0.3 ? 'leafBad' : fresh < 0.7 ? 'leafOld' : 'leaf', 13)}<span class="num">${Math.round(fresh * 100)}%</span></span>` : ''}</div>
-        <div class="mini-line"><span class="ic">${icon('beef', 18)}</span>${t('beef')}<span class="num">${compact(beef)}</span><span class="u">${t('unitBeef')}</span></div>
-        <div class="mini-line"><span class="ic">${icon('rice', 18)}</span>${t('rice')}<span class="num">${compact(rice)}</span><span class="u">${t('unitRice')}</span></div>
-      </article>
-      <article class="card mini market">
-        <div class="card-head"><span class="card-title green">${t('s03.prices')}</span><span class="cap">${t('s03.vsNormal')}</span></div>
-        ${['milk', 'beef', 'rice'].map((k) => `<div class="mini-line"><span class="ic">${icon(k === 'milk' ? 'milk' : k === 'beef' ? 'beef' : 'rice', 18)}</span>${mk[k].name}<span class="num">${mk[k].price}</span>${chgHTML(mk[k])}</div>`).join('')}
-      </article>
-    </div>
   </section>`;
 }
 
-// o.pan：場景往右捲了多少（0–390）；o.collapsed：奶桶、倉庫、行情收起來；o.swipeHint：第一次打開牧場時的滑動提示
+// o.pan：場景往右捲了多少（0–390）；o.collapsed：奶桶和飼料收起來；o.swipeHint：第一次打開牧場時的滑動提示；o.hungry：頭上有空碗的牛
 // 右上角的大便數（v0.3 第 5 節；第 13 輪 04-A）：有大便才出現；髒的程度（大便 ÷ 牛的數量）超過 0.5 就會生病，變紅
 export function dirtyPill(n, cows = PEN.used) {
   const bad = n / cows > 0.5;
-  return `<div class="dirty${bad ? ' bad' : ''}">${icon('poop', 22)}<span>${t('s03.poop')} <b class="num dp-n">${n}</b></span>${bad ? `<span class="dirty-warn">${icon('warn', 16)}<span class="dw-t">${t('s03.poopDanger')}</span></span>` : ''}</div>`;
+  return `<div class="dirty${bad ? ' bad' : ''}">${icon('poop', 22)}<span><span class="dp-t">${t('s03.poop')} </span><b class="num dp-n">${n}</b></span>${bad ? `<span class="dirty-warn">${icon('warn', 16)}<span class="dw-t">${t('s03.poopDanger')}</span></span>` : ''}</div>`;
 }
 // o.poops：場景裡有哪幾坨大便（poop.js 的 POOP_SPOTS 的編號）
 export function ranchPage(ctx, o = {}) {
@@ -99,6 +87,8 @@ export function ranchPage(ctx, o = {}) {
   }
   // 小牛頭上的想吃泡泡（第 15 輪 01-C）：o.wants 是要畫泡泡的小牛
   if (o.wants) over += o.wants.map((c) => wantBubble(c, sc.anchors[c.id])).join('');
+  // 肚子餓、現在能吃的牛頭上：空碗加問號（v0.3 第 2.2 節；使用者選第 26 輪 A）。o.hungry：牛的編號。吃飽冷卻中、長到最壯的都沒有
+  if (o.hungry) over += o.hungry.map((id) => { const a = sc.anchors[id]; return `<span class="hungry" style="left:${a.head[0]}px;top:${a.head[1] - 4}px" role="img" aria-label="${t('s03.hungry')}">${hungrySvg()}</span>`; }).join('');
   if (o.pop) {
     const a = sc.anchors[o.pop.id];
     // 名片寬 208（病牛的名片 236，S03-29）：左右都留 12，擋在畫面裡
@@ -217,6 +207,7 @@ full('S03-09', '數字最大、牛舍滿（量測用）', (ctx) => ranchPage(ctx
   dock: {
     bucket: { qty: 12261, cap: 12261, perHour: 1680 }, milk: 43786, cap: 43786, milkLots: [{ qty: 43786, fresh: 0.99 }],
     beef: 12480, rice: 9860,
+    feed: { stock: { grass: 999, hay: 999, oats: 999, alfalfa: 999, corn: 999, soy: 999 } }, // 飼料袋上的份數最大（量測用）
     market: { milk: { ...MARKET.milk, price: 20.4, chg: 70.0 }, beef: { ...MARKET.beef, price: 7.2, chg: -40.0 }, rice: { ...MARKET.rice, price: 8.5, chg: 70.0 } },
   },
 }));
@@ -258,8 +249,9 @@ draft('S03-18', '收奶成功，順便丟掉壞掉的牛奶（新文案）', '.t
   overlays: toast('ok', t('collectedSpoiled', { v: 36.4, n: 2 })),
 }));
 
-full('S03-11', '收起來：奶桶、倉庫、收購價收成一條（收奶鈕留著）', (ctx) => ranchPage(ctx, { collapsed: true }));
-part('S03-12', '收起來的那一條：奶桶滿了、奶桶是 0', '#crop', (ctx) => frame(ctx.dev, { tab: null, hud: false, content: `<div id="crop" class="g-sheet slim-sheet">${dock({ collapsed: true, bucket: { qty: 42 } })}${dock({ collapsed: true, bucket: { qty: 0 } })}</div>` }));
+// 收起（使用者 2026-10-10 選第 29 輪的提案）：奶桶和飼料一起收，只剩牧場和頂列；「展開」那顆帶奶桶的 %（收起來也看得到快滿了）
+full('S03-11', '收起來：奶桶和飼料一起收，只剩牧場；「展開」帶奶桶的 %', (ctx) => ranchPage(ctx, { collapsed: true }));
+part('S03-12', '收起來的那一排：奶桶滿了（「展開」變藍、寫「滿了」）、奶桶是 0', '#crop', (ctx) => frame(ctx.dev, { tab: null, hud: false, content: `<div id="crop" class="g-sheet slim-sheet">${dock({ collapsed: true, bucket: { qty: 42 } })}${dock({ collapsed: true, bucket: { qty: 0 } })}</div>` }));
 full('S03-13', '往右滑：牧場的另一邊（池塘、大樹）', (ctx) => ranchPage(ctx, { pan: WIDE - 390 }));
 full('S03-14', '第一次打開牧場：提示可以左右滑動（只出現一次）', (ctx) => ranchPage(ctx, { swipeHint: true }));
 // 小牛長大揭曉、變成雜種牛（v0.3 第 1.1 節；使用者 2026-10-03 選第 13 輪 03-A）：A-13 播到最後停住的樣子。
@@ -296,6 +288,33 @@ full('S03-32', '快長大了、還有沒吃的：提醒卡（一頭一張，可�
 part('S03-33', '牛舍清單：小牛的集點（吃了一半、還沒吃、集滿了、什麼都可以吃）', '#crop', (ctx) => frame(ctx.dev, {
   tab: 'ranch', content: `<div id="crop" class="list" style="padding:4px 0 8px">${[15, 21, 22, 23].map((id) => cowListRow(CALF_DEMO[id])).join('')}</div>`,
 }));
+// ---------- 餵食（v0.3 第 2.2 節；使用者 2026-10-09～10 看第 19、23、26、29 輪，D35 補充 8、10、11） ----------
+// 按住飼料列的一袋、拖到牧場地上放開：最近、現在能吃的那頭牛走過來吃（A-16）；沒有牛能吃，飼料飛回飼料列（A-17）。
+// 每次長幾公斤是隨機的（平均的 0.5–1.5 倍，伺服器抽），吃完才在頭上跳。肚子餓、現在能吃的牛頭上有空碗加問號。
+export const FEED_DROP = [212, 486]; // 丟在這裡（場景座標）：草莓牛（#12）最近、肚子餓
+export const EAT_AT = { x: 166, y: 492, facing: 'right' }; // #12 走到飼料旁邊吃的位置（牛腳）
+// 餵食的狀態、動畫：小牛（#15，剛吃過、不餓）站到右下角，中間空出來丟飼料（跟第 26 輪一樣）
+export const FEED_HERD = HERD.map((h) => (h.id === 15 ? { ...h, x: 296, y: 486, facing: 'left', depth: 1 } : h));
+const HUNGRY2 = [12, 7];
+const herdEat = FEED_HERD.map((h) => (h.id === 12 ? { ...h, ...EAT_AT } : h));
+// 拖著的飼料：只有飼料本身，底下一點影子（第 26 輪：不要圓圈底）；手指在下面
+const dragFeed = (k, x, y) => `<span class="drag-feed" style="left:${x}px;top:${y}px">${icon(`feed_${k}`, 36)}</span><span class="drag-hand" style="left:${x + 6}px;top:${y + 14}px">${icon('hand', 34)}</span>`;
+export const kgPop = (x, y, kg) => `<span class="kg-pop" style="left:${x}px;top:${y}px">${t('s03.kgGain', { kg })}</span>`;
+// 飼料列滑到最右邊（豆粕整袋露出來）：6 袋 × 68＋間隔 5 × 6＋左右各 2，減掉看得到的寬度（左右各留 12）
+const feedScrollEnd = (w) => Math.max(0, 6 * 68 + 5 * 6 + 4 - (w - 24));
+full('S03-34', '肚子餓的牛：頭上有空碗加問號（只有肚子餓、現在能吃的）', (ctx) => ranchPage(ctx, { herd: FEED_HERD, hungry: HUNGRY2 }));
+full('S03-35', '小牛想吃的那一袋：飼料列滑到最右邊，豆粕上面「小牛想吃」', (ctx) => ranchPage(ctx, { wants: [CALF_DEMO[15]], dock: { feed: { want: 'soy', scroll: feedScrollEnd(ctx.dev.w) } } }));
+full('S03-36', '丟飼料：按住玉米拖到牧場上（拖著的只有飼料，底下一點影子）', (ctx) => {
+  const sc = ranchScene(ctx.dev, HERD, { wide: true }), [dx, dy] = sc.fit.map(FEED_DROP);
+  return ranchPage(ctx, { herd: FEED_HERD, hungry: HUNGRY2, dock: { feed: { lift: 'corn', used: 'corn' } }, overlays: dragFeed('corn', dx + 40, dy + 36) });
+});
+full('S03-37', '吃完：頭上跳這次長了幾公斤（隨機，例：+5.6 公斤）；頭上的空碗不見', (ctx) => {
+  const a = ranchScene(ctx.dev, herdEat, { wide: true }).anchors[12];
+  return ranchPage(ctx, { herd: herdEat, hungry: [7], dock: { feed: { used: 'corn' } }, overlays: kgPop(a.head[0] + 20, a.head[1] - 8, '5.6') });
+});
+full('S03-38', '沒有牛能吃：飼料飛回飼料列、份數加回去，跳一行提示', (ctx) => ranchPage(ctx, { herd: FEED_HERD, dock: { feed: { back: 'corn' } }, overlays: toast('info', t('s03.noHungry')) }));
+// 大便第 10 坨以後在右半邊（cow-ui 2026-10-10 排的位置，poop.js）：往右滑才看得到，最多畫 18 坨
+full('S03-39', '大便第 10 坨以後：往右滑看到右半邊（最多畫 18 坨）', (ctx) => ranchPage(ctx, { pan: WIDE - 390, poops: [...Array(18).keys()] }));
 part('S03-10', '耕牛在田裡：清單顯示「工作中」、場景裡看不到', '#crop', (ctx) => frame(ctx.dev, {
   tab: 'ranch', content: `<div id="crop" class="list" style="padding:4px 0 8px">${COWS.filter((c) => c.field != null).map(cowListRow).join('')}</div>`,
 }));

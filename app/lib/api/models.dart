@@ -705,6 +705,7 @@ class GameState {
     this.achievements,
     this.poop = const PoopInfo(),
     this.pairings = const [],
+    this.feeds = const {},
   });
 
   final double serverTime; // 遊戲時間 Unix 秒
@@ -747,6 +748,9 @@ class GameState {
   /// v0.3 C1b：圖鑑的配種表配出過的組合（協定 2.7 `state.pairings`，先配出來的在前）。舊的伺服器沒有：空的。
   final List<PairingRecord> pairings;
 
+  /// v0.3 C1：倉庫裡每種飼料幾份（協定 2.3 `state.feeds`，key 是飼料代號）。舊的伺服器沒有：都是 0。
+  final Map<String, int> feeds;
+
   /// 綁定、解除以後換掉 [accountLinks]（協定 5.2、5.4 的回應只有 account），其他照舊，等下一次 state 校正。
   GameState withAccountLinks(List<AccountLink> links) => GameState(
     serverTime: serverTime,
@@ -774,6 +778,7 @@ class GameState {
     achievements: achievements,
     poop: poop,
     pairings: pairings,
+    feeds: feeds,
   );
 
   double? gradePrice(String grade) {
@@ -829,9 +834,13 @@ class GameState {
       achievements: Achievement.listFrom(j['achievements']),
       poop: PoopInfo.fromJson(_m(j['poop'])),
       pairings: [for (final e in _l(j['pairings'])) ?PairingRecord.fromJson(e)],
+      feeds: {for (final e in _m(j['feeds']).entries) e.key: _i(e.value)},
     );
   }
 }
+
+/// 飼料代號（協定 1.6，設計稿 feeds.js 的 FEED_KEYS）：牧場頁飼料列的順序（牧草、乾草、燕麥、苜蓿、玉米、豆粕）。
+const kFeedOrder = ['grass', 'hay', 'oats', 'alfalfa', 'corn', 'soy'];
 
 /// `state.poop`（v0.3 C1，協定 2.3）：全場還沒清的大便 [total]（坨，= 每頭牛的 `poop` 加起來）、髒的程度 [dirt]
 /// （= total ÷ 牛的頭數；超過 `economy.sick_dirt_free` 才會生病）、新手保護到什麼時候 [safeUntil]（過了是 null）。

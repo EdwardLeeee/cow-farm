@@ -1,7 +1,7 @@
 // M2 動畫 A-01～A-10：每個動畫是「底圖＋frame(t)」，t 是秒。frame 只依 t 決定畫面（可以停在任何一格截圖）。
 // 揭曉類（A-04、A-06、A-09、A-10）控制在 1.5 秒內，點一下可以跳過。減少動態（手機系統設定）時各自的替代做法寫在 reduced。
 import { frame, btn, icon, fmt, cowSVG, toast, tierChip, badge, dialog, useChip } from './kit.js';
-import { ranchPage, dock } from './screens/s03.js';
+import { ranchPage, dock, FEED_DROP, EAT_AT, FEED_HERD } from './screens/s03.js';
 import { HERD, fit, ranchScene, WIDE } from './scene.js';
 import { drawCow } from '../cow/render.js';
 import { RANCH, WAREHOUSE, sum, FIELDS, cowById } from './fixtures.js';
@@ -29,17 +29,18 @@ function skipHint(on) { return on ? `<div class="skip-hint">${T('anim.skip')}</d
 // ---------- A-01 收奶 ----------
 const A01 = {
   id: 'A-01', name: '收奶', dur: 1.4, where: 'S03 牧場',
-  keys: [[0, '按下「收奶」'], [0.35, '奶瓶從奶桶飛出，奶桶的水位往下降'], [0.7, '奶瓶飛進倉庫卡，牛奶數字往上跳'], [1.05, '奶桶歸零，倉庫 +36 瓶'], [1.4, '提示「收了 36.4 瓶牛奶」']],
-  reduced: '不飛奶瓶、數字不跳動：按下後奶桶直接變 0、倉庫直接變 166 瓶，提示淡入（0.2 秒）。',
+  keys: [[0, '按下「收奶」'], [0.35, '奶瓶從奶桶飛出，奶桶的水位往下降'], [0.7, '奶瓶飛進左上角的「倉庫」小鈕，小鈕跳一下'], [1.05, '奶桶歸零'], [1.4, '提示「收了 36.4 瓶牛奶」']],
+  // v0.3：倉庫卡拿掉了（第 23 輪 03-B），奶瓶改成飛進頂列左邊的「倉庫」小鈕
+  reduced: '不飛奶瓶：按下後奶桶直接變 0，提示淡入（0.2 秒）；「倉庫」小鈕不跳。',
   base: (ctx) => ranchPage(ctx),
   frame(root, t) {
     const L = layer(root);
     if (!L.children.length) L.innerHTML = [0, 1, 2, 3, 4].map(() => `<span class="fly">${icon('milk', 28)}</span>`).join('') + toast('ok', T('collected', { v: 36.4 }), { style: 'opacity:0' });
-    const bk = root.querySelector('.bucket-card'), from = rel(root, root.querySelector('.bk-icon')), to = rel(root, root.querySelector('.storage .mini-line'));
+    const bk = root.querySelector('.bucket-card'), from = rel(root, root.querySelector('.bk-icon')), to = rel(root, root.querySelector('.wh-pill'));
     const btnEl = bk.querySelector('.btn'); btnEl.style.transform = `scale(${t < 0.15 ? 1 - 0.06 * Math.sin(Math.PI * seg(t, 0, 0.15)) : 1})`;
     [...L.querySelectorAll('.fly')].forEach((el, i) => {
       const k = seg(t, 0.1 + i * 0.08, 0.6 + i * 0.08);
-      const p = arc({ x: from.cx, y: from.cy }, { x: to.x + 20, y: to.cy }, outCubic(k), 90);
+      const p = arc({ x: from.cx, y: from.cy }, { x: to.cx, y: to.cy }, outCubic(k), 90);
       place(el, p.x, p.y, { s: 0.7 + 0.5 * Math.sin(Math.PI * k), r: -20 + 40 * k, o: k > 0 && k < 1 ? 1 : 0 });
     });
     const drain = inOut(seg(t, 0.1, 0.85)), pct = Math.round(87 * (1 - drain)), qty = 36.4 * (1 - drain);
@@ -47,8 +48,8 @@ const A01 = {
     bk.querySelector('.bar i').style.width = `${pct}%`;
     bk.querySelector('.bk-count .num').textContent = `${qty < 0.05 ? 0 : qty.toFixed(1)} / 42`;
     bk.querySelector('.bk-rate').textContent = T('s03.fullIn', { time: drain >= 1 ? dur({ h: 1 }) : dur({ m: 9 }) });
-    const gain = outCubic(seg(t, 0.55, 1.05));
-    root.querySelector('.storage .mini-line .num').textContent = `${Math.round(130 + 36.4 * gain)}`;
+    const hop = seg(t, 0.55, 1.05), wh = root.querySelector('.wh-pill');
+    wh.style.transform = `scale(${(1 + 0.12 * Math.sin(Math.PI * hop)).toFixed(3)})`;
     const tk = seg(t, 1.0, 1.2), ts = L.querySelector('.toast'); ts.style.opacity = tk; ts.style.transform = `translateY(${(1 - outCubic(tk)) * 14}px)`;
   },
 };
@@ -547,4 +548,82 @@ const A15 = {
   },
 };
 
-export const ANIMS = [A01, A02, A03, A04, A05, A06, A07, A08, A09, A10, A11, A12, A13, A14, A15];
+// ---------- A-16、A-17 丟飼料（v0.3 第 2.2 節；使用者 2026-10-09～10 看第 23、26、29 輪，D35 補充 10、11） ----------
+// 按住飼料列的一袋、拖到牧場地上放開。最近、現在能吃的那頭走過來吃，吃完頭上跳這次長了幾公斤（隨機）；沒有牛能吃，飼料飛回飼料列。
+// 拖著的只有飼料本身（不要圓圈底），落地揚起一點灰塵；不畫遠近（第 26 輪）。
+const FEED_K = 'corn';
+const dropOverlays = (ctx, extra = '') => {
+  const [dx, dy] = ranchScene(ctx.dev, HERD, { wide: true }).fit.map(FEED_DROP);
+  return `<span class="drag-feed" style="left:0;top:0;opacity:0">${icon(`feed_${FEED_K}`, 36)}</span>
+    <span class="ground-feed" data-x="${dx}" data-y="${dy}" style="left:${dx}px;top:${dy}px;opacity:0">${icon(`feed_${FEED_K}`, 30)}</span>
+    <span class="dust" style="left:${dx}px;top:${dy}px"><i></i><i></i><i></i></span>${extra}<div class="finger" style="opacity:0">${POINTER()}</div>`;
+};
+const sackOf = (root) => root.querySelector(`.fb-item[data-feed="${FEED_K}"]`);
+// 按住 → 拖出去 → 放開（0–1.3 秒，兩個動畫一樣）
+function dragFrame(root, t) {
+  const item = sackOf(root), s = rel(root, item.querySelector('.sack')), g = root.querySelector('.ground-feed');
+  const a = { x: s.cx, y: s.cy }, b = { x: +g.dataset.x, y: +g.dataset.y - 14 };
+  item.classList.toggle('lift', t >= 0.25 && t < 1.0);
+  const k = inOut(seg(t, 0.35, 1.0)), p = arc(a, b, k, 60);
+  const df = root.querySelector('.drag-feed');
+  place(df, p.x, p.y, { o: t >= 0.35 && t < 1.02 ? 1 : 0 });
+  const f = root.querySelector('.finger');
+  f.style.opacity = t < 0.15 ? seg(t, 0, 0.15) : 1 - seg(t, 1.0, 1.2);
+  const fp = t < 0.35 ? a : p;
+  f.style.transform = `translate(${(fp.x + 4 - 13).toFixed(2)}px, ${(fp.y + 14 - 2).toFixed(2)}px) scale(${t >= 0.18 && t < 1.0 ? 0.92 : 1})`;
+  const land = seg(t, 1.0, 1.15);
+  g.style.opacity = land; g.style.transform = `translate(-50%, -100%) scale(${0.6 + 0.4 * outBack(land)})`;
+  const dk = seg(t, 1.0, 1.5);
+  root.querySelectorAll('.dust i').forEach((el, i) => { const dir = [-1, 1, -0.2][i]; el.style.opacity = dk > 0 && dk < 1 ? 0.9 * (1 - dk) : 0; el.style.transform = `translate(${dir * (6 + 14 * dk)}px, ${-4 - 6 * dk * (i === 2 ? 1.6 : 1)}px) scale(${0.8 + 0.8 * dk})`; });
+  return { item, g, a };
+}
+function setStock(item, n, back = false) { item.querySelector('.sk-n').textContent = n; item.classList.toggle('back', back); }
+const A16 = {
+  id: 'A-16', name: '丟飼料：最近、肚子餓的牛走過來吃', dur: 4.6, where: 'S03 牧場（按住飼料列的一袋，拖到牧場地上放開）',
+  keys: [[0, '肚子餓的牛頭上有空碗加問號（草莓牛、娟珊）'], [0.3, '按住玉米：袋子浮起來、轉一下'], [0.7, '拖到牧場的草地上（拖著的只有飼料本身）'], [1.15, '放開：飼料落地，揚起一點灰塵；玉米少一份'], [2.1, '最近、肚子餓的草莓牛走過來'], [3.1, '低頭吃，「嚼嚼」'], [3.7, '吃完：頭上的空碗不見，跳「+5.6 公斤」（每次隨機）'], [4.6, '停住']],
+  reduced: '不播拖曳、走路的動畫：放開後飼料直接在地上，那頭牛直接出現在飼料旁邊，飼料不見；頭上的空碗消失，「+5.6 公斤」淡入 0.2 秒。',
+  base: (ctx) => {
+    const a = ranchScene(ctx.dev, FEED_HERD.map((h) => (h.id === 12 ? { ...h, ...EAT_AT } : h)), { wide: true }).anchors[12];
+    const k = ranchScene(ctx.dev, HERD, { wide: true }).fit.k;
+    return ranchPage(ctx, { herd: FEED_HERD, hungry: [12, 7], overlays: dropOverlays(ctx, `<span class="chew" style="left:${a.head[0] + 34}px;top:${a.head[1] + 30}px;opacity:0">${T('anim.chew')}</span><span class="kg-pop" data-k="${k}" style="left:${a.head[0] + 20}px;top:${a.head[1] - 8}px;opacity:0">${T('s03.kgGain', { kg: '5.6' })}</span>`) });
+  },
+  frame(root, t) {
+    const { item, g } = dragFrame(root, t);
+    setStock(item, t >= 0.35 ? 4 : 5);
+    // 草莓牛（#12）走過去：整頭牛移動（場景座標），一搖一搖；頭上的空碗跟著走（畫面座標 × k）
+    const cow = root.querySelector('.herd-cow[data-cow="12"]'), cx = +cow.dataset.x, cy = +cow.dataset.y;
+    const w = seg(t, 1.4, 2.8), e = inOut(w), dx = (EAT_AT.x - cx) * e, dy = (EAT_AT.y - cy) * e;
+    cow.setAttribute('transform', `translate(${dx.toFixed(2)} ${dy.toFixed(2)})`);
+    const wave = w > 0 && w < 1 ? Math.sin(w * Math.PI * 6) : 0, eatK = seg(t, 2.85, 3.45);
+    const nod = eatK > 0 && eatK < 1 ? Math.sin(eatK * Math.PI * 4) * 4 : 0;
+    cow.querySelector('.cow-body').setAttribute('transform', `translate(${cx} ${(cy - Math.abs(wave) * 2.4).toFixed(2)}) rotate(${(wave * 2.2 + nod).toFixed(2)}) translate(${-cx} ${-cy})`);
+    const kk = +root.querySelector('.kg-pop').dataset.k, hg = root.querySelectorAll('.hungry')[0];
+    hg.style.transform = `translate(-50%, -100%) translate(${(dx * kk).toFixed(2)}px, ${(dy * kk).toFixed(2)}px)`;
+    hg.style.opacity = 1 - seg(t, 3.4, 3.55);
+    // 吃：地上的飼料越來越小；「嚼嚼」
+    if (t >= 2.9) { const s2 = 1 - seg(t, 2.9, 3.4); g.style.transform = `translate(-50%, -100%) scale(${s2.toFixed(3)})`; g.style.opacity = s2 > 0.02 ? 1 : 0; }
+    const ch = root.querySelector('.chew'); ch.style.opacity = t >= 2.85 && t < 3.5 ? 1 : 0; ch.style.transform = `rotate(-6deg) translateY(${-3 * Math.abs(Math.sin(t * 12))}px)`;
+    // 吃完：頭上跳這次長了幾公斤，往上飄一點
+    const kp = root.querySelector('.kg-pop'), ku = seg(t, 3.5, 3.65);
+    kp.style.opacity = ku; kp.style.transform = `translate(-50%, -100%) translateY(${(-14 * seg(t, 3.5, 4.4)).toFixed(2)}px) scale(${(0.8 + 0.2 * outBack(ku)).toFixed(3)})`;
+  },
+};
+const A17 = {
+  id: 'A-17', name: '丟飼料：沒有牛能吃，飼料飛回去', dur: 3.4, where: 'S03 牧場（丟出去的時候，沒有一頭牛現在能吃）',
+  keys: [[0, '牛都吃飽了（頭上沒有空碗）'], [0.6, '按住玉米拖到牧場上'], [1.15, '放開：飼料落地'], [2.1, '等一下沒有牛過來，飼料閃兩下'], [2.7, '飛回飼料列'], [3.1, '玉米的份數加回去（數字變綠一下），跳一行「現在沒有肚子餓的牛，飼料放回去了」'], [3.4, '停住']],
+  reduced: '放開後飼料直接回到飼料列（份數不變、數字變綠一下），跳一行「現在沒有肚子餓的牛，飼料放回去了」。',
+  base: (ctx) => ranchPage(ctx, { herd: FEED_HERD, overlays: dropOverlays(ctx, toast('info', T('s03.noHungry'), { style: 'opacity:0' })) }),
+  frame(root, t) {
+    const { item, g, a } = dragFrame(root, t);
+    setStock(item, t >= 0.35 && t < 3.0 ? 4 : 5, t >= 3.0);
+    if (t >= 2.0) {
+      const blink = t < 2.4 ? (Math.sin((t - 2.0) * Math.PI * 10) > 0 ? 0.35 : 1) : 1;
+      const k = inOut(seg(t, 2.4, 3.0)), b = { x: +g.dataset.x, y: +g.dataset.y - 14 }, p = arc(b, a, k, 90);
+      g.style.opacity = t < 3.0 ? blink : 0;
+      g.style.transform = t < 2.4 ? 'translate(-50%, -100%)' : `translate(${(p.x - b.x).toFixed(2)}px, ${(p.y - b.y).toFixed(2)}px) translate(-50%, -100%) scale(${(1 - 0.4 * k).toFixed(3)})`;
+    }
+    const ts = root.querySelector('.toast'); ts.style.opacity = seg(t, 3.0, 3.2);
+  },
+};
+
+export const ANIMS = [A01, A02, A03, A04, A05, A06, A07, A08, A09, A10, A11, A12, A13, A14, A15, A16, A17];

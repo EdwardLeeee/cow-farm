@@ -146,7 +146,7 @@ export function measure(terms = []) {
       if (b.contains(t.el) || t.el.contains(b)) return;
       const r = visRect(b, b.getBoundingClientRect());
       const x = Math.min(t.vr.right, r.right) - Math.max(t.vr.left, r.left), y = Math.min(t.vr.bottom, r.bottom) - Math.max(t.vr.top, r.top);
-      const OV = '.dialog, .sheet, .toast, .cow-pop, .hud-offline, .bubble, .lv-wrap, .reveal, .grow-alert, .long-off, .big-news, .notice.float, .coach.on-ranch, .swipe-hint';
+      const OV = '.dialog, .sheet, .toast, .cow-pop, .hud-offline, .bubble, .lv-wrap, .reveal, .grow-alert, .long-off, .big-news, .notice.float, .coach.on-ranch, .swipe-hint, .hungry, .kg-pop, .drag-feed, .drag-hand, .ground-feed, .chew';
       if (x > 2 && y > 2 && !!t.el.closest(OV) === !!b.closest(OV)) overlaps.push([t.text, '按鈕:' + b.textContent.trim().slice(0, 10)]);
     });
   });
@@ -156,7 +156,7 @@ export function measure(terms = []) {
   //   在字下面、不是字的上層也不是字自己帶的圖示、是一張圖（SVG 的線條／色塊、圖片），而且這張圖沒有整個包住字 →「圖」（整個包住的是底圖）
   //   不算：對話框、提示、泡泡疊在頁面上（故意的）；浮在牧場場景（.scene）上的介面；
   //   捲動區裡的字被捲動區外面的東西（分頁列、下方按鈕區）蓋住，而且還能往那邊捲（捲了就看得到，算「要捲」）
-  const OVL = '.backdrop, .backdrop ~ *, .dialog, .sheet, .toast, .cow-pop, .bubble, .hud-offline, .lv-wrap, .reveal, .grow-alert, .long-off, .big-news, .notice.float, .coach.on-ranch, .swipe-hint';
+  const OVL = '.backdrop, .backdrop ~ *, .dialog, .sheet, .toast, .cow-pop, .bubble, .hud-offline, .lv-wrap, .reveal, .grow-alert, .long-off, .big-news, .notice.float, .coach.on-ranch, .swipe-hint, .hungry, .kg-pop, .drag-feed, .drag-hand, .ground-feed, .chew';
   const SHAPES = ['path', 'circle', 'ellipse', 'rect', 'polygon', 'polyline', 'line', 'text', 'use', 'image'];
   const picOf = (e) => (e instanceof SVGElement ? (SHAPES.includes(e.tagName.toLowerCase()) ? e.ownerSVGElement : null) : /^(IMG|CANVAS|VIDEO)$/.test(e.tagName) ? e : null);
   const memo = (f) => { const m = new Map(); return (e) => { if (!m.has(e)) m.set(e, f(e)); return m.get(e); }; };
