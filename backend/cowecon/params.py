@@ -13,7 +13,7 @@ v0.2（2026-09-30，企劃書 4.0／決定 D17）：乳牛／耕牛／肉牛、�
 （第三種行情商品）、商店只挑 A／B／C 等級、出貨評 A／B／C 級、每頭牛一輩子配一次、借種市場。
 
 v0.3（2026-10-03，docs/design/v0.3-care.md／決定 D35）：照顧（CareParams）：小牛長大才揭曉、飼料與雜種牛、地板、
-大便與生病、治療、打掃小幫手。
+大便與生病、治療、大便掃地機（2026-10-10 起不能雇打掃牛）。
 """
 
 from __future__ import annotations
@@ -389,11 +389,90 @@ FEED_IDS: Tuple[str, ...] = ("grass", "hay", "oats", "alfalfa", "corn", "soy")
 
 
 @dataclass(frozen=True)
+class FeedMarketParams:
+    """飼料市場（v0.3 B，企劃第 3 節；ceo 2026-10-09 核准）：六種飼料各一個全服市價，參數共用，
+    基本價是 CareParams.feed_price，代號是 CareParams.feed_ids。跟牛奶、牛肉、稻米分開（Exchange.feeds），
+    亂數、新聞也分開，所以那三種的行情一點都不受影響。
+
+    價格跟牛奶等一樣分三層（D33）：log(新聞以外) = 時段 + 雜訊 x + 壓力 y，軟邊界、硬邊界只管這部分；乘上新聞倍數
+    （飼料只有一般、大事件，FEED_EVENTS）；總價格最後夾在 price_lo–price_hi（ceo：0.5–2.0 倍。飼料沒有超級事件，
+    太便宜會讓「便宜買飼料灌小牛」的套利成立，太貴會卡住新手）。
+
+    壓力兩邊：e =（全服買進量 − 賣回量）÷ 平常的買進量 − 1。買得比平常多（e > 0）往上推 hot_per_h·e；沒人買
+    （−1 ≤ e < 0）慢慢往下 cold_per_h·e；賣回的比平常的買進還多（e < −1）再往下 hot_per_h·(−1 − e)。
+    長期存在的壓力被吸收（pressure_absorb_s），長期平均回到基本價。
+    買很多會滑價（越買越貴，跟賣出的滑價對稱）；賣回 = 市價 ×（1 − sell_fee）× 滑價。每位玩家計入壓力的量有上限，
+    買進、賣回各算各的。所有時間都是真實時間，跟 tick 大小無關（跟 Market 一樣）。"""
+
+    # 時段波動（比牛奶小）
+    intraday_amp: float = 0.03
+    intraday_peak_hour: float = 18.0
+    weekly_amp: float = 0.02
+    weekly_peak_day: float = 5.0
+    # 雜訊
+    noise_half_life_s: float = 12 * HOUR
+    noise_sd: float = 0.05
+    # 壓力
+    pressure_half_life_s: float = 3 * HOUR
+    pressure_absorb_s: float = 48 * HOUR
+    hot_per_h: float = 0.10
+    cold_per_h: float = 0.01
+    excess_clip: float = 1.5  # e 夾在 [−1 − excess_clip, excess_clip]
+    flow_tau_s: float = 30 * MINUTE
+    online_tau_s: float = 30 * MINUTE
+    ref_tau_s: float = 24 * HOUR
+    ref_warmup_s: float = 2 * HOUR
+    npc_online_equiv: float = 2.0  # 電腦飼料商 = 幾位線上玩家的買進量；人少時由它補足
+    online_surge_cap: float = 3.0
+    ref_flow_prior: float = 20.0  # 開服時平常的買進量預設值（份／小時）
+    # 每位玩家的影響上限（買進、賣回各一份）
+    player_cap_frac: float = 0.25
+    player_cap_window_s: float = 1 * HOUR
+    # 滑價
+    slip_kappa: float = 0.3
+    slip_qmax: float = 1.0
+    slip_window_s: float = 1 * HOUR
+    slip_typical_mult: float = 10.0
+    slip_decay_s: float = 1 * HOUR
+    order_size_prior: float = 10.0
+    order_size_tau_s: float = 12 * HOUR
+    order_size_update_cap: float = 5.0
+    # 賣回的手續費（企劃第 3 節起點 25%）
+    sell_fee: float = 0.25
+    # 邊界（基本價倍數）
+    soft_lo: float = 0.7
+    soft_hi: float = 1.5
+    soft_half_life_s: float = 20 * MINUTE
+    hard_lo: float = 0.6
+    hard_hi: float = 1.8
+    price_lo: float = 0.5
+    price_hi: float = 2.0
+    ma_window_s: float = 24 * HOUR
+
+
+# 飼料新聞（v0.3 B；ceo 2026-10-03：只有一般和大事件，不出超級大事件、黑天鵝）：一則只作用在一種飼料，
+# 六種加起來每天約 3 則。級別機率照牛奶等的一般：大事件的比例。新聞倍數相乘的上下限跟總價格一樣 0.5–2.0。
+FEED_EVENTS = EventParams(
+    rate_per_day=3.0,
+    targets=tuple(((fid,), 1.0 / len(FEED_IDS)) for fid in FEED_IDS),
+    tiers=(
+        ("normal", 0.825, 0.05, 0.15, 0.5),
+        ("big", 0.175, 0.25, 0.40, 0.5),
+    ),
+    total_cap_up=2.0,
+    total_cap_down=0.5,
+)
+
+
+@dataclass(frozen=True)
 class CareParams:
-    # --- 飼料（第 2 節；ceo 2026-10-03：每次長固定公斤數，不用百分比）---
+    # --- 飼料（第 2 節；ceo 2026-10-03：長公斤數，不用百分比）：每次長的公斤數隨機（使用者 2026-10-10 選「改成隨機」），
+    # 平均 feed_kg ×（1 ± feed_kg_spread）均勻分布，平均跟以前的固定公斤數一樣 ---
+    feed_ids: Tuple[str, ...] = FEED_IDS
     feed_names: Tuple[str, ...] = ("牧草", "乾草", "燕麥", "苜蓿", "玉米", "豆粕")
-    feed_kg: Tuple[float, ...] = (1.0, 1.5, 2.0, 3.0, 5.0, 8.0)  # 吃一份長幾公斤（越貴長越多）
-    feed_price: Tuple[float, ...] = (5.0, 10.0, 15.0, 20.0, 30.0, 45.0)  # 幣／份。PR A 用這個固定價買；飼料市場在 PR B
+    feed_kg: Tuple[float, ...] = (1.0, 1.5, 2.0, 3.0, 5.0, 8.0)  # 吃一份平均長幾公斤（越貴長越多）
+    feed_kg_spread: float = 0.5  # 這次長的 = 平均 × U(1 − spread, 1 + spread)：0.5–1.5 倍
+    feed_price: Tuple[float, ...] = (5.0, 10.0, 15.0, 20.0, 30.0, 45.0)  # 幣／份：飼料市場的基本價（v0.3 B 起照市價買）
     bonus_max_kg: float = 60.0  # 每頭牛的飼料加成最多幾公斤，不會減少
     # 加成跟著年紀長出來：體重 = 照年紀的體重 + 加成 ×（成年後的年紀 ÷ 長到最壯的時間，最多 1）。剛成年時加成還沒長出來，
     # 「買 C 級小牛、灌飼料、一長大就出貨」才不會變成套利（固定公斤的話市價 1.36 倍就回本）。
@@ -421,9 +500,9 @@ class CareParams:
     # ceo 2026-10-08 照使用者原話（D35「長快的讓小牛快長大、快到最壯，長慢的讓壯年維持更久」）分兩段：
     # floor_speed 乘「長到最壯之前」（小牛長大、成牛長到最壯），floor_late_speed 乘「過了最壯以後」（變老、產量下降、
     # 肉質變差）。乳牛的產奶全速期在最壯之前，所以長快地板也會讓它變短：各玩法適合的地板不一樣。
-    # 長快地板只用租的（ceo 2026-10-08）：一次買斷的話收入一直多 15–44%，人人必買；按天付租金（跟小幫手一樣預付、到期回
+    # 長快地板只用租的（ceo 2026-10-08）：一次買斷的話收入一直多 15–44%，人人必買；按天付租金（預付、到期回
     # 泥土地），牛少的新手不划算、牧場大了才值得。軟墊地一次買斷，另外讓這個牛舍的牛生病速度 ×floor_sick_mult
-    # （給不雇小幫手、想留好牛多產幾天的人用；只放慢變老的話免費也沒人要）。
+    # （給不買掃地機、想留好牛多產幾天的人用；只放慢變老的話免費也沒人要）。
     floor_ids: Tuple[str, ...] = ("dirt", "hay_bed", "meadow", "cushion")
     floor_names: Tuple[str, ...] = ("泥土地", "乾草床", "青草地", "軟墊地")
     floor_speed: Tuple[float, ...] = (1.0, 1.25, 1.5, 1.0)
@@ -437,7 +516,7 @@ class CareParams:
     poop_every_s: float = 3 * HOUR  # 每頭牛（小牛也算）每 3 小時一坨
     poop_max_per_cow: int = 4  # 每頭牛最多累積幾坨，之後不再增加
     # 每頭牛每小時生病的機率 = sick_rate_per_h ×（髒的程度 − sick_dirt_free），髒的程度 = 還沒清的大便 ÷ 牛的數量。
-    # 使用者 2026-10-08 選「調一半：睡一覺偶爾有病牛」：10 頭牛的牧場睡前清乾淨、不雇小幫手，睡 8 小時後大約 1/4 的機會
+    # 使用者 2026-10-08 選「調一半：睡一覺偶爾有病牛」：10 頭牛的牧場睡前清乾淨、沒有掃地機，睡 8 小時後大約 1/4 的機會
     # 至少一頭病牛（規格起點 1.5% 是 2/3）；一整天不管約九成。0.4% 照這個校準（test_care 的 TestSickness 鎖住）。
     sick_rate_per_h: float = 0.004
     sick_dirt_free: float = 0.5
@@ -445,19 +524,19 @@ class CareParams:
     cure_price: float = 5000.0  # 治療一頭，馬上好（使用者選「固定很貴」）
     sick_beef_mult: float = 0.1  # 病牛出貨，牛肉價值只剩一成
 
-    # --- 打掃牛（5.1 節；使用者 2026-10-09 把「打掃小幫手」改名，規則一樣。程式裡照舊叫 helper）---
-    helper_price_per_day: float = 2000.0  # ceo 2026-10-08 從 800 漲（目標：小幫手、地板、治療等花費佔收入 5–15%）
-    helper_max_days: int = 7  # 最多一次預付幾天（遊戲時間）
-    helper_clean_s: float = 30 * MINUTE  # 雇用期間每 30 分鐘清掉全部大便（雇用那一刻也清一次）
-
-    # --- 大便掃地機（使用者 2026-10-09 選兩款，cow-back 試算的 R3）：一次買斷，開始動以後每 robot_clean_s 清掉全部大便
-    # （比打掃牛慢）。會隨機壞掉：每次開始動（買來、修好）抽一個壞掉的時間，平均 robot_mtbf_d 天；壞了就停，付修理費才再動。
-    # 牛多又常上線的人買掃地機划算，常常不在的人（壞了沒人修）雇打掃牛划算。一次只有一台，買另一款就換掉舊的。---
+    # --- 打掃（5.1 節）：不能再花錢雇打掃牛（使用者 2026-10-10 取消）；掃地牛改成特別牛（C3）。
+    # 大便掃地機（使用者 2026-10-09 選兩款；2026-10-10 改成耐久值、不能修）：一次買斷，買來那一刻先清一次，之後每
+    # robot_clean_s 清掉全部大便。耐久值買來是 robot_durability，每清一次隨機扣（指數分布，平均見 farm.robot_wear_mean），
+    # 扣到 0 那一次清完就壞，要重新買（買的時候再挑款式）。平均壽命 robot_life_d 天（遊戲時間）。
+    # 一次只有一台：還在動的時候不能買。---
     robot_ids: Tuple[str, ...] = ("basic", "sturdy")
     robot_names: Tuple[str, ...] = ("基本款", "耐用款")  # 乳牛紋圓盤、透明圓頂
-    robot_price: Tuple[float, ...] = (3000.0, 12000.0)
-    robot_mtbf_d: Tuple[float, ...] = (1.0, 3.0)  # 平均幾天（遊戲時間）壞一次
-    robot_repair: Tuple[float, ...] = (750.0, 3000.0)  # 修理費（買價的 1/4）
+    # 使用者 2026-10-10 選「基本 12,000／耐用 24,000」（cow-back 試算的 B）：牛 10 頭以下的電腦玩家幾乎不買（買的時候
+    # ≤10 頭只佔 1–3%）、照顧花費佔收入 7–20%、週差距 10 人 1.378（seed 1–20）／100 人 1.438。耐用款每天比基本款便宜約
+    # 14%（買價 2 倍、壽命 7/3 倍），買得起的多半買耐用款；起點 3,000／12,000 的 10 人第 1 週 1.762。
+    robot_price: Tuple[float, ...] = (12000.0, 24000.0)
+    robot_life_d: Tuple[float, ...] = (3.0, 7.0)  # 平均壽命（遊戲天）
+    robot_durability: float = 100.0  # 買來的耐久值（state 給整數）
     robot_clean_s: float = 60 * MINUTE
 
     # --- 牧場資料（v0.3 第 8 節、D34）：改名第一次免費，之後每次這個價錢（S21 時先放伺服器常數，v0.3 搬進參數）---
@@ -491,6 +570,8 @@ class EconomyParams:
     farm: FarmParams = field(default_factory=FarmParams)
     onboarding: OnboardingParams = field(default_factory=OnboardingParams)
     care: CareParams = field(default_factory=CareParams)
+    feedmarket: FeedMarketParams = field(default_factory=FeedMarketParams)  # v0.3 B：飼料市場（六種共用）
+    feed_events: EventParams = FEED_EVENTS  # v0.3 B：飼料新聞（另一個新聞產生器）
 
     def commodity(self, cid: str) -> CommodityParams:
         if cid not in self.commodity_ids:

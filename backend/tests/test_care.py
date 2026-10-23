@@ -2,10 +2,13 @@
 
 - 服務層（不需要資料庫）：餵食的規則和錯誤、全部餵的順序、長大揭曉（圖鑑、成就、配種表）、成就 clean 的時間、
   病牛的限制、GET 用的結算複本跟下一個動作存的一樣。
-- HTTP（需要 PostgreSQL）：餵食和揭曉、雜種牛的奶和肉、大便和生病和治療、小幫手、地板。
+- HTTP（需要 PostgreSQL）：餵食和揭曉、雜種牛的奶和肉、大便和生病和治療、地板、大便掃地機。
 """
 
 from __future__ import annotations
+
+import math
+import random
 
 import pytest
 
@@ -68,13 +71,18 @@ def test_feed_rules_and_errors():
     old = adult(p, HOLSTEIN, False, now, age_h=FP.peak_age_h[0] + 1)  # 過了最壯
     young = adult(p, ANGUS, True, now, age_h=1)
     assert code_of(game.feed, p.pid, young.cid, OATS, now).code == "out_of_feed"
-    assert game.buy_feed(p.pid, OATS, 3, now)["cost"] == int(CP.feed_price[OATS] * 3)
+    quote = p.farm.quote_feed_buy(OATS, 3, game.ex.feeds["oats"], now)  # v0.3 B：照市價（含滑價）
+    assert game.buy_feed(p.pid, OATS, 3, now)["cost"] == int(round(quote.amount))
     assert code_of(game.buy_feed, p.pid, OATS, CP.feed_cap, now).code == "feed_cap"
     assert code_of(game.buy_feed, p.pid, "oats", 0, now).code == "bad_request"
     e = code_of(game.feed, p.pid, old.cid, OATS, now)
     assert e.code == "feed_no_effect" and e.detail == {"cow_id": old.cid, "reason": "past_peak"}
-    game.feed(p.pid, young.cid, OATS, now)
-    assert young.bonus == CP.feed_kg[OATS] and f.feeds[OATS] == 2
+    n0 = p.rng_n
+    r = game.feed(p.pid, young.cid, OATS, now)
+    # 長幾公斤隨機（2026-10-10）：真人用伺服器秘密種子、玩家、計數導出的亂數（玩家算不出來）
+    draw = random.Random(f"{game.seed}:rng:{p.pid}:{n0 + 1}").uniform(1 - CP.feed_kg_spread, 1 + CP.feed_kg_spread)
+    assert p.rng_n == n0 + 1 and r["kg"] == pytest.approx(CP.feed_kg[OATS] * draw)
+    assert young.bonus == r["kg"] and f.feeds[OATS] == 2
     e = code_of(game.feed, p.pid, young.cid, OATS, now + 60)
     assert e.code == "cow_full" and e.detail == {"cow_id": young.cid, "until": now + CP.feed_cooldown_s}
     young.bonus = CP.bonus_max_kg
@@ -101,7 +109,9 @@ def test_feed_all_feeds_calves_first_then_by_id():
     cow, starter_calf = f.cows
     late = calf(p, HOLSTEIN, now=now)
     game.buy_feed(p.pid, OATS, 2, now)
-    assert game.feed_all(p.pid, "oats", now)["fed"] == [starter_calf.cid, late.cid]  # 小牛先（照編號）
+    r = game.feed_all(p.pid, "oats", now)
+    assert r["fed"] == [starter_calf.cid, late.cid]  # 小牛先（照編號）
+    assert r["kg"] == [starter_calf.bonus, late.bonus] and r["kg"][0] != r["kg"][1]  # 每頭各抽各的
     game.buy_feed(p.pid, OATS, 5, now)
     assert game.feed_all(p.pid, "oats", now)["fed"] == [cow.cid]  # 小牛吃飽了，剩成牛
     assert code_of(game.feed_all, p.pid, "oats", now).code == "nothing_to_feed"
@@ -260,8 +270,10 @@ def test_http_feed_reveal_hybrid_milk_and_beef(h):
     assert e["detail"] == {"feed": "oats"}
     err(h.post("/v1/feed", tok, {"cow_id": good.cid, "feed": "pizza", "request_id": new_rid()}), 400, "bad_request")
     coins = st["coins"]
+    price = st["feed_quotes"]["oats"]  # v0.3 B：現在的市價
     r = h.post("/v1/feed/buy", tok, {"feed": "oats", "qty": 3, "request_id": new_rid()}).json()
-    assert r["cost"] == int(CP.feed_price[OATS] * 3) and r["feeds"]["oats"] == 3 and r["coins"] == coins - r["cost"]
+    assert 3 * price <= r["cost"] <= 3 * price * (1 + DEFAULT.feedmarket.slip_kappa) + 1  # 市價 ×（1 + 滑價）
+    assert r["feeds"]["oats"] == 3 and abs(r["coins"] - (coins - r["cost"])) <= 1
     h.post("/v1/feed/buy", tok, {"feed": "soy", "qty": 1, "request_id": new_rid()})
     rid = new_rid()
     r = h.post("/v1/feed", tok, {"cow_id": good.cid, "feed": "oats", "request_id": rid}).json()
@@ -306,8 +318,8 @@ def test_http_feed_reveal_hybrid_milk_and_beef(h):
     assert beef["hybrid"] is True and beef["tier"] == 0 and beef["breed"] == "hybrid" and beef["cow_id"] == bad.cid
 
 
-def test_http_poop_sick_cure_helper(h):
-    """大便、清大便、生病、治療、小幫手（協定 2.6 節）。"""
+def test_http_poop_sick_cure(h):
+    """大便、清大便、生病、治療（協定 2.6 節）。打掃牛 2026-10-10 取消，不能再雇。"""
     tok = h.session()["token"]
     p = give(h, tok, coins=1_000_000)
     created = p.created_at
@@ -341,16 +353,8 @@ def test_http_poop_sick_cure_helper(h):
     assert cured["expected_value"] == pv["expected_value_cured"]
     ach = {a["key"]: a for a in r["state"]["achievements"]}
     assert ach["healer"]["unlocked_at"] == r["server_time"] and ach["clean"]["unlocked_at"] is None
-    # 小幫手：預付最多 7 天（含還沒到期的），雇用那一刻先清一次
-    r = h.post("/v1/helper", tok, {"days": 3, "request_id": new_rid()}).json()
-    assert r["cost"] == int(3 * CP.helper_price_per_day) and r["helper"]["until"] == r["server_time"] + 3 * DAY
-    assert r["poop"]["total"] == 0
-    e = err(h.post("/v1/helper", tok, {"days": 5, "request_id": new_rid()}), 409, "max_days")
-    assert e["detail"] == {"max_days": CP.helper_max_days}
-    err(h.post("/v1/helper", tok, {"days": 0, "request_id": new_rid()}), 400, "bad_request")
-    give(h, tok, coins=0)
-    e = err(h.post("/v1/helper", tok, {"days": 1, "request_id": new_rid()}), 409, "not_enough_coins")
-    assert e["detail"] == {"need": int(CP.helper_price_per_day), "have": 0}
+    assert h.post("/v1/helper", tok, {"days": 3, "request_id": new_rid()}).status_code == 404  # 不能雇打掃牛了
+    assert "helper" not in r["state"]
 
 
 def test_http_floors(h):
@@ -391,3 +395,40 @@ def test_http_floors(h):
     }
     r = h.post("/v1/floor/use", tok, {"floor": "cushion", "request_id": new_rid()}).json()
     assert r["floors"]["current"] == "cushion"
+
+
+def test_http_robot(h):
+    """大便掃地機（協定 2.6 節；2026-10-10 改成耐久值、不能修）：買、耐久值往下扣、還在動不能買、壞了重買（可以換款）、
+    錯誤碼。"""
+    tok = h.session()["token"]
+    p = give(h, tok, coins=100_000)
+    err(h.post("/v1/robot/buy", tok, {"model": "turbo", "request_id": new_rid()}), 400, "bad_request")
+    assert h.post("/v1/robot/repair", tok, {"request_id": new_rid()}).status_code == 404  # 不能修了
+    h.advance(CP.poop_every_s, tick=False)
+    assert state(h, tok)["poop"]["total"] == 2
+    rid = new_rid()
+    r = h.post("/v1/robot/buy", tok, {"model": "basic", "request_id": rid}).json()
+    assert r["model"] == "basic" and r["cost"] == int(CP.robot_price[0]) and r["coins"] == 100_000 - r["cost"]
+    robot = {"model": "basic", "working": True, "since": r["server_time"], "durability": 100, "broken_at": None}
+    assert r["robot"] == robot
+    assert r["poop"]["total"] == 0  # 買來那一刻先清一次
+    assert h.post("/v1/robot/buy", tok, {"model": "basic", "request_id": rid}).json() == r  # 重送只扣一次
+    for m in ("basic", "sturdy"):  # 還在動：哪一款都不能買
+        e = err(h.post("/v1/robot/buy", tok, {"model": m, "request_id": new_rid()}), 409, "robot_working")
+        assert e["detail"] == {"model": "basic"}
+    h.advance(DAY, tick=False)
+    st = state(h, tok)
+    d = st["robot"]["durability"]
+    assert st["robot"]["working"] and 0 < d < 100 and d == math.ceil(p.farm.robot_durability(st["server_time"]))
+    until = p.farm.robot_until  # 白箱：買的時候照耐久值的種子算好的壞掉時間
+    h.advance(until - h.clock.now() + CP.poop_every_s, tick=False)
+    st = state(h, tok)
+    broken = {"model": "basic", "working": False, "since": r["server_time"], "durability": 0, "broken_at": until}
+    assert st["robot"] == broken and st["poop"]["total"] > 0
+    give(h, tok, coins=0)
+    e = err(h.post("/v1/robot/buy", tok, {"model": "sturdy", "request_id": new_rid()}), 409, "not_enough_coins")
+    assert e["detail"] == {"need": int(CP.robot_price[1]), "have": 0}
+    give(h, tok, coins=int(CP.robot_price[1]) + 1_000)
+    r3 = h.post("/v1/robot/buy", tok, {"model": "sturdy", "request_id": new_rid()}).json()  # 壞了重買，可以換款
+    assert r3["robot"]["model"] == "sturdy" and r3["robot"]["durability"] == 100 and r3["coins"] == 1_000
+    assert r3["robot"]["since"] == r3["server_time"] and r3["poop"]["total"] == 0

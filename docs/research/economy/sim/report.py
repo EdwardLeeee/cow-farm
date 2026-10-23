@@ -80,7 +80,7 @@ def goal_a() -> dict:
 
 # ---------------------------------------------------------------------------
 # (b) 各策略週收入、新增 a：耕田派 vs 乳牛派
-# v0.3 起「週收入」= 收入（賣出＋借種）− 照顧花費（地板、小幫手、飼料、治療），使用者 2026-10-08 選的口徑；
+# v0.3 起「週收入」= 收入（賣出＋借種）− 照顧花費（地板、掃地機、飼料、治療），使用者 2026-10-08 選的口徑；
 # 只算收入的照舊列出（revenue_*），只當參考、不算過不過。
 # ---------------------------------------------------------------------------
 def goal_b() -> dict:
@@ -162,7 +162,7 @@ CARE_ALL = STRATS + ("Z",)
 
 def goal_care() -> dict:
     """各人數、各玩法（含 Z 懶得照顧）：病牛的時間比例、飼料回報（豆粕看 B）、懶得照顧少賺多少、
-    小幫手（打掃牛）＋地板＋治療＋掃地機佔收入、最後有掃地機的比例、稀有小牛變雜種的比例。各 seed 加總再算比例。"""
+    地板＋治療＋掃地機佔收入、買過掃地機的比例、稀有小牛變雜種的比例。各 seed 加總再算比例。"""
     out = {}
     for n in S.POP_SEEDS:
         runs = [d for d in base_runs(n) if "care" in d]
@@ -180,16 +180,15 @@ def goal_care() -> dict:
             rev, feed, rare = tot("revenue"), tot("feed_spend"), tot("rare_grown")
             row[k] = {
                 "revenue_mean": rev / sum(c["n"] for c in cs),
-                "care_net_mean": (rev - tot("helper_spend") - tot("floor_spend") - tot("cure_spend") - tot("robot_spend") - feed)
+                "care_net_mean": (rev - tot("floor_spend") - tot("cure_spend") - tot("robot_spend") - feed)
                 / sum(c["n"] for c in cs),
                 "sick_share": statistics.fmean(c["sick_share"] for c in cs),
                 "feed_roi": tot("bonus_value") / feed if feed else None,
                 "feed_share": feed / rev if rev else None,
-                "care_spend_share": (tot("helper_spend") + tot("floor_spend") + tot("cure_spend") + tot("robot_spend")) / rev
-                if rev else None,
-                "helper_share": tot("helper_spend") / rev if rev else None,
+                "care_spend_share": (tot("floor_spend") + tot("cure_spend") + tot("robot_spend")) / rev if rev else None,
                 "robot_share": tot("robot_spend") / rev if rev else None,
                 "robot_owners": tot("robot_owners") / sum(c["n"] for c in cs),
+                "robot_buys_per_player": tot("robot_buys") / sum(c["n"] for c in cs),
                 "sick_per_player": tot("sick") / sum(c["n"] for c in cs),
                 "cures_per_player": tot("cures") / sum(c["n"] for c in cs),
                 "hybrid_share": tot("hybrid") / rare if rare else None,
@@ -529,7 +528,7 @@ def main() -> None:
         print("新增 c 商店：" + "  ".join(f"{g} 價 {sh['grades'][g]['price']:.0f} 淨賺 {sh['surplus'][g]:.0f} 每元 {sh['value_per_coin'][g]:.1f}" for g in ("A", "B", "C")) + f"  淨賺 max/min {sh['surplus_max_over_min']:.3f} pass={sh.get('pass')}")
     for n, p in sh["pops"].items():
         print(f"  {n:>6} 人 份額: " + " ".join(f"{g} {p['shares'][g]:.0%}" for g in ("A", "B", "C")))
-    print("v0.3 照顧：病牛時間（照顧好的最高）、懶得照顧÷乳牛派、小幫手＋地板＋治療佔收入、豆粕回報（B）")
+    print("v0.3 照顧：病牛時間（照顧好的最高）、懶得照顧÷乳牛派、地板＋治療＋掃地機佔收入、豆粕回報（B）")
     for n, row in goals["care"].items():
         sm = row["summary"]
         print(

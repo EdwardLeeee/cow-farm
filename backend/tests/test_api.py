@@ -142,7 +142,8 @@ def test_session_and_state_fields(h):
         "feeds",
         "poop",
         "floor",
-        "helper",
+        "feed_quotes",
+        "robot",
     ):
         assert k in st, k
     assert st["coins"] == OB.start_coins and isinstance(st["coins"], int)
@@ -169,6 +170,7 @@ def test_session_and_state_fields(h):
         "rename_price": 1000,  # S21：第二次起改名的價錢
         # v0.3 C1 照顧
         "feeds": [{"id": k, "kg": CP.feed_kg[i], "price": int(CP.feed_price[i])} for i, k in enumerate(FEED_IDS)],
+        "feed_kg_spread": 0.5,
         "feed_cap": CP.feed_cap,
         "feed_cooldown_h": 4.0,
         "calf_feed_cooldown_h": 0.75,
@@ -180,9 +182,12 @@ def test_session_and_state_fields(h):
             {"id": "cushion", "speed": 1.0, "late_speed": 0.75, "sick_mult": 0.5, "price": 3000, "rent_per_day": None},
         ],
         "floor_rent_max_days": CP.floor_rent_max_days,
-        "helper_per_day": int(CP.helper_price_per_day),
-        "helper_max_days": CP.helper_max_days,
-        "helper_clean_min": 30.0,
+        "robots": [
+            {"id": "basic", "price": int(CP.robot_price[0]), "life_days": 3.0},
+            {"id": "sturdy", "price": int(CP.robot_price[1]), "life_days": 7.0},
+        ],
+        "robot_clean_min": 60.0,
+        "robot_durability": 100,
         "cure_price": int(CP.cure_price),
         "sick_beef_mult": CP.sick_beef_mult,
         "poop_every_h": 3.0,
@@ -195,7 +200,8 @@ def test_session_and_state_fields(h):
     assert st["feeds"] == {k: 0 for k in FEED_IDS}
     assert st["poop"] == {"total": 0, "dirt": 0.0, "safe_until": st["server_time"] + CP.newbie_safe_s}
     assert st["floor"] == {"current": "dirt", "owned": ["dirt"], "rented": None, "rent_until": None}
-    assert st["helper"] == {"until": None}
+    assert "helper" not in st
+    assert st["robot"] == {"model": None, "working": False, "since": None, "durability": None, "broken_at": None}
     cows = {c["id"]: c for c in st["cows"]}
     assert len(cows) == 2
     for c in cows.values():

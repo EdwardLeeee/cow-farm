@@ -120,9 +120,9 @@ AMOUNT_KINDS = (
     "stud_out",
     "feed_buy",
     "cure",
-    "helper",
     "floor",
     "robot",
+    "feed_sell",
 )
 QTY_KINDS = (
     "milk",
@@ -148,9 +148,11 @@ QTY_KINDS = (
     "bonus_kg",
     "hybrid",
     "rare_grown",
+    "feed_sell",
+    "robot",  # 買了幾台掃地機
 )
-REVENUE_KINDS = ("milk", "beef", "rice", "stud_in")  # 收入 = 賣出收入 + 借種收入
-CARE_KINDS = ("floor", "helper", "feed_buy", "cure", "robot")  # v0.3 照顧花費（照研究模擬的 sim/world.py）
+REVENUE_KINDS = ("milk", "beef", "rice", "stud_in", "feed_sell")  # 收入 = 賣出 + 借種收入 + 賣回飼料（照研究模擬）
+CARE_KINDS = ("floor", "feed_buy", "cure", "robot")  # v0.3 照顧花費（照研究模擬的 sim/world.py）
 
 
 class Ledger:
@@ -406,7 +408,7 @@ def price_stats(ratios, lo=0.6, hi=1.7) -> dict:
 
 
 def strategy_weeks(w: ServiceWorld) -> Dict[str, dict]:
-    """各策略每週收入：weeks = 收入（賣牛奶、牛肉、稻米 + 借種收入）− 照顧花費（地板、小幫手、飼料、治療），
+    """各策略每週收入：weeks = 收入（賣牛奶、牛肉、稻米 + 借種收入）− 照顧花費（地板、掃地機、飼料、治療），
     v0.3 起玩法差距的目標用這個（使用者 2026-10-08，研究模擬 report.py 的 goal_b 同一個口徑）；revenue_weeks 只算收入，參考用。"""
     groups: Dict[str, list] = {}
     for b in w.bots:

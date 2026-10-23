@@ -2,7 +2,7 @@
 
 情境照 docs/research/economy/sim/scenarios.py（v0.2），目標照 docs/research/2026-09-economy.md 第 9 節：
 - 三種商品的價格 95% 以上的時間在基本價 0.6–1.7 倍。
-- 六種玩法每週收入「最高 ÷ 最低」≤ 1.5；耕田派 ÷ 乳牛派在 ±15% 內。v0.3 起「收入」扣掉照顧花費（地板、小幫手、飼料、治療），
+- 六種玩法每週收入「最高 ÷ 最低」≤ 1.5；耕田派 ÷ 乳牛派在 ±15% 內。v0.3 起「收入」扣掉照顧花費（地板、掃地機、飼料、治療），
   使用者 2026-10-08 選的口徑；只算收入的只印出來參考。
 - 大戶倒貨：2 小時內壓低的比例不超過理論上限（由參數算）；一次倒出的滑價比分批大。
 - 新手：第一次賣奶 ≤ 5 分鐘、第一次擴建中位數 10–20 分鐘、全部 30 分鐘內第一次配種。
@@ -58,12 +58,13 @@ TUNABLES = (
     "PANIC_SHIP_AGE_H",
     "SHOP_CHOICE_SCALE",
     "SICK_P_DAY",
-    "HELPER_AHEAD_D",
+    "RENT_AHEAD_D",
     "LAZY_CLEAN_H",
     "CURE_PROD_H",
     "FLOOR_GAIN",
     "ROBOT_SICK_PER_BREAK",
-    "ROBOT_PAYBACK_D",
+    "SPEC_BUY_RATIO",
+    "SPEC_SELL_MARGIN",
 )
 
 

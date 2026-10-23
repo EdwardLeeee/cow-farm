@@ -28,12 +28,14 @@ from typing import Dict, Iterable, List, NamedTuple, Optional, Sequence, Tuple
 
 from .params import (
     DAY,
+    FEED_HEADLINES,
     HEADLINES,
     HOUR,
     TZ_OFFSET_S,
     CommodityParams,
     EconomyParams,
     EventParams,
+    FeedMarketParams,
 )
 
 LN2 = math.log(2.0)
@@ -424,6 +426,304 @@ class Market:
 
 
 # ---------------------------------------------------------------------------
+# 飼料市場（v0.3 B）：玩家跟市場買、可以賣回（手續費），買進推高、賣回壓低
+# ---------------------------------------------------------------------------
+class FeedTrade(NamedTuple):
+    amount: float  # 買：總花費；賣回：總收入（已扣手續費）。幣，未取整
+    units: float  # 份數
+    counted: float  # 計入壓力的量（受每位玩家上限限制）
+    avg_slip: float  # 平均滑價（買：多付的比例；賣回：少拿的比例，不含手續費）
+    price: float  # 成交當下的市價（每份）
+
+
+class FeedMarket:
+    """一種飼料的全服市價（參數 FeedMarketParams，說明在那裡）。跟 Market 一樣是真實時間的連續模型，
+    每個 tick 呼叫 step；成交記在 pending，下一個 tick 才算進壓力（T1）。"""
+
+    def __init__(self, fp: FeedMarketParams, fid: str, base_price: float, t0: float, rng: random.Random) -> None:
+        self.fp = fp
+        self.id = fid
+        self.base_price = base_price
+        self.rng = rng
+        self.t_start = t0
+        self.t = t0
+        self.x = 0.0  # 雜訊（對數）
+        self.y = 0.0  # 壓力（對數，正 = 推高）
+        self.y_base = 0.0  # 壓力的長期平均（被吸收的部分）
+        self.buy_flow = 0.0  # 計入壓力的買進流量，平滑後（份／小時）
+        self.sell_flow = 0.0  # 計入壓力的賣回流量
+        self.online = 0.0
+        self.ref_flow = fp.ref_flow_prior  # 平常的買進量（份／小時）
+        self.ref_online = 0.0
+        self._ord_wq = fp.order_size_prior * fp.order_size_prior
+        self._ord_w = fp.order_size_prior
+        self.pending_buy = 0.0
+        self.pending_sell = 0.0
+        self.pending_actual = 0.0
+        self.pending_ord_w = 0.0
+        self.pending_ord_wq = 0.0
+        self.event_log = 0.0
+        self.season_log = seasonal_log(fp, t0)
+        self.excess = 0.0
+        self.price = base_price * math.exp(self.season_log)
+        self._hist: deque = deque()
+        self._hist_sum = 0.0
+        self.last_contribution: Optional[Tuple[float, ...]] = None
+        self._push_hist(t0, self.price)
+
+    # ---- 讀取 ----
+    def supply_rate(self) -> float:
+        """平常的買進量 R（份／小時）= 長期平均買進量 × (線上 + 電腦飼料商) / (平均線上 + 電腦飼料商)。"""
+        fp = self.fp
+        npc = fp.npc_online_equiv
+        ref = max(self.ref_flow, 0.1 * fp.ref_flow_prior)
+        online = min(self.online, fp.online_surge_cap * max(self.ref_online, 1.0))
+        return ref * (online + npc) / (self.ref_online + npc)
+
+    def typical_order(self) -> float:
+        return self._ord_wq / self._ord_w
+
+    def depth(self) -> float:
+        fp = self.fp
+        return max(self.supply_rate() * fp.slip_window_s / HOUR, fp.slip_typical_mult * self.typical_order())
+
+    def ratio(self) -> float:
+        return self.price / self.base_price
+
+    @property
+    def pressure(self) -> float:
+        return self.y - self.y_base
+
+    @property
+    def ratio_ex_news(self) -> float:
+        """新聞以外的部分（時段 × 雜訊 × 壓力，基本價倍數），已經過硬邊界。"""
+        return min(max(math.exp(self.season_log + self.x + self.pressure), self.fp.hard_lo), self.fp.hard_hi)
+
+    def moving_average(self) -> float:
+        return self._hist_sum / len(self._hist)
+
+    # ---- 成交 ----
+    def _refreshed_impact(self, imp: ImpactState, now: float, rate: float) -> Tuple[float, float]:
+        fp = self.fp
+        cap = fp.player_cap_frac * rate * fp.player_cap_window_s / HOUR
+        if imp.t is None or imp.allow is None:
+            return 0.0, cap
+        dt = max(0.0, now - imp.t)
+        recent = imp.recent * math.exp(-dt / fp.slip_decay_s)
+        allow = min(cap, imp.allow + fp.player_cap_frac * rate * dt / HOUR)
+        return recent, allow
+
+    def _slip(self, recent: float, q: float) -> float:
+        """這一筆（累積量從 recent 到 recent + q）的平均滑價比例。"""
+        fp = self.fp
+        return fp.slip_kappa * _ramp_integral(recent, recent + q, self.depth(), fp.slip_qmax) / q
+
+    def quote_buy(self, imp: ImpactState, qty: float, now: float) -> FeedTrade:
+        """買 qty 份要花多少（不改狀態）：市價 ×（1 + 滑價）。"""
+        rate = self.supply_rate()
+        recent, allow = self._refreshed_impact(imp, now, rate)
+        if qty <= 0:
+            return FeedTrade(0.0, 0.0, 0.0, 0.0, self.price)
+        slip = self._slip(recent, qty)
+        return FeedTrade(qty * self.price * (1.0 + slip), qty, min(qty, allow), slip, self.price)
+
+    def quote_sell(self, imp: ImpactState, qty: float, now: float) -> FeedTrade:
+        """賣回 qty 份拿多少（不改狀態）：市價 ×（1 − 手續費）×（1 − 滑價）。"""
+        rate = self.supply_rate()
+        recent, allow = self._refreshed_impact(imp, now, rate)
+        if qty <= 0:
+            return FeedTrade(0.0, 0.0, 0.0, 0.0, self.price)
+        slip = self._slip(recent, qty)
+        return FeedTrade(
+            qty * self.price * (1.0 - self.fp.sell_fee) * (1.0 - slip), qty, min(qty, allow), slip, self.price
+        )
+
+    def _execute(self, imp: ImpactState, qty: float, now: float, sell: bool) -> FeedTrade:
+        res = self.quote_sell(imp, qty, now) if sell else self.quote_buy(imp, qty, now)
+        rate = self.supply_rate()
+        recent, allow = self._refreshed_impact(imp, now, rate)
+        imp.recent = recent + res.units
+        imp.allow = allow - res.counted
+        imp.t = now
+        self.last_contribution = None
+        if res.units > 0:
+            if sell:
+                c = (-1.0, res.counted, 0.0, 0.0, 0.0)  # 賣回只算進壓力，不算平常的買進量和單量
+            else:
+                capped = min(res.units, self.fp.order_size_update_cap * self.typical_order())
+                c = (1.0, res.counted, capped, res.units, res.units * capped)
+            self.last_contribution = c
+            self.apply_contribution(c)
+        return res
+
+    def execute_buy(self, imp: ImpactState, qty: float, now: float) -> FeedTrade:
+        return self._execute(imp, qty, now, sell=False)
+
+    def execute_sell(self, imp: ImpactState, qty: float, now: float) -> FeedTrade:
+        return self._execute(imp, qty, now, sell=True)
+
+    def apply_contribution(self, c: Sequence[float]) -> None:
+        """c = (方向：1 買、−1 賣回, 計入壓力的量, 計入平常買進量的量, 份數, 份數 × 計入平常買進量的量)。
+        伺服器存進成交紀錄，當機重啟時照順序再加一次（跟 Market.apply_contribution 一樣）。"""
+        if c[0] > 0:
+            self.pending_buy += c[1]
+            self.pending_actual += c[2]
+            self.pending_ord_w += c[3]
+            self.pending_ord_wq += c[4]
+        else:
+            self.pending_sell += c[1]
+
+    def undo_contribution(self, c: Sequence[float]) -> None:
+        """apply_contribution 的反向（伺服器存檔失敗、動作要退回時用）。"""
+        if c[0] > 0:
+            self.pending_buy -= c[1]
+            self.pending_actual -= c[2]
+            self.pending_ord_w -= c[3]
+            self.pending_ord_wq -= c[4]
+        else:
+            self.pending_sell -= c[1]
+
+    # ---- 每個 tick ----
+    def step(self, now: float, online_count: float, event_log: float) -> None:
+        fp = self.fp
+        dt = now - self.t
+        if dt <= 0:
+            return
+        h = dt / HOUR
+        a_on = 1.0 - math.exp(-dt / fp.online_tau_s)
+        self.online += a_on * (online_count - self.online)
+
+        tau_ref = min(fp.ref_tau_s, fp.ref_warmup_s + (self.t - self.t_start))
+        a_ref = 1.0 - math.exp(-dt / tau_ref)
+        self.ref_flow += a_ref * (self.pending_actual / h - self.ref_flow)
+        self.ref_online += a_ref * (online_count - self.ref_online)
+        tau_ord = min(fp.order_size_tau_s, fp.ref_warmup_s + (self.t - self.t_start))
+        d_ord = math.exp(-dt / tau_ord)
+        self._ord_wq = self._ord_wq * d_ord + self.pending_ord_wq
+        self._ord_w = self._ord_w * d_ord + self.pending_ord_w
+        if self._ord_w < 1e-9:
+            self._ord_wq, self._ord_w = fp.order_size_prior * fp.order_size_prior, fp.order_size_prior
+
+        # 買進、賣回的流量：這段時間的量視為在區間開頭進場，指數平滑（同 Market）
+        tau_f_h = fp.flow_tau_s / HOUR
+        decay_f = math.exp(-dt / fp.flow_tau_s)
+        start_b = self.buy_flow + self.pending_buy / tau_f_h
+        start_s = self.sell_flow + self.pending_sell / tau_f_h
+        avg_b = start_b * (fp.flow_tau_s / dt) * (1.0 - decay_f)
+        avg_s = start_s * (fp.flow_tau_s / dt) * (1.0 - decay_f)
+        self.buy_flow = start_b * decay_f
+        self.sell_flow = start_s * decay_f
+
+        e = (avg_b - avg_s) / self.supply_rate() - 1.0
+        e = min(max(e, -1.0 - fp.excess_clip), fp.excess_clip)
+        self.excess = e
+        if e > 0.0:
+            g = fp.hot_per_h * e
+        elif e >= -1.0:
+            g = fp.cold_per_h * e
+        else:
+            g = -fp.cold_per_h - fp.hot_per_h * (-1.0 - e)
+
+        # 壓力 y：dy/dt = −k_y·y + g（g 在區間內視為常數，精確解）
+        k_y = LN2 / (fp.pressure_half_life_s / HOUR)
+        dec_y = math.exp(-k_y * h)
+        self.y = self.y * dec_y + (g / k_y) * (1.0 - dec_y)
+        tau_abs = min(fp.pressure_absorb_s, fp.ref_warmup_s + (self.t - self.t_start))
+        self.y_base += (1.0 - math.exp(-dt / tau_abs)) * (self.y - self.y_base)
+
+        dec_x = math.exp(-LN2 * dt / fp.noise_half_life_s)
+        self.x = self.x * dec_x + fp.noise_sd * math.sqrt(1.0 - dec_x * dec_x) * self.rng.gauss(0.0, 1.0)
+
+        self.season_log = seasonal_log(fp, now)
+        self.event_log = event_log
+        r = self.season_log + self.x + self.pressure
+        lo, hi = math.log(fp.soft_lo), math.log(fp.soft_hi)
+        if r > hi or r < lo:
+            edge = hi if r > hi else lo
+            over = r - edge
+            corr = over * (1.0 - math.exp(-LN2 * dt / fp.soft_half_life_s))
+            s = 1.0 if over > 0 else -1.0
+            wx = max(0.0, s * self.x)
+            wy = max(0.0, s * self.pressure)
+            if wx + wy <= 0.0:
+                self.x -= corr
+            else:
+                self.x -= corr * wx / (wx + wy)
+                self.y -= corr * wy / (wx + wy)
+
+        ratio = min(max(self.ratio_ex_news * math.exp(event_log), fp.price_lo), fp.price_hi)
+        self.price = self.base_price * ratio
+
+        self.pending_buy = 0.0
+        self.pending_sell = 0.0
+        self.pending_actual = 0.0
+        self.pending_ord_w = 0.0
+        self.pending_ord_wq = 0.0
+        self.t = now
+        self._push_hist(now, self.price)
+
+    def _push_hist(self, t: float, p: float) -> None:
+        self._hist.append((t, p))
+        self._hist_sum += p
+        limit = t - self.fp.ma_window_s
+        while self._hist and self._hist[0][0] < limit:
+            self._hist_sum -= self._hist.popleft()[1]
+
+    # ---- 存檔與回復 ----
+    _STATE_FIELDS = (
+        "t_start",
+        "t",
+        "x",
+        "y",
+        "y_base",
+        "buy_flow",
+        "sell_flow",
+        "online",
+        "ref_flow",
+        "ref_online",
+        "_ord_wq",
+        "_ord_w",
+        "pending_buy",
+        "pending_sell",
+        "pending_actual",
+        "pending_ord_w",
+        "pending_ord_wq",
+        "event_log",
+        "season_log",
+        "excess",
+        "price",
+        "_hist_sum",
+    )
+
+    def to_dict(self, include_hist: bool = True) -> dict:
+        d = {"id": self.id, "base_price": self.base_price}
+        for k in self._STATE_FIELDS:
+            d[k.lstrip("_")] = getattr(self, k)
+        d["rng"] = rng_to_state(self.rng)
+        if include_hist:
+            d["hist"] = [[t, p] for t, p in self._hist]
+        return d
+
+    @classmethod
+    def from_dict(cls, fp: FeedMarketParams, base_price: float, d: dict) -> "FeedMarket":
+        """從 to_dict() 回復。基本價用參數的（存檔裡的只供除錯）；沒有歷史時只剩目前價格一筆。"""
+        m = cls.__new__(cls)
+        m.fp = fp
+        m.id = d["id"]
+        m.base_price = base_price
+        for k in cls._STATE_FIELDS:
+            setattr(m, k, d[k.lstrip("_")])
+        m.rng = rng_from_state(d["rng"])
+        m.last_contribution = None
+        hist = d.get("hist")
+        m._hist = deque((float(t), float(p)) for t, p in hist) if hist else deque()
+        if not m._hist:
+            m._hist.append((m.t, m.price))
+            m._hist_sum = m.price
+        return m
+
+
+# ---------------------------------------------------------------------------
 # 新聞事件
 # ---------------------------------------------------------------------------
 def tier_for_factor(ep: EventParams, factor: float) -> str:
@@ -543,11 +843,21 @@ class EventGenerator:
     """Poisson 新聞事件。每則事件的所有屬性在抽到發生時間時一次抽完，所以結果與 tick 大小無關。"""
 
     def __init__(
-        self, ep: EventParams, rng: random.Random, t0: float, commodity_ids: Sequence[str] = ("milk", "beef", "rice")
+        self,
+        ep: EventParams,
+        rng: random.Random,
+        t0: float,
+        commodity_ids: Sequence[str] = ("milk", "beef", "rice"),
+        headlines: Optional[Dict[str, Tuple[str, ...]]] = None,
+        eid_base: int = 0,
     ):
+        """headlines：標題表（沒給 = 牛奶等的 HEADLINES；飼料用 FEED_HEADLINES）。eid_base：事件編號從這裡往上加
+        （飼料新聞用 FEED_EID_BASE，跟牛奶等的新聞編號不會重複）。"""
         self.ep = ep
         self.rng = rng
         self.cids = tuple(commodity_ids)
+        self.headlines = HEADLINES if headlines is None else headlines
+        self.eid_base = eid_base
         self._n = 0
         self._queue: List[MarketEvent] = []  # 已抽出、還沒公開
         self._next_start = t0 + self._gap()
@@ -590,17 +900,17 @@ class EventGenerator:
         up = r.random() < up_p  # 超級大事件 up_p = 1（只往上）、黑天鵝 0（只往下）
         announced = r.random() < ep.announce_prob  # D33 起 announce_prob 是 0；照樣抽，之後的亂數才跟以前一樣
         hl = r.uniform(ep.half_life_lo_s, ep.half_life_hi_s)
-        pool = HEADLINES[key + ("+" if up else "-")]
+        pool = self.headlines[key + ("+" if up else "-")]
         i = r.randrange(len(pool))
         headline = pool[i]
-        special = HEADLINES.get(key + ("++" if tier == "super" else "--")) if tier in ("super", "crash") else None
+        special = self.headlines.get(key + ("++" if tier == "super" else "--")) if tier in ("super", "crash") else None
         if special:
             # 超級大事件、黑天鵝用專屬標題。不另外抽亂數（抽法跟以前一樣，模擬的數字才不受標題影響）：
             # 用上面抽到的 i 加事件編號挑，三則大約一樣常出現
             headline = special[(i + self._n) % len(special)]
         self._n += 1
         return MarketEvent(
-            eid=self._n,
+            eid=self.eid_base + self._n,
             targets=targets,
             factor=(1.0 + mag) if up else (1.0 - mag),
             announce_at=start - ep.announce_lead_s if announced else start,
@@ -619,14 +929,19 @@ class EventGenerator:
             "queue": [ev.to_state() for ev in self._queue],
             "rng": rng_to_state(self.rng),
             "commodities": list(self.cids),
+            **({"eid_base": self.eid_base} if self.eid_base else {}),
         }
 
     @classmethod
-    def from_dict(cls, ep: EventParams, d: dict) -> "EventGenerator":
+    def from_dict(
+        cls, ep: EventParams, d: dict, headlines: Optional[Dict[str, Tuple[str, ...]]] = None
+    ) -> "EventGenerator":
         g = cls.__new__(cls)
         g.ep = ep
         g.rng = rng_from_state(d["rng"])
         g.cids = tuple(d["commodities"])
+        g.headlines = HEADLINES if headlines is None else headlines
+        g.eid_base = d.get("eid_base", 0)
         g._n = d["n"]
         g._queue = [MarketEvent.from_state(e) for e in d["queue"]]
         g._next_start = d["next_start"]
@@ -646,6 +961,9 @@ class EventGenerator:
 # ---------------------------------------------------------------------------
 # 交易所：多種商品 + 共用事件
 # ---------------------------------------------------------------------------
+FEED_EID_BASE = 1_000_000  # 飼料新聞的事件編號從這裡往上（牛奶等的新聞編號從 1 開始，不會重複）
+
+
 class Exchange:
     def __init__(
         self,
@@ -654,8 +972,12 @@ class Exchange:
         t0: float,
         commodity_ids: Optional[Sequence[str]] = None,
         events_enabled: bool = True,
+        feeds_enabled: bool = True,
     ):
-        """commodity_ids 沒給就用 params.commodity_ids（v0.2：牛奶、牛肉、稻米）。"""
+        """commodity_ids 沒給就用 params.commodity_ids（v0.2：牛奶、牛肉、稻米）。
+
+        v0.3 B：另外有六種飼料的市場（feeds）和飼料新聞（feed_generator），亂數各自分開
+        （f"{seed}:noise:<飼料>"、f"{seed}:feed-events"），所以牛奶、牛肉、稻米的行情跟沒有飼料市場時逐數字相同。"""
         if commodity_ids is None:
             commodity_ids = params.commodity_ids
         self.params = params
@@ -672,6 +994,40 @@ class Exchange:
         self.event_log_history: List[MarketEvent] = []  # 全部出現過的事件（分析用）
         self._cap_hi = math.log(params.events.total_cap_up)
         self._cap_lo = math.log(params.events.total_cap_down)
+        self._init_feeds(seed, t0, events_enabled if feeds_enabled else False, feeds_enabled)
+
+    def _init_feeds(self, seed, t0: float, events_enabled: bool, enabled: bool = True) -> None:
+        p = self.params
+        cp = p.care
+        self.feeds: Dict[str, FeedMarket] = (
+            {
+                fid: FeedMarket(p.feedmarket, fid, cp.feed_price[i], t0, random.Random(f"{seed}:noise:{fid}"))
+                for i, fid in enumerate(cp.feed_ids)
+            }
+            if enabled
+            else {}
+        )
+        self.feed_generator: Optional[EventGenerator] = (
+            EventGenerator(
+                p.feed_events,
+                random.Random(f"{seed}:feed-events"),
+                t0,
+                cp.feed_ids,
+                headlines=FEED_HEADLINES,
+                eid_base=FEED_EID_BASE,
+            )
+            if enabled and events_enabled
+            else None
+        )
+        self.feed_events: List[MarketEvent] = []
+        self.feed_event_history: List[MarketEvent] = []
+        self._feed_cap_hi = math.log(p.feed_events.total_cap_up)
+        self._feed_cap_lo = math.log(p.feed_events.total_cap_down)
+
+    def market_any(self, cid: str):
+        """牛奶等的 Market 或飼料的 FeedMarket（伺服器當機回復時照成交紀錄的商品代號找）。"""
+        m = self.markets.get(cid)
+        return m if m is not None else self.feeds[cid]
 
     def inject_event(
         self,
@@ -699,6 +1055,38 @@ class Exchange:
         self.event_log_history.append(ev)
         return ev
 
+    def inject_feed_event(
+        self, targets: Sequence[str], factor: float, start_at: float, half_life_s: float, headline: str = "（測試事件）"
+    ) -> MarketEvent:
+        """測試、情境用：手動加一則飼料新聞。"""
+        ep = self.params.feed_events
+        ev = MarketEvent(
+            eid=-(FEED_EID_BASE + len(self.feed_event_history) + 1),
+            targets=targets,
+            factor=factor,
+            announce_at=start_at,
+            start_at=start_at,
+            ramp_s=ep.ramp_s,
+            half_life_s=half_life_s,
+            lifetime_hl=ep.lifetime_half_lives,
+            headline=headline,
+            tier=tier_for_factor(ep, factor),
+        )
+        self.feed_events.append(ev)
+        self.feed_event_history.append(ev)
+        return ev
+
+    def feed_event_log_for(self, fid: str, t: float) -> float:
+        z = 0.0
+        for ev in self.feed_events:
+            if fid in ev.targets:
+                z += ev.log_effect(t)
+        return min(max(z, self._feed_cap_lo), self._feed_cap_hi)
+
+    def feed_started(self, now: float) -> List[MarketEvent]:
+        """已經開始、還沒結束的飼料新聞（電腦玩家在新聞開始後才知道）。"""
+        return [ev for ev in self.feed_events if ev.start_at <= now < ev.end_at]
+
     def event_log_for(self, cid: str, t: float) -> float:
         z = 0.0
         for ev in self.events:
@@ -719,6 +1107,15 @@ class Exchange:
             m.step(now, online_count, self.event_log_for(cid, now))
         if self.events:
             self.events = [ev for ev in self.events if ev.end_at > now]
+        # v0.3 B：飼料市場在牛奶等之後走（亂數分開，順序不影響牛奶等）
+        if self.feed_generator is not None:
+            new = self.feed_generator.advance(now)
+            self.feed_events.extend(new)
+            self.feed_event_history.extend(new)
+        for fid, fm in self.feeds.items():
+            fm.step(now, online_count, self.feed_event_log_for(fid, now))
+        if self.feed_events:
+            self.feed_events = [ev for ev in self.feed_events if ev.end_at > now]
         self.t = now
 
     def upcoming(self, now: float) -> List[MarketEvent]:
@@ -749,16 +1146,26 @@ class Exchange:
             "markets": {cid: m.to_dict(include_hist=include_hist) for cid, m in self.markets.items()},
             "generator": self.generator.to_dict() if self.generator is not None else None,
             "events": [ev.to_state() for ev in self.events],
+            # v0.3 B：飼料市場（伺服器存在 meta 的 exchange 裡，價格歷史不另存）
+            "feeds": {fid: fm.to_dict(include_hist=include_hist) for fid, fm in self.feeds.items()},
+            "feed_generator": self.feed_generator.to_dict() if self.feed_generator is not None else None,
+            "feed_events": [ev.to_state() for ev in self.feed_events],
         }
         if include_history:
             d["history"] = [ev.to_state() for ev in self.event_log_history]
+            d["feed_history"] = [ev.to_state() for ev in self.feed_event_history]
         return d
 
     @classmethod
     def from_dict(
-        cls, params: EconomyParams, d: dict, hist: Optional[Dict[str, Iterable[Tuple[float, float]]]] = None
+        cls,
+        params: EconomyParams,
+        d: dict,
+        hist: Optional[Dict[str, Iterable[Tuple[float, float]]]] = None,
+        seed=None,
     ) -> "Exchange":
-        """從 to_dict() 回復。hist = {商品: [(時間, 價格), ...]}，存檔沒有含歷史時由呼叫端補。"""
+        """從 to_dict() 回復。hist = {商品: [(時間, 價格), ...]}，存檔沒有含歷史時由呼叫端補。
+        v0.3 B 以前的存檔沒有飼料市場：從存檔的時間、基本價開始（seed 給伺服器的世界種子，亂數才跟新建的一樣導出）。"""
         ex = cls.__new__(cls)
         ex.params = params
         ex.t = d["t"]
@@ -781,4 +1188,29 @@ class Exchange:
             ex.event_log_history = list(ex.events)
         ex._cap_hi = math.log(params.events.total_cap_up)
         ex._cap_lo = math.log(params.events.total_cap_down)
+        if "feeds" not in d:  # v0.3 B 以前的存檔
+            ex._init_feeds(seed if seed is not None else f"restored:{d['t']!r}", d["t"], d.get("generator") is not None)
+            return ex
+        cp = params.care
+        ex.feeds = {
+            fid: FeedMarket.from_dict(params.feedmarket, cp.feed_price[cp.feed_ids.index(fid)], fd)
+            for fid, fd in d["feeds"].items()
+        }
+        ex.feed_generator = (
+            EventGenerator.from_dict(params.feed_events, d["feed_generator"], headlines=FEED_HEADLINES)
+            if d.get("feed_generator") is not None
+            else None
+        )
+        by_id = {}
+        if "feed_history" in d:
+            ex.feed_event_history = []
+            for e in d["feed_history"]:
+                ev = MarketEvent.from_state(e)
+                by_id[ev.eid] = ev
+                ex.feed_event_history.append(ev)
+        ex.feed_events = [by_id.get(e["id"]) or MarketEvent.from_state(e) for e in d["feed_events"]]
+        if "feed_history" not in d:
+            ex.feed_event_history = list(ex.feed_events)
+        ex._feed_cap_hi = math.log(params.feed_events.total_cap_up)
+        ex._feed_cap_lo = math.log(params.feed_events.total_cap_down)
         return ex
