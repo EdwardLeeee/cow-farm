@@ -25,7 +25,7 @@ dependencies:
   # 登入 token：手機存 Keychain／Keystore（T1：不用 shared_preferences）。
   flutter_secure_storage: ^11.2.0
   # 網頁版把 token 存在瀏覽器 localStorage（區網 http 不是安全環境，無法用 WebCrypto）。
-  web: ^1.1.0
+  web: ^1.1.2
   # 偏好設定（語言、漲跌顏色）；不是帳，也不放 token（T1）。
   shared_preferences: ^2.5.6
   # 牛、圖示、場景是 cow-ui 匯出的 SVG，執行時讀（T3；ceo 2026-10-02：不在建置時轉換）。
