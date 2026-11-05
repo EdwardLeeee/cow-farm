@@ -29,7 +29,7 @@ dependencies:
   # 偏好設定（語言、漲跌顏色）；不是帳，也不放 token（T1）。
   shared_preferences: ^2.5.6
   # 牛、圖示、場景是 cow-ui 匯出的 SVG，執行時讀（T3；ceo 2026-10-02：不在建置時轉換）。
-  flutter_svg: ^2.3.0
+  flutter_svg: ^2.3.2
   # 牧場場景（D4、T3）：牛走動（A-11）、轉身（A-07）。版本同 T2 的測試版。
   flame: 1.38.2
   # Apple／Google 登入（備份、找回牧場；研究筆記 docs/research/2026-10-app-sign-in.md）。版本釘死：Google 每次登入
@@ -44,7 +44,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   # test/cow_assets_test.dart 算素材的 SHA-256
-  crypto: ^3.0.0
+  crypto: ^3.0.8
   flutter_lints: ^6.0.0
 
 flutter:
