@@ -1,7 +1,7 @@
 # cow-farm M1 伺服器（Python 3.10）。版本沿用 docs/research/tech-stack/backend 實測過的組合。
-fastapi==0.143.0
-starlette==1.7.0
-pydantic==2.14.1
+fastapi==0.162.2
+starlette==1.10.0
+pydantic==2.14.3
 uvicorn==0.54.0
 websockets==16.1.1
 asyncpg==0.32.0
@@ -11,4 +11,4 @@ cryptography==50.0.2
 # 呼叫 Apple 的 REST API（換 refresh token、撤銷）；測試也用它打真的伺服器
 httpx==0.28.1
 # 測試
-pytest==9.1.1
+pytest==9.2.0
